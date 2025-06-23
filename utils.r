@@ -1,8 +1,8 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis - Utility Functions (Optimized)
-# Version: 4.0.3 (Performance Optimized)
+# Version: 4.0.4 (Bowtie Structure Fixed)
 # Date: June 2025
-# Description: Optimized helper functions with caching and performance improvements
+# Description: Optimized helper functions with corrected bowtie barrier connections
 #
 # PERFORMANCE OPTIMIZATIONS IMPLEMENTED:
 # - Vectorized operations for risk calculations
@@ -11,6 +11,12 @@
 # - Optimized data structures using integers where possible
 # - Reduced string operations and repeated calculations
 # - Memory-efficient data generation and processing
+#
+# BOWTIE STRUCTURE CORRECTIONS:
+# - Fixed barrier connections to show proper intervention points
+# - Preventive barriers now correctly intercept threat → hazard paths
+# - Protective barriers now correctly intercept hazard → consequence paths
+# - Added clear visual distinction between causal flow and barrier intervention
 # =============================================================================
 
 # Cache for expensive computations
@@ -310,7 +316,7 @@ createBowtieNodes <- function(hazard_data, selected_hazard, node_size, show_risk
   nodes
 }
 
-# Optimized edge creation
+# Optimized edge creation with correct bowtie logic
 createBowtieEdges <- function(hazard_data, show_barriers) {
   # Create simple cache key without digest dependency
   cache_key <- paste0("edges_", nrow(hazard_data), "_", show_barriers, "_", 
@@ -322,73 +328,126 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
   threats <- unique(hazard_data$Threat[hazard_data$Threat != ""])
   consequences <- unique(hazard_data$Consequence[hazard_data$Consequence != ""])
   
-  # Pre-calculate edge count
-  n_threat_edges <- length(threats)
-  n_cons_edges <- length(consequences)
-  n_barrier_edges <- 0
+  # Initialize edge vectors
+  from <- integer(0)
+  to <- integer(0)
+  arrows <- character(0)
+  colors <- character(0)
+  widths <- numeric(0)
+  dashes <- logical(0)
   
-  if (show_barriers) {
+  # Main causal path edges - Threat to hazard (without barriers)
+  if (!show_barriers) {
+    # Direct threat to hazard connections (red solid arrows)
+    for (i in seq_along(threats)) {
+      from <- c(from, 100 + i)
+      to <- c(to, 1)
+      arrows <- c(arrows, "to")
+      colors <- c(colors, "#E74C3C")
+      widths <- c(widths, 3)
+      dashes <- c(dashes, FALSE)
+    }
+    
+    # Direct hazard to consequence connections (red solid arrows)
+    for (i in seq_along(consequences)) {
+      from <- c(from, 1)
+      to <- c(to, 200 + i)
+      arrows <- c(arrows, "to")
+      colors <- c(colors, "#E74C3C")
+      widths <- c(widths, 3)
+      dashes <- c(dashes, FALSE)
+    }
+  } else {
+    # With barriers: Create proper bowtie structure
     prev_barriers <- unique(hazard_data$Preventive_Barrier[hazard_data$Preventive_Barrier != ""])
     prot_barriers <- unique(hazard_data$Protective_Barrier[hazard_data$Protective_Barrier != ""])
     
-    # Calculate barrier edges more efficiently
-    for (barrier in prev_barriers) {
-      n_barrier_edges <- n_barrier_edges + sum(hazard_data$Preventive_Barrier == barrier)
+    # For each threat, create path: Threat → Preventive Barrier → Hazard
+    for (i in seq_along(threats)) {
+      threat <- threats[i]
+      # Find the preventive barrier for this threat
+      barrier_for_threat <- hazard_data$Preventive_Barrier[hazard_data$Threat == threat][1]
+      
+      if (!is.na(barrier_for_threat) && barrier_for_threat != "") {
+        # Find barrier ID
+        barrier_idx <- which(prev_barriers == barrier_for_threat)
+        if (length(barrier_idx) > 0) {
+          barrier_id <- 300 + barrier_idx
+          
+          # Threat → Preventive Barrier (red solid)
+          from <- c(from, 100 + i)
+          to <- c(to, barrier_id)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#E74C3C")
+          widths <- c(widths, 2)
+          dashes <- c(dashes, FALSE)
+          
+          # Preventive Barrier → Hazard (green dashed - barrier intervenes)
+          from <- c(from, barrier_id)
+          to <- c(to, 1)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#27AE60")
+          widths <- c(widths, 2)
+          dashes <- c(dashes, TRUE)
+        }
+      } else {
+        # No barrier - direct connection
+        from <- c(from, 100 + i)
+        to <- c(to, 1)
+        arrows <- c(arrows, "to")
+        colors <- c(colors, "#E74C3C")
+        widths <- c(widths, 3)
+        dashes <- c(dashes, FALSE)
+      }
     }
-    for (barrier in prot_barriers) {
-      n_barrier_edges <- n_barrier_edges + sum(hazard_data$Protective_Barrier == barrier)
+    
+    # For each consequence, create path: Hazard → Protective Barrier → Consequence
+    for (i in seq_along(consequences)) {
+      consequence <- consequences[i]
+      # Find the protective barrier for this consequence
+      barrier_for_cons <- hazard_data$Protective_Barrier[hazard_data$Consequence == consequence][1]
+      
+      if (!is.na(barrier_for_cons) && barrier_for_cons != "") {
+        # Find barrier ID
+        barrier_idx <- which(prot_barriers == barrier_for_cons)
+        if (length(barrier_idx) > 0) {
+          barrier_id <- 400 + barrier_idx
+          
+          # Hazard → Protective Barrier (red solid)
+          from <- c(from, 1)
+          to <- c(to, barrier_id)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#E74C3C")
+          widths <- c(widths, 2)
+          dashes <- c(dashes, FALSE)
+          
+          # Protective Barrier → Consequence (blue dashed - barrier mitigates)
+          from <- c(from, barrier_id)
+          to <- c(to, 200 + i)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#3498DB")
+          widths <- c(widths, 2)
+          dashes <- c(dashes, TRUE)
+        }
+      } else {
+        # No barrier - direct connection
+        from <- c(from, 1)
+        to <- c(to, 200 + i)
+        arrows <- c(arrows, "to")
+        colors <- c(colors, "#E74C3C")
+        widths <- c(widths, 3)
+        dashes <- c(dashes, FALSE)
+      }
     }
-  }
-  
-  total_edges <- n_threat_edges + n_cons_edges + n_barrier_edges
-  
-  # Pre-allocate edge vectors
-  from <- integer(total_edges)
-  to <- integer(total_edges)
-  arrows <- character(total_edges)
-  colors <- character(total_edges)
-  widths <- numeric(total_edges)
-  dashes <- logical(total_edges)
-  
-  idx <- 1
-  
-  # Threat to hazard edges
-  if (n_threat_edges > 0) {
-    threat_indices <- idx:(idx + n_threat_edges - 1)
-    from[threat_indices] <- 100 + seq_len(n_threat_edges)
-    to[threat_indices] <- 1
-    arrows[threat_indices] <- "to"
-    colors[threat_indices] <- "#E74C3C"
-    widths[threat_indices] <- 3
-    dashes[threat_indices] <- FALSE
-    idx <- idx + n_threat_edges
-  }
-  
-  # Hazard to consequence edges
-  if (n_cons_edges > 0) {
-    cons_indices <- idx:(idx + n_cons_edges - 1)
-    from[cons_indices] <- 1
-    to[cons_indices] <- 200 + seq_len(n_cons_edges)
-    arrows[cons_indices] <- "to"
-    colors[cons_indices] <- "#E74C3C"
-    widths[cons_indices] <- 3
-    dashes[cons_indices] <- FALSE
-    idx <- idx + n_cons_edges
-  }
-  
-  # Barrier edges (if needed, implement similar optimization)
-  if (show_barriers && n_barrier_edges > 0) {
-    # Implementation for barrier edges (simplified for space)
-    # ... barrier edge logic ...
   }
   
   edges <- data.frame(
-    from = from[1:(idx-1)],
-    to = to[1:(idx-1)],
-    arrows = arrows[1:(idx-1)],
-    color = colors[1:(idx-1)],
-    width = widths[1:(idx-1)],
-    dashes = dashes[1:(idx-1)],
+    from = from,
+    to = to,
+    arrows = arrows,
+    color = colors,
+    width = widths,
+    dashes = dashes,
     stringsAsFactors = FALSE
   )
   
