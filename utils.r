@@ -1,110 +1,110 @@
 # =============================================================================
-# Environmental Bowtie Risk Analysis - Utility Functions (Optimized)
-# Version: 4.0.4 (Bowtie Structure Fixed)
+# Environmental Bowtie Risk Analysis - Utility Functions (Enhanced Structure)
+# Version: 4.1.0 (Comprehensive Bowtie Structure)
 # Date: June 2025
-# Description: Optimized helper functions with corrected bowtie barrier connections
-#
-# PERFORMANCE OPTIMIZATIONS IMPLEMENTED:
-# - Vectorized operations for risk calculations
-# - Pre-allocation of data frames and vectors
-# - Caching system for expensive computations (nodes, edges, unique values)
-# - Optimized data structures using integers where possible
-# - Reduced string operations and repeated calculations
-# - Memory-efficient data generation and processing
-#
-# BOWTIE STRUCTURE CORRECTIONS:
-# - Fixed barrier connections to show proper intervention points
-# - Preventive barriers now correctly intercept threat → hazard paths
-# - Protective barriers now correctly intercept hazard → consequence paths
-# - Added clear visual distinction between causal flow and barrier intervention
+# Description: Enhanced bowtie structure with Activities → Pressures → Controls → 
+#              Escalation Factors → Central Problem → Mitigation → Consequences
 # =============================================================================
 
 # Cache for expensive computations
 .cache <- new.env()
 
-# Function to generate environmental management sample data
+# Function to generate enhanced environmental management sample data
 generateEnvironmentalData <- function() {
-  cat("Generating simplified environmental management data with eutrophication focus\n")
+  cat("Generating comprehensive environmental management data with enhanced bowtie structure\n")
   
   sample_data <- data.frame(
-    # Simplified Eutrophication scenarios - key examples only
-    Threat = c(
-      # Agricultural sources
+    # Human Activities that create environmental pressures
+    Activity = c(
+      "Intensive agriculture operations",
+      "Livestock farming practices", 
+      "Urban development",
+      "Municipal wastewater management",
+      "Residential septic systems",
+      "Industrial manufacturing",
+      "Industrial waste disposal",
+      "Chemical transportation",
+      "Fossil fuel consumption",
+      "International shipping"
+    ),
+    
+    # Environmental Pressures (Threats) from activities
+    Pressure = c(
       "Agricultural fertilizer runoff",
       "Animal waste from farms",
-      
-      # Urban sources
       "Urban stormwater runoff", 
       "Sewage treatment overflow",
-      
-      # Other nutrient sources
       "Septic system leakage",
       "Industrial nutrient discharge",
-      
-      # Other environmental threats for comparison
       "Industrial wastewater discharge", 
       "Chemical spill",
-      "Climate change", 
+      "Climate change emissions", 
       "Invasive species introduction"
     ),
     
-    Hazard = c(
-      # Eutrophication cases
-      rep("Eutrophication", 6),
-      
-      # Other hazards
-      "Water pollution", 
-      "Toxic release",
-      "Temperature rise", 
-      "Ecosystem disruption"
-    ),
-    
-    Consequence = c(
-      # Eutrophication consequences
-      "Algal blooms and dead zones",
-      "Fish kills and biodiversity loss",
-      "Oxygen depletion in water",
-      "Drinking water contamination",
-      "Beach closures and health risks",
-      "Economic losses to fisheries",
-      
-      # Other consequences
-      "Aquatic ecosystem damage", 
-      "Wildlife poisoning",
-      "Extreme weather events", 
-      "Native species displacement"
-    ),
-    
-    Preventive_Barrier = c(
-      # Eutrophication prevention
+    # Preventive Barriers (Controls) to prevent escalation
+    Preventive_Control = c(
       "Nutrient management plans and buffer strips",
       "Manure management and rotational grazing",
       "Stormwater management and green infrastructure",
-      "Wastewater treatment upgrades",
-      "Septic system inspections and maintenance",
-      "Industrial discharge permits and monitoring",
-      
-      # Other prevention
-      "Wastewater treatment standards", 
-      "Spill prevention plans",
-      "Carbon reduction strategies", 
-      "Biosecurity measures"
+      "Wastewater treatment upgrades and monitoring",
+      "Septic system inspections and maintenance programs",
+      "Industrial discharge permits and real-time monitoring",
+      "Advanced wastewater treatment standards", 
+      "Spill prevention and containment systems",
+      "Carbon reduction strategies and renewable energy", 
+      "Biosecurity measures and quarantine protocols"
     ),
     
-    Protective_Barrier = c(
-      # Eutrophication protection
-      "Water quality monitoring and alerts",
-      "Habitat restoration and restocking",
-      "Emergency water treatment",
-      "Public health advisories",
-      "Alternative water supplies",
-      "Lake aeration and biomanipulation",
-      
-      # Other protection
-      "Emergency response protocols", 
-      "Emergency containment systems",
-      "Adaptation measures", 
-      "Control and eradication programs"
+    # Escalation Factors that can worsen the situation
+    Escalation_Factor = c(
+      "Heavy rainfall and flooding events",
+      "Drought conditions concentrating pollutants",
+      "High water temperatures promoting growth",
+      "Infrastructure failures during peak flow",
+      "Soil saturation and system overload",
+      "Equipment malfunction and human error",
+      "Inadequate treatment during high demand",
+      "Transportation accidents in sensitive areas",
+      "Extreme weather events and system stress",
+      "Established invasion pathways"
+    ),
+    
+    # Central Problem (Main Environmental Hazard)
+    Central_Problem = c(
+      rep("Eutrophication", 6),
+      "Water pollution", 
+      "Toxic release",
+      "Climate impact", 
+      "Ecosystem disruption"
+    ),
+    
+    # Protective Barriers (Mitigation) to reduce consequences
+    Protective_Mitigation = c(
+      "Water quality monitoring and rapid response alerts",
+      "Habitat restoration and fish restocking programs",
+      "Emergency water treatment and alternative supplies",
+      "Public health advisories and beach closure protocols",
+      "Community alternative water supplies and filters",
+      "Lake aeration systems and biomanipulation",
+      "Emergency response protocols and containment", 
+      "Emergency medical response and decontamination",
+      "Climate adaptation measures and resilient infrastructure", 
+      "Control and eradication programs with monitoring"
+    ),
+    
+    # Final Environmental Consequences
+    Consequence = c(
+      "Algal blooms and dead zones",
+      "Fish kills and biodiversity loss",
+      "Oxygen depletion in water bodies",
+      "Drinking water contamination",
+      "Beach closures and health risks",
+      "Economic losses to fisheries and tourism",
+      "Aquatic ecosystem degradation", 
+      "Wildlife poisoning and habitat loss",
+      "Extreme weather events and infrastructure damage", 
+      "Native species displacement and ecosystem collapse"
     ),
     
     Likelihood = c(4, 4, 4, 3, 3, 3, 3, 2, 5, 2),
@@ -117,25 +117,28 @@ generateEnvironmentalData <- function() {
   sample_data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
                                   ifelse(risk_scores <= 15, "Medium", "High"))
   
-  cat("Generated", nrow(sample_data), "rows of environmental data with", 
-      sum(sample_data$Hazard == "Eutrophication"), "eutrophication scenarios\n")
+  cat("Generated", nrow(sample_data), "rows of comprehensive environmental data\n")
   return(sample_data)
 }
 
 # Function to validate required columns in uploaded data
 validateDataColumns <- function(data) {
-  required_cols <- c("Threat", "Hazard", "Consequence")
+  required_cols <- c("Activity", "Pressure", "Central_Problem", "Consequence")
   missing_cols <- setdiff(required_cols, names(data))
-  
   list(valid = length(missing_cols) == 0, missing = missing_cols)
 }
 
-# Function to add default columns if missing (optimized)
+# Function to add default columns if missing (enhanced structure)
 addDefaultColumns <- function(data) {
   n_rows <- nrow(data)
   
-  if (!"Preventive_Barrier" %in% names(data)) data$Preventive_Barrier <- character(n_rows)
-  if (!"Protective_Barrier" %in% names(data)) data$Protective_Barrier <- character(n_rows)
+  if (!"Activity" %in% names(data)) data$Activity <- paste("Activity", seq_len(n_rows))
+  if (!"Pressure" %in% names(data)) data$Pressure <- paste("Pressure", seq_len(n_rows))
+  if (!"Preventive_Control" %in% names(data)) data$Preventive_Control <- character(n_rows)
+  if (!"Escalation_Factor" %in% names(data)) data$Escalation_Factor <- character(n_rows)
+  if (!"Central_Problem" %in% names(data)) data$Central_Problem <- "Environmental Risk"
+  if (!"Protective_Mitigation" %in% names(data)) data$Protective_Mitigation <- character(n_rows)
+  if (!"Consequence" %in% names(data)) data$Consequence <- paste("Consequence", seq_len(n_rows))
   if (!"Likelihood" %in% names(data)) data$Likelihood <- sample.int(5, n_rows, replace = TRUE)
   if (!"Severity" %in% names(data)) data$Severity <- sample.int(5, n_rows, replace = TRUE)
   if (!"Risk_Level" %in% names(data)) {
@@ -154,13 +157,15 @@ calculateRiskLevel <- function(likelihood, severity) {
          ifelse(risk_scores <= 15, "Medium", "High"))
 }
 
-# Pre-defined color mappings for performance
+# Enhanced color mappings for comprehensive structure
 RISK_COLORS <- c("Low" = "#90EE90", "Medium" = "#FFD700", "High" = "#FF6B6B")
-THREAT_COLOR <- "#FF6B6B"
-CONSEQUENCE_COLOR <- "#FF8C94"
-HAZARD_COLOR <- "#FFD700"
-PREVENTIVE_BARRIER_COLOR <- "#4ECDC4"
-PROTECTIVE_BARRIER_COLOR <- "#45B7D1"
+ACTIVITY_COLOR <- "#8E44AD"          # Purple for activities
+PRESSURE_COLOR <- "#E74C3C"          # Red for pressures/threats
+PREVENTIVE_COLOR <- "#27AE60"        # Green for preventive controls
+ESCALATION_COLOR <- "#F39C12"        # Orange for escalation factors
+CENTRAL_PROBLEM_COLOR <- "#C0392B"   # Dark red for central problem
+PROTECTIVE_COLOR <- "#3498DB"        # Blue for protective mitigation
+CONSEQUENCE_COLOR <- "#E67E22"       # Dark orange for consequences
 
 # Optimized risk color function
 getRiskColor <- function(risk_level, show_risk_levels = TRUE) {
@@ -168,48 +173,39 @@ getRiskColor <- function(risk_level, show_risk_levels = TRUE) {
   RISK_COLORS[risk_level]
 }
 
-# Cached unique value extraction
-getCachedUnique <- function(data, column, cache_key) {
-  if (exists(cache_key, envir = .cache)) {
-    return(get(cache_key, envir = .cache))
-  }
-  
-  unique_vals <- unique(data[[column]][data[[column]] != ""])
-  assign(cache_key, unique_vals, envir = .cache)
-  unique_vals
-}
-
 # Clear cache when data changes
 clearCache <- function() {
   rm(list = ls(envir = .cache), envir = .cache)
 }
 
-# Optimized node creation with pre-allocation
-createBowtieNodes <- function(hazard_data, selected_hazard, node_size, show_risk_levels, show_barriers) {
-  # Clear cache if hazard changed
-  cache_key <- paste0("nodes_", selected_hazard, "_", node_size, "_", show_risk_levels, "_", show_barriers)
+# Enhanced node creation for comprehensive bowtie structure
+createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
+  cache_key <- paste0("nodes_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers)
   if (exists(cache_key, envir = .cache)) {
     return(get(cache_key, envir = .cache))
   }
   
-  # Pre-calculate unique values
-  threats <- getCachedUnique(hazard_data, "Threat", paste0("threats_", selected_hazard))
-  consequences <- getCachedUnique(hazard_data, "Consequence", paste0("consequences_", selected_hazard))
+  # Pre-calculate unique values for each element
+  activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
+  pressures <- unique(hazard_data$Pressure[hazard_data$Pressure != ""])
+  consequences <- unique(hazard_data$Consequence[hazard_data$Consequence != ""])
   
-  # Pre-allocate node data frame
-  n_threats <- length(threats)
+  # Calculate total nodes needed
+  n_activities <- length(activities)
+  n_pressures <- length(pressures)
   n_consequences <- length(consequences)
   n_barriers <- 0
   
   if (show_barriers) {
-    prev_barriers <- getCachedUnique(hazard_data, "Preventive_Barrier", paste0("prev_barriers_", selected_hazard))
-    prot_barriers <- getCachedUnique(hazard_data, "Protective_Barrier", paste0("prot_barriers_", selected_hazard))
-    n_barriers <- length(prev_barriers) + length(prot_barriers)
+    preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
+    escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
+    protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
+    n_barriers <- length(preventive_controls) + length(escalation_factors) + length(protective_mitigations)
   }
   
-  total_nodes <- 1 + n_threats + n_consequences + n_barriers
+  total_nodes <- 1 + n_activities + n_pressures + n_consequences + n_barriers
   
-  # Pre-allocate vectors for better performance
+  # Pre-allocate vectors
   ids <- integer(total_nodes)
   labels <- character(total_nodes)
   groups <- character(total_nodes)
@@ -220,39 +216,61 @@ createBowtieNodes <- function(hazard_data, selected_hazard, node_size, show_risk
   
   idx <- 1
   
-  # Hazard node (center)
+  # Central Problem node (center) - Diamond shape
   ids[idx] <- 1
-  labels[idx] <- selected_hazard
-  groups[idx] <- "hazard"
-  colors[idx] <- HAZARD_COLOR
+  labels[idx] <- selected_problem
+  groups[idx] <- "central_problem"
+  colors[idx] <- CENTRAL_PROBLEM_COLOR
   shapes[idx] <- "diamond"
-  sizes[idx] <- node_size * 1.5
+  sizes[idx] <- node_size * 1.8
   font_sizes[idx] <- 16
   idx <- idx + 1
   
-  # Threat nodes
-  if (n_threats > 0) {
-    threat_colors <- if (show_risk_levels) {
-      sapply(threats, function(t) {
-        risk <- hazard_data$Risk_Level[hazard_data$Threat == t][1]
+  # Activity nodes (far left)
+  if (n_activities > 0) {
+    activity_colors <- if (show_risk_levels) {
+      sapply(activities, function(a) {
+        risk <- hazard_data$Risk_Level[hazard_data$Activity == a][1]
         getRiskColor(risk, TRUE)
       })
     } else {
-      rep(THREAT_COLOR, n_threats)
+      rep(ACTIVITY_COLOR, n_activities)
     }
     
-    threat_indices <- idx:(idx + n_threats - 1)
-    ids[threat_indices] <- 100 + seq_len(n_threats)
-    labels[threat_indices] <- threats
-    groups[threat_indices] <- "threat"
-    colors[threat_indices] <- threat_colors
-    shapes[threat_indices] <- "triangle"
-    sizes[threat_indices] <- node_size
-    font_sizes[threat_indices] <- 12
-    idx <- idx + n_threats
+    activity_indices <- idx:(idx + n_activities - 1)
+    ids[activity_indices] <- 50 + seq_len(n_activities)
+    labels[activity_indices] <- activities
+    groups[activity_indices] <- "activity"
+    colors[activity_indices] <- activity_colors
+    shapes[activity_indices] <- "box"
+    sizes[activity_indices] <- node_size * 0.9
+    font_sizes[activity_indices] <- 11
+    idx <- idx + n_activities
   }
   
-  # Consequence nodes
+  # Pressure nodes (left side)
+  if (n_pressures > 0) {
+    pressure_colors <- if (show_risk_levels) {
+      sapply(pressures, function(p) {
+        risk <- hazard_data$Risk_Level[hazard_data$Pressure == p][1]
+        getRiskColor(risk, TRUE)
+      })
+    } else {
+      rep(PRESSURE_COLOR, n_pressures)
+    }
+    
+    pressure_indices <- idx:(idx + n_pressures - 1)
+    ids[pressure_indices] <- 100 + seq_len(n_pressures)
+    labels[pressure_indices] <- pressures
+    groups[pressure_indices] <- "pressure"
+    colors[pressure_indices] <- pressure_colors
+    shapes[pressure_indices] <- "triangle"
+    sizes[pressure_indices] <- node_size
+    font_sizes[pressure_indices] <- 12
+    idx <- idx + n_pressures
+  }
+  
+  # Consequence nodes (right side)
   if (n_consequences > 0) {
     cons_colors <- if (show_risk_levels) {
       sapply(consequences, function(c) {
@@ -274,27 +292,39 @@ createBowtieNodes <- function(hazard_data, selected_hazard, node_size, show_risk
     idx <- idx + n_consequences
   }
   
-  # Barrier nodes
+  # Barrier and escalation factor nodes
   if (show_barriers) {
-    if (exists("prev_barriers") && length(prev_barriers) > 0) {
-      prev_indices <- idx:(idx + length(prev_barriers) - 1)
-      ids[prev_indices] <- 300 + seq_len(length(prev_barriers))
-      labels[prev_indices] <- prev_barriers
-      groups[prev_indices] <- "preventive_barrier"
-      colors[prev_indices] <- PREVENTIVE_BARRIER_COLOR
-      shapes[prev_indices] <- "box"
+    if (exists("preventive_controls") && length(preventive_controls) > 0) {
+      prev_indices <- idx:(idx + length(preventive_controls) - 1)
+      ids[prev_indices] <- 300 + seq_len(length(preventive_controls))
+      labels[prev_indices] <- preventive_controls
+      groups[prev_indices] <- "preventive_control"
+      colors[prev_indices] <- PREVENTIVE_COLOR
+      shapes[prev_indices] <- "square"
       sizes[prev_indices] <- node_size * 0.8
       font_sizes[prev_indices] <- 10
-      idx <- idx + length(prev_barriers)
+      idx <- idx + length(preventive_controls)
     }
     
-    if (exists("prot_barriers") && length(prot_barriers) > 0) {
-      prot_indices <- idx:(idx + length(prot_barriers) - 1)
-      ids[prot_indices] <- 400 + seq_len(length(prot_barriers))
-      labels[prot_indices] <- prot_barriers
-      groups[prot_indices] <- "protective_barrier"
-      colors[prot_indices] <- PROTECTIVE_BARRIER_COLOR
-      shapes[prot_indices] <- "box"
+    if (exists("escalation_factors") && length(escalation_factors) > 0) {
+      esc_indices <- idx:(idx + length(escalation_factors) - 1)
+      ids[esc_indices] <- 350 + seq_len(length(escalation_factors))
+      labels[esc_indices] <- escalation_factors
+      groups[esc_indices] <- "escalation_factor"
+      colors[esc_indices] <- ESCALATION_COLOR
+      shapes[esc_indices] <- "triangleDown"
+      sizes[esc_indices] <- node_size * 0.8
+      font_sizes[esc_indices] <- 10
+      idx <- idx + length(escalation_factors)
+    }
+    
+    if (exists("protective_mitigations") && length(protective_mitigations) > 0) {
+      prot_indices <- idx:(idx + length(protective_mitigations) - 1)
+      ids[prot_indices] <- 400 + seq_len(length(protective_mitigations))
+      labels[prot_indices] <- protective_mitigations
+      groups[prot_indices] <- "protective_mitigation"
+      colors[prot_indices] <- PROTECTIVE_COLOR
+      shapes[prot_indices] <- "square"
       sizes[prot_indices] <- node_size * 0.8
       font_sizes[prot_indices] <- 10
     }
@@ -316,16 +346,15 @@ createBowtieNodes <- function(hazard_data, selected_hazard, node_size, show_risk
   nodes
 }
 
-# Optimized edge creation with correct bowtie logic
+# Enhanced edge creation for comprehensive bowtie structure
 createBowtieEdges <- function(hazard_data, show_barriers) {
-  # Create simple cache key without digest dependency
-  cache_key <- paste0("edges_", nrow(hazard_data), "_", show_barriers, "_", 
-                     paste(head(hazard_data$Threat, 3), collapse = ""))
+  cache_key <- paste0("edges_comp_", nrow(hazard_data), "_", show_barriers)
   if (exists(cache_key, envir = .cache)) {
     return(get(cache_key, envir = .cache))
   }
   
-  threats <- unique(hazard_data$Threat[hazard_data$Threat != ""])
+  activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
+  pressures <- unique(hazard_data$Pressure[hazard_data$Pressure != ""])
   consequences <- unique(hazard_data$Consequence[hazard_data$Consequence != ""])
   
   # Initialize edge vectors
@@ -336,10 +365,28 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
   widths <- numeric(0)
   dashes <- logical(0)
   
-  # Main causal path edges - Threat to hazard (without barriers)
   if (!show_barriers) {
-    # Direct threat to hazard connections (red solid arrows)
-    for (i in seq_along(threats)) {
+    # Simple flow: Activity → Pressure → Central Problem → Consequence
+    
+    # Activity → Pressure connections
+    for (i in seq_along(activities)) {
+      activity <- activities[i]
+      related_pressures <- hazard_data$Pressure[hazard_data$Activity == activity]
+      for (pressure in related_pressures) {
+        pressure_idx <- which(pressures == pressure)
+        if (length(pressure_idx) > 0) {
+          from <- c(from, 50 + i)
+          to <- c(to, 100 + pressure_idx)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#8E44AD")
+          widths <- c(widths, 2)
+          dashes <- c(dashes, FALSE)
+        }
+      }
+    }
+    
+    # Pressure → Central Problem connections
+    for (i in seq_along(pressures)) {
       from <- c(from, 100 + i)
       to <- c(to, 1)
       arrows <- c(arrows, "to")
@@ -348,50 +395,97 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
       dashes <- c(dashes, FALSE)
     }
     
-    # Direct hazard to consequence connections (red solid arrows)
+    # Central Problem → Consequence connections
     for (i in seq_along(consequences)) {
       from <- c(from, 1)
       to <- c(to, 200 + i)
       arrows <- c(arrows, "to")
-      colors <- c(colors, "#E74C3C")
+      colors <- c(colors, "#C0392B")
       widths <- c(widths, 3)
       dashes <- c(dashes, FALSE)
     }
-  } else {
-    # With barriers: Create proper bowtie structure
-    prev_barriers <- unique(hazard_data$Preventive_Barrier[hazard_data$Preventive_Barrier != ""])
-    prot_barriers <- unique(hazard_data$Protective_Barrier[hazard_data$Protective_Barrier != ""])
     
-    # For each threat, create path: Threat → Preventive Barrier → Hazard
-    for (i in seq_along(threats)) {
-      threat <- threats[i]
-      # Find the preventive barrier for this threat
-      barrier_for_threat <- hazard_data$Preventive_Barrier[hazard_data$Threat == threat][1]
+  } else {
+    # Complex flow with barriers: Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence
+    
+    preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
+    escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
+    protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
+    
+    # Activity → Pressure connections
+    for (i in seq_along(activities)) {
+      activity <- activities[i]
+      related_pressures <- hazard_data$Pressure[hazard_data$Activity == activity]
+      for (pressure in related_pressures) {
+        pressure_idx <- which(pressures == pressure)
+        if (length(pressure_idx) > 0) {
+          from <- c(from, 50 + i)
+          to <- c(to, 100 + pressure_idx)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#8E44AD")
+          widths <- c(widths, 2)
+          dashes <- c(dashes, FALSE)
+        }
+      }
+    }
+    
+    # Pressure → Preventive Control → Escalation Factor → Central Problem pathway
+    for (i in seq_along(pressures)) {
+      pressure <- pressures[i]
+      control_for_pressure <- hazard_data$Preventive_Control[hazard_data$Pressure == pressure][1]
+      escalation_for_pressure <- hazard_data$Escalation_Factor[hazard_data$Pressure == pressure][1]
       
-      if (!is.na(barrier_for_threat) && barrier_for_threat != "") {
-        # Find barrier ID
-        barrier_idx <- which(prev_barriers == barrier_for_threat)
-        if (length(barrier_idx) > 0) {
-          barrier_id <- 300 + barrier_idx
-          
-          # Threat → Preventive Barrier (red solid)
+      if (!is.na(control_for_pressure) && control_for_pressure != "") {
+        control_idx <- which(preventive_controls == control_for_pressure)
+        if (length(control_idx) > 0) {
+          # Pressure → Preventive Control
           from <- c(from, 100 + i)
-          to <- c(to, barrier_id)
+          to <- c(to, 300 + control_idx)
           arrows <- c(arrows, "to")
           colors <- c(colors, "#E74C3C")
           widths <- c(widths, 2)
           dashes <- c(dashes, FALSE)
           
-          # Preventive Barrier → Hazard (green dashed - barrier intervenes)
-          from <- c(from, barrier_id)
-          to <- c(to, 1)
-          arrows <- c(arrows, "to")
-          colors <- c(colors, "#27AE60")
-          widths <- c(widths, 2)
-          dashes <- c(dashes, TRUE)
+          # Check for escalation factor
+          if (!is.na(escalation_for_pressure) && escalation_for_pressure != "") {
+            escalation_idx <- which(escalation_factors == escalation_for_pressure)
+            if (length(escalation_idx) > 0) {
+              # Preventive Control → Escalation Factor (control can fail)
+              from <- c(from, 300 + control_idx)
+              to <- c(to, 350 + escalation_idx)
+              arrows <- c(arrows, "to")
+              colors <- c(colors, "#F39C12")
+              widths <- c(widths, 2)
+              dashes <- c(dashes, TRUE)
+              
+              # Escalation Factor → Central Problem
+              from <- c(from, 350 + escalation_idx)
+              to <- c(to, 1)
+              arrows <- c(arrows, "to")
+              colors <- c(colors, "#F39C12")
+              widths <- c(widths, 2)
+              dashes <- c(dashes, FALSE)
+            } else {
+              # Preventive Control → Central Problem (if control fails)
+              from <- c(from, 300 + control_idx)
+              to <- c(to, 1)
+              arrows <- c(arrows, "to")
+              colors <- c(colors, "#27AE60")
+              widths <- c(widths, 2)
+              dashes <- c(dashes, TRUE)
+            }
+          } else {
+            # Preventive Control → Central Problem (if control fails)
+            from <- c(from, 300 + control_idx)
+            to <- c(to, 1)
+            arrows <- c(arrows, "to")
+            colors <- c(colors, "#27AE60")
+            widths <- c(widths, 2)
+            dashes <- c(dashes, TRUE)
+          }
         }
       } else {
-        # No barrier - direct connection
+        # Direct pressure → central problem if no control
         from <- c(from, 100 + i)
         to <- c(to, 1)
         arrows <- c(arrows, "to")
@@ -401,28 +495,24 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
       }
     }
     
-    # For each consequence, create path: Hazard → Protective Barrier → Consequence
+    # Central Problem → Protective Mitigation → Consequence pathway
     for (i in seq_along(consequences)) {
       consequence <- consequences[i]
-      # Find the protective barrier for this consequence
-      barrier_for_cons <- hazard_data$Protective_Barrier[hazard_data$Consequence == consequence][1]
+      mitigation_for_consequence <- hazard_data$Protective_Mitigation[hazard_data$Consequence == consequence][1]
       
-      if (!is.na(barrier_for_cons) && barrier_for_cons != "") {
-        # Find barrier ID
-        barrier_idx <- which(prot_barriers == barrier_for_cons)
-        if (length(barrier_idx) > 0) {
-          barrier_id <- 400 + barrier_idx
-          
-          # Hazard → Protective Barrier (red solid)
+      if (!is.na(mitigation_for_consequence) && mitigation_for_consequence != "") {
+        mitigation_idx <- which(protective_mitigations == mitigation_for_consequence)
+        if (length(mitigation_idx) > 0) {
+          # Central Problem → Protective Mitigation
           from <- c(from, 1)
-          to <- c(to, barrier_id)
+          to <- c(to, 400 + mitigation_idx)
           arrows <- c(arrows, "to")
-          colors <- c(colors, "#E74C3C")
+          colors <- c(colors, "#C0392B")
           widths <- c(widths, 2)
           dashes <- c(dashes, FALSE)
           
-          # Protective Barrier → Consequence (blue dashed - barrier mitigates)
-          from <- c(from, barrier_id)
+          # Protective Mitigation → Consequence (mitigation reduces impact)
+          from <- c(from, 400 + mitigation_idx)
           to <- c(to, 200 + i)
           arrows <- c(arrows, "to")
           colors <- c(colors, "#3498DB")
@@ -430,11 +520,11 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
           dashes <- c(dashes, TRUE)
         }
       } else {
-        # No barrier - direct connection
+        # Direct central problem → consequence if no mitigation
         from <- c(from, 1)
         to <- c(to, 200 + i)
         arrows <- c(arrows, "to")
-        colors <- c(colors, "#E74C3C")
+        colors <- c(colors, "#C0392B")
         widths <- c(widths, 3)
         dashes <- c(dashes, FALSE)
       }
@@ -456,14 +546,16 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
   edges
 }
 
-# Function to create a default row for data editing
-createDefaultRow <- function(selected_hazard = "New Hazard") {
+# Function to create a default row for data editing (enhanced structure)
+createDefaultRow <- function(selected_problem = "New Environmental Risk") {
   data.frame(
-    Threat = "New Threat",
-    Hazard = selected_hazard,
+    Activity = "New Activity",
+    Pressure = "New Pressure",
+    Preventive_Control = "New Control",
+    Escalation_Factor = "New Escalation Factor",
+    Central_Problem = selected_problem,
+    Protective_Mitigation = "New Mitigation",
     Consequence = "New Consequence",
-    Preventive_Barrier = "New Preventive Barrier",
-    Protective_Barrier = "New Protective Barrier",
     Likelihood = 3L,
     Severity = 3L,
     Risk_Level = "Medium",
@@ -482,14 +574,14 @@ validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
   }
 }
 
-# Optimized data summary function
+# Enhanced data summary function
 getDataSummary <- function(data) {
   if (is.null(data) || nrow(data) == 0) return(NULL)
   
   paste(
     "Rows:", nrow(data),
-    "| Hazards:", length(unique(data$Hazard)),
-    "| Threats:", length(unique(data$Threat)),
+    "| Activities:", length(unique(data$Activity)),
+    "| Central Problems:", length(unique(data$Central_Problem)),
     "| Consequences:", length(unique(data$Consequence)),
     "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", ")
   )
