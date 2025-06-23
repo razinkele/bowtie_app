@@ -1,10 +1,9 @@
 # =============================================================================
-# Environmental Bowtie Risk Analysis Shiny Application (Enhanced Structure)
-# Version: 4.1.0 (Comprehensive Bowtie Structure)
+# Environmental Bowtie Risk Analysis Shiny Application (Connection Fix)
+# Version: 4.2.2 (Fixed Barrier Connections)
 # Date: June 2025
 # Author: AI Assistant
-# Description: Comprehensive bowtie analysis: Activities → Pressures → Controls → 
-#              Escalation Factors → Central Problem → Mitigation → Consequences
+# Description: Fixed protective mitigation and barrier connections in bowtie diagrams
 # =============================================================================
 
 # Load required libraries
@@ -38,8 +37,8 @@ ui <- fluidPage(
                class = "d-flex justify-content-between align-items-center bg-light",
                div(
                  h4("🌊 Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
-                 span(class = "badge bg-success me-2", "v4.1.0"),
-                 span(class = "text-muted", "Comprehensive Structure")
+                 span(class = "badge bg-success me-2", "v4.2.2"),
+                 span(class = "text-muted", "Fixed Barrier Connections")
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
                            class = "btn-sm btn-outline-secondary", title = "Theme Settings")
@@ -91,7 +90,7 @@ ui <- fluidPage(
                    hr(),
                    
                    h5(tagList(icon("leaf"), "Option 2: Generate Sample Data")),
-                   p("Generate comprehensive environmental bowtie data with full causal chain:"),
+                   p("Generate comprehensive environmental bowtie data with multiple interconnected pathways:"),
                    div(class = "d-grid", actionButton("generateSample", 
                                                      tagList(icon("seedling"), "Generate Comprehensive Data"), 
                                                      class = "btn-success")),
@@ -134,7 +133,7 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-info mt-3",
                        tagList(icon("info-circle"), " "),
-                       strong("Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
+                       strong("Multiple Pathways:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
                    
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -189,7 +188,7 @@ ui <- fluidPage(
                      h6(tagList(icon("eye"), "Display Options:")),
                      checkboxInput("showBarriers", "Show Controls & Mitigation", value = TRUE),
                      checkboxInput("showRiskLevels", "Color by Risk Level", value = TRUE),
-                     sliderInput("nodeSize", "Node Size:", min = 20, max = 60, value = 35),
+                     sliderInput("nodeSize", "Node Size:", min = 25, max = 80, value = 45),
                      
                      hr(),
                      h6(tagList(icon("plus"), "Quick Add:")),
@@ -201,14 +200,14 @@ ui <- fluidPage(
                                                        class = "btn-outline-primary btn-sm")),
                      
                      hr(),
-                     h6(tagList(icon("palette"), "Comprehensive Bowtie Legend:")),
+                     h6(tagList(icon("palette"), "Bowtie Visual Legend:")),
                      div(class = "p-3 border rounded bg-light",
                          div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "■"),
-                             span(tagList(icon("play"), " Activities"))),
+                             span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "◼"),
+                             span(tagList(icon("play"), " Activities (Human Actions)"))),
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge bg-danger me-2", "▲"),
-                             span(tagList(icon("triangle-exclamation"), " Pressures"))),
+                             span(tagList(icon("triangle-exclamation"), " Pressures (Environmental Threats)"))),
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge bg-success me-2", "◼"),
                              span(tagList(icon("shield-halved"), " Preventive Controls"))),
@@ -217,18 +216,20 @@ ui <- fluidPage(
                              span(tagList(icon("exclamation-triangle"), " Escalation Factors"))),
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #C0392B; color: white; margin-right: 8px;", "♦"),
-                             span(tagList(icon("radiation"), " Central Problem"))),
+                             span(tagList(icon("radiation"), " Central Problem (Main Risk)"))),
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge bg-primary me-2", "◼"),
                              span(tagList(icon("shield"), " Protective Mitigation"))),
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #E67E22; color: white; margin-right: 8px;", "⬢"),
-                             span(tagList(icon("burst"), " Consequences"))),
+                             span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
                          hr(class = "my-2"),
                          div(class = "small text-muted",
-                             strong("Complete Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
+                             strong("Visual Hierarchy:"), " Larger nodes = more critical elements"),
                          div(class = "small text-muted",
-                             strong("Lines:"), " Solid = causal path, Dashed = intervention/failure")
+                             strong("Multiple Flow Paths:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
+                         div(class = "small text-muted",
+                             strong("Line Types:"), " Solid = causal flow, Dashed = intervention/control effects")
                      ),
                      
                      hr(),
@@ -249,7 +250,7 @@ ui <- fluidPage(
                      div(class = "text-center mb-3",
                          h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis"), class = "text-primary"),
                          p(class = "small text-muted", 
-                           "Complete causal chain: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences")),
+                           "Multiple interconnected pathways: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences")),
                      withSpinner(visNetworkOutput("bowtieNetwork", height = "650px"))
                    ),
                    conditionalPanel(
@@ -275,7 +276,7 @@ ui <- fluidPage(
                card(
                  card_header(
                    div(class = "d-flex justify-content-between align-items-center",
-                       tagList(icon("table"), "Comprehensive Environmental Bowtie Data"),
+                       tagList(icon("table"), "Multiple Pathway Environmental Bowtie Data"),
                        div(
                          conditionalPanel(
                            condition = "output.dataLoaded",
@@ -295,7 +296,7 @@ ui <- fluidPage(
                      condition = "output.dataLoaded",
                      div(class = "alert alert-info",
                          tagList(icon("info-circle"), " "),
-                         "Click on any cell to edit. The table shows the complete causal chain from activities to consequences."),
+                         "Click on any cell to edit. The table shows multiple interconnected pathways from activities to consequences."),
                      withSpinner(DT::dataTableOutput("editableTable"))
                    ),
                    conditionalPanel(
@@ -360,7 +361,7 @@ ui <- fluidPage(
   # Footer
   hr(),
   div(class = "text-center text-muted mb-3",
-      p("Environmental Bowtie Risk Analysis Tool | v4.1.0 - Comprehensive Structure"))
+      p("Environmental Bowtie Risk Analysis Tool | v4.2.2 - Fixed Barrier Connections"))
 )
 
 # Define Server with enhanced structure
@@ -446,7 +447,7 @@ server <- function(input, output, session) {
   
   # Enhanced sample data generation
   observeEvent(input$generateSample, {
-    showNotification("Generating comprehensive sample data...", type = "default", duration = 2)
+    showNotification("Generating multiple pathway sample data...", type = "default", duration = 2)
     
     tryCatch({
       sample_data <- generateEnvironmentalData()
@@ -459,7 +460,7 @@ server <- function(input, output, session) {
       problem_choices <- unique(sample_data$Central_Problem)
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       
-      showNotification(paste("✓ Generated", nrow(sample_data), "comprehensive environmental scenarios"), 
+      showNotification(paste("✓ Generated", nrow(sample_data), "interconnected environmental scenarios with multiple pathways"), 
                       type = "default", duration = 3)
       
     }, error = function(e) {
@@ -666,7 +667,7 @@ server <- function(input, output, session) {
   output$debugInfo <- renderText({
     data <- getCurrentData()
     if (!is.null(data)) {
-      paste("Loaded:", nrow(data), "rows,", ncol(data), "columns - Comprehensive bowtie structure")
+      paste("Loaded:", nrow(data), "rows,", ncol(data), "columns - Multiple pathway bowtie structure")
     } else {
       "No data loaded"
     }
@@ -688,16 +689,16 @@ server <- function(input, output, session) {
     edges <- createBowtieEdges(problem_data, input$showBarriers)
     
     visNetwork(nodes, edges, 
-               main = paste("Comprehensive Bowtie Analysis:", input$selectedProblem),
-               submain = if(input$showBarriers) "Complete causal chain with controls and mitigation" else "Direct causal relationships",
-               footer = "Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences") %>%
+               main = paste("Multiple Pathway Bowtie Analysis:", input$selectedProblem),
+               submain = if(input$showBarriers) "Interconnected pathways with multiple controls and mitigation strategies" else "Direct causal relationships with multiple connections",
+               footer = "Multiple Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences") %>%
       visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                font = list(color = "#2C3E50", face = "Arial", size = 12)) %>%
       visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
                smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)) %>%
       visLayout(randomSeed = 123, hierarchical = list(enabled = TRUE, direction = "LR",
-                                                      sortMethod = "directed", levelSeparation = 120,
-                                                      nodeSpacing = 80)) %>%
+                                                      sortMethod = "directed", levelSeparation = 140,
+                                                      nodeSpacing = 90)) %>%
       visPhysics(enabled = FALSE) %>%
       visOptions(highlightNearest = list(enabled = TRUE, degree = 1),
                 nodesIdSelection = TRUE, collapse = FALSE,
@@ -706,11 +707,21 @@ server <- function(input, output, session) {
                                                       deleteEdge = TRUE) else list(enabled = FALSE)) %>%
       visInteraction(navigationButtons = TRUE, dragNodes = TRUE, dragView = TRUE, zoomView = TRUE) %>%
       visLegend(useGroups = FALSE, addNodes = list(
-        list(label = "Flow: Activity → Pressure → Control → Problem → Mitigation → Consequence", 
-             color = "#333333", shape = "dot", size = 10),
-        list(label = "Solid: causal | Dashed: intervention", 
-             color = "#666666", shape = "dot", size = 8)
-      ), position = "right")
+        list(label = "Activities (Human Actions)", 
+             color = "#8E44AD", shape = "box", size = 15),
+        list(label = "Pressures (Environmental Threats)", 
+             color = "#E74C3C", shape = "triangle", size = 15),
+        list(label = "Preventive Controls", 
+             color = "#27AE60", shape = "square", size = 15),
+        list(label = "Escalation Factors", 
+             color = "#F39C12", shape = "triangleDown", size = 15),
+        list(label = "Central Problem (Main Risk)", 
+             color = "#C0392B", shape = "diamond", size = 18),
+        list(label = "Protective Mitigation", 
+             color = "#3498DB", shape = "square", size = 15),
+        list(label = "Consequences (Impacts)", 
+             color = "#E67E22", shape = "hexagon", size = 15)
+      ), position = "right", width = 0.25, ncol = 1)
   })
   
   # Enhanced risk matrix
@@ -728,7 +739,7 @@ server <- function(input, output, session) {
       scale_color_manual(values = RISK_COLORS) +
       scale_x_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
       scale_y_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
-      labs(title = "Comprehensive Environmental Risk Matrix", x = "Likelihood", y = "Severity") +
+      labs(title = "Multiple Pathway Environmental Risk Matrix", x = "Likelihood", y = "Severity") +
       theme_minimal() + theme(legend.position = "bottom")
     
     ggplotly(risk_plot, tooltip = "text")
@@ -752,9 +763,9 @@ server <- function(input, output, session) {
     risk_summary
   }, sanitize.text.function = function(x) x)
   
-  # Download comprehensive bowtie diagram
+  # Download multiple pathway bowtie diagram
   output$downloadBowtie <- downloadHandler(
-    filename = function() paste("comprehensive_bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
+    filename = function() paste("multiple_pathway_bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
     content = function(file) {
       data <- getCurrentData()
       req(data, input$selectedProblem)
@@ -764,23 +775,33 @@ server <- function(input, output, session) {
       edges <- createBowtieEdges(problem_data, TRUE)
       
       network <- visNetwork(nodes, edges, 
-                          main = paste("Comprehensive Environmental Bowtie Analysis:", input$selectedProblem),
-                          submain = paste("Generated on", Sys.Date(), "- Complete causal chain with controls and mitigation"),
-                          footer = "Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences") %>%
+                          main = paste("Multiple Pathway Environmental Bowtie Analysis:", input$selectedProblem),
+                          submain = paste("Generated on", Sys.Date(), "- Interconnected pathways with multiple connections"),
+                          footer = "Multiple Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences") %>%
         visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                 font = list(color = "#2C3E50", face = "Arial")) %>%
         visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
                 smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)) %>%
         visLayout(randomSeed = 123, hierarchical = list(enabled = TRUE, direction = "LR",
-                                                        sortMethod = "directed", levelSeparation = 150,
-                                                        nodeSpacing = 100)) %>%
+                                                        sortMethod = "directed", levelSeparation = 160,
+                                                        nodeSpacing = 110)) %>%
         visPhysics(enabled = FALSE) %>%
         visLegend(useGroups = FALSE, addNodes = list(
-          list(label = "Complete Causal Chain: Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence", 
-               color = "#333333", shape = "dot", size = 10),
-          list(label = "Solid: Direct flow | Dashed: Control/mitigation intervention", 
-               color = "#666666", shape = "dot", size = 8)
-        ), position = "right")
+          list(label = "Activities (Human Actions)", 
+               color = "#8E44AD", shape = "box", size = 15),
+          list(label = "Pressures (Environmental Threats)", 
+               color = "#E74C3C", shape = "triangle", size = 15),
+          list(label = "Preventive Controls", 
+               color = "#27AE60", shape = "square", size = 15),
+          list(label = "Escalation Factors", 
+               color = "#F39C12", shape = "triangleDown", size = 15),
+          list(label = "Central Problem (Main Risk)", 
+               color = "#C0392B", shape = "diamond", size = 18),
+          list(label = "Protective Mitigation", 
+               color = "#3498DB", shape = "square", size = 15),
+          list(label = "Consequences (Impacts)", 
+               color = "#E67E22", shape = "hexagon", size = 15)
+        ), position = "right", width = 0.25, ncol = 1)
       
       visSave(network, file, selfcontained = TRUE)
     }

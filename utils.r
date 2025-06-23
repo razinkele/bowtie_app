@@ -1,114 +1,156 @@
 # =============================================================================
-# Environmental Bowtie Risk Analysis - Utility Functions (Enhanced Structure)
-# Version: 4.1.0 (Comprehensive Bowtie Structure)
+# Environmental Bowtie Risk Analysis - Utility Functions (Connection Fix)
+# Version: 4.2.2 (Fixed Barrier Connections)
 # Date: June 2025
-# Description: Enhanced bowtie structure with Activities → Pressures → Controls → 
-#              Escalation Factors → Central Problem → Mitigation → Consequences
+# Description: Fixed protective mitigation and barrier connections in bowtie diagrams
+#
+# FIXES:
+# - Protective mitigation barriers now properly connected
+# - Only show barrier nodes that have actual connections
+# - Improved logic for preventive controls and escalation factors
+# - Better data validation for barrier relationships
+# - Ensured all displayed nodes have proper incoming/outgoing edges
+#
+# FEATURES:
+# - Multiple activities can contribute to same pressures
+# - Multiple controls can address same pressures  
+# - Multiple escalation factors can affect same controls
+# - Multiple mitigation strategies for same consequences
+# - Proper visual legend showing actual node shapes and colors
+# - Optimized node sizing for better readability
+# - Enhanced visual hierarchy with size differentiation
+#
+# PERFORMANCE OPTIMIZATIONS:
+# - Vectorized operations for risk calculations
+# - Pre-allocation of data frames and vectors
+# - Caching system for expensive computations
+# - Optimized data structures using integers where possible
+# - Memory-efficient data generation and processing
 # =============================================================================
 
 # Cache for expensive computations
 .cache <- new.env()
 
-# Function to generate enhanced environmental management sample data
+# Function to generate enhanced environmental management sample data with multiple connections
 generateEnvironmentalData <- function() {
-  cat("Generating comprehensive environmental management data with enhanced bowtie structure\n")
+  cat("Generating comprehensive environmental management data with multiple interconnected pathways\n")
   
+  # Create more comprehensive data with multiple connections
   sample_data <- data.frame(
     # Human Activities that create environmental pressures
     Activity = c(
-      "Intensive agriculture operations",
-      "Livestock farming practices", 
-      "Urban development",
-      "Municipal wastewater management",
-      "Residential septic systems",
-      "Industrial manufacturing",
-      "Industrial waste disposal",
-      "Chemical transportation",
-      "Fossil fuel consumption",
-      "International shipping"
+      "Intensive agriculture operations", "Intensive agriculture operations", "Intensive agriculture operations",
+      "Livestock farming practices", "Livestock farming practices", 
+      "Urban development", "Urban development", "Urban development",
+      "Municipal wastewater management", "Municipal wastewater management",
+      "Residential septic systems", "Residential septic systems",
+      "Industrial manufacturing", "Industrial manufacturing", "Industrial manufacturing",
+      "Industrial waste disposal", "Industrial waste disposal",
+      "Chemical transportation", "Chemical transportation",
+      "Fossil fuel consumption", "Fossil fuel consumption",
+      "International shipping", "International shipping",
+      "Construction activities", "Construction activities",
+      "Mining operations", "Mining operations"
     ),
     
-    # Environmental Pressures (Threats) from activities
+    # Environmental Pressures (Threats) from activities - multiple pressures per activity
     Pressure = c(
-      "Agricultural fertilizer runoff",
-      "Animal waste from farms",
-      "Urban stormwater runoff", 
-      "Sewage treatment overflow",
-      "Septic system leakage",
-      "Industrial nutrient discharge",
-      "Industrial wastewater discharge", 
-      "Chemical spill",
-      "Climate change emissions", 
-      "Invasive species introduction"
+      "Agricultural fertilizer runoff", "Pesticide contamination", "Soil erosion",
+      "Animal waste from farms", "Methane emissions",
+      "Urban stormwater runoff", "Habitat fragmentation", "Increased impervious surfaces",
+      "Sewage treatment overflow", "Nutrient loading",
+      "Septic system leakage", "Groundwater contamination",
+      "Industrial nutrient discharge", "Heavy metal contamination", "Air emissions",
+      "Industrial wastewater discharge", "Solid waste generation", 
+      "Chemical spill", "Hazardous material release",
+      "Greenhouse gas emissions", "Air quality degradation",
+      "Invasive species introduction", "Oil spills",
+      "Sediment runoff", "Noise pollution",
+      "Acid mine drainage", "Groundwater depletion"
     ),
     
-    # Preventive Barriers (Controls) to prevent escalation
+    # Preventive Controls - multiple controls can address same pressure
     Preventive_Control = c(
-      "Nutrient management plans and buffer strips",
-      "Manure management and rotational grazing",
-      "Stormwater management and green infrastructure",
-      "Wastewater treatment upgrades and monitoring",
-      "Septic system inspections and maintenance programs",
-      "Industrial discharge permits and real-time monitoring",
-      "Advanced wastewater treatment standards", 
-      "Spill prevention and containment systems",
-      "Carbon reduction strategies and renewable energy", 
-      "Biosecurity measures and quarantine protocols"
+      "Nutrient management plans and buffer strips", "Integrated pest management", "Conservation tillage practices",
+      "Manure management and rotational grazing", "Methane capture systems",
+      "Stormwater management and green infrastructure", "Wildlife corridors and habitat preservation", "Permeable pavement systems",
+      "Wastewater treatment upgrades and monitoring", "Advanced nutrient removal technology",
+      "Septic system inspections and maintenance programs", "Groundwater monitoring wells",
+      "Industrial discharge permits and real-time monitoring", "Heavy metal treatment systems", "Air pollution control equipment",
+      "Advanced wastewater treatment standards", "Waste minimization programs",
+      "Spill prevention and containment systems", "Hazardous material handling protocols",
+      "Carbon reduction strategies and renewable energy", "Emission control technologies",
+      "Biosecurity measures and quarantine protocols", "Double hull tankers and navigation systems",
+      "Erosion control measures", "Noise abatement technology",
+      "Acid neutralization systems", "Water conservation measures"
     ),
     
-    # Escalation Factors that can worsen the situation
+    # Escalation Factors that can worsen the situation - multiple factors per scenario
     Escalation_Factor = c(
-      "Heavy rainfall and flooding events",
-      "Drought conditions concentrating pollutants",
-      "High water temperatures promoting growth",
-      "Infrastructure failures during peak flow",
-      "Soil saturation and system overload",
-      "Equipment malfunction and human error",
-      "Inadequate treatment during high demand",
-      "Transportation accidents in sensitive areas",
-      "Extreme weather events and system stress",
-      "Established invasion pathways"
+      "Heavy rainfall and flooding events", "Drought conditions concentrating chemicals", "Equipment failure during peak season",
+      "Drought conditions concentrating pollutants", "Infrastructure damage from extreme weather",
+      "High water temperatures promoting growth", "Climate change altering precipitation patterns", "Urban heat island effects",
+      "Infrastructure failures during peak flow", "Power outages affecting treatment",
+      "Soil saturation and system overload", "Aging infrastructure failure",
+      "Equipment malfunction and human error", "Power supply interruptions", "Extreme weather events",
+      "Inadequate treatment during high demand", "Economic pressures reducing maintenance",
+      "Transportation accidents in sensitive areas", "Emergency response delays",
+      "Extreme weather events and system stress", "Regulatory compliance failures",
+      "Established invasion pathways", "Severe weather damaging containment",
+      "Heavy precipitation overwhelming controls", "Construction equipment failures",
+      "Extreme precipitation events", "Economic downturns reducing monitoring"
     ),
     
-    # Central Problem (Main Environmental Hazard)
+    # Central Problem (Main Environmental Hazard) - multiple pathways to same problem
     Central_Problem = c(
-      rep("Eutrophication", 6),
-      "Water pollution", 
-      "Toxic release",
-      "Climate impact", 
-      "Ecosystem disruption"
+      "Eutrophication", "Eutrophication", "Eutrophication",
+      "Eutrophication", "Climate impact",
+      "Eutrophication", "Habitat loss", "Eutrophication",
+      "Eutrophication", "Eutrophication",
+      "Eutrophication", "Water pollution",
+      "Water pollution", "Water pollution", "Air pollution",
+      "Water pollution", "Water pollution",
+      "Toxic release", "Toxic release",
+      "Climate impact", "Air pollution",
+      "Ecosystem disruption", "Water pollution",
+      "Water pollution", "Environmental degradation",
+      "Water pollution", "Water stress"
     ),
     
-    # Protective Barriers (Mitigation) to reduce consequences
+    # Protective Mitigation - multiple mitigations for same problem
     Protective_Mitigation = c(
-      "Water quality monitoring and rapid response alerts",
-      "Habitat restoration and fish restocking programs",
-      "Emergency water treatment and alternative supplies",
-      "Public health advisories and beach closure protocols",
-      "Community alternative water supplies and filters",
-      "Lake aeration systems and biomanipulation",
-      "Emergency response protocols and containment", 
-      "Emergency medical response and decontamination",
-      "Climate adaptation measures and resilient infrastructure", 
-      "Control and eradication programs with monitoring"
+      "Water quality monitoring and rapid response alerts", "Algae bloom early warning systems", "Lake aeration systems",
+      "Habitat restoration and fish restocking programs", "Carbon sequestration programs",
+      "Emergency water treatment and alternative supplies", "Species relocation and habitat restoration", "Emergency water treatment systems",
+      "Public health advisories and beach closure protocols", "Advanced water treatment technology",
+      "Community alternative water supplies and filters", "Groundwater remediation systems",
+      "Emergency response protocols and containment", "Heavy metal remediation technology", "Air quality monitoring and alerts",
+      "Emergency response protocols and containment", "Waste cleanup and remediation",
+      "Emergency medical response and decontamination", "Community evacuation procedures",
+      "Climate adaptation measures and resilient infrastructure", "Public health protection measures",
+      "Control and eradication programs with monitoring", "Oil spill response and cleanup",
+      "Sediment removal and water treatment", "Community noise protection measures",
+      "Water treatment and ecosystem restoration", "Emergency water supplies and conservation"
     ),
     
-    # Final Environmental Consequences
+    # Final Environmental Consequences - multiple consequences per problem
     Consequence = c(
-      "Algal blooms and dead zones",
-      "Fish kills and biodiversity loss",
-      "Oxygen depletion in water bodies",
-      "Drinking water contamination",
-      "Beach closures and health risks",
-      "Economic losses to fisheries and tourism",
-      "Aquatic ecosystem degradation", 
-      "Wildlife poisoning and habitat loss",
-      "Extreme weather events and infrastructure damage", 
-      "Native species displacement and ecosystem collapse"
+      "Algal blooms and dead zones", "Algal blooms and dead zones", "Algal blooms and dead zones",
+      "Fish kills and biodiversity loss", "Global warming acceleration",
+      "Drinking water contamination", "Species extinction and habitat loss", "Drinking water contamination",
+      "Beach closures and health risks", "Beach closures and health risks", 
+      "Economic losses to fisheries and tourism", "Groundwater contamination",
+      "Aquatic ecosystem degradation", "Aquatic ecosystem degradation", "Respiratory health impacts",
+      "Aquatic ecosystem degradation", "Land and water contamination",
+      "Wildlife poisoning and habitat loss", "Human health emergencies",
+      "Extreme weather events and infrastructure damage", "Public health impacts",
+      "Native species displacement and ecosystem collapse", "Marine ecosystem damage",
+      "Water quality degradation", "Community health impacts",
+      "Long-term environmental damage", "Water scarcity and ecosystem stress"
     ),
     
-    Likelihood = c(4, 4, 4, 3, 3, 3, 3, 2, 5, 2),
-    Severity = c(5, 5, 4, 5, 4, 4, 4, 5, 5, 3),
+    Likelihood = c(4, 3, 3, 4, 3, 4, 3, 4, 3, 4, 3, 3, 3, 2, 3, 3, 3, 2, 2, 5, 4, 2, 3, 4, 3, 3, 2),
+    Severity = c(5, 4, 3, 5, 4, 5, 4, 4, 5, 5, 4, 4, 4, 5, 4, 4, 3, 5, 4, 5, 4, 4, 4, 3, 4, 4, 3),
     stringsAsFactors = FALSE
   )
   
@@ -117,7 +159,7 @@ generateEnvironmentalData <- function() {
   sample_data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
                                   ifelse(risk_scores <= 15, "Medium", "High"))
   
-  cat("Generated", nrow(sample_data), "rows of comprehensive environmental data\n")
+  cat("Generated", nrow(sample_data), "rows of comprehensive environmental data with multiple interconnected pathways\n")
   return(sample_data)
 }
 
@@ -197,6 +239,7 @@ createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_ris
   n_barriers <- 0
   
   if (show_barriers) {
+    # Pre-calculate unique values for barrier elements - this will be updated in node creation
     preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
     escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
     protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
@@ -216,14 +259,14 @@ createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_ris
   
   idx <- 1
   
-  # Central Problem node (center) - Diamond shape
+  # Hazard node (center)
   ids[idx] <- 1
   labels[idx] <- selected_problem
   groups[idx] <- "central_problem"
   colors[idx] <- CENTRAL_PROBLEM_COLOR
   shapes[idx] <- "diamond"
-  sizes[idx] <- node_size * 1.8
-  font_sizes[idx] <- 16
+  sizes[idx] <- node_size * 2.0  # Larger central problem
+  font_sizes[idx] <- 18
   idx <- idx + 1
   
   # Activity nodes (far left)
@@ -243,8 +286,8 @@ createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_ris
     groups[activity_indices] <- "activity"
     colors[activity_indices] <- activity_colors
     shapes[activity_indices] <- "box"
-    sizes[activity_indices] <- node_size * 0.9
-    font_sizes[activity_indices] <- 11
+    sizes[activity_indices] <- node_size * 1.1  # Slightly larger activities
+    font_sizes[activity_indices] <- 12
     idx <- idx + n_activities
   }
   
@@ -265,7 +308,7 @@ createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_ris
     groups[pressure_indices] <- "pressure"
     colors[pressure_indices] <- pressure_colors
     shapes[pressure_indices] <- "triangle"
-    sizes[pressure_indices] <- node_size
+    sizes[pressure_indices] <- node_size * 1.0  # Standard size pressures
     font_sizes[pressure_indices] <- 12
     idx <- idx + n_pressures
   }
@@ -287,46 +330,64 @@ createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_ris
     groups[cons_indices] <- "consequence"
     colors[cons_indices] <- cons_colors
     shapes[cons_indices] <- "hexagon"
-    sizes[cons_indices] <- node_size
+    sizes[cons_indices] <- node_size * 1.0  # Standard size consequences
     font_sizes[cons_indices] <- 12
     idx <- idx + n_consequences
   }
   
-  # Barrier and escalation factor nodes
+  # Barrier and escalation factor nodes (only include those that are actually used)
   if (show_barriers) {
-    if (exists("preventive_controls") && length(preventive_controls) > 0) {
-      prev_indices <- idx:(idx + length(preventive_controls) - 1)
-      ids[prev_indices] <- 300 + seq_len(length(preventive_controls))
-      labels[prev_indices] <- preventive_controls
+    # Only include preventive controls that are actually used in the data
+    used_preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
+    if (length(used_preventive_controls) > 0) {
+      prev_indices <- idx:(idx + length(used_preventive_controls) - 1)
+      ids[prev_indices] <- 300 + seq_len(length(used_preventive_controls))
+      labels[prev_indices] <- used_preventive_controls
       groups[prev_indices] <- "preventive_control"
       colors[prev_indices] <- PREVENTIVE_COLOR
       shapes[prev_indices] <- "square"
-      sizes[prev_indices] <- node_size * 0.8
-      font_sizes[prev_indices] <- 10
-      idx <- idx + length(preventive_controls)
+      sizes[prev_indices] <- node_size * 0.9  # Slightly smaller controls
+      font_sizes[prev_indices] <- 11
+      idx <- idx + length(used_preventive_controls)
+      # Update the variable for edge creation
+      preventive_controls <- used_preventive_controls
     }
     
-    if (exists("escalation_factors") && length(escalation_factors) > 0) {
-      esc_indices <- idx:(idx + length(escalation_factors) - 1)
-      ids[esc_indices] <- 350 + seq_len(length(escalation_factors))
-      labels[esc_indices] <- escalation_factors
+    # Only include escalation factors that are actually used in the data
+    used_escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
+    if (length(used_escalation_factors) > 0) {
+      esc_indices <- idx:(idx + length(used_escalation_factors) - 1)
+      ids[esc_indices] <- 350 + seq_len(length(used_escalation_factors))
+      labels[esc_indices] <- used_escalation_factors
       groups[esc_indices] <- "escalation_factor"
       colors[esc_indices] <- ESCALATION_COLOR
       shapes[esc_indices] <- "triangleDown"
-      sizes[esc_indices] <- node_size * 0.8
-      font_sizes[esc_indices] <- 10
-      idx <- idx + length(escalation_factors)
+      sizes[esc_indices] <- node_size * 0.9  # Slightly smaller escalation factors
+      font_sizes[esc_indices] <- 11
+      idx <- idx + length(used_escalation_factors)
+      # Update the variable for edge creation
+      escalation_factors <- used_escalation_factors
     }
     
-    if (exists("protective_mitigations") && length(protective_mitigations) > 0) {
-      prot_indices <- idx:(idx + length(protective_mitigations) - 1)
-      ids[prot_indices] <- 400 + seq_len(length(protective_mitigations))
-      labels[prot_indices] <- protective_mitigations
+    # Only include protective mitigations that have consequences in the data
+    mitigations_with_consequences <- character(0)
+    for (consequence in unique(hazard_data$Consequence[hazard_data$Consequence != ""])) {
+      related_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Consequence == consequence & hazard_data$Protective_Mitigation != ""])
+      mitigations_with_consequences <- c(mitigations_with_consequences, related_mitigations)
+    }
+    used_protective_mitigations <- unique(mitigations_with_consequences)
+    
+    if (length(used_protective_mitigations) > 0) {
+      prot_indices <- idx:(idx + length(used_protective_mitigations) - 1)
+      ids[prot_indices] <- 400 + seq_len(length(used_protective_mitigations))
+      labels[prot_indices] <- used_protective_mitigations
       groups[prot_indices] <- "protective_mitigation"
       colors[prot_indices] <- PROTECTIVE_COLOR
       shapes[prot_indices] <- "square"
-      sizes[prot_indices] <- node_size * 0.8
-      font_sizes[prot_indices] <- 10
+      sizes[prot_indices] <- node_size * 0.9  # Slightly smaller mitigations
+      font_sizes[prot_indices] <- 11
+      # Update the variable for edge creation
+      protective_mitigations <- used_protective_mitigations
     }
   }
   
@@ -346,9 +407,9 @@ createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_ris
   nodes
 }
 
-# Enhanced edge creation for comprehensive bowtie structure
+# Enhanced edge creation for comprehensive bowtie structure with multiple connections
 createBowtieEdges <- function(hazard_data, show_barriers) {
-  cache_key <- paste0("edges_comp_", nrow(hazard_data), "_", show_barriers)
+  cache_key <- paste0("edges_multi_", nrow(hazard_data), "_", show_barriers)
   if (exists(cache_key, envir = .cache)) {
     return(get(cache_key, envir = .cache))
   }
@@ -366,12 +427,14 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
   dashes <- logical(0)
   
   if (!show_barriers) {
-    # Simple flow: Activity → Pressure → Central Problem → Consequence
+    # Simple flow with multiple connections: Activity → Pressure → Central Problem → Consequence
     
-    # Activity → Pressure connections
+    # Activity → Multiple Pressures connections
     for (i in seq_along(activities)) {
       activity <- activities[i]
-      related_pressures <- hazard_data$Pressure[hazard_data$Activity == activity]
+      # Find ALL pressures associated with this activity
+      related_pressures <- unique(hazard_data$Pressure[hazard_data$Activity == activity & hazard_data$Pressure != ""])
+      
       for (pressure in related_pressures) {
         pressure_idx <- which(pressures == pressure)
         if (length(pressure_idx) > 0) {
@@ -385,7 +448,7 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
       }
     }
     
-    # Pressure → Central Problem connections
+    # Pressure → Central Problem connections (multiple pressures can contribute to same problem)
     for (i in seq_along(pressures)) {
       from <- c(from, 100 + i)
       to <- c(to, 1)
@@ -395,7 +458,7 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
       dashes <- c(dashes, FALSE)
     }
     
-    # Central Problem → Consequence connections
+    # Central Problem → Multiple Consequences connections
     for (i in seq_along(consequences)) {
       from <- c(from, 1)
       to <- c(to, 200 + i)
@@ -406,16 +469,25 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
     }
     
   } else {
-    # Complex flow with barriers: Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence
+    # Complex flow with barriers and multiple connections
     
-    preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
-    escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
-    protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
+    # Get barrier elements that are actually used in the data
+    used_preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
+    used_escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
     
-    # Activity → Pressure connections
+    # Get protective mitigations that have consequences
+    mitigations_with_consequences <- character(0)
+    for (consequence in consequences) {
+      related_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Consequence == consequence & hazard_data$Protective_Mitigation != ""])
+      mitigations_with_consequences <- c(mitigations_with_consequences, related_mitigations)
+    }
+    used_protective_mitigations <- unique(mitigations_with_consequences)
+    
+    # Activity → Multiple Pressures connections
     for (i in seq_along(activities)) {
       activity <- activities[i]
-      related_pressures <- hazard_data$Pressure[hazard_data$Activity == activity]
+      related_pressures <- unique(hazard_data$Pressure[hazard_data$Activity == activity & hazard_data$Pressure != ""])
+      
       for (pressure in related_pressures) {
         pressure_idx <- which(pressures == pressure)
         if (length(pressure_idx) > 0) {
@@ -429,63 +501,27 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
       }
     }
     
-    # Pressure → Preventive Control → Escalation Factor → Central Problem pathway
+    # Pressure → Multiple Preventive Controls connections
     for (i in seq_along(pressures)) {
       pressure <- pressures[i]
-      control_for_pressure <- hazard_data$Preventive_Control[hazard_data$Pressure == pressure][1]
-      escalation_for_pressure <- hazard_data$Escalation_Factor[hazard_data$Pressure == pressure][1]
+      # Find ALL controls that address this pressure
+      related_controls <- unique(hazard_data$Preventive_Control[hazard_data$Pressure == pressure & hazard_data$Preventive_Control != ""])
       
-      if (!is.na(control_for_pressure) && control_for_pressure != "") {
-        control_idx <- which(preventive_controls == control_for_pressure)
-        if (length(control_idx) > 0) {
-          # Pressure → Preventive Control
-          from <- c(from, 100 + i)
-          to <- c(to, 300 + control_idx)
-          arrows <- c(arrows, "to")
-          colors <- c(colors, "#E74C3C")
-          widths <- c(widths, 2)
-          dashes <- c(dashes, FALSE)
-          
-          # Check for escalation factor
-          if (!is.na(escalation_for_pressure) && escalation_for_pressure != "") {
-            escalation_idx <- which(escalation_factors == escalation_for_pressure)
-            if (length(escalation_idx) > 0) {
-              # Preventive Control → Escalation Factor (control can fail)
-              from <- c(from, 300 + control_idx)
-              to <- c(to, 350 + escalation_idx)
-              arrows <- c(arrows, "to")
-              colors <- c(colors, "#F39C12")
-              widths <- c(widths, 2)
-              dashes <- c(dashes, TRUE)
-              
-              # Escalation Factor → Central Problem
-              from <- c(from, 350 + escalation_idx)
-              to <- c(to, 1)
-              arrows <- c(arrows, "to")
-              colors <- c(colors, "#F39C12")
-              widths <- c(widths, 2)
-              dashes <- c(dashes, FALSE)
-            } else {
-              # Preventive Control → Central Problem (if control fails)
-              from <- c(from, 300 + control_idx)
-              to <- c(to, 1)
-              arrows <- c(arrows, "to")
-              colors <- c(colors, "#27AE60")
-              widths <- c(widths, 2)
-              dashes <- c(dashes, TRUE)
-            }
-          } else {
-            # Preventive Control → Central Problem (if control fails)
-            from <- c(from, 300 + control_idx)
-            to <- c(to, 1)
+      if (length(related_controls) > 0) {
+        for (control in related_controls) {
+          control_idx <- which(used_preventive_controls == control)
+          if (length(control_idx) > 0) {
+            # Pressure → Preventive Control
+            from <- c(from, 100 + i)
+            to <- c(to, 300 + control_idx)
             arrows <- c(arrows, "to")
-            colors <- c(colors, "#27AE60")
+            colors <- c(colors, "#E74C3C")
             widths <- c(widths, 2)
-            dashes <- c(dashes, TRUE)
+            dashes <- c(dashes, FALSE)
           }
         }
       } else {
-        # Direct pressure → central problem if no control
+        # If no controls, direct connection to central problem
         from <- c(from, 100 + i)
         to <- c(to, 1)
         arrows <- c(arrows, "to")
@@ -495,32 +531,78 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
       }
     }
     
-    # Central Problem → Protective Mitigation → Consequence pathway
+    # Preventive Control → Multiple Escalation Factors (control failures) and Central Problem
+    for (i in seq_along(used_preventive_controls)) {
+      control <- used_preventive_controls[i]
+      # Find escalation factors associated with this control
+      related_escalations <- unique(hazard_data$Escalation_Factor[hazard_data$Preventive_Control == control & hazard_data$Escalation_Factor != ""])
+      
+      if (length(related_escalations) > 0) {
+        for (escalation in related_escalations) {
+          escalation_idx <- which(used_escalation_factors == escalation)
+          if (length(escalation_idx) > 0) {
+            # Control → Escalation Factor (control fails)
+            from <- c(from, 300 + i)
+            to <- c(to, 350 + escalation_idx)
+            arrows <- c(arrows, "to")
+            colors <- c(colors, "#F39C12")
+            widths <- c(widths, 2)
+            dashes <- c(dashes, TRUE)
+          }
+        }
+      }
+      
+      # Control success path to central problem (always included for used controls)
+      from <- c(from, 300 + i)
+      to <- c(to, 1)
+      arrows <- c(arrows, "to")
+      colors <- c(colors, "#27AE60")
+      widths <- c(widths, 1)
+      dashes <- c(dashes, TRUE)
+    }
+    
+    # Multiple Escalation Factors → Central Problem
+    for (i in seq_along(used_escalation_factors)) {
+      from <- c(from, 350 + i)
+      to <- c(to, 1)
+      arrows <- c(arrows, "to")
+      colors <- c(colors, "#F39C12")
+      widths <- c(widths, 2)
+      dashes <- c(dashes, FALSE)
+    }
+    
+    # Central Problem → Multiple Protective Mitigations (only those with consequences)
+    for (i in seq_along(used_protective_mitigations)) {
+      # Central Problem → Protective Mitigation
+      from <- c(from, 1)
+      to <- c(to, 400 + i)
+      arrows <- c(arrows, "to")
+      colors <- c(colors, "#C0392B")
+      widths <- c(widths, 2)
+      dashes <- c(dashes, FALSE)
+    }
+    
+    # Multiple Protective Mitigations → Consequences
     for (i in seq_along(consequences)) {
       consequence <- consequences[i]
-      mitigation_for_consequence <- hazard_data$Protective_Mitigation[hazard_data$Consequence == consequence][1]
+      # Find ALL mitigations that address this consequence
+      related_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Consequence == consequence & hazard_data$Protective_Mitigation != ""])
       
-      if (!is.na(mitigation_for_consequence) && mitigation_for_consequence != "") {
-        mitigation_idx <- which(protective_mitigations == mitigation_for_consequence)
-        if (length(mitigation_idx) > 0) {
-          # Central Problem → Protective Mitigation
-          from <- c(from, 1)
-          to <- c(to, 400 + mitigation_idx)
-          arrows <- c(arrows, "to")
-          colors <- c(colors, "#C0392B")
-          widths <- c(widths, 2)
-          dashes <- c(dashes, FALSE)
-          
-          # Protective Mitigation → Consequence (mitigation reduces impact)
-          from <- c(from, 400 + mitigation_idx)
-          to <- c(to, 200 + i)
-          arrows <- c(arrows, "to")
-          colors <- c(colors, "#3498DB")
-          widths <- c(widths, 2)
-          dashes <- c(dashes, TRUE)
+      if (length(related_mitigations) > 0) {
+        for (mitigation in related_mitigations) {
+          mitigation_idx <- which(used_protective_mitigations == mitigation)
+          if (length(mitigation_idx) > 0) {
+            # Protective Mitigation → Consequence (mitigation reduces impact)
+            from <- c(from, 400 + mitigation_idx)
+            to <- c(to, 200 + i)
+            arrows <- c(arrows, "to")
+            colors <- c(colors, "#3498DB")
+            widths <- c(widths, 2)
+            dashes <- c(dashes, TRUE)
+          }
         }
       } else {
-        # Direct central problem → consequence if no mitigation
+        # If no mitigation, direct severe consequence from central problem
         from <- c(from, 1)
         to <- c(to, 200 + i)
         arrows <- c(arrows, "to")
@@ -528,6 +610,27 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
         widths <- c(widths, 3)
         dashes <- c(dashes, FALSE)
       }
+    }
+    
+    # Add cross-connections for same elements that appear in multiple pathways
+    # These connections show the complex interconnected nature of environmental systems
+    
+    # Find pressures that have multiple activities contributing to them
+    for (i in seq_along(pressures)) {
+      pressure <- pressures[i]
+      contributing_activities <- unique(hazard_data$Activity[hazard_data$Pressure == pressure & hazard_data$Activity != ""])
+      
+      # If multiple activities contribute to same pressure, they're already connected above
+      # This creates the convergent nature of environmental risks
+    }
+    
+    # Find consequences that can result from multiple mitigation failures
+    for (i in seq_along(consequences)) {
+      consequence <- consequences[i]
+      related_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Consequence == consequence & hazard_data$Protective_Mitigation != ""])
+      
+      # Multiple mitigation strategies for same consequence are already connected above
+      # This shows redundancy in protective measures
     }
   }
   
