@@ -8,9 +8,9 @@
 # Cache for expensive computations
 .cache <- new.env()
 
-# ENHANCED function to generate environmental management sample data with FIXED connections
+# ENHANCED function to generate environmental management sample data with FIXED connections and granular risk values
 generateEnvironmentalDataFixed <- function() {
-  cat("🔄 Generating v4.2.3 enhanced environmental management data with FIXED protective mitigation connections\n")
+  cat("🔄 Generating v4.2.3 enhanced environmental management data with GRANULAR bowtie connection risks\n")
   
   # Create comprehensive data with PROPERLY MAPPED protective mitigations
   sample_data <- data.frame(
@@ -141,18 +141,71 @@ generateEnvironmentalDataFixed <- function() {
       "Long-term environmental damage", "Water scarcity and ecosystem stress"
     ),
     
-    Likelihood = c(4, 3, 3, 4, 3, 4, 3, 4, 3, 4, 3, 3, 3, 2, 3, 3, 3, 2, 2, 5, 4, 2, 3, 4, 3, 3, 2),
-    Severity = c(5, 4, 3, 5, 4, 5, 4, 4, 5, 5, 4, 4, 4, 5, 4, 4, 3, 5, 4, 5, 4, 4, 4, 3, 4, 4, 3),
+    # GRANULAR BOWTIE CONNECTION RISKS (v4.2.3 Enhancement)
+    # Connection 1: Activity → Pressure
+    Activity_to_Pressure_Likelihood = c(4, 3, 3, 4, 4, 5, 3, 4, 3, 4, 3, 3, 4, 3, 4, 4, 3, 2, 2, 5, 4, 2, 3, 4, 3, 3, 2),
+    Activity_to_Pressure_Severity = c(3, 4, 2, 4, 3, 4, 4, 3, 4, 4, 3, 4, 3, 4, 3, 3, 2, 3, 3, 4, 3, 3, 4, 3, 2, 4, 3),
+    
+    # Connection 2: Pressure → Preventive Control (effectiveness/failure risk)
+    Pressure_to_Control_Likelihood = c(2, 3, 2, 3, 2, 2, 3, 2, 3, 2, 3, 3, 2, 3, 2, 2, 3, 1, 1, 3, 2, 2, 2, 3, 2, 2, 3),
+    Pressure_to_Control_Severity = c(4, 3, 3, 4, 4, 4, 4, 4, 4, 5, 3, 3, 4, 4, 4, 4, 3, 5, 4, 4, 4, 4, 4, 3, 3, 4, 3),
+    
+    # Connection 3: Control → Escalation Factor (control failure leading to escalation)
+    Control_to_Escalation_Likelihood = c(3, 2, 2, 3, 3, 3, 2, 3, 3, 3, 2, 2, 2, 2, 3, 3, 2, 2, 2, 4, 3, 2, 3, 3, 2, 3, 2),
+    Control_to_Escalation_Severity = c(4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4, 4, 5, 4, 4, 4, 4, 3, 4, 4),
+    
+    # Connection 4: Escalation → Central Problem
+    Escalation_to_Central_Likelihood = c(4, 3, 3, 4, 3, 4, 3, 4, 4, 4, 3, 3, 3, 2, 3, 3, 3, 3, 3, 4, 4, 3, 3, 4, 3, 3, 3),
+    Escalation_to_Central_Severity = c(5, 4, 3, 5, 4, 5, 4, 4, 5, 5, 4, 4, 4, 5, 4, 4, 3, 5, 4, 5, 4, 4, 4, 3, 4, 4, 3),
+    
+    # Connection 5: Central Problem → Protective Mitigation (mitigation effectiveness)
+    Central_to_Mitigation_Likelihood = c(2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 3, 1, 1, 3, 2, 2, 2, 2, 2, 2, 2),
+    Central_to_Mitigation_Severity = c(4, 4, 4, 5, 3, 5, 4, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4),
+    
+    # Connection 6: Mitigation → Consequence (residual risk after mitigation)
+    Mitigation_to_Consequence_Likelihood = c(2, 2, 2, 3, 2, 3, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2),
+    Mitigation_to_Consequence_Severity = c(5, 4, 3, 5, 4, 5, 4, 4, 5, 5, 4, 4, 4, 5, 4, 4, 3, 5, 4, 5, 4, 4, 4, 3, 4, 4, 3),
+    
     stringsAsFactors = FALSE
   )
   
-  # Calculate Risk_Level vectorized
-  risk_scores <- sample_data$Likelihood * sample_data$Severity
+  # Calculate overall pathway risk using chain multiplication
+  # Overall Likelihood = Product of all likelihood values in the chain (with some adjustment to prevent overly low values)
+  overall_likelihood_raw <- with(sample_data, 
+    Activity_to_Pressure_Likelihood * 
+    (Pressure_to_Control_Likelihood/5) * 
+    (Control_to_Escalation_Likelihood/5) * 
+    (Escalation_to_Central_Likelihood/5) * 
+    (Central_to_Mitigation_Likelihood/5) * 
+    (Mitigation_to_Consequence_Likelihood/5)
+  )
+  
+  # Scale back to 1-5 range and ensure minimum of 1
+  sample_data$Overall_Likelihood <- pmax(1, pmin(5, round(overall_likelihood_raw^0.3 * 2.5)))
+  
+  # Overall Severity = Maximum severity along the pathway (worst case)
+  sample_data$Overall_Severity <- with(sample_data, pmax(
+    Activity_to_Pressure_Severity,
+    Pressure_to_Control_Severity,
+    Control_to_Escalation_Severity,
+    Escalation_to_Central_Severity,
+    Central_to_Mitigation_Severity,
+    Mitigation_to_Consequence_Severity
+  ))
+  
+  # Calculate Risk_Level based on overall pathway risk
+  risk_scores <- sample_data$Overall_Likelihood * sample_data$Overall_Severity
   sample_data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
                                   ifelse(risk_scores <= 15, "Medium", "High"))
   
-  cat("✅ Generated", nrow(sample_data), "rows of v4.2.3 enhanced environmental data with FIXED protective mitigation connections\n")
-  cat("🔗 Each protective mitigation is now properly mapped to its corresponding consequence\n")
+  # Keep legacy columns for backward compatibility
+  sample_data$Likelihood <- sample_data$Overall_Likelihood
+  sample_data$Severity <- sample_data$Overall_Severity
+  
+  cat("✅ Generated", nrow(sample_data), "rows of v4.2.3 enhanced environmental data with GRANULAR bowtie connection risks\n")
+  cat("🔗 Each protective mitigation is properly mapped to its corresponding consequence\n")
+  cat("📊 Added granular likelihood/severity for 6 bowtie connections per scenario\n")
+  cat("🎯 Overall risk calculated from pathway chain analysis\n")
   return(sample_data)
 }
 
@@ -168,7 +221,7 @@ validateDataColumns <- function(data) {
   list(valid = length(missing_cols) == 0, missing = missing_cols)
 }
 
-# Function to add default columns if missing (enhanced structure)
+# Function to add default columns if missing (enhanced structure with granular risks)
 addDefaultColumns <- function(data) {
   n_rows <- nrow(data)
   
@@ -179,10 +232,57 @@ addDefaultColumns <- function(data) {
   if (!"Central_Problem" %in% names(data)) data$Central_Problem <- "Environmental Risk v4.2.3"
   if (!"Protective_Mitigation" %in% names(data)) data$Protective_Mitigation <- paste("v4.2.3 FIXED protective mitigation", seq_len(n_rows))
   if (!"Consequence" %in% names(data)) data$Consequence <- paste("Consequence", seq_len(n_rows))
-  if (!"Likelihood" %in% names(data)) data$Likelihood <- sample.int(5, n_rows, replace = TRUE)
-  if (!"Severity" %in% names(data)) data$Severity <- sample.int(5, n_rows, replace = TRUE)
+  
+  # Add granular connection risk columns if missing
+  if (!"Activity_to_Pressure_Likelihood" %in% names(data)) data$Activity_to_Pressure_Likelihood <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Activity_to_Pressure_Severity" %in% names(data)) data$Activity_to_Pressure_Severity <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Pressure_to_Control_Likelihood" %in% names(data)) data$Pressure_to_Control_Likelihood <- sample.int(3, n_rows, replace = TRUE)
+  if (!"Pressure_to_Control_Severity" %in% names(data)) data$Pressure_to_Control_Severity <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Control_to_Escalation_Likelihood" %in% names(data)) data$Control_to_Escalation_Likelihood <- sample.int(4, n_rows, replace = TRUE)
+  if (!"Control_to_Escalation_Severity" %in% names(data)) data$Control_to_Escalation_Severity <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Escalation_to_Central_Likelihood" %in% names(data)) data$Escalation_to_Central_Likelihood <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Escalation_to_Central_Severity" %in% names(data)) data$Escalation_to_Central_Severity <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Central_to_Mitigation_Likelihood" %in% names(data)) data$Central_to_Mitigation_Likelihood <- sample.int(3, n_rows, replace = TRUE)
+  if (!"Central_to_Mitigation_Severity" %in% names(data)) data$Central_to_Mitigation_Severity <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Mitigation_to_Consequence_Likelihood" %in% names(data)) data$Mitigation_to_Consequence_Likelihood <- sample.int(3, n_rows, replace = TRUE)
+  if (!"Mitigation_to_Consequence_Severity" %in% names(data)) data$Mitigation_to_Consequence_Severity <- sample.int(5, n_rows, replace = TRUE)
+  
+  # Calculate overall pathway risk if granular data exists
+  if (all(c("Activity_to_Pressure_Likelihood", "Mitigation_to_Consequence_Severity") %in% names(data))) {
+    # Calculate overall likelihood using chain multiplication
+    overall_likelihood_raw <- with(data, 
+      Activity_to_Pressure_Likelihood * 
+      (Pressure_to_Control_Likelihood/5) * 
+      (Control_to_Escalation_Likelihood/5) * 
+      (Escalation_to_Central_Likelihood/5) * 
+      (Central_to_Mitigation_Likelihood/5) * 
+      (Mitigation_to_Consequence_Likelihood/5)
+    )
+    
+    # Scale back to 1-5 range
+    data$Overall_Likelihood <- pmax(1, pmin(5, round(overall_likelihood_raw^0.3 * 2.5)))
+    
+    # Overall Severity = Maximum severity along the pathway
+    data$Overall_Severity <- with(data, pmax(
+      Activity_to_Pressure_Severity,
+      Pressure_to_Control_Severity,
+      Control_to_Escalation_Severity,
+      Escalation_to_Central_Severity,
+      Central_to_Mitigation_Severity,
+      Mitigation_to_Consequence_Severity
+    ))
+  } else {
+    # Fallback to simple values
+    if (!"Overall_Likelihood" %in% names(data)) data$Overall_Likelihood <- sample.int(5, n_rows, replace = TRUE)
+    if (!"Overall_Severity" %in% names(data)) data$Overall_Severity <- sample.int(5, n_rows, replace = TRUE)
+  }
+  
+  # Legacy columns for backward compatibility
+  if (!"Likelihood" %in% names(data)) data$Likelihood <- data$Overall_Likelihood
+  if (!"Severity" %in% names(data)) data$Severity <- data$Overall_Severity
+  
   if (!"Risk_Level" %in% names(data)) {
-    risk_scores <- data$Likelihood * data$Severity
+    risk_scores <- data$Overall_Likelihood * data$Overall_Severity
     data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
                              ifelse(risk_scores <= 15, "Medium", "High"))
   }
@@ -664,9 +764,9 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
   createBowtieEdgesFixed(hazard_data, show_barriers)
 }
 
-# v4.2.3 Enhanced function to create a default row for data editing
+# v4.2.3 Enhanced function to create a default row for data editing with granular risks
 createDefaultRowFixed <- function(selected_problem = "New Environmental Risk v4.2.3") {
-  data.frame(
+  new_row <- data.frame(
     Activity = "New Enhanced Activity v4.2.3",
     Pressure = "New Enhanced Pressure v4.2.3",
     Preventive_Control = "New Enhanced Preventive Control v4.2.3",
@@ -674,11 +774,33 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk v4.
     Central_Problem = selected_problem,
     Protective_Mitigation = "New v4.2.3 FIXED Protective Mitigation with enhanced mapping",
     Consequence = "New Enhanced Consequence v4.2.3",
+    
+    # Granular connection risks
+    Activity_to_Pressure_Likelihood = 3L,
+    Activity_to_Pressure_Severity = 3L,
+    Pressure_to_Control_Likelihood = 2L,
+    Pressure_to_Control_Severity = 4L,
+    Control_to_Escalation_Likelihood = 2L,
+    Control_to_Escalation_Severity = 4L,
+    Escalation_to_Central_Likelihood = 3L,
+    Escalation_to_Central_Severity = 4L,
+    Central_to_Mitigation_Likelihood = 2L,
+    Central_to_Mitigation_Severity = 4L,
+    Mitigation_to_Consequence_Likelihood = 2L,
+    Mitigation_to_Consequence_Severity = 3L,
+    
+    # Calculated overall values
+    Overall_Likelihood = 3L,
+    Overall_Severity = 4L,
+    
+    # Legacy columns for backward compatibility
     Likelihood = 3L,
-    Severity = 3L,
+    Severity = 4L,
     Risk_Level = "Medium",
     stringsAsFactors = FALSE
   )
+  
+  return(new_row)
 }
 
 # Backward compatibility function
@@ -697,20 +819,37 @@ validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
   }
 }
 
-# v4.2.3 Enhanced data summary function
+# v4.2.3 Enhanced data summary function with granular connection analysis
 getDataSummaryFixed <- function(data) {
   if (is.null(data) || nrow(data) == 0) return(NULL)
   
-  paste(
-    "📊 v4.2.3 Enhanced Summary:",
-    "Rows:", nrow(data),
-    "| Activities:", length(unique(data$Activity)),
-    "| Central Problems:", length(unique(data$Central_Problem)),
-    "| 🛡️ FIXED Protective Mitigations:", length(unique(data$Protective_Mitigation[data$Protective_Mitigation != ""])),
-    "| Consequences:", length(unique(data$Consequence)),
-    "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", "),
-    "| ✅ v4.2.3 FIXED connections with enhanced mapping"
-  )
+  # Check if granular data is available
+  has_granular_data <- all(c("Activity_to_Pressure_Likelihood", "Overall_Likelihood") %in% names(data))
+  
+  if (has_granular_data) {
+    paste(
+      "📊 v4.2.3 GRANULAR ENHANCED Summary:",
+      "Rows:", nrow(data),
+      "| Activities:", length(unique(data$Activity)),
+      "| Central Problems:", length(unique(data$Central_Problem)),
+      "| 🛡️ FIXED Protective Mitigations:", length(unique(data$Protective_Mitigation[data$Protective_Mitigation != ""])),
+      "| Consequences:", length(unique(data$Consequence)),
+      "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", "),
+      "| 🔗 GRANULAR: 6 connection risks per scenario",
+      "| ✅ v4.2.3 PATHWAY ANALYSIS with enhanced mapping"
+    )
+  } else {
+    paste(
+      "📊 v4.2.3 Enhanced Summary:",
+      "Rows:", nrow(data),
+      "| Activities:", length(unique(data$Activity)),
+      "| Central Problems:", length(unique(data$Central_Problem)),
+      "| 🛡️ FIXED Protective Mitigations:", length(unique(data$Protective_Mitigation[data$Protective_Mitigation != ""])),
+      "| Consequences:", length(unique(data$Consequence)),
+      "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", "),
+      "| ✅ v4.2.3 FIXED connections with enhanced mapping"
+    )
+  }
 }
 
 # Backward compatibility function
@@ -754,4 +893,6 @@ validateProtectiveMitigations <- function(data) {
 cat("🎉 v4.2.3 Enhanced Environmental Bowtie Risk Analysis Utilities Loaded\n")
 cat("✅ FIXED protective mitigation connections\n")
 cat("🖼️ PNG image support enabled\n")
+cat("🔗 GRANULAR connection-level risk analysis (6 connections per scenario)\n")
+cat("🎯 Overall pathway risk calculation from granular components\n")
 cat("🔧 Enhanced mapping and validation functions ready\n")

@@ -83,7 +83,7 @@ ui <- fluidPage(
                  class = "title-container",
                  div(
                    class = "title-text",
-                   # PNG Image - Place your logo.png in the www/ folder
+                   # PNG Image - marbefes.png logo from www/ folder
                    img(src = "marbefes.png", class = "app-title-image", alt = "Marbefes Logo",
                        onerror = "this.style.display='none'", 
                        title = "Marbefes Environmental Bowtie Risk Analysis"),
@@ -142,9 +142,17 @@ ui <- fluidPage(
                    hr(),
                    
                    h5(tagList(icon("leaf"), "Option 2: Generate Enhanced Sample Data")),
-                   p("Generate comprehensive environmental bowtie data with fixed protective mitigation connections:"),
+                   p("Generate comprehensive environmental bowtie data with GRANULAR connection-level risk analysis:"),
+                   tags$ul(class = "small text-muted",
+                     tags$li("🔗 Activity → Pressure risks"),
+                     tags$li("🛡️ Pressure → Control effectiveness"),
+                     tags$li("⚠️ Control → Escalation risks"),
+                     tags$li("🔥 Escalation → Central Problem risks"),
+                     tags$li("🛡️ Central → Mitigation effectiveness"),
+                     tags$li("💥 Mitigation → Consequence residual risks")
+                   ),
                    div(class = "d-grid", actionButton("generateSample", 
-                                                     tagList(icon("seedling"), "Generate Enhanced Data v4.2.3"), 
+                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.2.3"), 
                                                      class = "btn-success")),
                    
                    conditionalPanel(
@@ -185,7 +193,11 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-success mt-3",
                        tagList(icon("check-circle"), " "),
-                       strong("v4.2.3 FIXED Pathways:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
+                       strong("v4.2.3 GRANULAR Pathways:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
+                   
+                   div(class = "alert alert-info mt-2",
+                       tagList(icon("info-circle"), " "),
+                       strong("NEW: GRANULAR Analysis:"), " Each connection has individual likelihood & severity values for precise risk assessment"),
                    
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -284,7 +296,7 @@ ui <- fluidPage(
                          div(class = "small text-muted",
                              strong("Line Types:"), " Solid = causal flow, Dashed = intervention/control effects"),
                          div(class = "small text-info mt-1",
-                             strong("PNG Support:"), " Add logo.png to www/ folder for custom branding")
+                             strong("PNG Support:"), " Add marbefes.png to www/ folder for custom branding")
                      ),
                      
                      hr(),
@@ -610,7 +622,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # Enhanced cell editing with validation and v4.2.3 features
+  # Enhanced cell editing with validation and v4.2.3 granular features
   observeEvent(input$editableTable_cell_edit, {
     info <- input$editableTable_cell_edit
     data <- getCurrentData()
@@ -623,8 +635,18 @@ server <- function(input, output, session) {
     }
     
     col_names <- names(data)
+    col_name <- col_names[info$col]
     
-    if (col_names[info$col] %in% c("Likelihood", "Severity")) {
+    # List of numeric columns (including granular risk columns)
+    numeric_columns <- c("Likelihood", "Severity", "Overall_Likelihood", "Overall_Severity",
+                        "Activity_to_Pressure_Likelihood", "Activity_to_Pressure_Severity",
+                        "Pressure_to_Control_Likelihood", "Pressure_to_Control_Severity",
+                        "Control_to_Escalation_Likelihood", "Control_to_Escalation_Severity",
+                        "Escalation_to_Central_Likelihood", "Escalation_to_Central_Severity",
+                        "Central_to_Mitigation_Likelihood", "Central_to_Mitigation_Severity",
+                        "Mitigation_to_Consequence_Likelihood", "Mitigation_to_Consequence_Severity")
+    
+    if (col_name %in% numeric_columns) {
       validation <- validateNumericInput(info$value)
       if (!validation$valid) {
         showNotification(validation$message, type = "error", duration = 3)
@@ -632,9 +654,56 @@ server <- function(input, output, session) {
       }
       data[info$row, info$col] <- validation$value
       
-      # Recalculate risk level efficiently
-      likelihood <- data[info$row, "Likelihood"]
-      severity <- data[info$row, "Severity"]
+      # Recalculate overall risk if granular data exists and a granular column was edited
+      granular_columns <- c("Activity_to_Pressure_Likelihood", "Activity_to_Pressure_Severity",
+                            "Pressure_to_Control_Likelihood", "Pressure_to_Control_Severity",
+                            "Control_to_Escalation_Likelihood", "Control_to_Escalation_Severity",
+                            "Escalation_to_Central_Likelihood", "Escalation_to_Central_Severity",
+                            "Central_to_Mitigation_Likelihood", "Central_to_Mitigation_Severity",
+                            "Mitigation_to_Consequence_Likelihood", "Mitigation_to_Consequence_Severity")
+      
+      if (col_name %in% granular_columns && all(granular_columns %in% names(data))) {
+        # Recalculate overall pathway risk for this row
+        row_data <- data[info$row, ]
+        
+        # Calculate overall likelihood using chain multiplication
+        overall_likelihood_raw <- with(row_data, 
+          Activity_to_Pressure_Likelihood * 
+          (Pressure_to_Control_Likelihood/5) * 
+          (Control_to_Escalation_Likelihood/5) * 
+          (Escalation_to_Central_Likelihood/5) * 
+          (Central_to_Mitigation_Likelihood/5) * 
+          (Mitigation_to_Consequence_Likelihood/5)
+        )
+        
+        # Scale back to 1-5 range
+        data[info$row, "Overall_Likelihood"] <- max(1, min(5, round(overall_likelihood_raw^0.3 * 2.5)))
+        
+        # Overall Severity = Maximum severity along the pathway
+        data[info$row, "Overall_Severity"] <- max(
+          row_data$Activity_to_Pressure_Severity,
+          row_data$Pressure_to_Control_Severity,
+          row_data$Control_to_Escalation_Severity,
+          row_data$Escalation_to_Central_Severity,
+          row_data$Central_to_Mitigation_Severity,
+          row_data$Mitigation_to_Consequence_Severity,
+          na.rm = TRUE
+        )
+        
+        # Update legacy columns
+        data[info$row, "Likelihood"] <- data[info$row, "Overall_Likelihood"]
+        data[info$row, "Severity"] <- data[info$row, "Overall_Severity"]
+        
+        showNotification("🔗 Granular risk updated - overall pathway risk recalculated!", type = "message", duration = 2)
+      } else if (col_name %in% c("Likelihood", "Severity", "Overall_Likelihood", "Overall_Severity")) {
+        # For legacy columns, just recalculate risk level
+        likelihood <- data[info$row, if("Overall_Likelihood" %in% names(data)) "Overall_Likelihood" else "Likelihood"]
+        severity <- data[info$row, if("Overall_Severity" %in% names(data)) "Overall_Severity" else "Severity"]
+      } else {
+        likelihood <- data[info$row, "Likelihood"]
+        severity <- data[info$row, "Severity"]
+      }
+      
       data[info$row, "Risk_Level"] <- calculateRiskLevel(likelihood, severity)
     } else {
       data[info$row, info$col] <- as.character(info$value)
@@ -646,7 +715,7 @@ server <- function(input, output, session) {
     
     # Show enhanced success feedback
     if (runif(1) < 0.3) {  # Only show notification 30% of the time
-      showNotification("✓ Cell updated - v4.2.3 FIXED connections refreshed", type = "message", duration = 1)
+      showNotification("✓ Cell updated - v4.2.3 GRANULAR connections refreshed", type = "message", duration = 1)
     }
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
   
@@ -692,7 +761,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Enhanced quick add functionality with v4.2.3 features
+  # Enhanced quick add functionality with v4.2.3 granular features
   observeEvent(input$addActivityChain, {
     req(input$selectedProblem, input$newActivity, input$newPressure, input$newConsequence)
     
@@ -702,19 +771,59 @@ server <- function(input, output, session) {
     }
     
     data <- getCurrentData()
-    new_row <- data.frame(
-      Activity = input$newActivity,
-      Pressure = input$newPressure,
-      Preventive_Control = "v4.2.3 Enhanced preventive control",
-      Escalation_Factor = "v4.2.3 Enhanced escalation factor",
-      Central_Problem = input$selectedProblem,
-      Protective_Mitigation = paste("v4.2.3 FIXED protective mitigation for", input$newConsequence),
-      Consequence = input$newConsequence,
-      Likelihood = 3L,
-      Severity = 3L,
-      Risk_Level = "Medium",
-      stringsAsFactors = FALSE
-    )
+    
+    # Check if current data has granular columns
+    has_granular_data <- all(c("Activity_to_Pressure_Likelihood", "Overall_Likelihood") %in% names(data))
+    
+    if (has_granular_data) {
+      # Create new row with granular risk analysis
+      new_row <- data.frame(
+        Activity = input$newActivity,
+        Pressure = input$newPressure,
+        Preventive_Control = "v4.2.3 Enhanced preventive control",
+        Escalation_Factor = "v4.2.3 Enhanced escalation factor",
+        Central_Problem = input$selectedProblem,
+        Protective_Mitigation = paste("v4.2.3 FIXED protective mitigation for", input$newConsequence),
+        Consequence = input$newConsequence,
+        
+        # Default granular risk values
+        Activity_to_Pressure_Likelihood = 3L,
+        Activity_to_Pressure_Severity = 3L,
+        Pressure_to_Control_Likelihood = 2L,
+        Pressure_to_Control_Severity = 4L,
+        Control_to_Escalation_Likelihood = 2L,
+        Control_to_Escalation_Severity = 4L,
+        Escalation_to_Central_Likelihood = 3L,
+        Escalation_to_Central_Severity = 4L,
+        Central_to_Mitigation_Likelihood = 2L,
+        Central_to_Mitigation_Severity = 4L,
+        Mitigation_to_Consequence_Likelihood = 2L,
+        Mitigation_to_Consequence_Severity = 3L,
+        
+        # Calculated overall values
+        Overall_Likelihood = 3L,
+        Overall_Severity = 4L,
+        Likelihood = 3L,
+        Severity = 4L,
+        Risk_Level = "Medium",
+        stringsAsFactors = FALSE
+      )
+    } else {
+      # Create new row with legacy structure
+      new_row <- data.frame(
+        Activity = input$newActivity,
+        Pressure = input$newPressure,
+        Preventive_Control = "v4.2.3 Enhanced preventive control",
+        Escalation_Factor = "v4.2.3 Enhanced escalation factor",
+        Central_Problem = input$selectedProblem,
+        Protective_Mitigation = paste("v4.2.3 FIXED protective mitigation for", input$newConsequence),
+        Consequence = input$newConsequence,
+        Likelihood = 3L,
+        Severity = 3L,
+        Risk_Level = "Medium",
+        stringsAsFactors = FALSE
+      )
+    }
     
     updated_data <- rbind(data, new_row)
     editedData(updated_data)
@@ -724,14 +833,25 @@ server <- function(input, output, session) {
     updateTextInput(session, "newActivity", value = "")
     updateTextInput(session, "newPressure", value = "")
     updateTextInput(session, "newConsequence", value = "")
-    showNotification("🔗 Enhanced activity chain added with v4.2.3 FIXED connections!", type = "message", duration = 3)
+    
+    if (has_granular_data) {
+      showNotification("🔗 Enhanced activity chain added with v4.2.3 GRANULAR connection risks!", type = "message", duration = 3)
+    } else {
+      showNotification("🔗 Enhanced activity chain added with v4.2.3 FIXED connections!", type = "message", duration = 3)
+    }
   })
   
-  # Enhanced debug info
+  # Enhanced debug info with granular analysis detection
   output$debugInfo <- renderText({
     data <- getCurrentData()
     if (!is.null(data)) {
-      paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.3 Enhanced bowtie structure with FIXED protective mitigation connections")
+      has_granular_data <- all(c("Activity_to_Pressure_Likelihood", "Overall_Likelihood") %in% names(data))
+      
+      if (has_granular_data) {
+        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.3 GRANULAR bowtie structure with 6 connection-level risks per scenario and FIXED protective mitigation connections")
+      } else {
+        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.3 Enhanced bowtie structure with FIXED protective mitigation connections")
+      }
     } else {
       "No enhanced data loaded"
     }
@@ -788,26 +908,64 @@ server <- function(input, output, session) {
       ), position = "right", width = 0.25, ncol = 1)
   })
   
-  # Enhanced risk matrix with v4.2.3 features
+  # Enhanced risk matrix with v4.2.3 features and granular connection data
   output$riskMatrix <- renderPlotly({
     data <- getCurrentData()
     req(data, nrow(data) > 0)
     
-    risk_plot <- ggplot(data, aes(x = Likelihood, y = Severity)) +
-      geom_point(aes(color = Risk_Level, 
-                     text = paste("Central Problem:", Central_Problem, 
-                                 "<br>Activity:", Activity,
-                                 "<br>Pressure:", Pressure,
-                                 "<br>Protective Mitigation:", Protective_Mitigation,
-                                 "<br>Consequence:", Consequence,
-                                 "<br>v4.2.3 FIXED Connections: ✅")),
+    # Check if granular data is available
+    has_granular_data <- all(c("Activity_to_Pressure_Likelihood", "Overall_Likelihood", "Overall_Severity") %in% names(data))
+    
+    if (has_granular_data) {
+      # Use overall pathway risk for positioning
+      x_var <- data$Overall_Likelihood
+      y_var <- data$Overall_Severity
+      
+      # Create detailed tooltip with granular connection risks
+      tooltip_text <- paste(
+        "<b>Central Problem:</b>", data$Central_Problem,
+        "<br><b>Activity:</b>", data$Activity,
+        "<br><b>Consequence:</b>", data$Consequence,
+        "<br><br><b>📊 GRANULAR CONNECTION RISKS:</b>",
+        "<br>🔗 Activity → Pressure: L=", data$Activity_to_Pressure_Likelihood, ", S=", data$Activity_to_Pressure_Severity,
+        "<br>🛡️ Pressure → Control: L=", data$Pressure_to_Control_Likelihood, ", S=", data$Pressure_to_Control_Severity,
+        "<br>⚠️ Control → Escalation: L=", data$Control_to_Escalation_Likelihood, ", S=", data$Control_to_Escalation_Severity,
+        "<br>🔥 Escalation → Central: L=", data$Escalation_to_Central_Likelihood, ", S=", data$Escalation_to_Central_Severity,
+        "<br>🛡️ Central → Mitigation: L=", data$Central_to_Mitigation_Likelihood, ", S=", data$Central_to_Mitigation_Severity,
+        "<br>💥 Mitigation → Consequence: L=", data$Mitigation_to_Consequence_Likelihood, ", S=", data$Mitigation_to_Consequence_Severity,
+        "<br><br><b>🎯 Overall Pathway Risk:</b> L=", data$Overall_Likelihood, ", S=", data$Overall_Severity,
+        "<br><b>✅ v4.2.3 GRANULAR Analysis</b>"
+      )
+      
+      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.3 with GRANULAR Connection Analysis"
+      plot_subtitle <- "✅ Each point shows overall pathway risk calculated from granular bowtie connections"
+    } else {
+      # Fallback to legacy data structure
+      x_var <- data$Likelihood
+      y_var <- data$Severity
+      
+      tooltip_text <- paste(
+        "Central Problem:", data$Central_Problem, 
+        "<br>Activity:", data$Activity,
+        "<br>Pressure:", data$Pressure,
+        "<br>Protective Mitigation:", data$Protective_Mitigation,
+        "<br>Consequence:", data$Consequence,
+        "<br>v4.2.3 FIXED Connections: ✅"
+      )
+      
+      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.3 with FIXED Connections"
+      plot_subtitle <- "✅ Protective mitigation connections properly mapped"
+    }
+    
+    risk_plot <- ggplot(data, aes(x = x_var, y = y_var)) +
+      geom_point(aes(color = Risk_Level, text = tooltip_text),
                  size = 4, alpha = 0.7) +
       scale_color_manual(values = RISK_COLORS) +
       scale_x_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
       scale_y_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
-      labs(title = "🌟 Enhanced Environmental Risk Matrix v4.2.3 with FIXED Connections", 
+      labs(title = plot_title, 
            x = "Likelihood", y = "Severity",
-           subtitle = "✅ Protective mitigation connections properly mapped") +
+           subtitle = plot_subtitle) +
       theme_minimal() + 
       theme(legend.position = "bottom",
             plot.title = element_text(color = "#2C3E50", size = 14),
@@ -816,7 +974,7 @@ server <- function(input, output, session) {
     ggplotly(risk_plot, tooltip = "text")
   })
   
-  # Enhanced risk statistics
+  # Enhanced risk statistics - FIXED VERSION
   output$riskStats <- renderTable({
     data <- getCurrentData()
     req(data, nrow(data) > 0)
@@ -829,16 +987,23 @@ server <- function(input, output, session) {
         Risk_Level == "Medium" ~ "🟡",
         TRUE ~ "🟢"
       )) %>%
-      select(Icon, `Risk Level` = Risk_Level, Count = n, `Percentage (%)` = Percentage)
+      select(Icon, Risk_Level, Count = n, Percentage)
     
-    # Add footer row showing v4.2.3 status
+    # Rename columns properly
+    names(risk_summary) <- c("Icon", "Risk Level", "Count", "Percentage (%)")
+    
+    # Add footer row showing v4.2.3 status with matching column names
     footer_row <- data.frame(
       Icon = "✅",
       `Risk Level` = "v4.2.3 FIXED",
       Count = nrow(data),
       `Percentage (%)` = 100.0,
-      stringsAsFactors = FALSE
+      stringsAsFactors = FALSE,
+      check.names = FALSE
     )
+    
+    # Ensure column names match exactly
+    names(footer_row) <- names(risk_summary)
     
     rbind(risk_summary, footer_row)
   }, sanitize.text.function = function(x) x)
