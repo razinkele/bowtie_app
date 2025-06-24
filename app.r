@@ -501,7 +501,7 @@ server <- function(input, output, session) {
       clearCache()  # Clear cache when new data is loaded
       
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
-      showNotification("✓ Data loaded successfully with v4.2.3 FIXED connections!", type = "default", duration = 3)
+      showNotification("✓ Data loaded successfully with v4.2.3 FIXED connections!", type = "message", duration = 3)
       
     }, error = function(e) {
       showNotification(paste("❌ Error loading data:", e$message), type = "error")
@@ -511,7 +511,7 @@ server <- function(input, output, session) {
   # Enhanced sample data generation with FIXED connections
   observeEvent(input$generateSample, {
     showNotification("🔄 Generating v4.2.3 enhanced sample data with FIXED protective mitigation connections...", 
-                    type = "default", duration = 3)
+                    type = "message", duration = 3)
     
     tryCatch({
       sample_data <- generateEnvironmentalDataFixed()  # Using FIXED function
@@ -525,7 +525,7 @@ server <- function(input, output, session) {
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       
       showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v4.2.3 FIXED protective mitigation connections!"), 
-                      type = "success", duration = 4)
+                      type = "message", duration = 4)
       
     }, error = function(e) {
       showNotification(paste("❌ Error generating enhanced data:", e$message), type = "error", duration = 5)
@@ -667,7 +667,7 @@ server <- function(input, output, session) {
     editedData(updated_data)
     dataVersion(dataVersion() + 1)
     clearCache()
-    showNotification("✅ New enhanced row added with v4.2.3 FIXED connections!", type = "success", duration = 2)
+    showNotification("✅ New enhanced row added with v4.2.3 FIXED connections!", type = "message", duration = 2)
   })
   
   observeEvent(input$deleteSelected, {
@@ -688,7 +688,7 @@ server <- function(input, output, session) {
     edited <- editedData()
     if (!is.null(edited)) {
       currentData(edited)
-      showNotification("💾 Changes saved with v4.2.3 FIXED connections!", type = "success", duration = 2)
+      showNotification("💾 Changes saved with v4.2.3 FIXED connections!", type = "message", duration = 2)
     }
   })
   
@@ -724,7 +724,7 @@ server <- function(input, output, session) {
     updateTextInput(session, "newActivity", value = "")
     updateTextInput(session, "newPressure", value = "")
     updateTextInput(session, "newConsequence", value = "")
-    showNotification("🔗 Enhanced activity chain added with v4.2.3 FIXED connections!", type = "success", duration = 3)
+    showNotification("🔗 Enhanced activity chain added with v4.2.3 FIXED connections!", type = "message", duration = 3)
   })
   
   # Enhanced debug info
