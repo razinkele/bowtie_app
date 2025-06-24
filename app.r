@@ -84,10 +84,10 @@ ui <- fluidPage(
                  div(
                    class = "title-text",
                    # PNG Image - Place your logo.png in the www/ folder
-                   img(src = "logo.png", class = "app-title-image", alt = "Environmental Risk Analysis Logo",
+                   img(src = "marbefes.png", class = "app-title-image", alt = "Marbefes Logo",
                        onerror = "this.style.display='none'", 
-                       title = "Environmental Bowtie Risk Analysis"),
-                   h4("🌊 Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
+                       title = "Marbefes Environmental Bowtie Risk Analysis"),
+                   h4("Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
                    span(class = "badge bg-success me-2 version-badge", "v4.2.3"),
                    span(class = "text-muted small", "PNG Support & Fixed Connections")
                  )
