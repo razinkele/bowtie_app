@@ -1,9 +1,9 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application
-# Version: 4.2.3 (PNG Image Support & Fixed Protective Mitigation Connections)
+# Version: 4.2.4 (Integrated Vocabulary Management)
 # Date: June 2025
 # Author: AI Assistant
-# Description: Complete enhanced version with PNG image support and fixed connections
+# Description: Complete enhanced version with vocabulary integration
 # =============================================================================
 
 # Load required libraries
@@ -21,8 +21,23 @@ library(colourpicker)
 library(htmlwidgets)
 library(shinyjs)
 
-# Source utility functions
+# Source utility functions and vocabulary management
 source("utils.r")
+source("vocabulary.R")
+
+# Load vocabulary data at startup
+tryCatch({
+  vocabulary_data <- load_vocabulary()
+  cat("✅ Vocabulary data loaded successfully\n")
+}, error = function(e) {
+  cat("⚠️ Warning: Could not load vocabulary data:", e$message, "\n")
+  vocabulary_data <- list(
+    activities = data.frame(),
+    pressures = data.frame(),
+    consequences = data.frame(),
+    controls = data.frame()
+  )
+})
 
 # Define UI with PNG image support and enhanced structure
 ui <- fluidPage(
@@ -88,8 +103,8 @@ ui <- fluidPage(
                        onerror = "this.style.display='none'", 
                        title = "Marbefes Environmental Bowtie Risk Analysis"),
                    h4("Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
-                   span(class = "badge bg-success me-2 version-badge", "v4.2.3"),
-                   span(class = "text-muted small", "PNG Support & Fixed Connections")
+                   span(class = "badge bg-success me-2 version-badge", "v4.2.4"),
+                   span(class = "text-muted small", "Integrated Vocabulary Management")
                  )
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
@@ -108,7 +123,7 @@ ui <- fluidPage(
                                           colourpicker::colourInput("primary_color", "Primary:", value = "#28a745"))),
                  column(3, conditionalPanel(condition = "input.theme_preset == 'custom'",
                                           colourpicker::colourInput("secondary_color", "Secondary:", value = "#6c757d"))),
-                 column(3, p(class = "text-muted mt-2", "Enhanced environmental risk analysis with PNG support and fixed protective mitigation connections."))
+                 column(3, p(class = "text-muted mt-2", "Enhanced environmental risk analysis with vocabulary integration and fixed protective mitigation connections."))
                )
              )
            )
@@ -152,7 +167,7 @@ ui <- fluidPage(
                      tags$li("💥 Mitigation → Consequence residual risks")
                    ),
                    div(class = "d-grid", actionButton("generateSample", 
-                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.2.3"), 
+                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.2.4"), 
                                                      class = "btn-success")),
                    
                    conditionalPanel(
@@ -168,7 +183,7 @@ ui <- fluidPage(
         
         column(6,
                card(
-                 card_header(tagList(icon("info-circle"), "Enhanced Data Structure v4.2.3"), class = "bg-info text-white"),
+                 card_header(tagList(icon("info-circle"), "Enhanced Data Structure v4.2.4"), class = "bg-info text-white"),
                  card_body(
                    h6(tagList(icon("list"), "Fixed Bowtie Elements:")),
                    p("Your Excel file should contain environmental risk data with these columns:"),
@@ -193,11 +208,15 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-success mt-3",
                        tagList(icon("check-circle"), " "),
-                       strong("v4.2.3 GRANULAR Pathways:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
+                       strong("v4.2.4 GRANULAR Pathways:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
                    
                    div(class = "alert alert-info mt-2",
                        tagList(icon("info-circle"), " "),
                        strong("NEW: GRANULAR Analysis:"), " Each connection has individual likelihood & severity values for precise risk assessment"),
+                   
+                   div(class = "alert alert-primary mt-2",
+                       tagList(icon("book"), " "),
+                       strong("v4.2.4 Vocabulary:"), " Hierarchical vocabularies for Activities, Pressures, Consequences, and Controls are now integrated!"),
                    
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -214,7 +233,7 @@ ui <- fluidPage(
         condition = "output.dataLoaded",
         br(),
         card(
-          card_header(tagList(icon("eye"), "Data Preview - v4.2.3 Enhanced"), class = "bg-success text-white"),
+          card_header(tagList(icon("eye"), "Data Preview - v4.2.4 Enhanced"), class = "bg-success text-white"),
           card_body(
             withSpinner(DT::dataTableOutput("preview")),
             br(),
@@ -227,12 +246,12 @@ ui <- fluidPage(
     
     # Enhanced Bowtie Visualization Tab
     nav_panel(
-      title = tagList(icon("project-diagram"), "Fixed Bowtie v4.2.3"), value = "bowtie",
+      title = tagList(icon("project-diagram"), "Fixed Bowtie v4.2.4"), value = "bowtie",
       
       fluidRow(
         column(4,
                card(
-                 card_header(tagList(icon("cogs"), "Enhanced Bowtie Controls v4.2.3"), class = "bg-primary text-white"),
+                 card_header(tagList(icon("cogs"), "Enhanced Bowtie Controls v4.2.4"), class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -260,11 +279,11 @@ ui <- fluidPage(
                      textInput("newPressure", "New Pressure:", placeholder = "Enter pressure/threat"),
                      textInput("newConsequence", "New Consequence:", placeholder = "Enter consequence"),
                      div(class = "d-grid", actionButton("addActivityChain", 
-                                                       tagList(icon("plus-circle"), "Add Enhanced Chain v4.2.3"), 
+                                                       tagList(icon("plus-circle"), "Add Enhanced Chain v4.2.4"), 
                                                        class = "btn-outline-primary btn-sm")),
                      
                      hr(),
-                     h6(tagList(icon("palette"), "FIXED Bowtie Visual Legend v4.2.3:")),
+                     h6(tagList(icon("palette"), "FIXED Bowtie Visual Legend v4.2.4:")),
                      div(class = "p-3 border rounded enhanced-legend",
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "◼"),
@@ -284,13 +303,13 @@ ui <- fluidPage(
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge bg-primary me-2", "◼"),
                              span(tagList(icon("shield"), " Protective Mitigation "), 
-                                  span(class = "badge bg-success text-white small ms-1", "FIXED v4.2.3"))),
+                                  span(class = "badge bg-success text-white small ms-1", "FIXED v4.2.4"))),
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #E67E22; color: white; margin-right: 8px;", "⬢"),
                              span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
                          hr(class = "my-2"),
                          div(class = "small text-success",
-                             strong("✓ FIXED v4.2.3:"), " Protective mitigation connections now properly mapped"),
+                             strong("✓ FIXED v4.2.4:"), " Protective mitigation connections properly mapped"),
                          div(class = "small text-muted",
                              strong("Enhanced Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
                          div(class = "small text-muted",
@@ -301,7 +320,7 @@ ui <- fluidPage(
                      
                      hr(),
                      div(class = "d-grid", downloadButton("downloadBowtie", 
-                                                         tagList(icon("download"), "Download Fixed Diagram v4.2.3"), 
+                                                         tagList(icon("download"), "Download Fixed Diagram v4.2.4"), 
                                                          class = "btn-success"))
                    )
                  )
@@ -310,13 +329,13 @@ ui <- fluidPage(
         
         column(8,
                card(
-                 card_header(tagList(icon("sitemap"), "FIXED Bowtie Diagram v4.2.3"), 
+                 card_header(tagList(icon("sitemap"), "FIXED Bowtie Diagram v4.2.4"), 
                            class = "bg-success text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
                      div(class = "text-center mb-3",
-                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v4.2.3 FIXED"), class = "text-primary"),
+                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v4.2.4 FIXED"), class = "text-primary"),
                          p(class = "small text-success", 
                            "✓ FIXED protective mitigation connections: Activities → Pressures → Controls → Escalation → Central Problem → ENHANCED Mitigation → Consequences")),
                      div(class = "network-container",
@@ -327,7 +346,7 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-5",
                          icon("upload", class = "fa-3x text-muted mb-3"),
-                         h4("Upload Data or Generate Enhanced Sample Data v4.2.3", class = "text-muted"),
+                         h4("Upload Data or Generate Enhanced Sample Data v4.2.4", class = "text-muted"),
                          p("Please upload environmental data or generate enhanced sample data to view the FIXED bowtie diagram with proper protective mitigation connections", 
                            class = "text-muted"))
                    )
@@ -346,7 +365,7 @@ ui <- fluidPage(
                card(
                  card_header(
                    div(class = "d-flex justify-content-between align-items-center",
-                       tagList(icon("table"), "Enhanced Environmental Bowtie Data v4.2.3 - FIXED Connections"),
+                       tagList(icon("table"), "Enhanced Environmental Bowtie Data v4.2.4 - FIXED Connections"),
                        div(
                          conditionalPanel(
                            condition = "output.dataLoaded",
@@ -366,7 +385,7 @@ ui <- fluidPage(
                      condition = "output.dataLoaded",
                      div(class = "alert alert-success",
                          tagList(icon("check-circle"), " "),
-                         "✓ v4.2.3 ENHANCED: Click on any cell to edit. The table shows FIXED protective mitigation connections with proper pathway mapping."),
+                         "✓ v4.2.4 ENHANCED: Click on any cell to edit. The table shows FIXED protective mitigation connections with proper pathway mapping."),
                      withSpinner(DT::dataTableOutput("editableTable"))
                    ),
                    conditionalPanel(
@@ -374,7 +393,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("table", class = "fa-3x text-muted mb-3"),
                          h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v4.2.3 to view the table with FIXED connections", class = "text-muted"))
+                         p("Please upload data or generate enhanced sample data v4.2.4 to view the table with FIXED connections", class = "text-muted"))
                    )
                  )
                )
@@ -389,7 +408,7 @@ ui <- fluidPage(
       fluidRow(
         column(8,
                card(
-                 card_header(tagList(icon("chart-scatter"), "Enhanced Environmental Risk Matrix v4.2.3"), 
+                 card_header(tagList(icon("chart-scatter"), "Enhanced Environmental Risk Matrix v4.2.4"), 
                            class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
@@ -401,7 +420,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("chart-line", class = "fa-3x text-muted mb-3"),
                          h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v4.2.3 to view the risk matrix", class = "text-muted"))
+                         p("Please upload data or generate enhanced sample data v4.2.4 to view the risk matrix", class = "text-muted"))
                    )
                  )
                )
@@ -409,7 +428,7 @@ ui <- fluidPage(
         
         column(4,
                card(
-                 card_header(tagList(icon("chart-pie"), "Enhanced Risk Statistics v4.2.3"), class = "bg-info text-white"),
+                 card_header(tagList(icon("chart-pie"), "Enhanced Risk Statistics v4.2.4"), class = "bg-info text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -425,6 +444,123 @@ ui <- fluidPage(
                )
         )
       )
+    ),
+    
+    # Vocabulary Management Tab
+    nav_panel(
+      title = tagList(icon("book"), "Vocabulary Management"), value = "vocabulary",
+      
+      fluidRow(
+        column(3,
+               card(
+                 card_header(tagList(icon("filter"), "Vocabulary Controls"), class = "bg-primary text-white"),
+                 card_body(
+                   h6(tagList(icon("list"), "Select Vocabulary:")),
+                   selectInput("vocab_type", NULL,
+                               choices = list(
+                                 "Activities" = "activities",
+                                 "Pressures" = "pressures", 
+                                 "Consequences" = "consequences",
+                                 "Controls" = "controls"
+                               ),
+                               selected = "activities"),
+                   
+                   hr(),
+                   
+                   h6(tagList(icon("search"), "Search:")),
+                   textInput("vocab_search", NULL, placeholder = "Enter search term..."),
+                   checkboxGroupInput("search_in", "Search in:",
+                                      choices = list("ID" = "id", "Name" = "name"),
+                                      selected = c("id", "name")),
+                   actionButton("search_vocab", tagList(icon("search"), "Search"), 
+                               class = "btn-primary btn-sm"),
+                   
+                   hr(),
+                   
+                   h6(tagList(icon("layer-group"), "Filter by Level:")),
+                   uiOutput("vocab_level_filter"),
+                   
+                   hr(),
+                   
+                   h6(tagList(icon("info-circle"), "Selected Item:")),
+                   uiOutput("selected_item_info"),
+                   
+                   hr(),
+                   
+                   h6(tagList(icon("chart-pie"), "Statistics:")),
+                   tableOutput("vocab_stats")
+                 )
+               )
+        ),
+        
+        column(9,
+               card(
+                 card_header(
+                   div(class = "d-flex justify-content-between align-items-center",
+                       tagList(icon("sitemap"), "Hierarchical Vocabulary Browser"),
+                       div(
+                         downloadButton("download_vocab", tagList(icon("download"), "Export"), 
+                                       class = "btn-success btn-sm me-2"),
+                         actionButton("refresh_vocab", tagList(icon("sync"), "Refresh"), 
+                                     class = "btn-info btn-sm")
+                       )
+                   ),
+                   class = "bg-primary text-white"
+                 ),
+                 card_body(
+                   tabsetPanel(
+                     tabPanel("Tree View",
+                              br(),
+                              div(class = "border rounded p-3 bg-light",
+                                  style = "max-height: 500px; overflow-y: auto;",
+                                  verbatimTextOutput("vocab_tree")
+                              )
+                     ),
+                     
+                     tabPanel("Data Table",
+                              br(),
+                              withSpinner(DT::dataTableOutput("vocab_table"))
+                     ),
+                     
+                     tabPanel("Search Results",
+                              br(),
+                              conditionalPanel(
+                                condition = "output.hasSearchResults",
+                                withSpinner(DT::dataTableOutput("vocab_search_results"))
+                              ),
+                              conditionalPanel(
+                                condition = "!output.hasSearchResults",
+                                div(class = "text-center p-5 text-muted",
+                                    icon("search", class = "fa-3x mb-3"),
+                                    h5("No search performed yet"),
+                                    p("Use the search controls to find vocabulary items"))
+                              )
+                     ),
+                     
+                     tabPanel("Relationships",
+                              br(),
+                              div(class = "alert alert-info",
+                                  tagList(icon("info-circle"), " "),
+                                  "Select an item from the data table to view its relationships"),
+                              uiOutput("vocab_relationships")
+                     )
+                   )
+                 )
+               )
+        )
+      ),
+      
+      fluidRow(
+        column(12,
+               card(
+                 card_header(tagList(icon("info-circle"), "Vocabulary Information"), 
+                           class = "bg-info text-white"),
+                 card_body(
+                   uiOutput("vocab_info")
+                 )
+               )
+        )
+      )
     )
   ),
   
@@ -434,8 +570,8 @@ ui <- fluidPage(
       p(tagList(
         strong("Environmental Bowtie Risk Analysis Tool"),
         " | ",
-        span(class = "badge bg-success", "v4.2.3"),
-        " - PNG Image Support & FIXED Protective Mitigation Connections"
+        span(class = "badge bg-success", "v4.2.4"),
+        " - Integrated Vocabulary Management System"
       )))
 )
 
@@ -513,7 +649,7 @@ server <- function(input, output, session) {
       clearCache()  # Clear cache when new data is loaded
       
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
-      showNotification("✓ Data loaded successfully with v4.2.3 FIXED connections!", type = "message", duration = 3)
+      showNotification("✓ Data loaded successfully with v4.2.4 FIXED connections!", type = "message", duration = 3)
       
     }, error = function(e) {
       showNotification(paste("❌ Error loading data:", e$message), type = "error")
@@ -522,7 +658,7 @@ server <- function(input, output, session) {
   
   # Enhanced sample data generation with FIXED connections
   observeEvent(input$generateSample, {
-    showNotification("🔄 Generating v4.2.3 enhanced sample data with FIXED protective mitigation connections...", 
+    showNotification("🔄 Generating v4.2.4 enhanced sample data with FIXED protective mitigation connections...", 
                     type = "message", duration = 3)
     
     tryCatch({
@@ -536,7 +672,7 @@ server <- function(input, output, session) {
       problem_choices <- unique(sample_data$Central_Problem)
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       
-      showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v4.2.3 FIXED protective mitigation connections!"), 
+      showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v4.2.4 FIXED protective mitigation connections!"), 
                       type = "message", duration = 4)
       
     }, error = function(e) {
@@ -554,7 +690,7 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "dataLoaded", suspendWhenHidden = FALSE)
   
-  # Enhanced data info with v4.2.3 details
+  # Enhanced data info with v4.2.4 details
   output$dataInfo <- renderText({
     data <- getCurrentData()
     req(data)
@@ -563,7 +699,7 @@ server <- function(input, output, session) {
   
   # Enhanced download handler
   output$downloadSample <- downloadHandler(
-    filename = function() paste("enhanced_environmental_bowtie_v4.2.3_", Sys.Date(), ".xlsx", sep = ""),
+    filename = function() paste("enhanced_environmental_bowtie_v4.2.4_", Sys.Date(), ".xlsx", sep = ""),
     content = function(file) {
       data <- getCurrentData()
       req(data)
@@ -591,7 +727,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # Enhanced editable table with v4.2.3 improvements
+  # Enhanced editable table with v4.2.4 improvements
   output$editableTable <- DT::renderDataTable({
     data <- getCurrentData()
     req(data)
@@ -613,7 +749,7 @@ server <- function(input, output, session) {
         autoWidth = FALSE,
         dom = 'Blfrtip',
         buttons = c('copy', 'csv', 'excel'),
-        language = list(processing = "Loading v4.2.3 enhanced data with FIXED connections...")
+        language = list(processing = "Loading v4.2.4 enhanced data with FIXED connections...")
       ),
       editable = list(target = 'cell'),
       extensions = c('Buttons', 'Scroller'),
@@ -622,7 +758,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # Enhanced cell editing with validation and v4.2.3 granular features
+  # Enhanced cell editing with validation and v4.2.4 granular features
   observeEvent(input$editableTable_cell_edit, {
     info <- input$editableTable_cell_edit
     data <- getCurrentData()
@@ -715,7 +851,7 @@ server <- function(input, output, session) {
     
     # Show enhanced success feedback
     if (runif(1) < 0.3) {  # Only show notification 30% of the time
-      showNotification("✓ Cell updated - v4.2.3 GRANULAR connections refreshed", type = "message", duration = 1)
+      showNotification("✓ Cell updated - v4.2.4 GRANULAR connections refreshed", type = "message", duration = 1)
     }
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
   
@@ -729,14 +865,14 @@ server <- function(input, output, session) {
     data <- getCurrentData()
     req(data)
     
-    selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk v4.2.3"
+    selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk v4.2.4"
     new_row <- createDefaultRowFixed(selected_problem)  # Using FIXED function
     updated_data <- rbind(data, new_row)
     
     editedData(updated_data)
     dataVersion(dataVersion() + 1)
     clearCache()
-    showNotification("✅ New enhanced row added with v4.2.3 FIXED connections!", type = "message", duration = 2)
+    showNotification("✅ New enhanced row added with v4.2.4 FIXED connections!", type = "message", duration = 2)
   })
   
   observeEvent(input$deleteSelected, {
@@ -747,7 +883,7 @@ server <- function(input, output, session) {
       editedData(updated_data)
       dataVersion(dataVersion() + 1)
       clearCache()
-      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - v4.2.3 connections updated"), type = "warning", duration = 2)
+      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - v4.2.4 connections updated"), type = "warning", duration = 2)
     } else {
       showNotification("❌ No rows selected", type = "error", duration = 2)
     }
@@ -757,11 +893,11 @@ server <- function(input, output, session) {
     edited <- editedData()
     if (!is.null(edited)) {
       currentData(edited)
-      showNotification("💾 Changes saved with v4.2.3 FIXED connections!", type = "message", duration = 2)
+      showNotification("💾 Changes saved with v4.2.4 FIXED connections!", type = "message", duration = 2)
     }
   })
   
-  # Enhanced quick add functionality with v4.2.3 granular features
+  # Enhanced quick add functionality with v4.2.4 granular features
   observeEvent(input$addActivityChain, {
     req(input$selectedProblem, input$newActivity, input$newPressure, input$newConsequence)
     
@@ -780,10 +916,10 @@ server <- function(input, output, session) {
       new_row <- data.frame(
         Activity = input$newActivity,
         Pressure = input$newPressure,
-        Preventive_Control = "v4.2.3 Enhanced preventive control",
-        Escalation_Factor = "v4.2.3 Enhanced escalation factor",
+        Preventive_Control = "v4.2.4 Enhanced preventive control",
+        Escalation_Factor = "v4.2.4 Enhanced escalation factor",
         Central_Problem = input$selectedProblem,
-        Protective_Mitigation = paste("v4.2.3 FIXED protective mitigation for", input$newConsequence),
+        Protective_Mitigation = paste("v4.2.4 FIXED protective mitigation for", input$newConsequence),
         Consequence = input$newConsequence,
         
         # Default granular risk values
@@ -813,10 +949,10 @@ server <- function(input, output, session) {
       new_row <- data.frame(
         Activity = input$newActivity,
         Pressure = input$newPressure,
-        Preventive_Control = "v4.2.3 Enhanced preventive control",
-        Escalation_Factor = "v4.2.3 Enhanced escalation factor",
+        Preventive_Control = "v4.2.4 Enhanced preventive control",
+        Escalation_Factor = "v4.2.4 Enhanced escalation factor",
         Central_Problem = input$selectedProblem,
-        Protective_Mitigation = paste("v4.2.3 FIXED protective mitigation for", input$newConsequence),
+        Protective_Mitigation = paste("v4.2.4 FIXED protective mitigation for", input$newConsequence),
         Consequence = input$newConsequence,
         Likelihood = 3L,
         Severity = 3L,
@@ -835,9 +971,9 @@ server <- function(input, output, session) {
     updateTextInput(session, "newConsequence", value = "")
     
     if (has_granular_data) {
-      showNotification("🔗 Enhanced activity chain added with v4.2.3 GRANULAR connection risks!", type = "message", duration = 3)
+      showNotification("🔗 Enhanced activity chain added with v4.2.4 GRANULAR connection risks!", type = "message", duration = 3)
     } else {
-      showNotification("🔗 Enhanced activity chain added with v4.2.3 FIXED connections!", type = "message", duration = 3)
+      showNotification("🔗 Enhanced activity chain added with v4.2.4 FIXED connections!", type = "message", duration = 3)
     }
   })
   
@@ -848,16 +984,16 @@ server <- function(input, output, session) {
       has_granular_data <- all(c("Activity_to_Pressure_Likelihood", "Overall_Likelihood") %in% names(data))
       
       if (has_granular_data) {
-        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.3 GRANULAR bowtie structure with 6 connection-level risks per scenario and FIXED protective mitigation connections")
+        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.4 GRANULAR bowtie structure with 6 connection-level risks per scenario and FIXED protective mitigation connections")
       } else {
-        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.3 Enhanced bowtie structure with FIXED protective mitigation connections")
+        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.4 Enhanced bowtie structure with FIXED protective mitigation connections")
       }
     } else {
       "No enhanced data loaded"
     }
   })
   
-  # FIXED bowtie network with v4.2.3 enhancements
+  # FIXED bowtie network with v4.2.4 enhancements
   output$bowtieNetwork <- renderVisNetwork({
     data <- getCurrentData()
     req(data, input$selectedProblem)
@@ -873,9 +1009,9 @@ server <- function(input, output, session) {
     edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)  # Using FIXED function
     
     visNetwork(nodes, edges, 
-               main = paste("🌟 Enhanced Bowtie Analysis v4.2.3 with FIXED Connections:", input$selectedProblem),
-               submain = if(input$showBarriers) "✅ Interconnected pathways with v4.2.3 FIXED protective mitigation connections" else "Direct causal relationships with enhanced connections",
-               footer = "🔧 v4.2.3 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
+               main = paste("🌟 Enhanced Bowtie Analysis v4.2.4 with FIXED Connections:", input$selectedProblem),
+               submain = if(input$showBarriers) "✅ Interconnected pathways with v4.2.4 FIXED protective mitigation connections" else "Direct causal relationships with enhanced connections",
+               footer = "🔧 v4.2.4 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
       visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                font = list(color = "#2C3E50", face = "Arial", size = 12)) %>%
       visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -901,14 +1037,14 @@ server <- function(input, output, session) {
              color = "#F39C12", shape = "triangleDown", size = 15),
         list(label = "Central Problem (Main Risk)", 
              color = "#C0392B", shape = "diamond", size = 18),
-        list(label = "Protective Mitigation (v4.2.3 FIXED)", 
+        list(label = "Protective Mitigation (v4.2.4 FIXED)", 
              color = "#3498DB", shape = "square", size = 15),
         list(label = "Consequences (Impacts)", 
              color = "#E67E22", shape = "hexagon", size = 15)
       ), position = "right", width = 0.25, ncol = 1)
   })
   
-  # Enhanced risk matrix with v4.2.3 features and granular connection data
+  # Enhanced risk matrix with v4.2.4 features and granular connection data
   output$riskMatrix <- renderPlotly({
     data <- getCurrentData()
     req(data, nrow(data) > 0)
@@ -934,10 +1070,10 @@ server <- function(input, output, session) {
         "<br>🛡️ Central → Mitigation: L=", data$Central_to_Mitigation_Likelihood, ", S=", data$Central_to_Mitigation_Severity,
         "<br>💥 Mitigation → Consequence: L=", data$Mitigation_to_Consequence_Likelihood, ", S=", data$Mitigation_to_Consequence_Severity,
         "<br><br><b>🎯 Overall Pathway Risk:</b> L=", data$Overall_Likelihood, ", S=", data$Overall_Severity,
-        "<br><b>✅ v4.2.3 GRANULAR Analysis</b>"
+        "<br><b>✅ v4.2.4 GRANULAR Analysis</b>"
       )
       
-      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.3 with GRANULAR Connection Analysis"
+      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.4 with GRANULAR Connection Analysis"
       plot_subtitle <- "✅ Each point shows overall pathway risk calculated from granular bowtie connections"
     } else {
       # Fallback to legacy data structure
@@ -950,10 +1086,10 @@ server <- function(input, output, session) {
         "<br>Pressure:", data$Pressure,
         "<br>Protective Mitigation:", data$Protective_Mitigation,
         "<br>Consequence:", data$Consequence,
-        "<br>v4.2.3 FIXED Connections: ✅"
+        "<br>v4.2.4 FIXED Connections: ✅"
       )
       
-      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.3 with FIXED Connections"
+      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.4 with FIXED Connections"
       plot_subtitle <- "✅ Protective mitigation connections properly mapped"
     }
     
@@ -992,10 +1128,10 @@ server <- function(input, output, session) {
     # Rename columns properly
     names(risk_summary) <- c("Icon", "Risk Level", "Count", "Percentage (%)")
     
-    # Add footer row showing v4.2.3 status with matching column names
+    # Add footer row showing v4.2.4 status with matching column names
     footer_row <- data.frame(
       Icon = "✅",
-      `Risk Level` = "v4.2.3 FIXED",
+      `Risk Level` = "v4.2.4 FIXED",
       Count = nrow(data),
       `Percentage (%)` = 100.0,
       stringsAsFactors = FALSE,
@@ -1010,7 +1146,7 @@ server <- function(input, output, session) {
   
   # Enhanced download bowtie diagram
   output$downloadBowtie <- downloadHandler(
-    filename = function() paste("enhanced_bowtie_v4.2.3_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
+    filename = function() paste("enhanced_bowtie_v4.2.4_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
     content = function(file) {
       data <- getCurrentData()
       req(data, input$selectedProblem)
@@ -1020,9 +1156,9 @@ server <- function(input, output, session) {
       edges <- createBowtieEdgesFixed(problem_data, TRUE)  # Using FIXED function
       
       network <- visNetwork(nodes, edges, 
-                          main = paste("🌟 Enhanced Environmental Bowtie Analysis v4.2.3 with FIXED Connections:", input$selectedProblem),
-                          submain = paste("Generated on", Sys.Date(), "- v4.2.3 with FIXED protective mitigation connections"),
-                          footer = "🔧 v4.2.3 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
+                          main = paste("🌟 Enhanced Environmental Bowtie Analysis v4.2.4 with FIXED Connections:", input$selectedProblem),
+                          submain = paste("Generated on", Sys.Date(), "- v4.2.4 with FIXED protective mitigation connections"),
+                          footer = "🔧 v4.2.4 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
         visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                 font = list(color = "#2C3E50", face = "Arial")) %>%
         visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -1042,7 +1178,7 @@ server <- function(input, output, session) {
                color = "#F39C12", shape = "triangleDown", size = 15),
           list(label = "Central Problem (Main Risk)", 
                color = "#C0392B", shape = "diamond", size = 18),
-          list(label = "Protective Mitigation (v4.2.3 FIXED)", 
+          list(label = "Protective Mitigation (v4.2.4 FIXED)", 
                color = "#3498DB", shape = "square", size = 15),
           list(label = "Consequences (Impacts)", 
                color = "#E67E22", shape = "hexagon", size = 15)
@@ -1051,6 +1187,276 @@ server <- function(input, output, session) {
       visSave(network, file, selfcontained = TRUE)
     }
   )
+  
+  # =============================================================================
+  # Vocabulary Management Server Logic
+  # =============================================================================
+  
+  # Reactive values for vocabulary
+  vocab_search_results <- reactiveVal(data.frame())
+  selected_vocab_item <- reactiveVal(NULL)
+  
+  # Get current vocabulary based on selection
+  current_vocabulary <- reactive({
+    req(input$vocab_type)
+    if (exists("vocabulary_data") && !is.null(vocabulary_data[[input$vocab_type]])) {
+      vocabulary_data[[input$vocab_type]]
+    } else {
+      data.frame()
+    }
+  })
+  
+  # Update level filter based on selected vocabulary
+  output$vocab_level_filter <- renderUI({
+    vocab <- current_vocabulary()
+    if (nrow(vocab) > 0) {
+      levels <- sort(unique(vocab$level))
+      checkboxGroupInput("vocab_levels", "Show levels:",
+                         choices = levels,
+                         selected = levels)
+    } else {
+      p(class = "text-muted", "No levels available")
+    }
+  })
+  
+  # Filtered vocabulary based on level selection
+  filtered_vocabulary <- reactive({
+    vocab <- current_vocabulary()
+    if (!is.null(input$vocab_levels) && length(input$vocab_levels) > 0) {
+      vocab %>% filter(level %in% input$vocab_levels)
+    } else {
+      vocab
+    }
+  })
+  
+  # Vocabulary tree view
+  output$vocab_tree <- renderPrint({
+    vocab <- filtered_vocabulary()
+    if (nrow(vocab) > 0) {
+      tree <- create_tree_structure(vocab)
+      cat(paste(tree$display, collapse = "\n"))
+    } else {
+      cat("No vocabulary data available.\nPlease ensure CAUSES.xlsx, CONSEQUENCES.xlsx, and CONTROLS.xlsx files are in the app directory.")
+    }
+  })
+  
+  # Vocabulary data table
+  output$vocab_table <- DT::renderDataTable({
+    vocab <- filtered_vocabulary()
+    if (nrow(vocab) > 0) {
+      DT::datatable(
+        vocab %>% select(level, id, name),
+        options = list(
+          pageLength = 15,
+          searching = TRUE,
+          ordering = TRUE,
+          columnDefs = list(
+            list(width = '10%', targets = 0),
+            list(width = '15%', targets = 1),
+            list(width = '75%', targets = 2)
+          )
+        ),
+        selection = 'single',
+        rownames = FALSE
+      )
+    }
+  })
+  
+  # Track selected item from table
+  observeEvent(input$vocab_table_rows_selected, {
+    row <- input$vocab_table_rows_selected
+    if (!is.null(row)) {
+      vocab <- filtered_vocabulary()
+      if (row <= nrow(vocab)) {
+        selected_vocab_item(vocab[row, ])
+      }
+    }
+  })
+  
+  # Display selected item info
+  output$selected_item_info <- renderUI({
+    item <- selected_vocab_item()
+    if (!is.null(item)) {
+      vocab <- current_vocabulary()
+      children <- get_children(vocab, item$id)
+      path <- get_item_path(vocab, item$id)
+      
+      tagList(
+        tags$strong("ID:"), tags$br(),
+        tags$code(item$id), tags$br(), tags$br(),
+        
+        tags$strong("Name:"), tags$br(),
+        tags$small(item$name), tags$br(), tags$br(),
+        
+        tags$strong("Level:"), " ", item$level, tags$br(), tags$br(),
+        
+        if (nrow(path) > 1) {
+          tagList(
+            tags$strong("Path:"), tags$br(),
+            tags$small(paste(path$name, collapse = " → ")), tags$br(), tags$br()
+          )
+        },
+        
+        if (nrow(children) > 0) {
+          tagList(
+            tags$strong("Children (", nrow(children), "):")
+          )
+        }
+      )
+    } else {
+      p(class = "text-muted small", "Select an item to view details")
+    }
+  })
+  
+  # Search vocabulary
+  observeEvent(input$search_vocab, {
+    req(input$vocab_search)
+    vocab <- current_vocabulary()
+    if (nrow(vocab) > 0 && nchar(input$vocab_search) > 0) {
+      results <- search_vocabulary(vocab, input$vocab_search, input$search_in)
+      vocab_search_results(results)
+    }
+  })
+  
+  # Search results table
+  output$vocab_search_results <- DT::renderDataTable({
+    results <- vocab_search_results()
+    if (nrow(results) > 0) {
+      DT::datatable(
+        results %>% select(level, id, name),
+        options = list(
+          pageLength = 10,
+          searching = FALSE
+        ),
+        rownames = FALSE
+      )
+    }
+  })
+  
+  output$hasSearchResults <- reactive({
+    nrow(vocab_search_results()) > 0
+  })
+  outputOptions(output, "hasSearchResults", suspendWhenHidden = FALSE)
+  
+  # Vocabulary statistics
+  output$vocab_stats <- renderTable({
+    vocab <- current_vocabulary()
+    if (nrow(vocab) > 0) {
+      stats <- vocab %>%
+        group_by(level) %>%
+        summarise(Count = n(), .groups = 'drop') %>%
+        mutate(Percent = paste0(round(Count / sum(Count) * 100, 1), "%"))
+      
+      rbind(stats, 
+            data.frame(level = "Total", 
+                      Count = sum(stats$Count), 
+                      Percent = "100%"))
+    }
+  }, striped = TRUE, hover = TRUE, width = "100%")
+  
+  # Vocabulary relationships
+  output$vocab_relationships <- renderUI({
+    item <- selected_vocab_item()
+    if (!is.null(item)) {
+      vocab <- current_vocabulary()
+      children <- get_children(vocab, item$id)
+      
+      if (nrow(children) > 0) {
+        tagList(
+          h5(tagList(icon("sitemap"), " Children of ", tags$code(item$id))),
+          tags$ul(
+            lapply(1:nrow(children), function(i) {
+              tags$li(
+                tags$strong(children$id[i]), " - ",
+                children$name[i],
+                tags$span(class = "badge bg-secondary ms-2", 
+                         paste("Level", children$level[i]))
+              )
+            })
+          )
+        )
+      } else {
+        p(class = "text-muted", "This item has no children")
+      }
+    }
+  })
+  
+  # Vocabulary info summary
+  output$vocab_info <- renderUI({
+    if (exists("vocabulary_data") && !is.null(vocabulary_data)) {
+      total_items <- sum(sapply(vocabulary_data[c("activities", "pressures", "consequences", "controls")], 
+                               function(x) if (!is.null(x)) nrow(x) else 0))
+      
+      tagList(
+        div(class = "row",
+            div(class = "col-md-3",
+                div(class = "text-center",
+                    icon("play", class = "fa-2x text-primary mb-2"),
+                    h5("Activities"),
+                    p(class = "display-6", nrow(vocabulary_data$activities))
+                )
+            ),
+            div(class = "col-md-3",
+                div(class = "text-center",
+                    icon("triangle-exclamation", class = "fa-2x text-danger mb-2"),
+                    h5("Pressures"),
+                    p(class = "display-6", nrow(vocabulary_data$pressures))
+                )
+            ),
+            div(class = "col-md-3",
+                div(class = "text-center",
+                    icon("burst", class = "fa-2x text-warning mb-2"),
+                    h5("Consequences"),
+                    p(class = "display-6", nrow(vocabulary_data$consequences))
+                )
+            ),
+            div(class = "col-md-3",
+                div(class = "text-center",
+                    icon("shield", class = "fa-2x text-success mb-2"),
+                    h5("Controls"),
+                    p(class = "display-6", nrow(vocabulary_data$controls))
+                )
+            )
+        ),
+        hr(),
+        p(class = "text-center text-muted",
+          strong("Total vocabulary items: "), total_items,
+          " | Data source: CAUSES.xlsx, CONSEQUENCES.xlsx, CONTROLS.xlsx")
+      )
+    } else {
+      div(class = "alert alert-warning",
+          tagList(icon("exclamation-triangle"), " "),
+          "Vocabulary data not loaded. Please ensure the Excel files are in the app directory.")
+    }
+  })
+  
+  # Download vocabulary
+  output$download_vocab <- downloadHandler(
+    filename = function() {
+      paste0("vocabulary_", input$vocab_type, "_", Sys.Date(), ".xlsx")
+    },
+    content = function(file) {
+      vocab <- current_vocabulary()
+      if (nrow(vocab) > 0) {
+        tree_data <- create_tree_structure(vocab)
+        export_data <- tree_data %>% select(level, id, name, path)
+        openxlsx::write.xlsx(export_data, file, rowNames = FALSE)
+      }
+    }
+  )
+  
+  # Refresh vocabulary
+  observeEvent(input$refresh_vocab, {
+    showNotification("Refreshing vocabulary data...", type = "message", duration = 2)
+    tryCatch({
+      vocabulary_data <<- load_vocabulary()
+      vocab_search_results(data.frame())
+      selected_vocab_item(NULL)
+      showNotification("✅ Vocabulary refreshed successfully!", type = "success", duration = 3)
+    }, error = function(e) {
+      showNotification(paste("❌ Error refreshing vocabulary:", e$message), type = "error")
+    })
+  })
 }
 
 # Run the enhanced application
