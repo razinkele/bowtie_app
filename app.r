@@ -1,9 +1,9 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application
-# Version: 4.2.4 (Integrated Vocabulary Management)
+# Version: 4.3.0 (AI-Powered Vocabulary Linking)
 # Date: June 2025
 # Author: AI Assistant
-# Description: Complete enhanced version with vocabulary integration
+# Description: Complete enhanced version with AI vocabulary analysis
 # =============================================================================
 
 # Load required libraries
@@ -103,8 +103,8 @@ ui <- fluidPage(
                        onerror = "this.style.display='none'", 
                        title = "Marbefes Environmental Bowtie Risk Analysis"),
                    h4("Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
-                   span(class = "badge bg-success me-2 version-badge", "v4.2.4"),
-                   span(class = "text-muted small", "Integrated Vocabulary Management")
+                   span(class = "badge bg-success me-2 version-badge", "v4.3.0"),
+                   span(class = "text-muted small", "AI-Powered Vocabulary Analysis")
                  )
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
@@ -123,7 +123,7 @@ ui <- fluidPage(
                                           colourpicker::colourInput("primary_color", "Primary:", value = "#28a745"))),
                  column(3, conditionalPanel(condition = "input.theme_preset == 'custom'",
                                           colourpicker::colourInput("secondary_color", "Secondary:", value = "#6c757d"))),
-                 column(3, p(class = "text-muted mt-2", "Enhanced environmental risk analysis with vocabulary integration and fixed protective mitigation connections."))
+                 column(3, p(class = "text-muted mt-2", "Enhanced environmental risk analysis with AI-powered vocabulary linking and fixed protective mitigation connections."))
                )
              )
            )
@@ -167,7 +167,7 @@ ui <- fluidPage(
                      tags$li("💥 Mitigation → Consequence residual risks")
                    ),
                    div(class = "d-grid", actionButton("generateSample", 
-                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.2.4"), 
+                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.3.0"), 
                                                      class = "btn-success")),
                    
                    conditionalPanel(
@@ -183,7 +183,7 @@ ui <- fluidPage(
         
         column(6,
                card(
-                 card_header(tagList(icon("info-circle"), "Enhanced Data Structure v4.2.4"), class = "bg-info text-white"),
+                 card_header(tagList(icon("info-circle"), "Enhanced Data Structure v4.3.0"), class = "bg-info text-white"),
                  card_body(
                    h6(tagList(icon("list"), "Fixed Bowtie Elements:")),
                    p("Your Excel file should contain environmental risk data with these columns:"),
@@ -208,7 +208,7 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-success mt-3",
                        tagList(icon("check-circle"), " "),
-                       strong("v4.2.4 GRANULAR Pathways:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
+                       strong("v4.3.0 GRANULAR Pathways:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
                    
                    div(class = "alert alert-info mt-2",
                        tagList(icon("info-circle"), " "),
@@ -216,7 +216,7 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-primary mt-2",
                        tagList(icon("book"), " "),
-                       strong("v4.2.4 Vocabulary:"), " Hierarchical vocabularies for Activities, Pressures, Consequences, and Controls are now integrated!"),
+                       strong("v4.3.0 Vocabulary:"), " AI-powered analysis finds semantic connections between Activities, Pressures, Consequences, and Controls!"),
                    
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -233,7 +233,7 @@ ui <- fluidPage(
         condition = "output.dataLoaded",
         br(),
         card(
-          card_header(tagList(icon("eye"), "Data Preview - v4.2.4 Enhanced"), class = "bg-success text-white"),
+          card_header(tagList(icon("eye"), "Data Preview - v4.3.0 Enhanced"), class = "bg-success text-white"),
           card_body(
             withSpinner(DT::dataTableOutput("preview")),
             br(),
@@ -246,12 +246,12 @@ ui <- fluidPage(
     
     # Enhanced Bowtie Visualization Tab
     nav_panel(
-      title = tagList(icon("project-diagram"), "Fixed Bowtie v4.2.4"), value = "bowtie",
+      title = tagList(icon("project-diagram"), "Fixed Bowtie v4.3.0"), value = "bowtie",
       
       fluidRow(
         column(4,
                card(
-                 card_header(tagList(icon("cogs"), "Enhanced Bowtie Controls v4.2.4"), class = "bg-primary text-white"),
+                 card_header(tagList(icon("cogs"), "Enhanced Bowtie Controls v4.3.0"), class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -279,11 +279,11 @@ ui <- fluidPage(
                      textInput("newPressure", "New Pressure:", placeholder = "Enter pressure/threat"),
                      textInput("newConsequence", "New Consequence:", placeholder = "Enter consequence"),
                      div(class = "d-grid", actionButton("addActivityChain", 
-                                                       tagList(icon("plus-circle"), "Add Enhanced Chain v4.2.4"), 
+                                                       tagList(icon("plus-circle"), "Add Enhanced Chain v4.3.0"), 
                                                        class = "btn-outline-primary btn-sm")),
                      
                      hr(),
-                     h6(tagList(icon("palette"), "FIXED Bowtie Visual Legend v4.2.4:")),
+                     h6(tagList(icon("palette"), "FIXED Bowtie Visual Legend v4.3.0:")),
                      div(class = "p-3 border rounded enhanced-legend",
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "◼"),
@@ -303,13 +303,13 @@ ui <- fluidPage(
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge bg-primary me-2", "◼"),
                              span(tagList(icon("shield"), " Protective Mitigation "), 
-                                  span(class = "badge bg-success text-white small ms-1", "FIXED v4.2.4"))),
+                                  span(class = "badge bg-success text-white small ms-1", "FIXED v4.3.0"))),
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #E67E22; color: white; margin-right: 8px;", "⬢"),
                              span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
                          hr(class = "my-2"),
                          div(class = "small text-success",
-                             strong("✓ FIXED v4.2.4:"), " Protective mitigation connections properly mapped"),
+                             strong("✓ FIXED v4.3.0:"), " Protective mitigation connections properly mapped"),
                          div(class = "small text-muted",
                              strong("Enhanced Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → FIXED Mitigation → Consequence"),
                          div(class = "small text-muted",
@@ -320,7 +320,7 @@ ui <- fluidPage(
                      
                      hr(),
                      div(class = "d-grid", downloadButton("downloadBowtie", 
-                                                         tagList(icon("download"), "Download Fixed Diagram v4.2.4"), 
+                                                         tagList(icon("download"), "Download Fixed Diagram v4.3.0"), 
                                                          class = "btn-success"))
                    )
                  )
@@ -329,13 +329,13 @@ ui <- fluidPage(
         
         column(8,
                card(
-                 card_header(tagList(icon("sitemap"), "FIXED Bowtie Diagram v4.2.4"), 
+                 card_header(tagList(icon("sitemap"), "FIXED Bowtie Diagram v4.3.0"), 
                            class = "bg-success text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
                      div(class = "text-center mb-3",
-                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v4.2.4 FIXED"), class = "text-primary"),
+                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v4.3.0 FIXED"), class = "text-primary"),
                          p(class = "small text-success", 
                            "✓ FIXED protective mitigation connections: Activities → Pressures → Controls → Escalation → Central Problem → ENHANCED Mitigation → Consequences")),
                      div(class = "network-container",
@@ -346,7 +346,7 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-5",
                          icon("upload", class = "fa-3x text-muted mb-3"),
-                         h4("Upload Data or Generate Enhanced Sample Data v4.2.4", class = "text-muted"),
+                         h4("Upload Data or Generate Enhanced Sample Data v4.3.0", class = "text-muted"),
                          p("Please upload environmental data or generate enhanced sample data to view the FIXED bowtie diagram with proper protective mitigation connections", 
                            class = "text-muted"))
                    )
@@ -365,7 +365,7 @@ ui <- fluidPage(
                card(
                  card_header(
                    div(class = "d-flex justify-content-between align-items-center",
-                       tagList(icon("table"), "Enhanced Environmental Bowtie Data v4.2.4 - FIXED Connections"),
+                       tagList(icon("table"), "Enhanced Environmental Bowtie Data v4.3.0 - FIXED Connections"),
                        div(
                          conditionalPanel(
                            condition = "output.dataLoaded",
@@ -385,7 +385,7 @@ ui <- fluidPage(
                      condition = "output.dataLoaded",
                      div(class = "alert alert-success",
                          tagList(icon("check-circle"), " "),
-                         "✓ v4.2.4 ENHANCED: Click on any cell to edit. The table shows FIXED protective mitigation connections with proper pathway mapping."),
+                         "✓ v4.3.0 ENHANCED: Click on any cell to edit. The table shows FIXED protective mitigation connections with proper pathway mapping."),
                      withSpinner(DT::dataTableOutput("editableTable"))
                    ),
                    conditionalPanel(
@@ -393,7 +393,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("table", class = "fa-3x text-muted mb-3"),
                          h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v4.2.4 to view the table with FIXED connections", class = "text-muted"))
+                         p("Please upload data or generate enhanced sample data v4.3.0 to view the table with FIXED connections", class = "text-muted"))
                    )
                  )
                )
@@ -408,7 +408,7 @@ ui <- fluidPage(
       fluidRow(
         column(8,
                card(
-                 card_header(tagList(icon("chart-scatter"), "Enhanced Environmental Risk Matrix v4.2.4"), 
+                 card_header(tagList(icon("chart-scatter"), "Enhanced Environmental Risk Matrix v4.3.0"), 
                            class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
@@ -420,7 +420,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("chart-line", class = "fa-3x text-muted mb-3"),
                          h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v4.2.4 to view the risk matrix", class = "text-muted"))
+                         p("Please upload data or generate enhanced sample data v4.3.0 to view the risk matrix", class = "text-muted"))
                    )
                  )
                )
@@ -428,7 +428,7 @@ ui <- fluidPage(
         
         column(4,
                card(
-                 card_header(tagList(icon("chart-pie"), "Enhanced Risk Statistics v4.2.4"), class = "bg-info text-white"),
+                 card_header(tagList(icon("chart-pie"), "Enhanced Risk Statistics v4.3.0"), class = "bg-info text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -543,6 +543,117 @@ ui <- fluidPage(
                                   tagList(icon("info-circle"), " "),
                                   "Select an item from the data table to view its relationships"),
                               uiOutput("vocab_relationships")
+                     ),
+                     
+                     tabPanel("AI Analysis",
+                              br(),
+                              fluidRow(
+                                column(12,
+                                       div(class = "alert alert-primary",
+                                           tagList(icon("robot"), " "),
+                                           strong("AI-Powered Vocabulary Analysis"),
+                                           " - Discover semantic connections between vocabulary groups using artificial intelligence"
+                                       )
+                                )
+                              ),
+                              
+                              fluidRow(
+                                column(4,
+                                       card(
+                                         card_header(tagList(icon("brain"), "AI Analysis Controls"), 
+                                                   class = "bg-primary text-white"),
+                                         card_body(
+                                           h6("Analysis Methods:"),
+                                           checkboxGroupInput("ai_methods", NULL,
+                                                            choices = list(
+                                                              "Semantic Similarity" = "jaccard",
+                                                              "Keyword Connections" = "keyword",
+                                                              "Causal Relationships" = "causal"
+                                                            ),
+                                                            selected = c("jaccard", "keyword")),
+                                           
+                                           sliderInput("similarity_threshold", "Similarity Threshold:",
+                                                      min = 0.1, max = 0.9, value = 0.3, step = 0.1),
+                                           
+                                           sliderInput("max_links_per_item", "Max Links per Item:",
+                                                      min = 1, max = 10, value = 5),
+                                           
+                                           div(class = "d-grid",
+                                               actionButton("run_ai_analysis", 
+                                                          tagList(icon("play"), "Run AI Analysis"),
+                                                          class = "btn-success")
+                                           ),
+                                           
+                                           hr(),
+                                           
+                                           conditionalPanel(
+                                             condition = "output.aiAnalysisComplete",
+                                             h6("Analysis Results:"),
+                                             verbatimTextOutput("ai_summary")
+                                           )
+                                         )
+                                       )
+                                ),
+                                
+                                column(8,
+                                       conditionalPanel(
+                                         condition = "output.aiAnalysisComplete",
+                                         card(
+                                           card_header(tagList(icon("network-wired"), "Discovered Connections"),
+                                                     class = "bg-success text-white"),
+                                           card_body(
+                                             tabsetPanel(
+                                               tabPanel("Connection Table",
+                                                        br(),
+                                                        withSpinner(DT::dataTableOutput("ai_connections_table"))
+                                               ),
+                                               tabPanel("Network Visualization",
+                                                        br(),
+                                                        withSpinner(visNetworkOutput("ai_network", height = "500px"))
+                                               ),
+                                               tabPanel("Connection Summary",
+                                                        br(),
+                                                        tableOutput("ai_connection_summary"),
+                                                        hr(),
+                                                        plotOutput("ai_connection_plot", height = "300px")
+                                               )
+                                             )
+                                           )
+                                         )
+                                       ),
+                                       conditionalPanel(
+                                         condition = "!output.aiAnalysisComplete",
+                                         card(
+                                           card_body(
+                                             div(class = "text-center p-5",
+                                                 icon("brain", class = "fa-3x text-muted mb-3"),
+                                                 h4("AI Analysis Not Started", class = "text-muted"),
+                                                 p("Configure analysis settings and click 'Run AI Analysis' to discover connections", 
+                                                   class = "text-muted")
+                                             )
+                                           )
+                                         )
+                                       )
+                                )
+                              ),
+                              
+                              fluidRow(
+                                column(12,
+                                       conditionalPanel(
+                                         condition = "output.aiAnalysisComplete",
+                                         card(
+                                           card_header(tagList(icon("lightbulb"), "AI Recommendations"),
+                                                     class = "bg-info text-white"),
+                                           card_body(
+                                             h6("Suggested Vocabulary Links:"),
+                                             p(class = "text-muted", 
+                                               "Based on AI analysis, these vocabulary items show strong potential connections:"),
+                                             DT::dataTableOutput("ai_recommendations")
+                                           )
+                                         )
+                                       )
+                                )
+                              )
                      )
                    )
                  )
@@ -570,8 +681,8 @@ ui <- fluidPage(
       p(tagList(
         strong("Environmental Bowtie Risk Analysis Tool"),
         " | ",
-        span(class = "badge bg-success", "v4.2.4"),
-        " - Integrated Vocabulary Management System"
+        span(class = "badge bg-success", "v4.3.0"),
+        " - AI-Powered Vocabulary Analysis & Linking"
       )))
 )
 
@@ -649,7 +760,7 @@ server <- function(input, output, session) {
       clearCache()  # Clear cache when new data is loaded
       
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
-      showNotification("✓ Data loaded successfully with v4.2.4 FIXED connections!", type = "message", duration = 3)
+      showNotification("✓ Data loaded successfully with v4.3.0 FIXED connections!", type = "message", duration = 3)
       
     }, error = function(e) {
       showNotification(paste("❌ Error loading data:", e$message), type = "error")
@@ -658,7 +769,7 @@ server <- function(input, output, session) {
   
   # Enhanced sample data generation with FIXED connections
   observeEvent(input$generateSample, {
-    showNotification("🔄 Generating v4.2.4 enhanced sample data with FIXED protective mitigation connections...", 
+    showNotification("🔄 Generating v4.3.0 enhanced sample data with FIXED protective mitigation connections...", 
                     type = "message", duration = 3)
     
     tryCatch({
@@ -672,7 +783,7 @@ server <- function(input, output, session) {
       problem_choices <- unique(sample_data$Central_Problem)
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       
-      showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v4.2.4 FIXED protective mitigation connections!"), 
+      showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v4.3.0 FIXED protective mitigation connections!"), 
                       type = "message", duration = 4)
       
     }, error = function(e) {
@@ -690,7 +801,7 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "dataLoaded", suspendWhenHidden = FALSE)
   
-  # Enhanced data info with v4.2.4 details
+  # Enhanced data info with v4.3.0 details
   output$dataInfo <- renderText({
     data <- getCurrentData()
     req(data)
@@ -699,7 +810,7 @@ server <- function(input, output, session) {
   
   # Enhanced download handler
   output$downloadSample <- downloadHandler(
-    filename = function() paste("enhanced_environmental_bowtie_v4.2.4_", Sys.Date(), ".xlsx", sep = ""),
+    filename = function() paste("enhanced_environmental_bowtie_v4.3.0_", Sys.Date(), ".xlsx", sep = ""),
     content = function(file) {
       data <- getCurrentData()
       req(data)
@@ -727,7 +838,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # Enhanced editable table with v4.2.4 improvements
+  # Enhanced editable table with v4.3.0 improvements
   output$editableTable <- DT::renderDataTable({
     data <- getCurrentData()
     req(data)
@@ -749,7 +860,7 @@ server <- function(input, output, session) {
         autoWidth = FALSE,
         dom = 'Blfrtip',
         buttons = c('copy', 'csv', 'excel'),
-        language = list(processing = "Loading v4.2.4 enhanced data with FIXED connections...")
+        language = list(processing = "Loading v4.3.0 enhanced data with FIXED connections...")
       ),
       editable = list(target = 'cell'),
       extensions = c('Buttons', 'Scroller'),
@@ -758,7 +869,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # Enhanced cell editing with validation and v4.2.4 granular features
+  # Enhanced cell editing with validation and v4.3.0 granular features
   observeEvent(input$editableTable_cell_edit, {
     info <- input$editableTable_cell_edit
     data <- getCurrentData()
@@ -851,7 +962,7 @@ server <- function(input, output, session) {
     
     # Show enhanced success feedback
     if (runif(1) < 0.3) {  # Only show notification 30% of the time
-      showNotification("✓ Cell updated - v4.2.4 GRANULAR connections refreshed", type = "message", duration = 1)
+      showNotification("✓ Cell updated - v4.3.0 GRANULAR connections refreshed", type = "message", duration = 1)
     }
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
   
@@ -865,14 +976,14 @@ server <- function(input, output, session) {
     data <- getCurrentData()
     req(data)
     
-    selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk v4.2.4"
+    selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk v4.3.0"
     new_row <- createDefaultRowFixed(selected_problem)  # Using FIXED function
     updated_data <- rbind(data, new_row)
     
     editedData(updated_data)
     dataVersion(dataVersion() + 1)
     clearCache()
-    showNotification("✅ New enhanced row added with v4.2.4 FIXED connections!", type = "message", duration = 2)
+    showNotification("✅ New enhanced row added with v4.3.0 FIXED connections!", type = "message", duration = 2)
   })
   
   observeEvent(input$deleteSelected, {
@@ -883,7 +994,7 @@ server <- function(input, output, session) {
       editedData(updated_data)
       dataVersion(dataVersion() + 1)
       clearCache()
-      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - v4.2.4 connections updated"), type = "warning", duration = 2)
+      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - v4.3.0 connections updated"), type = "warning", duration = 2)
     } else {
       showNotification("❌ No rows selected", type = "error", duration = 2)
     }
@@ -893,11 +1004,11 @@ server <- function(input, output, session) {
     edited <- editedData()
     if (!is.null(edited)) {
       currentData(edited)
-      showNotification("💾 Changes saved with v4.2.4 FIXED connections!", type = "message", duration = 2)
+      showNotification("💾 Changes saved with v4.3.0 FIXED connections!", type = "message", duration = 2)
     }
   })
   
-  # Enhanced quick add functionality with v4.2.4 granular features
+  # Enhanced quick add functionality with v4.3.0 granular features
   observeEvent(input$addActivityChain, {
     req(input$selectedProblem, input$newActivity, input$newPressure, input$newConsequence)
     
@@ -916,10 +1027,10 @@ server <- function(input, output, session) {
       new_row <- data.frame(
         Activity = input$newActivity,
         Pressure = input$newPressure,
-        Preventive_Control = "v4.2.4 Enhanced preventive control",
-        Escalation_Factor = "v4.2.4 Enhanced escalation factor",
+        Preventive_Control = "v4.3.0 Enhanced preventive control",
+        Escalation_Factor = "v4.3.0 Enhanced escalation factor",
         Central_Problem = input$selectedProblem,
-        Protective_Mitigation = paste("v4.2.4 FIXED protective mitigation for", input$newConsequence),
+        Protective_Mitigation = paste("v4.3.0 FIXED protective mitigation for", input$newConsequence),
         Consequence = input$newConsequence,
         
         # Default granular risk values
@@ -949,10 +1060,10 @@ server <- function(input, output, session) {
       new_row <- data.frame(
         Activity = input$newActivity,
         Pressure = input$newPressure,
-        Preventive_Control = "v4.2.4 Enhanced preventive control",
-        Escalation_Factor = "v4.2.4 Enhanced escalation factor",
+        Preventive_Control = "v4.3.0 Enhanced preventive control",
+        Escalation_Factor = "v4.3.0 Enhanced escalation factor",
         Central_Problem = input$selectedProblem,
-        Protective_Mitigation = paste("v4.2.4 FIXED protective mitigation for", input$newConsequence),
+        Protective_Mitigation = paste("v4.3.0 FIXED protective mitigation for", input$newConsequence),
         Consequence = input$newConsequence,
         Likelihood = 3L,
         Severity = 3L,
@@ -971,9 +1082,9 @@ server <- function(input, output, session) {
     updateTextInput(session, "newConsequence", value = "")
     
     if (has_granular_data) {
-      showNotification("🔗 Enhanced activity chain added with v4.2.4 GRANULAR connection risks!", type = "message", duration = 3)
+      showNotification("🔗 Enhanced activity chain added with v4.3.0 GRANULAR connection risks!", type = "message", duration = 3)
     } else {
-      showNotification("🔗 Enhanced activity chain added with v4.2.4 FIXED connections!", type = "message", duration = 3)
+      showNotification("🔗 Enhanced activity chain added with v4.3.0 FIXED connections!", type = "message", duration = 3)
     }
   })
   
@@ -984,16 +1095,16 @@ server <- function(input, output, session) {
       has_granular_data <- all(c("Activity_to_Pressure_Likelihood", "Overall_Likelihood") %in% names(data))
       
       if (has_granular_data) {
-        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.4 GRANULAR bowtie structure with 6 connection-level risks per scenario and FIXED protective mitigation connections")
+        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.3.0 GRANULAR bowtie structure with 6 connection-level risks per scenario and FIXED protective mitigation connections")
       } else {
-        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.2.4 Enhanced bowtie structure with FIXED protective mitigation connections")
+        paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.3.0 Enhanced bowtie structure with FIXED protective mitigation connections")
       }
     } else {
       "No enhanced data loaded"
     }
   })
   
-  # FIXED bowtie network with v4.2.4 enhancements
+  # FIXED bowtie network with v4.3.0 enhancements
   output$bowtieNetwork <- renderVisNetwork({
     data <- getCurrentData()
     req(data, input$selectedProblem)
@@ -1009,9 +1120,9 @@ server <- function(input, output, session) {
     edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)  # Using FIXED function
     
     visNetwork(nodes, edges, 
-               main = paste("🌟 Enhanced Bowtie Analysis v4.2.4 with FIXED Connections:", input$selectedProblem),
-               submain = if(input$showBarriers) "✅ Interconnected pathways with v4.2.4 FIXED protective mitigation connections" else "Direct causal relationships with enhanced connections",
-               footer = "🔧 v4.2.4 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
+               main = paste("🌟 Enhanced Bowtie Analysis v4.3.0 with FIXED Connections:", input$selectedProblem),
+               submain = if(input$showBarriers) "✅ Interconnected pathways with v4.3.0 FIXED protective mitigation connections" else "Direct causal relationships with enhanced connections",
+               footer = "🔧 v4.3.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
       visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                font = list(color = "#2C3E50", face = "Arial", size = 12)) %>%
       visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -1037,14 +1148,14 @@ server <- function(input, output, session) {
              color = "#F39C12", shape = "triangleDown", size = 15),
         list(label = "Central Problem (Main Risk)", 
              color = "#C0392B", shape = "diamond", size = 18),
-        list(label = "Protective Mitigation (v4.2.4 FIXED)", 
+        list(label = "Protective Mitigation (v4.3.0 FIXED)", 
              color = "#3498DB", shape = "square", size = 15),
         list(label = "Consequences (Impacts)", 
              color = "#E67E22", shape = "hexagon", size = 15)
       ), position = "right", width = 0.25, ncol = 1)
   })
   
-  # Enhanced risk matrix with v4.2.4 features and granular connection data
+  # Enhanced risk matrix with v4.3.0 features and granular connection data
   output$riskMatrix <- renderPlotly({
     data <- getCurrentData()
     req(data, nrow(data) > 0)
@@ -1070,10 +1181,10 @@ server <- function(input, output, session) {
         "<br>🛡️ Central → Mitigation: L=", data$Central_to_Mitigation_Likelihood, ", S=", data$Central_to_Mitigation_Severity,
         "<br>💥 Mitigation → Consequence: L=", data$Mitigation_to_Consequence_Likelihood, ", S=", data$Mitigation_to_Consequence_Severity,
         "<br><br><b>🎯 Overall Pathway Risk:</b> L=", data$Overall_Likelihood, ", S=", data$Overall_Severity,
-        "<br><b>✅ v4.2.4 GRANULAR Analysis</b>"
+        "<br><b>✅ v4.3.0 GRANULAR Analysis</b>"
       )
       
-      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.4 with GRANULAR Connection Analysis"
+      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.3.0 with GRANULAR Connection Analysis"
       plot_subtitle <- "✅ Each point shows overall pathway risk calculated from granular bowtie connections"
     } else {
       # Fallback to legacy data structure
@@ -1086,10 +1197,10 @@ server <- function(input, output, session) {
         "<br>Pressure:", data$Pressure,
         "<br>Protective Mitigation:", data$Protective_Mitigation,
         "<br>Consequence:", data$Consequence,
-        "<br>v4.2.4 FIXED Connections: ✅"
+        "<br>v4.3.0 FIXED Connections: ✅"
       )
       
-      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.2.4 with FIXED Connections"
+      plot_title <- "🌟 Enhanced Environmental Risk Matrix v4.3.0 with FIXED Connections"
       plot_subtitle <- "✅ Protective mitigation connections properly mapped"
     }
     
@@ -1128,10 +1239,10 @@ server <- function(input, output, session) {
     # Rename columns properly
     names(risk_summary) <- c("Icon", "Risk Level", "Count", "Percentage (%)")
     
-    # Add footer row showing v4.2.4 status with matching column names
+    # Add footer row showing v4.3.0 status with matching column names
     footer_row <- data.frame(
       Icon = "✅",
-      `Risk Level` = "v4.2.4 FIXED",
+      `Risk Level` = "v4.3.0 FIXED",
       Count = nrow(data),
       `Percentage (%)` = 100.0,
       stringsAsFactors = FALSE,
@@ -1146,7 +1257,7 @@ server <- function(input, output, session) {
   
   # Enhanced download bowtie diagram
   output$downloadBowtie <- downloadHandler(
-    filename = function() paste("enhanced_bowtie_v4.2.4_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
+    filename = function() paste("enhanced_bowtie_v4.3.0_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
     content = function(file) {
       data <- getCurrentData()
       req(data, input$selectedProblem)
@@ -1156,9 +1267,9 @@ server <- function(input, output, session) {
       edges <- createBowtieEdgesFixed(problem_data, TRUE)  # Using FIXED function
       
       network <- visNetwork(nodes, edges, 
-                          main = paste("🌟 Enhanced Environmental Bowtie Analysis v4.2.4 with FIXED Connections:", input$selectedProblem),
-                          submain = paste("Generated on", Sys.Date(), "- v4.2.4 with FIXED protective mitigation connections"),
-                          footer = "🔧 v4.2.4 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
+                          main = paste("🌟 Enhanced Environmental Bowtie Analysis v4.3.0 with FIXED Connections:", input$selectedProblem),
+                          submain = paste("Generated on", Sys.Date(), "- v4.3.0 with FIXED protective mitigation connections"),
+                          footer = "🔧 v4.3.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → FIXED Mitigation → Consequences") %>%
         visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                 font = list(color = "#2C3E50", face = "Arial")) %>%
         visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -1178,7 +1289,7 @@ server <- function(input, output, session) {
                color = "#F39C12", shape = "triangleDown", size = 15),
           list(label = "Central Problem (Main Risk)", 
                color = "#C0392B", shape = "diamond", size = 18),
-          list(label = "Protective Mitigation (v4.2.4 FIXED)", 
+          list(label = "Protective Mitigation (v4.3.0 FIXED)", 
                color = "#3498DB", shape = "square", size = 15),
           list(label = "Consequences (Impacts)", 
                color = "#E67E22", shape = "hexagon", size = 15)
@@ -1456,6 +1567,260 @@ server <- function(input, output, session) {
     }, error = function(e) {
       showNotification(paste("❌ Error refreshing vocabulary:", e$message), type = "error")
     })
+  })
+  
+  # =============================================================================
+  # AI-Powered Vocabulary Analysis
+  # =============================================================================
+  
+  # Reactive values for AI analysis
+  ai_analysis_results <- reactiveVal(NULL)
+  
+  # Run AI analysis
+  observeEvent(input$run_ai_analysis, {
+    showNotification("🤖 Starting AI analysis...", type = "message", duration = 2)
+    
+    tryCatch({
+      # Check if AI functions are available
+      if (exists("find_vocabulary_links")) {
+        results <- find_vocabulary_links(
+          vocabulary_data,
+          similarity_threshold = input$similarity_threshold,
+          max_links_per_item = input$max_links_per_item,
+          methods = input$ai_methods
+        )
+        
+        ai_analysis_results(results)
+        
+        showNotification(
+          paste("✅ AI analysis complete! Found", nrow(results$links), "connections"),
+          type = "success",
+          duration = 3
+        )
+      } else {
+        # Fallback to basic analysis
+        results <- find_vocabulary_connections(vocabulary_data, use_ai = FALSE)
+        ai_analysis_results(results)
+        
+        showNotification(
+          "ℹ️ Using basic keyword analysis (AI linker not available)",
+          type = "warning",
+          duration = 3
+        )
+      }
+    }, error = function(e) {
+      showNotification(
+        paste("❌ Error in AI analysis:", e$message),
+        type = "error"
+      )
+    })
+  })
+  
+  # AI analysis complete flag
+  output$aiAnalysisComplete <- reactive({
+    !is.null(ai_analysis_results())
+  })
+  outputOptions(output, "aiAnalysisComplete", suspendWhenHidden = FALSE)
+  
+  # AI summary
+  output$ai_summary <- renderPrint({
+    results <- ai_analysis_results()
+    if (!is.null(results)) {
+      cat("Total connections found:", nrow(results$links), "\n")
+      cat("Analysis methods used:", paste(unique(results$links$method), collapse = ", "), "\n")
+      cat("Average similarity score:", round(mean(results$links$similarity), 3), "\n")
+      
+      if (length(results$keyword_connections) > 0) {
+        cat("\nKeyword themes identified:", paste(names(results$keyword_connections), collapse = ", "))
+      }
+    }
+  })
+  
+  # AI connections table
+  output$ai_connections_table <- DT::renderDataTable({
+    results <- ai_analysis_results()
+    if (!is.null(results) && nrow(results$links) > 0) {
+      display_data <- results$links %>%
+        select(
+          `From Type` = from_type,
+          `From` = from_name,
+          `To Type` = to_type,
+          `To` = to_name,
+          `Similarity` = similarity,
+          `Method` = method
+        ) %>%
+        mutate(
+          Similarity = round(Similarity, 3),
+          Method = gsub("_", " ", Method)
+        )
+      
+      DT::datatable(
+        display_data,
+        options = list(
+          pageLength = 10,
+          order = list(list(4, 'desc'))  # Sort by similarity
+        ),
+        rownames = FALSE
+      ) %>%
+        formatStyle("Similarity",
+                   background = styleColorBar(display_data$Similarity, "lightblue"),
+                   backgroundSize = '100% 90%',
+                   backgroundRepeat = 'no-repeat',
+                   backgroundPosition = 'center')
+    }
+  })
+  
+  # AI network visualization
+  output$ai_network <- renderVisNetwork({
+    results <- ai_analysis_results()
+    if (!is.null(results) && nrow(results$links) > 0) {
+      # Create nodes
+      all_nodes <- unique(c(
+        paste(results$links$from_id, results$links$from_type, results$links$from_name, sep = "|"),
+        paste(results$links$to_id, results$links$to_type, results$links$to_name, sep = "|")
+      ))
+      
+      nodes_df <- data.frame(
+        id = sapply(strsplit(all_nodes, "\\|"), `[`, 1),
+        group = sapply(strsplit(all_nodes, "\\|"), `[`, 2),
+        label = sapply(strsplit(all_nodes, "\\|"), function(x) {
+          name <- paste(x[3:length(x)], collapse = "|")
+          if (nchar(name) > 30) paste0(substr(name, 1, 27), "...") else name
+        }),
+        title = sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[3:length(x)], collapse = "|")),
+        stringsAsFactors = FALSE
+      )
+      
+      # Set colors by type
+      type_colors <- list(
+        Activity = "#8E44AD",
+        Pressure = "#E74C3C",
+        Consequence = "#E67E22",
+        Control = "#27AE60"
+      )
+      
+      nodes_df$color <- sapply(nodes_df$group, function(g) type_colors[[g]])
+      
+      # Create edges
+      edges_df <- results$links %>%
+        select(from = from_id, to = to_id, value = similarity) %>%
+        mutate(
+          width = value * 5,
+          title = paste("Similarity:", round(value, 3))
+        )
+      
+      # Create network
+      visNetwork(nodes_df, edges_df) %>%
+        visNodes(
+          shape = "dot",
+          size = 20,
+          font = list(size = 12)
+        ) %>%
+        visEdges(
+          smooth = TRUE,
+          color = list(opacity = 0.5)
+        ) %>%
+        visGroups(groupname = "Activity", color = "#8E44AD") %>%
+        visGroups(groupname = "Pressure", color = "#E74C3C") %>%
+        visGroups(groupname = "Consequence", color = "#E67E22") %>%
+        visGroups(groupname = "Control", color = "#27AE60") %>%
+        visLegend(width = 0.2, position = "right") %>%
+        visPhysics(
+          stabilization = TRUE,
+          barnesHut = list(
+            gravitationalConstant = -2000,
+            springConstant = 0.04
+          )
+        ) %>%
+        visOptions(
+          highlightNearest = TRUE,
+          nodesIdSelection = FALSE
+        ) %>%
+        visInteraction(
+          navigationButtons = TRUE,
+          dragNodes = TRUE,
+          dragView = TRUE,
+          zoomView = TRUE
+        )
+    }
+  })
+  
+  # Connection summary
+  output$ai_connection_summary <- renderTable({
+    results <- ai_analysis_results()
+    if (!is.null(results) && !is.null(results$summary) && nrow(results$summary) > 0) {
+      results$summary %>%
+        mutate(
+          avg_similarity = round(avg_similarity, 3),
+          max_similarity = round(max_similarity, 3),
+          min_similarity = round(min_similarity, 3)
+        ) %>%
+        rename(
+          `From Type` = from_type,
+          `To Type` = to_type,
+          `Method` = method,
+          `Count` = count,
+          `Avg Similarity` = avg_similarity,
+          `Max Similarity` = max_similarity,
+          `Min Similarity` = min_similarity
+        )
+    }
+  })
+  
+  # Connection plot
+  output$ai_connection_plot <- renderPlot({
+    results <- ai_analysis_results()
+    if (!is.null(results) && nrow(results$links) > 0) {
+      # Create connection type summary
+      connection_summary <- results$links %>%
+        mutate(connection_type = paste(from_type, "→", to_type)) %>%
+        group_by(connection_type) %>%
+        summarise(count = n(), .groups = 'drop') %>%
+        arrange(desc(count))
+      
+      ggplot(connection_summary, aes(x = reorder(connection_type, count), y = count)) +
+        geom_bar(stat = "identity", fill = "#3498DB") +
+        coord_flip() +
+        labs(
+          title = "AI-Discovered Connection Types",
+          x = "Connection Type",
+          y = "Number of Connections"
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(size = 14, face = "bold"),
+          axis.text = element_text(size = 10)
+        )
+    }
+  })
+  
+  # AI recommendations
+  output$ai_recommendations <- DT::renderDataTable({
+    results <- ai_analysis_results()
+    if (!is.null(results) && exists("generate_link_recommendations")) {
+      recommendations <- generate_link_recommendations(vocabulary_data)
+      
+      if (nrow(recommendations) > 0) {
+        display_recs <- recommendations %>%
+          select(
+            `From` = from_name,
+            `To` = to_name,
+            `Connection Type` = from_type,
+            `→` = to_type,
+            `Score` = recommendation_score
+          ) %>%
+          mutate(Score = round(Score, 3))
+        
+        DT::datatable(
+          display_recs,
+          options = list(
+            pageLength = 10,
+            dom = 't'
+          ),
+          rownames = FALSE
+        )
+      }
+    }
   })
 }
 

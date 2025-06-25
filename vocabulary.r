@@ -1,5 +1,6 @@
 # vocabulary.R
 # Reads hierarchical data from Excel files for activities, pressures, consequences, and controls
+# Version 4.3.0 - With AI integration support
 
 if (!require("readxl")) library(readxl)
 if (!require("dplyr")) library(dplyr)
@@ -198,6 +199,96 @@ search_vocabulary <- function(data, search_term, search_in = c("id", "name")) {
   return(results)
 }
 
+# Source AI linker if available
+if (file.exists("vocabulary_ai_linker.R")) {
+  source("vocabulary_ai_linker.R")
+  cat("✅ AI vocabulary linker loaded\n")
+} else {
+  cat("ℹ️ AI vocabulary linker not found - basic functionality only\n")
+}
+
+# Function to find basic keyword connections (fallback if AI linker not available)
+find_basic_connections <- function(vocabulary_data) {
+  # Basic keyword matching between vocabulary types
+  connections <- data.frame()
+  
+  # Common environmental keywords
+  keywords <- c("water", "pollution", "waste", "emission", "habitat", "ecosystem", 
+                "contamination", "discharge", "runoff", "degradation")
+  
+  # Get all vocabulary items
+  all_items <- rbind(
+    data.frame(id = vocabulary_data$activities$id, 
+               name = vocabulary_data$activities$name, 
+               type = "Activity", stringsAsFactors = FALSE),
+    data.frame(id = vocabulary_data$pressures$id, 
+               name = vocabulary_data$pressures$name, 
+               type = "Pressure", stringsAsFactors = FALSE),
+    data.frame(id = vocabulary_data$consequences$id, 
+               name = vocabulary_data$consequences$name, 
+               type = "Consequence", stringsAsFactors = FALSE),
+    data.frame(id = vocabulary_data$controls$id, 
+               name = vocabulary_data$controls$name, 
+               type = "Control", stringsAsFactors = FALSE)
+  )
+  
+  # Find items sharing keywords
+  for (keyword in keywords) {
+    matching_items <- all_items[grepl(keyword, tolower(all_items$name)), ]
+    
+    if (nrow(matching_items) > 1) {
+      for (i in 1:(nrow(matching_items) - 1)) {
+        for (j in (i + 1):nrow(matching_items)) {
+          if (matching_items$type[i] != matching_items$type[j]) {
+            connections <- rbind(connections, data.frame(
+              from_id = matching_items$id[i],
+              from_name = matching_items$name[i],
+              from_type = matching_items$type[i],
+              to_id = matching_items$id[j],
+              to_name = matching_items$name[j],
+              to_type = matching_items$type[j],
+              keyword = keyword,
+              similarity = 0.5,  # Default similarity for keyword matches
+              method = paste("keyword", keyword, sep = "_"),
+              stringsAsFactors = FALSE
+            ))
+          }
+        }
+      }
+    }
+  }
+  
+  return(connections)
+}
+
+# Wrapper function for AI-powered vocabulary linking
+find_vocabulary_connections <- function(vocabulary_data, use_ai = TRUE) {
+  if (use_ai && exists("find_vocabulary_links")) {
+    # Use AI-powered linking
+    return(find_vocabulary_links(vocabulary_data))
+  } else {
+    # Fallback to basic keyword matching
+    connections <- find_basic_connections(vocabulary_data)
+    return(list(
+      links = connections,
+      keyword_connections = list(),
+      summary = if(nrow(connections) > 0) {
+        connections %>%
+          group_by(from_type, to_type, method) %>%
+          summarise(
+            count = n(),
+            avg_similarity = mean(similarity),
+            max_similarity = max(similarity),
+            min_similarity = min(similarity),
+            .groups = 'drop'
+          )
+      } else {
+        data.frame()
+      }
+    ))
+  }
+}
+
 # Example usage function
 example_usage <- function() {
   # Load all vocabulary data
@@ -225,6 +316,13 @@ example_usage <- function() {
   tree <- create_tree_structure(vocab$consequences)
   print("\nConsequences Tree (first 10 items):")
   print(head(tree$display, 10))
+  
+  # Example: Find AI connections
+  if (exists("find_vocabulary_links")) {
+    print("\nFinding AI-powered vocabulary connections...")
+    connections <- find_vocabulary_connections(vocab, use_ai = TRUE)
+    print(paste("Found", nrow(connections$links), "connections"))
+  }
 }
 
 # Make the main function available when sourced
@@ -233,3 +331,5 @@ if (!interactive()) {
   # Load vocabulary when sourced non-interactively
   vocabulary_data <- load_vocabulary()
 }
+
+cat("✅ Vocabulary management system loaded (v4.3.0)\n")
