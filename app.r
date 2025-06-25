@@ -1,9 +1,9 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application
-# Version: 4.3.0 (AI-Powered Vocabulary Linking)
+# Version: 4.3.1 (Enhanced Causal Relationship Analysis)
 # Date: June 2025
 # Author: AI Assistant
-# Description: Complete enhanced version with AI vocabulary analysis
+# Description: Complete version with advanced AI causal analysis
 # =============================================================================
 
 # Load required libraries
@@ -23,7 +23,7 @@ library(shinyjs)
 
 # Source utility functions and vocabulary management
 source("utils.r")
-source("vocabulary.R")
+source("vocabulary.r")
 
 # Load vocabulary data at startup
 tryCatch({
@@ -103,8 +103,8 @@ ui <- fluidPage(
                        onerror = "this.style.display='none'", 
                        title = "Marbefes Environmental Bowtie Risk Analysis"),
                    h4("Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
-                   span(class = "badge bg-success me-2 version-badge", "v4.3.0"),
-                   span(class = "text-muted small", "AI-Powered Vocabulary Analysis")
+                   span(class = "badge bg-success me-2 version-badge", "v4.3.1"),
+                   span(class = "text-muted small", "Enhanced Causal Analysis")
                  )
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
@@ -167,7 +167,7 @@ ui <- fluidPage(
                      tags$li("💥 Mitigation → Consequence residual risks")
                    ),
                    div(class = "d-grid", actionButton("generateSample", 
-                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.3.0"), 
+                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.3.1"), 
                                                      class = "btn-success")),
                    
                    conditionalPanel(
@@ -216,7 +216,7 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-primary mt-2",
                        tagList(icon("book"), " "),
-                       strong("v4.3.0 Vocabulary:"), " AI-powered analysis finds semantic connections between Activities, Pressures, Consequences, and Controls!"),
+                       strong("v4.3.1 Vocabulary:"), " Enhanced AI-powered causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
                    
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -408,7 +408,7 @@ ui <- fluidPage(
       fluidRow(
         column(8,
                card(
-                 card_header(tagList(icon("chart-scatter"), "Enhanced Environmental Risk Matrix v4.3.0"), 
+                 card_header(tagList(icon("chart-line"), "Enhanced Environmental Risk Matrix v4.3.0"), 
                            class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
@@ -568,9 +568,23 @@ ui <- fluidPage(
                                                             choices = list(
                                                               "Semantic Similarity" = "jaccard",
                                                               "Keyword Connections" = "keyword",
-                                                              "Causal Relationships" = "causal"
+                                                              "Causal Relationships (Enhanced)" = "causal"
                                                             ),
-                                                            selected = c("jaccard", "keyword")),
+                                                            selected = c("causal")),
+                                           
+                                           conditionalPanel(
+                                             condition = "input.ai_methods.includes('causal')",
+                                             div(class = "alert alert-info small mt-2",
+                                                 tagList(icon("info-circle"), " "),
+                                                 strong("Enhanced Causal Analysis:"),
+                                                 tags$ul(class = "mb-0 small",
+                                                   tags$li("Activity → Pressure → Consequence chains"),
+                                                   tags$li("Control intervention relationships"),
+                                                   tags$li("Environmental process detection"),
+                                                   tags$li("Multi-hop causal pathways")
+                                                 )
+                                             )
+                                           ),
                                            
                                            sliderInput("similarity_threshold", "Similarity Threshold:",
                                                       min = 0.1, max = 0.9, value = 0.3, step = 0.1),
@@ -616,6 +630,36 @@ ui <- fluidPage(
                                                         tableOutput("ai_connection_summary"),
                                                         hr(),
                                                         plotOutput("ai_connection_plot", height = "300px")
+                                               ),
+                                               tabPanel("Causal Analysis",
+                                                        br(),
+                                                        h5(tagList(icon("sitemap"), "Causal Pathway Analysis")),
+                                                        p(class = "text-muted", "Discovered causal chains from activities to consequences"),
+                                                        
+                                                        fluidRow(
+                                                          column(6,
+                                                                 h6("Top Causal Pathways:"),
+                                                                 div(style = "height: 300px; overflow-y: auto;",
+                                                                     verbatimTextOutput("causal_paths"))
+                                                          ),
+                                                          column(6,
+                                                                 h6("Causal Network Structure:"),
+                                                                 tableOutput("causal_structure")
+                                                          )
+                                                        ),
+                                                        
+                                                        hr(),
+                                                        
+                                                        fluidRow(
+                                                          column(6,
+                                                                 h6("Key Drivers (Root Causes):"),
+                                                                 tableOutput("key_drivers")
+                                                          ),
+                                                          column(6,
+                                                                 h6("Key Outcomes (Final Impacts):"),
+                                                                 tableOutput("key_outcomes")
+                                                          )
+                                                        )
                                                )
                                              )
                                            )
@@ -681,8 +725,8 @@ ui <- fluidPage(
       p(tagList(
         strong("Environmental Bowtie Risk Analysis Tool"),
         " | ",
-        span(class = "badge bg-success", "v4.3.0"),
-        " - AI-Powered Vocabulary Analysis & Linking"
+        span(class = "badge bg-success", "v4.3.1"),
+        " - Enhanced Causal Relationship Analysis"
       )))
 )
 
@@ -1476,7 +1520,7 @@ server <- function(input, output, session) {
         tagList(
           h5(tagList(icon("sitemap"), " Children of ", tags$code(item$id))),
           tags$ul(
-            lapply(1:nrow(children), function(i) {
+            lapply(seq_len(nrow(children)), function(i) {
               tags$li(
                 tags$strong(children$id[i]), " - ",
                 children$name[i],
@@ -1633,6 +1677,21 @@ server <- function(input, output, session) {
       if (length(results$keyword_connections) > 0) {
         cat("\nKeyword themes identified:", paste(names(results$keyword_connections), collapse = ", "))
       }
+      
+      # Add causal summary if available
+      if (!is.null(results$causal_summary) && nrow(results$causal_summary) > 0) {
+        cat("\n\nCausal relationships found:\n")
+        causal_count <- sum(results$causal_summary$count)
+        cat("  Total causal links:", causal_count, "\n")
+        cat("  Activity → Pressure:", 
+            sum(results$causal_summary$count[results$causal_summary$from_type == "Activity" & 
+                                            results$causal_summary$to_type == "Pressure"]), "\n")
+        cat("  Pressure → Consequence:", 
+            sum(results$causal_summary$count[results$causal_summary$from_type == "Pressure" & 
+                                            results$causal_summary$to_type == "Consequence"]), "\n")
+        cat("  Control interventions:", 
+            sum(results$causal_summary$count[results$causal_summary$from_type == "Control"]), "\n")
+      }
     }
   })
   
@@ -1674,40 +1733,57 @@ server <- function(input, output, session) {
   output$ai_network <- renderVisNetwork({
     results <- ai_analysis_results()
     if (!is.null(results) && nrow(results$links) > 0) {
-      # Create nodes
-      all_nodes <- unique(c(
-        paste(results$links$from_id, results$links$from_type, results$links$from_name, sep = "|"),
-        paste(results$links$to_id, results$links$to_type, results$links$to_name, sep = "|")
-      ))
-      
-      nodes_df <- data.frame(
-        id = sapply(strsplit(all_nodes, "\\|"), `[`, 1),
-        group = sapply(strsplit(all_nodes, "\\|"), `[`, 2),
-        label = sapply(strsplit(all_nodes, "\\|"), function(x) {
-          name <- paste(x[3:length(x)], collapse = "|")
-          if (nchar(name) > 30) paste0(substr(name, 1, 27), "...") else name
-        }),
-        title = sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[3:length(x)], collapse = "|")),
-        stringsAsFactors = FALSE
-      )
+      tryCatch({
+        # Create nodes with unique IDs by combining type and original ID
+        all_nodes <- unique(c(
+          paste(results$links$from_type, results$links$from_id, results$links$from_name, sep = "|"),
+          paste(results$links$to_type, results$links$to_id, results$links$to_name, sep = "|")
+        ))
+        
+        nodes_df <- data.frame(
+          id = sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[1], x[2], sep = "_")), # Create unique ID: type_originalid
+          group = sapply(strsplit(all_nodes, "\\|"), `[`, 1),
+          label = sapply(strsplit(all_nodes, "\\|"), function(x) {
+            name <- paste(x[3:length(x)], collapse = "|")
+            if (nchar(name) > 30) paste0(substr(name, 1, 27), "...") else name
+          }),
+          title = sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[3:length(x)], collapse = "|")),
+          stringsAsFactors = FALSE
+        )
+        
+        # Ensure absolutely unique node IDs (safety check)
+        if (length(unique(nodes_df$id)) != nrow(nodes_df)) {
+          # If there are still duplicates, add row numbers as suffix
+          nodes_df$id <- paste(nodes_df$id, seq_len(nrow(nodes_df)), sep = "_")
+        }
       
       # Set colors by type
       type_colors <- list(
-        Activity = "#8E44AD",
-        Pressure = "#E74C3C",
-        Consequence = "#E67E22",
-        Control = "#27AE60"
+        activities = "#8E44AD",
+        pressures = "#E74C3C", 
+        consequences = "#E67E22",
+        controls = "#27AE60"
       )
       
       nodes_df$color <- sapply(nodes_df$group, function(g) type_colors[[g]])
       
-      # Create edges
+      # Create edges with unique node IDs
       edges_df <- results$links %>%
-        select(from = from_id, to = to_id, value = similarity) %>%
         mutate(
-          width = value * 5,
-          title = paste("Similarity:", round(value, 3))
-        )
+          from = paste(from_type, from_id, sep = "_"),
+          to = paste(to_type, to_id, sep = "_"),
+          width = similarity * 5,
+          title = paste("Similarity:", round(similarity, 3))
+        ) %>%
+        select(from, to, width, title)
+      
+      # If we added row number suffixes to nodes, we need to match them in edges
+      if (length(unique(sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[1], x[2], sep = "_")))) != nrow(nodes_df)) {
+        # Create a mapping from original IDs to new IDs with suffixes
+        id_mapping <- setNames(nodes_df$id, sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[1], x[2], sep = "_")))
+        edges_df$from <- id_mapping[edges_df$from]
+        edges_df$to <- id_mapping[edges_df$to]
+      }
       
       # Create network
       visNetwork(nodes_df, edges_df) %>%
@@ -1720,10 +1796,10 @@ server <- function(input, output, session) {
           smooth = TRUE,
           color = list(opacity = 0.5)
         ) %>%
-        visGroups(groupname = "Activity", color = "#8E44AD") %>%
-        visGroups(groupname = "Pressure", color = "#E74C3C") %>%
-        visGroups(groupname = "Consequence", color = "#E67E22") %>%
-        visGroups(groupname = "Control", color = "#27AE60") %>%
+        visGroups(groupname = "activities", color = "#8E44AD") %>%
+        visGroups(groupname = "pressures", color = "#E74C3C") %>%
+        visGroups(groupname = "consequences", color = "#E67E22") %>%
+        visGroups(groupname = "controls", color = "#27AE60") %>%
         visLegend(width = 0.2, position = "right") %>%
         visPhysics(
           stabilization = TRUE,
@@ -1742,6 +1818,12 @@ server <- function(input, output, session) {
           dragView = TRUE,
           zoomView = TRUE
         )
+      }, error = function(e) {
+        showNotification(paste("❌ Error creating network visualization:", e$message), type = "error")
+        return(NULL)
+      })
+    } else {
+      return(NULL)
     }
   })
   
@@ -1798,18 +1880,21 @@ server <- function(input, output, session) {
   output$ai_recommendations <- DT::renderDataTable({
     results <- ai_analysis_results()
     if (!is.null(results) && exists("generate_link_recommendations")) {
-      recommendations <- generate_link_recommendations(vocabulary_data)
+      recommendations <- generate_link_recommendations(vocabulary_data, focus = "causal")
       
       if (nrow(recommendations) > 0) {
         display_recs <- recommendations %>%
           select(
             `From` = from_name,
             `To` = to_name,
-            `Connection Type` = from_type,
-            `→` = to_type,
-            `Score` = recommendation_score
+            `Type` = method,
+            `Score` = recommendation_score,
+            `Reasoning` = reasoning
           ) %>%
-          mutate(Score = round(Score, 3))
+          mutate(
+            Score = round(Score, 3),
+            Type = gsub("causal_", "", Type)
+          )
         
         DT::datatable(
           display_recs,
@@ -1819,6 +1904,99 @@ server <- function(input, output, session) {
           ),
           rownames = FALSE
         )
+      }
+    }
+  })
+  
+  # Causal pathways output
+  output$causal_paths <- renderPrint({
+    results <- ai_analysis_results()
+    if (!is.null(results) && exists("find_causal_paths")) {
+      causal_links <- results$links %>% filter(grepl("causal", method))
+      
+      if (nrow(causal_links) > 0) {
+        paths <- find_causal_paths(causal_links, max_length = 5)
+        
+        if (length(paths) > 0) {
+          cat("Top 10 Causal Pathways:\n\n")
+          for (i in 1:min(10, length(paths))) {
+            path <- paths[[i]]
+            cat(sprintf("%d. %s\n", i, path$path_string))
+            cat(sprintf("   Strength: %.3f (avg: %.3f)\n\n", 
+                       path$total_similarity, path$avg_similarity))
+          }
+        } else {
+          cat("No complete causal pathways found.")
+        }
+      }
+    }
+  })
+  
+  # Causal structure analysis
+  output$causal_structure <- renderTable({
+    results <- ai_analysis_results()
+    if (!is.null(results) && exists("analyze_causal_structure")) {
+      causal_analysis <- analyze_causal_structure(results$links)
+      
+      if (!is.null(causal_analysis$link_types)) {
+        causal_analysis$link_types %>%
+          mutate(avg_strength = round(avg_strength, 3)) %>%
+          rename(
+            `From` = from_type,
+            `To` = to_type,
+            `Count` = count,
+            `Avg Strength` = avg_strength
+          )
+      }
+    }
+  })
+  
+  # Key drivers table
+  output$key_drivers <- renderTable({
+    results <- ai_analysis_results()
+    if (!is.null(results) && exists("analyze_causal_structure")) {
+      causal_analysis <- analyze_causal_structure(results$links)
+      
+      if (!is.null(causal_analysis$key_drivers)) {
+        causal_analysis$key_drivers %>%
+          select(-from_id) %>%
+          mutate(
+            avg_impact = round(avg_impact, 3),
+            impact_score = round(outgoing_links * avg_impact, 2)
+          ) %>%
+          rename(
+            `Driver` = from_name,
+            `Type` = from_type,
+            `Links` = outgoing_links,
+            `Avg Impact` = avg_impact,
+            `Score` = impact_score
+          ) %>%
+          head(5)
+      }
+    }
+  })
+  
+  # Key outcomes table
+  output$key_outcomes <- renderTable({
+    results <- ai_analysis_results()
+    if (!is.null(results) && exists("analyze_causal_structure")) {
+      causal_analysis <- analyze_causal_structure(results$links)
+      
+      if (!is.null(causal_analysis$key_outcomes)) {
+        causal_analysis$key_outcomes %>%
+          select(-to_id) %>%
+          mutate(
+            avg_impact = round(avg_impact, 3),
+            impact_score = round(incoming_links * avg_impact, 2)
+          ) %>%
+          rename(
+            `Outcome` = to_name,
+            `Type` = to_type,
+            `Links` = incoming_links,
+            `Avg Impact` = avg_impact,
+            `Score` = impact_score
+          ) %>%
+          head(5)
       }
     }
   })
