@@ -2,7 +2,7 @@
 # Environmental Bowtie Risk Analysis Shiny Application with Bayesian Networks
 # Version: 4.4.0 (Enhanced with Bayesian Network Analysis)
 # Date: June 2025
-# Author: AI Assistant
+# Author: Marbefes Team & AI Assistant
 # Description: Complete version with Bayesian network probabilistic modeling
 # =============================================================================
 
