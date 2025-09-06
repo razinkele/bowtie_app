@@ -137,16 +137,56 @@ ui <- fluidPage(
                id = "themePanel", class = "collapse",
                fluidRow(
                  column(3, selectInput("theme_preset", "Theme:",
-                                     choices = c("Default" = "default", "Dark" = "darkly", 
-                                               "Ocean Blue" = "cosmo", "Forest Green" = "journal",
-                                               "Environmental" = "materia", "Corporate" = "flatly",
-                                               "Minimal" = "minty", "Custom" = "custom"),
+                                     choices = c(
+                                       "🌿 Environmental (Default)" = "journal",
+                                       "🌙 Dark Mode" = "darkly", 
+                                       "☀️ Light & Clean" = "flatly",
+                                       "🌊 Ocean Blue" = "cosmo",
+                                       "🌲 Forest Green" = "materia",
+                                       "🔵 Corporate Blue" = "cerulean",
+                                       "🎯 Minimal Clean" = "minty",
+                                       "📊 Dashboard" = "lumen",
+                                       "🎨 Creative Purple" = "pulse",
+                                       "🧪 Science Lab" = "sandstone",
+                                       "🌌 Space Dark" = "slate",
+                                       "🏢 Professional" = "united",
+                                       "🎭 Modern Contrast" = "superhero",
+                                       "🌅 Sunset Orange" = "solar",
+                                       "📈 Analytics" = "spacelab",
+                                       "🎪 Vibrant" = "sketchy",
+                                       "🌺 Nature Fresh" = "cyborg",
+                                       "💼 Business" = "vapor",
+                                       "🔬 Research" = "zephyr",
+                                       "⚡ High Contrast" = "bootstrap",
+                                       "🎨 Custom Colors" = "custom"
+                                     ),
                                      selected = "journal")),
-                 column(3, conditionalPanel(condition = "input.theme_preset == 'custom'",
-                                          colourpicker::colourInput("primary_color", "Primary:", value = "#28a745"))),
-                 column(3, conditionalPanel(condition = "input.theme_preset == 'custom'",
-                                          colourpicker::colourInput("secondary_color", "Secondary:", value = "#6c757d"))),
-                 column(3, p(class = "text-muted mt-2", "Enhanced environmental risk analysis with Bayesian network probabilistic modeling and AI-powered vocabulary linking."))
+                 column(3, conditionalPanel(
+                   condition = "input.theme_preset == 'custom'",
+                   colourpicker::colourInput("primary_color", "Primary Color:", value = "#28a745"),
+                   colourpicker::colourInput("secondary_color", "Secondary Color:", value = "#6c757d")
+                 )),
+                 column(3, conditionalPanel(
+                   condition = "input.theme_preset == 'custom'",
+                   colourpicker::colourInput("success_color", "Success Color:", value = "#28a745"),
+                   colourpicker::colourInput("info_color", "Info Color:", value = "#17a2b8")
+                 )),
+                 column(3, conditionalPanel(
+                   condition = "input.theme_preset == 'custom'",
+                   colourpicker::colourInput("warning_color", "Warning Color:", value = "#ffc107"),
+                   colourpicker::colourInput("danger_color", "Danger Color:", value = "#dc3545")
+                 ), conditionalPanel(
+                   condition = "input.theme_preset != 'custom'",
+                   div(class = "mt-2",
+                     h6("🎨 Theme Information", class = "text-primary"),
+                     p(class = "text-muted small", 
+                       "Choose from 20+ professional Bootstrap themes optimized for environmental risk analysis."),
+                     p(class = "text-muted small", 
+                       "Dark themes improve visibility during extended analysis sessions."),
+                     p(class = "text-muted small", 
+                       "Select 'Custom Colors' for complete color control.")
+                   )
+                 ))
                )
              )
            )
@@ -912,6 +952,25 @@ ui <- fluidPage(
                )
         )
       )
+    ),
+    
+    # Help Tab
+    nav_panel(
+      title = tagList(icon("question-circle"), "Help"), value = "help",
+      
+      fluidRow(
+        column(12,
+          card(
+            card_header(
+              tagList(icon("book"), "Application Documentation"),
+              class = "bg-info text-white"
+            ),
+            card_body(
+              includeMarkdown("README.md")
+            )
+          )
+        )
+      )
     )
   ),
   
@@ -949,15 +1008,57 @@ server <- function(input, output, session) {
     if (!is.null(edited)) edited else currentData()
   })
   
-  # Theme management
+  # Enhanced Theme management with comprehensive Bootstrap theme support
   current_theme <- reactive({
     theme_choice <- input$theme_preset
+    
+    # Handle custom theme with comprehensive user-defined colors
     if (theme_choice == "custom") {
-      bs_theme(version = 5, primary = input$primary_color, secondary = input$secondary_color)
-    } else if (theme_choice == "default") {
+      primary_color <- if (!is.null(input$primary_color)) input$primary_color else "#28a745"
+      secondary_color <- if (!is.null(input$secondary_color)) input$secondary_color else "#6c757d"
+      success_color <- if (!is.null(input$success_color)) input$success_color else "#28a745"
+      info_color <- if (!is.null(input$info_color)) input$info_color else "#17a2b8"
+      warning_color <- if (!is.null(input$warning_color)) input$warning_color else "#ffc107"
+      danger_color <- if (!is.null(input$danger_color)) input$danger_color else "#dc3545"
+      
+      bs_theme(
+        version = 5, 
+        primary = primary_color, 
+        secondary = secondary_color,
+        success = success_color,
+        info = info_color,
+        warning = warning_color,
+        danger = danger_color
+      )
+    } else if (theme_choice == "bootstrap") {
+      # Default Bootstrap theme (no bootswatch)
       bs_theme(version = 5)
     } else {
-      bs_theme(version = 5, bootswatch = theme_choice)
+      # Apply bootswatch theme with environmental enhancements
+      base_theme <- bs_theme(version = 5, bootswatch = theme_choice)
+      
+      # Add theme-specific customizations for environmental application
+      if (theme_choice == "journal") {
+        # Environmental theme enhancements
+        base_theme <- bs_theme(
+          version = 5, 
+          bootswatch = theme_choice,
+          success = "#2E7D32",  # Forest green
+          info = "#0277BD",     # Ocean blue
+          warning = "#F57C00",  # Earth orange
+          danger = "#C62828"    # Environmental alert red
+        )
+      } else if (theme_choice == "darkly" || theme_choice == "slate" || theme_choice == "superhero" || theme_choice == "cyborg") {
+        # Dark theme enhancements for better visibility
+        base_theme <- bs_theme(
+          version = 5, 
+          bootswatch = theme_choice,
+          bg = if(theme_choice == "darkly") "#212529" else NULL,
+          fg = if(theme_choice == "darkly") "#ffffff" else NULL
+        )
+      }
+      
+      base_theme
     }
   })
   
