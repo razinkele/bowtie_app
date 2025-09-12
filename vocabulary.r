@@ -1,39 +1,73 @@
 # vocabulary.R
 # Reads hierarchical data from Excel files for activities, pressures, consequences, and controls
-# Version 4.3.0 - With AI integration support
+# Version 4.4.0 - Refreshed with enhanced error handling and validation
+# Date: September 2025
 
-if (!require("readxl")) library(readxl)
-if (!require("dplyr")) library(dplyr)
-if (!require("tidyr")) library(tidyr)
+# Enhanced package loading with better error handling
+load_required_packages <- function() {
+  required_packages <- c("readxl", "dplyr", "tidyr")
+  for (pkg in required_packages) {
+    if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+      cat("Installing required package:", pkg, "\n")
+      install.packages(pkg, dependencies = TRUE)
+      library(pkg, character.only = TRUE)
+    }
+  }
+}
 
-# Function to read and process hierarchical data from Excel
+suppressMessages(load_required_packages())
+
+# Enhanced function to read and process hierarchical data from Excel
 read_hierarchical_data <- function(file_path, sheet_name = NULL) {
-  # Read Excel file
-  if (!is.null(sheet_name)) {
-    data <- read_excel(file_path, sheet = sheet_name)
-  } else {
-    data <- read_excel(file_path)
+  # Validate file existence
+  if (!file.exists(file_path)) {
+    stop(paste("File not found:", file_path))
   }
   
-  # Clean column names - remove trailing spaces
-  names(data) <- trimws(names(data))
-  
-  # Ensure required columns exist
-  required_cols <- c("Hierarchy", "ID#", "name")
-  if (!all(required_cols %in% names(data))) {
-    stop(paste("Missing required columns. Expected:", paste(required_cols, collapse = ", ")))
-  }
+  tryCatch({
+    # Read Excel file with enhanced error handling
+    if (!is.null(sheet_name)) {
+      data <- read_excel(file_path, sheet = sheet_name, .name_repair = "minimal")
+    } else {
+      data <- read_excel(file_path, .name_repair = "minimal")
+    }
+    
+    # Validate data is not empty
+    if (nrow(data) == 0) {
+      warning(paste("No data found in file:", file_path))
+      return(data.frame(hierarchy = character(), id = character(), name = character()))
+    }
+    
+    # Clean column names - remove trailing spaces and normalize
+    names(data) <- trimws(names(data))
+    
+    # Ensure required columns exist
+    required_cols <- c("Hierarchy", "ID#", "name")
+    if (!all(required_cols %in% names(data))) {
+      available_cols <- names(data)
+      stop(paste("Missing required columns. Expected:", paste(required_cols, collapse = ", "), 
+                ". Available:", paste(available_cols, collapse = ", ")))
+    }
+    
+    cat("✅ Successfully read", nrow(data), "rows from", basename(file_path), "\n")
+    
+  }, error = function(e) {
+    stop(paste("Error reading Excel file:", file_path, "-", e$message))
+  })
   
   # Select and rename columns for consistency
   data <- data %>%
     select(hierarchy = Hierarchy, id = `ID#`, name = name) %>%
     filter(!is.na(id)) %>%  # Remove rows without IDs
     mutate(
-      # Extract hierarchy level number
-      level = as.numeric(gsub("Level ", "", hierarchy)),
-      # Clean up names
-      name = trimws(name),
-      id = trimws(id)
+      # Extract hierarchy level number with improved handling
+      level = suppressWarnings(as.numeric(gsub("Level ", "", hierarchy))),
+      # Clean up names and handle NAs
+      name = trimws(as.character(name)),
+      id = trimws(as.character(id))
+    ) %>%
+    # Remove rows with invalid data
+    filter(!is.na(name), !is.na(id), nchar(trimws(name)) > 0, nchar(trimws(id)) > 0
     )
   
   return(data)
@@ -332,4 +366,4 @@ if (!interactive()) {
   vocabulary_data <- load_vocabulary()
 }
 
-cat("✅ Vocabulary management system loaded (v4.3.0)\n")
+cat("✅ Vocabulary management system loaded (v5.0.0)\n")

@@ -1,55 +1,79 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application with Bayesian Networks
-# Version: 4.4.0 (Enhanced with Bayesian Network Analysis)
-# Date: June 2025
+# Version: 5.1.0 (Refreshed - Modern R Shiny Implementation)
+# Date: September 2025
 # Author: Marbefes Team & AI Assistant
-# Description: Complete version with Bayesian network probabilistic modeling
+# Description: Modern implementation with improved error handling and performance
 # =============================================================================
 
-# Load required libraries
-library(shiny)
-library(bslib)
-library(DT)
-library(readxl)
-library(openxlsx)
-library(ggplot2)
-library(plotly)
-library(dplyr)
-library(visNetwork)
-library(shinycssloaders)
-library(colourpicker)
-library(htmlwidgets)
-library(shinyjs)
+# Enhanced package loading with better error handling
+load_packages <- function() {
+  required_packages <- c(
+    "shiny", "bslib", "DT", "readxl", "openxlsx",
+    "ggplot2", "plotly", "dplyr", "visNetwork",
+    "shinycssloaders", "colourpicker", "htmlwidgets", "shinyjs"
+  )
+  
+  bayesian_packages <- c("bnlearn", "gRain", "igraph", "DiagrammeR")
+  
+  # Load core packages
+  for (pkg in required_packages) {
+    if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+      cat("Installing missing package:", pkg, "\n")
+      install.packages(pkg, dependencies = TRUE)
+      library(pkg, character.only = TRUE)
+    }
+  }
+  
+  # Load Bayesian network packages with BiocManager support
+  for (pkg in bayesian_packages) {
+    if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+      cat("Installing Bayesian package:", pkg, "\n")
+      if (pkg == "gRain" && !requireNamespace("BiocManager", quietly = TRUE)) {
+        install.packages("BiocManager")
+      }
+      if (pkg == "gRain") {
+        BiocManager::install(pkg, dependencies = TRUE)
+      } else {
+        install.packages(pkg, dependencies = TRUE)
+      }
+      library(pkg, character.only = TRUE)
+    }
+  }
+}
 
-# Load Bayesian network libraries
-if (!require("bnlearn")) install.packages("bnlearn")
-if (!require("gRain")) install.packages("gRain")
-if (!require("igraph")) install.packages("igraph")
-if (!require("DiagrammeR")) install.packages("DiagrammeR")
-
-library(bnlearn)
-library(gRain)
-library(igraph)
-library(DiagrammeR)
+# Load all packages
+suppressMessages(load_packages())
 
 # Source utility functions and vocabulary management
 source("utils.r")
 source("vocabulary.r")
 source("bowtie_bayesian_network.r")
 
-# Load vocabulary data at startup
-tryCatch({
-  vocabulary_data <- load_vocabulary()
-  cat("✅ Vocabulary data loaded successfully\n")
-}, error = function(e) {
-  cat("⚠️ Warning: Could not load vocabulary data:", e$message, "\n")
-  vocabulary_data <- list(
-    activities = data.frame(),
-    pressures = data.frame(),
-    consequences = data.frame(),
-    controls = data.frame()
-  )
-})
+# Source guided workflow system
+source("guided_workflow.r")
+source("guided_workflow_steps.r")
+
+# Enhanced vocabulary data loading with graceful fallback
+load_app_data <- function() {
+  tryCatch({
+    vocabulary_data <- load_vocabulary()
+    cat("✅ Vocabulary data loaded successfully\n")
+    return(vocabulary_data)
+  }, error = function(e) {
+    cat("⚠️ Warning: Could not load vocabulary data:", e$message, "\n")
+    cat("📝 Using fallback empty data structure\n")
+    return(list(
+      activities = data.frame(hierarchy = character(), id = character(), name = character()),
+      pressures = data.frame(hierarchy = character(), id = character(), name = character()),
+      consequences = data.frame(hierarchy = character(), id = character(), name = character()),
+      controls = data.frame(hierarchy = character(), id = character(), name = character())
+    ))
+  })
+}
+
+# Load vocabulary data with enhanced error handling
+vocabulary_data <- load_app_data()
 
 # Define UI with Bayesian network integration
 ui <- fluidPage(
@@ -121,12 +145,12 @@ ui <- fluidPage(
                  class = "title-container",
                  div(
                    class = "title-text",
-                   # PNG Image - marbefes.png logo from www/ folder
-                   img(src = "marbefes.png", class = "app-title-image", alt = "Marbefes Logo",
+                   # PNG Image - marbefes.png logo from www/img/ folder
+                   img(src = "img/marbefes.png", class = "app-title-image", alt = "Marbefes Logo",
                        onerror = "this.style.display='none'", 
                        title = "Marbefes Environmental Bowtie Risk Analysis"),
                    h4("Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
-                   span(class = "badge bg-success me-2 version-badge", "v4.4.0"),
+                   span(class = "badge bg-success me-2 version-badge", "v5.0.0"),
                    span(class = "text-muted small", "Enhanced with Bayesian Networks")
                  )
                ),
@@ -184,8 +208,21 @@ ui <- fluidPage(
                      p(class = "text-muted small", 
                        "Dark themes improve visibility during extended analysis sessions."),
                      p(class = "text-muted small", 
-                       "Select 'Custom Colors' for complete color control.")
+                       "Select 'Custom Colors' for complete color control."),
+                     br(),
+                     div(class = "d-grid",
+                       actionButton("applyTheme", 
+                                  tagList(icon("palette"), "Apply Theme"), 
+                                  class = "btn-primary btn-sm"))
                    )
+                 )),
+                 # Apply button for custom themes
+                 column(12, conditionalPanel(
+                   condition = "input.theme_preset == 'custom'",
+                   div(class = "text-center mt-3",
+                     actionButton("applyCustomTheme", 
+                                tagList(icon("palette"), "Apply Custom Theme"), 
+                                class = "btn-success"))
                  ))
                )
              )
@@ -229,9 +266,21 @@ ui <- fluidPage(
                      tags$li("🛡️ Central → Mitigation effectiveness"),
                      tags$li("💥 Mitigation → Consequence residual risks")
                    ),
-                   div(class = "d-grid", actionButton("generateSample", 
-                                                     tagList(icon("seedling"), "Generate GRANULAR Data v4.4.0"), 
+                   div(class = "d-grid mb-2", actionButton("generateSample", 
+                                                     tagList(icon("seedling"), "Generate GRANULAR Data v5.0.0"), 
                                                      class = "btn-success")),
+                   
+                   h6(tagList(icon("shield-alt"), "Option 2b: Multiple Preventive Controls Data")),
+                   p("Generate data with multiple preventive controls per pressure for comprehensive risk mitigation:"),
+                   tags$ul(class = "small text-muted",
+                     tags$li("🛡️ Multiple controls per environmental pressure"),
+                     tags$li("🔗 Each pressure linked to 2-3 preventive measures"),
+                     tags$li("📊 Realistic environmental risk management"),
+                     tags$li("🎯 Demonstrates defense-in-depth approach")
+                   ),
+                   div(class = "d-grid", actionButton("generateMultipleControls", 
+                                                     tagList(icon("shield-alt"), "Generate Multiple Controls Data"), 
+                                                     class = "btn-info")),
                    
                    conditionalPanel(
                      condition = "output.envDataGenerated",
@@ -246,7 +295,7 @@ ui <- fluidPage(
         
         column(6,
                card(
-                 card_header(tagList(icon("info-circle"), "Enhanced Data Structure v4.4.0"), class = "bg-info text-white"),
+                 card_header(tagList(icon("info-circle"), "Enhanced Data Structure v5.0.0"), class = "bg-info text-white"),
                  card_body(
                    h6(tagList(icon("list"), "Bowtie Elements:")),
                    p("Your Excel file should contain environmental risk data with these columns:"),
@@ -271,7 +320,7 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-success mt-3",
                        tagList(icon("check-circle"), " "),
-                       strong("v4.4.0 ENHANCED:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
+                       strong("v5.0.0 ENHANCED:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
                    
                    div(class = "alert alert-info mt-2",
                        tagList(icon("brain"), " "),
@@ -279,7 +328,7 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-primary mt-2",
                        tagList(icon("book"), " "),
-                       strong("v4.4.0 AI Analysis:"), " Enhanced causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
+                       strong("v5.0.0 AI Analysis:"), " Enhanced causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
                    
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -296,7 +345,7 @@ ui <- fluidPage(
         condition = "output.dataLoaded",
         br(),
         card(
-          card_header(tagList(icon("eye"), "Data Preview - v4.4.0 Enhanced"), class = "bg-success text-white"),
+          card_header(tagList(icon("eye"), "Data Preview - v5.0.0 Enhanced"), class = "bg-success text-white"),
           card_body(
             withSpinner(DT::dataTableOutput("preview")),
             br(),
@@ -307,14 +356,22 @@ ui <- fluidPage(
       )
     ),
     
+    # Guided Workflow Tab
+    nav_panel(
+      title = tagList(icon("magic-wand-sparkles"), "🧙 Guided Creation"),
+      icon = icon("magic-wand-sparkles"),
+      value = "guided_workflow",
+      guided_workflow_ui()
+    ),
+    
     # Enhanced Bowtie Visualization Tab
     nav_panel(
-      title = tagList(icon("project-diagram"), "Bowtie Diagram v4.4.0"), value = "bowtie",
+      title = tagList(icon("project-diagram"), "Bowtie Diagram v5.0.0"), value = "bowtie",
       
       fluidRow(
         column(4,
                card(
-                 card_header(tagList(icon("cogs"), "Enhanced Bowtie Controls v4.4.0"), class = "bg-primary text-white"),
+                 card_header(tagList(icon("cogs"), "Enhanced Bowtie Controls v5.0.0"), class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -342,11 +399,11 @@ ui <- fluidPage(
                      textInput("newPressure", "New Pressure:", placeholder = "Enter pressure/threat"),
                      textInput("newConsequence", "New Consequence:", placeholder = "Enter consequence"),
                      div(class = "d-grid", actionButton("addActivityChain", 
-                                                       tagList(icon("plus-circle"), "Add Enhanced Chain v4.4.0"), 
+                                                       tagList(icon("plus-circle"), "Add Enhanced Chain v5.0.0"), 
                                                        class = "btn-outline-primary btn-sm")),
                      
                      hr(),
-                     h6(tagList(icon("palette"), "Bowtie Visual Legend v4.4.0:")),
+                     h6(tagList(icon("palette"), "Bowtie Visual Legend v5.0.0:")),
                      div(class = "p-3 border rounded enhanced-legend",
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "◼"),
@@ -371,7 +428,7 @@ ui <- fluidPage(
                              span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
                          hr(class = "my-2"),
                          div(class = "small text-success",
-                             strong("✓ v4.4.0:"), " Enhanced with Bayesian network conversion"),
+                             strong("✓ v5.0.0:"), " Enhanced with Bayesian network conversion"),
                          div(class = "small text-muted",
                              strong("Enhanced Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
                          div(class = "small text-muted",
@@ -382,7 +439,7 @@ ui <- fluidPage(
                      
                      hr(),
                      div(class = "d-grid", downloadButton("downloadBowtie", 
-                                                         tagList(icon("download"), "Download Diagram v4.4.0"), 
+                                                         tagList(icon("download"), "Download Diagram v5.0.0"), 
                                                          class = "btn-success"))
                    )
                  )
@@ -391,13 +448,13 @@ ui <- fluidPage(
         
         column(8,
                card(
-                 card_header(tagList(icon("sitemap"), "Bowtie Diagram v4.4.0"), 
+                 card_header(tagList(icon("sitemap"), "Bowtie Diagram v5.0.0"), 
                            class = "bg-success text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
                      div(class = "text-center mb-3",
-                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v4.4.0"), class = "text-primary"),
+                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v5.0.0"), class = "text-primary"),
                          p(class = "small text-success", 
                            "✓ Enhanced: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences with Bayesian conversion")),
                      div(class = "network-container",
@@ -408,7 +465,7 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-5",
                          icon("upload", class = "fa-3x text-muted mb-3"),
-                         h4("Upload Data or Generate Enhanced Sample Data v4.4.0", class = "text-muted"),
+                         h4("Upload Data or Generate Enhanced Sample Data v5.0.0", class = "text-muted"),
                          p("Please upload environmental data or generate enhanced sample data to view the bowtie diagram with Bayesian network conversion", 
                            class = "text-muted"))
                    )
@@ -601,7 +658,7 @@ ui <- fluidPage(
                card(
                  card_header(
                    div(class = "d-flex justify-content-between align-items-center",
-                       tagList(icon("table"), "Enhanced Environmental Bowtie Data v4.4.0"),
+                       tagList(icon("table"), "Enhanced Environmental Bowtie Data v5.0.0"),
                        div(
                          conditionalPanel(
                            condition = "output.dataLoaded",
@@ -621,7 +678,7 @@ ui <- fluidPage(
                      condition = "output.dataLoaded",
                      div(class = "alert alert-success",
                          tagList(icon("check-circle"), " "),
-                         "✓ v4.4.0 ENHANCED: Click on any cell to edit. Data ready for Bayesian network conversion."),
+                         "✓ v5.0.0 ENHANCED: Click on any cell to edit. Data ready for Bayesian network conversion."),
                      withSpinner(DT::dataTableOutput("editableTable"))
                    ),
                    conditionalPanel(
@@ -629,7 +686,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("table", class = "fa-3x text-muted mb-3"),
                          h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v4.4.0", class = "text-muted"))
+                         p("Please upload data or generate enhanced sample data v5.0.0", class = "text-muted"))
                    )
                  )
                )
@@ -644,7 +701,7 @@ ui <- fluidPage(
       fluidRow(
         column(8,
                card(
-                 card_header(tagList(icon("chart-line"), "Enhanced Environmental Risk Matrix v4.4.0"), 
+                 card_header(tagList(icon("chart-line"), "Enhanced Environmental Risk Matrix v5.0.0"), 
                            class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
@@ -656,7 +713,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("chart-line", class = "fa-3x text-muted mb-3"),
                          h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v4.4.0 to view the risk matrix", class = "text-muted"))
+                         p("Please upload data or generate enhanced sample data v5.0.0 to view the risk matrix", class = "text-muted"))
                    )
                  )
                )
@@ -664,7 +721,7 @@ ui <- fluidPage(
         
         column(4,
                card(
-                 card_header(tagList(icon("chart-pie"), "Enhanced Risk Statistics v4.4.0"), class = "bg-info text-white"),
+                 card_header(tagList(icon("chart-pie"), "Enhanced Risk Statistics v5.0.0"), class = "bg-info text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -960,6 +1017,70 @@ ui <- fluidPage(
       
       fluidRow(
         column(12,
+          # NEW: Guided Workflow Help Card
+          card(
+            card_header(
+              tagList(icon("magic-wand-sparkles"), "🧙 NEW: Guided Workflow System"),
+              class = "bg-success text-white"
+            ),
+            card_body(
+              div(class = "alert alert-success",
+                  tagList(icon("sparkles"), " "),
+                  strong("NEW FEATURE: Step-by-Step Bowtie Creation Wizard!")
+              ),
+              
+              h5(tagList(icon("route"), "How to Use the Guided Workflow:")),
+              tags$ol(
+                tags$li(strong("Click the "), code("🧙 Guided Creation"), strong(" tab")),
+                tags$li(strong("Choose your approach:"), 
+                  tags$ul(
+                    tags$li("Select a pre-built template (Marine, Climate, Biodiversity)"),
+                    tags$li("Start from scratch with custom project")
+                  )
+                ),
+                tags$li(strong("Follow the 8-step process:"),
+                  tags$ul(class = "mt-2",
+                    tags$li("📋 Project Setup - Define your assessment"),
+                    tags$li("🎯 Central Problem - Identify the main environmental issue"),
+                    tags$li("⚠️ Threats & Causes - Map activities and pressures"),
+                    tags$li("🛡️ Preventive Controls - Add proactive measures"),
+                    tags$li("💥 Consequences - Identify potential impacts"),
+                    tags$li("🚨 Protective Controls - Add reactive measures"),
+                    tags$li("✅ Review & Validate - Check completeness"),
+                    tags$li("🎉 Finalize & Export - Generate professional reports")
+                  )
+                ),
+                tags$li(strong("Track Progress:"), " Visual progress bar shows completion status"),
+                tags$li(strong("Get Expert Guidance:"), " Built-in tips and examples at each step"),
+                tags$li(strong("Professional Output:"), " Export to Excel, PDF, or other formats")
+              ),
+              
+              div(class = "alert alert-info mt-3",
+                  tagList(icon("clock"), " "),
+                  strong("Estimated Time: "), "25-35 minutes for complete assessment"
+              ),
+              
+              h5(tagList(icon("lightbulb"), "Benefits of Guided Workflow:")),
+              tags$ul(
+                tags$li(strong("Structured Approach:"), " Ensures complete and consistent assessments"),
+                tags$li(strong("Expert Knowledge:"), " Built-in environmental risk expertise"),
+                tags$li(strong("Quality Assurance:"), " Validation checks prevent incomplete work"),
+                tags$li(strong("Time Efficient:"), " Faster than manual bowtie creation"),
+                tags$li(strong("Professional Results:"), " Export-ready for stakeholders")
+              ),
+              
+              div(class = "alert alert-warning",
+                  tagList(icon("info-circle"), " "),
+                  strong("Tip: "), "New users should start with the ", 
+                  code("🧙 Guided Creation"), " tab, while experienced users can use the ", 
+                  code("📤 Data Upload"), " tab for direct data import."
+              )
+            )
+          ),
+          
+          br(),
+          
+          # Existing documentation card
           card(
             card_header(
               tagList(icon("book"), "Application Documentation"),
@@ -980,7 +1101,7 @@ ui <- fluidPage(
       p(tagList(
         strong("Environmental Bowtie Risk Analysis Tool"),
         " | ",
-        span(class = "badge bg-success", "v4.4.0"),
+        span(class = "badge bg-success", "v5.0.0"),
         " - Enhanced with Bayesian Network Analysis"
       )))
 )
@@ -1002,6 +1123,10 @@ server <- function(input, output, session) {
   inferenceResults <- reactiveVal(NULL)
   inferenceCompleted <- reactiveVal(FALSE)
   
+  # Theme management reactive values
+  themeUpdateTrigger <- reactiveVal(0)
+  appliedTheme <- reactiveVal("journal")
+  
   # Optimized data retrieval with caching
   getCurrentData <- reactive({
     edited <- editedData()
@@ -1010,7 +1135,11 @@ server <- function(input, output, session) {
   
   # Enhanced Theme management with comprehensive Bootstrap theme support
   current_theme <- reactive({
-    theme_choice <- input$theme_preset
+    # React to the trigger to update theme
+    trigger_val <- themeUpdateTrigger()
+    theme_choice <- appliedTheme()
+    
+    cat("🔄 current_theme() reactive triggered. Trigger:", trigger_val, "Choice:", theme_choice, "\n")
     
     # Handle custom theme with comprehensive user-defined colors
     if (theme_choice == "custom") {
@@ -1062,9 +1191,30 @@ server <- function(input, output, session) {
     }
   })
   
+  # Enhanced theme observer with better error handling and debug info
   observe({
-    tryCatch(session$setCurrentTheme(current_theme()), 
-             error = function(e) cat("Theme switching warning:", e$message, "\n"))
+    theme <- current_theme()
+    tryCatch({
+      session$setCurrentTheme(theme)
+      cat("✅ Theme applied successfully to session\n")
+    }, error = function(e) {
+      cat("❌ Theme switching error:", e$message, "\n")
+      print(str(theme))
+    })
+  })
+  
+  # Force initial theme application on session start
+  observe({
+    session$onSessionStarted(function() {
+      cat("🚀 Session started - applying initial theme\n")
+      initial_theme <- current_theme()
+      tryCatch({
+        session$setCurrentTheme(initial_theme)
+        cat("✅ Initial theme applied on session start\n")
+      }, error = function(e) {
+        cat("❌ Initial theme error:", e$message, "\n")
+      })
+    })
   })
   
   observeEvent(input$toggleTheme, {
@@ -1108,7 +1258,7 @@ server <- function(input, output, session) {
       
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
       updateSelectInput(session, "bayesianProblem", choices = unique(data$Central_Problem))
-      showNotification("✅ Data loaded successfully with v4.4.0 Bayesian network ready!", type = "message", duration = 3)
+      showNotification("✅ Data loaded successfully with v5.0.0 Bayesian network ready!", type = "default", duration = 3)
       
     }, error = function(e) {
       showNotification(paste("❌ Error loading data:", e$message), type = "error")
@@ -1117,8 +1267,8 @@ server <- function(input, output, session) {
   
   # Enhanced sample data generation
   observeEvent(input$generateSample, {
-    showNotification("🔄 Generating v4.4.0 enhanced sample data with Bayesian network support...", 
-                    type = "message", duration = 3)
+    showNotification("🔄 Generating v5.0.0 enhanced sample data with Bayesian network support...", 
+                    type = "default", duration = 3)
     
     tryCatch({
       sample_data <- generateEnvironmentalDataFixed()
@@ -1132,11 +1282,43 @@ server <- function(input, output, session) {
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
       
-      showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v4.4.0 Bayesian network support!"), 
-                      type = "message", duration = 4)
+      showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v5.0.0 Bayesian network support!"), 
+                      type = "default", duration = 4)
       
     }, error = function(e) {
       showNotification(paste("❌ Error generating enhanced data:", e$message), type = "error", duration = 5)
+    })
+  })
+  
+  # NEW: Multiple preventive controls data generation
+  observeEvent(input$generateMultipleControls, {
+    showNotification("🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure...", 
+                    type = "default", duration = 3)
+    
+    tryCatch({
+      multiple_controls_data <- generateEnvironmentalDataWithMultipleControls()
+      currentData(multiple_controls_data)
+      editedData(multiple_controls_data)
+      envDataGenerated(TRUE)
+      dataVersion(dataVersion() + 1)
+      clearCache()
+      
+      problem_choices <- unique(multiple_controls_data$Central_Problem)
+      updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
+      updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
+      
+      # Show detailed statistics
+      unique_pressures <- length(unique(multiple_controls_data$Pressure))
+      unique_controls <- length(unique(multiple_controls_data$Preventive_Control))
+      total_entries <- nrow(multiple_controls_data)
+      
+      showNotification(
+        paste("✅ Generated", total_entries, "entries with", unique_controls, 
+              "preventive controls across", unique_pressures, "environmental pressures!"), 
+        type = "default", duration = 5)
+      
+    }, error = function(e) {
+      showNotification(paste("❌ Error generating multiple controls data:", e$message), type = "error", duration = 5)
     })
   })
   
@@ -1150,7 +1332,7 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "dataLoaded", suspendWhenHidden = FALSE)
   
-  # Enhanced data info with v4.4.0 details
+  # Enhanced data info with v5.0.0 details
   output$dataInfo <- renderText({
     data <- getCurrentData()
     req(data)
@@ -1159,7 +1341,7 @@ server <- function(input, output, session) {
   
   # Enhanced download handler
   output$downloadSample <- downloadHandler(
-    filename = function() paste("enhanced_environmental_bowtie_v4.4.0_", Sys.Date(), ".xlsx", sep = ""),
+    filename = function() paste("enhanced_environmental_bowtie_v5.0.0_", Sys.Date(), ".xlsx", sep = ""),
     content = function(file) {
       data <- getCurrentData()
       req(data)
@@ -1176,7 +1358,7 @@ server <- function(input, output, session) {
     data <- getCurrentData()
     req(data, input$bayesianProblem)
     
-    showNotification("🧠 Creating Bayesian network from bowtie data...", type = "message", duration = 3)
+    showNotification("🧠 Creating Bayesian network from bowtie data...", type = "default", duration = 3)
     
     tryCatch({
       # Convert bowtie to Bayesian network
@@ -1233,7 +1415,7 @@ server <- function(input, output, session) {
     bn_result <- bayesianNetwork()
     req(bn_result, input$queryNodes)
     
-    showNotification("🔮 Running Bayesian inference...", type = "message", duration = 2)
+    showNotification("🔮 Running Bayesian inference...", type = "default", duration = 2)
     
     tryCatch({
       # Prepare evidence
@@ -1444,7 +1626,7 @@ server <- function(input, output, session) {
         autoWidth = FALSE,
         dom = 'Blfrtip',
         buttons = c('copy', 'csv', 'excel'),
-        language = list(processing = "Loading v4.4.0 enhanced data with Bayesian network support...")
+        language = list(processing = "Loading v5.0.0 enhanced data with Bayesian network support...")
       ),
       editable = list(target = 'cell'),
       extensions = c('Buttons', 'Scroller'),
@@ -1492,7 +1674,7 @@ server <- function(input, output, session) {
     inferenceCompleted(FALSE)
     
     if (runif(1) < 0.3) {
-      showNotification("✓ Cell updated - v4.4.0 Bayesian network ready for recreation", type = "message", duration = 1)
+      showNotification("✓ Cell updated - v5.0.0 Bayesian network ready for recreation", type = "default", duration = 1)
     }
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
   
@@ -1506,7 +1688,7 @@ server <- function(input, output, session) {
     data <- getCurrentData()
     req(data)
     
-    selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk v4.4.0"
+    selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk v5.0.0"
     new_row <- createDefaultRowFixed(selected_problem)
     updated_data <- rbind(data, new_row)
     
@@ -1514,7 +1696,7 @@ server <- function(input, output, session) {
     dataVersion(dataVersion() + 1)
     clearCache()
     bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-    showNotification("✅ New enhanced row added with v4.4.0 Bayesian support!", type = "message", duration = 2)
+    showNotification("✅ New enhanced row added with v5.0.0 Bayesian support!", type = "default", duration = 2)
   })
   
   observeEvent(input$deleteSelected, {
@@ -1526,7 +1708,7 @@ server <- function(input, output, session) {
       dataVersion(dataVersion() + 1)
       clearCache()
       bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - v4.4.0 Bayesian network reset"), type = "warning", duration = 2)
+      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - v5.0.0 Bayesian network reset"), type = "warning", duration = 2)
     } else {
       showNotification("❌ No rows selected", type = "error", duration = 2)
     }
@@ -1536,7 +1718,7 @@ server <- function(input, output, session) {
     edited <- editedData()
     if (!is.null(edited)) {
       currentData(edited)
-      showNotification("💾 Changes saved with v4.4.0 Bayesian network support!", type = "message", duration = 2)
+      showNotification("💾 Changes saved with v5.0.0 Bayesian network support!", type = "default", duration = 2)
     }
   })
   
@@ -1554,10 +1736,10 @@ server <- function(input, output, session) {
     new_row <- data.frame(
       Activity = input$newActivity,
       Pressure = input$newPressure,
-      Preventive_Control = "v4.4.0 Enhanced preventive control",
-      Escalation_Factor = "v4.4.0 Enhanced escalation factor",
+      Preventive_Control = "v5.0.0 Enhanced preventive control",
+      Escalation_Factor = "v5.0.0 Enhanced escalation factor",
       Central_Problem = input$selectedProblem,
-      Protective_Mitigation = paste("v4.4.0 Enhanced protective mitigation for", input$newConsequence),
+      Protective_Mitigation = paste("v5.0.0 Enhanced protective mitigation for", input$newConsequence),
       Consequence = input$newConsequence,
       Likelihood = 3L,
       Severity = 3L,
@@ -1575,14 +1757,14 @@ server <- function(input, output, session) {
     updateTextInput(session, "newPressure", value = "")
     updateTextInput(session, "newConsequence", value = "")
     
-    showNotification("🔗 Enhanced activity chain added with v4.4.0 Bayesian network support!", type = "message", duration = 3)
+    showNotification("🔗 Enhanced activity chain added with v5.0.0 Bayesian network support!", type = "default", duration = 3)
   })
   
   # Enhanced debug info
   output$debugInfo <- renderText({
     data <- getCurrentData()
     if (!is.null(data)) {
-      paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v4.4.0 Enhanced bowtie structure with Bayesian network support")
+      paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v5.0.0 Enhanced bowtie structure with Bayesian network support")
     } else {
       "No enhanced data loaded"
     }
@@ -1604,9 +1786,9 @@ server <- function(input, output, session) {
     edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
     
     visNetwork(nodes, edges, 
-               main = paste("🌟 Enhanced Bowtie Analysis v4.4.0 with Bayesian Networks:", input$selectedProblem),
-               submain = if(input$showBarriers) "✅ Interconnected pathways with v4.4.0 Bayesian network conversion ready" else "Direct causal relationships with enhanced connections",
-               footer = "🔧 v4.4.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
+               main = paste("🌟 Enhanced Bowtie Analysis v5.0.0 with Bayesian Networks:", input$selectedProblem),
+               submain = if(input$showBarriers) "✅ Interconnected pathways with v5.0.0 Bayesian network conversion ready" else "Direct causal relationships with enhanced connections",
+               footer = "🔧 v5.0.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
       visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                font = list(color = "#2C3E50", face = "Arial", size = 12)) %>%
       visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -1632,7 +1814,7 @@ server <- function(input, output, session) {
              color = "#F39C12", shape = "triangleDown", size = 15),
         list(label = "Central Problem (Main Risk)", 
              color = "#C0392B", shape = "diamond", size = 18),
-        list(label = "Protective Mitigation (v4.4.0)", 
+        list(label = "Protective Mitigation (v5.0.0)", 
              color = "#3498DB", shape = "square", size = 15),
         list(label = "Consequences (Impacts)", 
              color = "#E67E22", shape = "hexagon", size = 15)
@@ -1651,12 +1833,12 @@ server <- function(input, output, session) {
         "<br>Pressure:", Pressure,
         "<br>Protective Mitigation:", Protective_Mitigation,
         "<br>Consequence:", Consequence,
-        "<br>v4.4.0 Bayesian Networks: ✅"
+        "<br>v5.0.0 Bayesian Networks: ✅"
       )), size = 4, alpha = 0.7) +
       scale_color_manual(values = RISK_COLORS) +
       scale_x_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
       scale_y_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
-      labs(title = "🌟 Enhanced Environmental Risk Matrix v4.4.0 with Bayesian Networks", 
+      labs(title = "🌟 Enhanced Environmental Risk Matrix v5.0.0 with Bayesian Networks", 
            x = "Likelihood", y = "Severity",
            subtitle = "✅ Data ready for probabilistic modeling and Bayesian inference") +
       theme_minimal() + 
@@ -1686,7 +1868,7 @@ server <- function(input, output, session) {
     
     footer_row <- data.frame(
       Icon = "🧠",
-      `Risk Level` = "v4.4.0 Bayesian",
+      `Risk Level` = "v5.0.0 Bayesian",
       Count = nrow(data),
       `Percentage (%)` = 100.0,
       stringsAsFactors = FALSE,
@@ -1700,7 +1882,7 @@ server <- function(input, output, session) {
   
   # Enhanced download bowtie diagram
   output$downloadBowtie <- downloadHandler(
-    filename = function() paste("enhanced_bowtie_v4.4.0_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
+    filename = function() paste("enhanced_bowtie_v5.0.0_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
     content = function(file) {
       data <- getCurrentData()
       req(data, input$selectedProblem)
@@ -1710,9 +1892,9 @@ server <- function(input, output, session) {
       edges <- createBowtieEdgesFixed(problem_data, TRUE)
       
       network <- visNetwork(nodes, edges, 
-                          main = paste("🌟 Enhanced Environmental Bowtie Analysis v4.4.0 with Bayesian Networks:", input$selectedProblem),
-                          submain = paste("Generated on", Sys.Date(), "- v4.4.0 with Bayesian network support"),
-                          footer = "🔧 v4.4.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
+                          main = paste("🌟 Enhanced Environmental Bowtie Analysis v5.0.0 with Bayesian Networks:", input$selectedProblem),
+                          submain = paste("Generated on", Sys.Date(), "- v5.0.0 with Bayesian network support"),
+                          footer = "🔧 v5.0.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
         visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                 font = list(color = "#2C3E50", face = "Arial")) %>%
         visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -1732,7 +1914,7 @@ server <- function(input, output, session) {
                color = "#F39C12", shape = "triangleDown", size = 15),
           list(label = "Central Problem (Main Risk)", 
                color = "#C0392B", shape = "diamond", size = 18),
-          list(label = "Protective Mitigation (v4.4.0)", 
+          list(label = "Protective Mitigation (v5.0.0)", 
                color = "#3498DB", shape = "square", size = 15),
           list(label = "Consequences (Impacts)", 
                color = "#E67E22", shape = "hexagon", size = 15)
@@ -2001,7 +2183,7 @@ server <- function(input, output, session) {
   
   # Refresh vocabulary
   observeEvent(input$refresh_vocab, {
-    showNotification("Refreshing vocabulary data...", type = "message", duration = 2)
+    showNotification("Refreshing vocabulary data...", type = "default", duration = 2)
     tryCatch({
       vocabulary_data <<- load_vocabulary()
       vocab_search_results(data.frame())
@@ -2021,7 +2203,7 @@ server <- function(input, output, session) {
   
   # Run AI analysis
   observeEvent(input$run_ai_analysis, {
-    showNotification("🤖 Starting AI analysis...", type = "message", duration = 2)
+    showNotification("🤖 Starting AI analysis...", type = "default", duration = 2)
     
     tryCatch({
       if (exists("find_vocabulary_links")) {
@@ -2387,6 +2569,85 @@ server <- function(input, output, session) {
       }
     }
   })
+  
+  # Guided Workflow Server Logic
+  guided_workflow_state <- guided_workflow_server(
+    input, output, session, 
+    vocabulary_data = vocabulary_data
+  )
+  
+  # Optional: React to workflow completion
+  observeEvent(guided_workflow_state()$workflow_complete, {
+    showNotification("🎉 Bowtie workflow completed successfully!", 
+                    type = "default", duration = 5)
+    
+    # Auto-switch to visualization tab
+    updateNavsetCardTab(session, "main_tabs", selected = "bowtie")
+  })
+  
+  # Enhanced Theme Apply Button Handlers with direct theme application
+  observeEvent(input$applyTheme, {
+    cat("🎨 Apply Theme button pressed. Selected theme:", input$theme_preset, "\n")
+    
+    # Update reactive values
+    appliedTheme(input$theme_preset)
+    old_trigger <- themeUpdateTrigger()
+    new_trigger <- old_trigger + 1
+    themeUpdateTrigger(new_trigger)
+    
+    cat("📊 Theme trigger updated from", old_trigger, "to", new_trigger, "\n")
+    
+    # Force immediate theme application
+    tryCatch({
+      new_theme <- current_theme()
+      session$setCurrentTheme(new_theme)
+      cat("✅ Theme applied directly from button handler\n")
+    }, error = function(e) {
+      cat("❌ Direct theme application failed:", e$message, "\n")
+    })
+    
+    showNotification(
+      paste("🎨 Applied theme:", names(which(c(
+        "🌿 Environmental (Default)" = "journal",
+        "🌙 Dark Mode" = "darkly", 
+        "☀️ Light & Clean" = "flatly",
+        "🌊 Ocean Blue" = "cosmo",
+        "🌲 Forest Green" = "materia",
+        "🔵 Corporate Blue" = "cerulean",
+        "🎯 Minimal Clean" = "minty",
+        "📊 Dashboard" = "lumen",
+        "🎨 Creative Purple" = "pulse",
+        "🧪 Science Lab" = "sandstone",
+        "🌌 Space Dark" = "slate",
+        "🏢 Professional" = "united",
+        "🎭 Modern Contrast" = "superhero",
+        "🌅 Sunset Orange" = "solar",
+        "📈 Analytics" = "spacelab",
+        "🎪 Vibrant" = "sketchy",
+        "🌺 Nature Fresh" = "cyborg",
+        "💼 Business" = "vapor",
+        "🔬 Research" = "zephyr",
+        "⚡ High Contrast" = "bootstrap",
+        "🎨 Custom Colors" = "custom"
+      ) == input$theme_preset))),
+      type = "default", duration = 3
+    )
+  })
+  
+  observeEvent(input$applyCustomTheme, {
+    cat("🎨 Apply Custom Theme button pressed\n")
+    
+    appliedTheme("custom")
+    old_trigger <- themeUpdateTrigger()
+    new_trigger <- old_trigger + 1
+    themeUpdateTrigger(new_trigger)
+    
+    cat("📊 Custom theme trigger updated from", old_trigger, "to", new_trigger, "\n")
+    
+    showNotification("🎨 Applied custom theme with your colors!", 
+                    type = "default", duration = 3)
+  })
+  
 }
 
 # Helper function for simplified Bayesian inference (fallback)

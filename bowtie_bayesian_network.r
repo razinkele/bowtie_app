@@ -368,7 +368,7 @@ visualize_bayesian_network <- function(bn_structure, highlight_path = NULL) {
     title = edges_df$type,
     width = 2,
     color = list(opacity = 0.7),
-    smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)
+    smooth = list(enabled = TRUE, type = "dynamic", roundness = 0.2)
   )
   
   # Highlight path if specified
@@ -485,23 +485,34 @@ bowtie_to_bayesian <- function(bowtie_data, central_problem = NULL,
   bn_structure <- create_bayesian_structure(bowtie_data, central_problem)
   
   # Step 2: Create or learn CPTs
-  if (learn_from_data && nrow(bowtie_data) > 10) {
-    fitted_bn <- learn_cpts_from_data(bn_structure)
-  } else {
-    # Create bnlearn DAG
+  tryCatch({
+    if (learn_from_data && nrow(bowtie_data) > 10) {
+      fitted_bn <- learn_cpts_from_data(bn_structure)
+    } else {
+      # Create bnlearn DAG
+      dag <- create_bnlearn_network(bn_structure)
+      
+      # Create CPTs
+      cpts <- create_cpts(bn_structure)
+      
+      # Create fitted network manually
+      # This is simplified - in practice, you'd need to properly format CPTs for bnlearn
+      cat("⚠️ Using simplified CPT assignment. For production use, implement proper CPT formatting.\n")
+    }
+  }, error = function(e) {
+    cat("⚠️ CPT learning error:", e$message, "Using simplified structure.\n")
+    # Fallback to basic structure
     dag <- create_bnlearn_network(bn_structure)
-    
-    # Create CPTs
-    cpts <- create_cpts(bn_structure)
-    
-    # Create fitted network manually
-    # This is simplified - in practice, you'd need to properly format CPTs for bnlearn
-    cat("⚠️ Using simplified CPT assignment. For production use, implement proper CPT formatting.\n")
-  }
+  })
   
   # Step 3: Visualize if requested
   if (visualize) {
-    vis_plot <- visualize_bayesian_network(bn_structure)
+    vis_plot <- tryCatch({
+      visualize_bayesian_network(bn_structure)
+    }, error = function(e) {
+      cat("Bayesian network error:", e$message, "\n")
+      NULL
+    })
   } else {
     vis_plot <- NULL
   }
