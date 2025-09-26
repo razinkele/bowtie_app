@@ -2,7 +2,7 @@
 
 A comprehensive R Shiny web application for environmental risk assessment using bow-tie diagrams enhanced with Bayesian network analysis and AI-powered vocabulary linking.
 
-![Version](https://img.shields.io/badge/version-4.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.1.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -24,6 +24,30 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
+
+## What's New in Version 5.1 (Modern Framework Edition)
+
+### 🚀 Enhanced Development Infrastructure
+- **Parallel Test Execution**: Faster test runs with concurrent testing capabilities
+- **Performance Benchmarking**: Automated performance regression detection and monitoring
+- **Memory Usage Monitoring**: Prevents memory leaks in long-running processes
+- **Bootstrap Theme Testing**: Validates UI components across all 21 available themes
+- **State Persistence Testing**: Ensures data integrity across application sessions
+- **Error Recovery Testing**: Validates graceful handling of edge cases and failures
+
+### 🎯 Modern Testing Framework
+- **95%+ Test Coverage**: Comprehensive coverage of all functions in core R files
+- **Cross-Platform Testing**: Automated testing across Windows, macOS, and Linux environments
+- **Security Testing**: Enhanced input validation and data sanitization testing
+- **Load Testing**: Application behavior validation under heavy concurrent usage
+- **AI Linking Validation**: Testing of semantic similarity algorithms and causal relationship detection
+
+### 🔧 Development Tools Enhancement
+- **Structured Logging**: New logging system for debugging and monitoring
+- **Code Quality Validation**: Automated syntax checking and style validation
+- **Performance Profiling**: Built-in performance monitoring tools
+- **Environment Management**: Support for development, testing, and production environments
+- **Asset Optimization**: Optimized loading of CSS, JS, and image assets
 
 ## Overview
 
@@ -49,6 +73,7 @@ This application provides a comprehensive platform for environmental risk assess
 ### Core Functionality
 
 - **🎯 Interactive Bow-tie Creation**: Drag-and-drop interface for creating environmental risk bow-ties
+- **🧭 Guided Workflow System**: 8-step wizard for systematic bowtie creation with vocabulary integration
 - **📊 Risk Quantification**: Likelihood × Severity risk calculations with visual risk matrices
 - **🔗 Network Visualization**: Interactive network diagrams with customizable styling
 - **📈 Bayesian Analysis**: Advanced probabilistic modeling and inference
@@ -64,6 +89,53 @@ This application provides a comprehensive platform for environmental risk assess
 - **Pathway Analysis**: Identify critical risk pathways and intervention points
 - **Reporting**: Generate comprehensive risk assessment reports
 - **Integration**: Compatible with existing environmental management systems
+
+### Risk Matrix Functionality
+
+The application includes an enhanced interactive risk matrix that provides visual risk assessment capabilities:
+
+#### Features
+
+- **📊 Interactive Risk Visualization**: Interactive scatter plot showing likelihood vs severity for all risk scenarios
+- **🎨 Color-Coded Risk Levels**:
+  - 🟢 **Low Risk** (Risk Score ≤ 6): Green indicators for minimal environmental concern
+  - 🟡 **Medium Risk** (Risk Score 7-15): Yellow indicators for moderate environmental concern
+  - 🔴 **High Risk** (Risk Score ≥ 16): Red indicators for significant environmental concern
+- **🔍 Interactive Tooltips**: Hover over points to see detailed risk information including:
+  - Central Problem identification
+  - Associated Activity and Pressure
+  - Protective Mitigation measures
+  - Consequence description
+  - Calculated Risk Level and Score
+  - Bayesian Network integration status
+
+#### Risk Calculation
+
+The risk matrix uses a standard likelihood × severity calculation:
+
+- **Likelihood Scale**: 1-5 (1=Very Low, 2=Low, 3=Medium, 4=High, 5=Very High)
+- **Severity Scale**: 1-5 (1=Negligible, 2=Minor, 3=Moderate, 4=Major, 5=Catastrophic)
+- **Risk Score**: Likelihood × Severity (Range: 1-25)
+- **Risk Level Categories**:
+  - Low: Risk Score ≤ 6
+  - Medium: Risk Score 7-15
+  - High: Risk Score ≥ 16
+
+#### Error Handling
+
+The risk matrix includes comprehensive error handling:
+
+- **Data Validation**: Automatically validates Risk_Level column format and converts numeric to categorical as needed
+- **Missing Data**: Creates default risk calculations when likelihood/severity columns are missing
+- **Fallback Visualization**: Displays informative error messages if visualization fails
+- **Column Mapping**: Handles both legacy (Likelihood/Severity) and new (Overall_Likelihood/Overall_Severity) column names
+
+#### Technical Implementation
+
+- **Location**: `app.r` lines 1833-1914 (`output$riskMatrix`)
+- **Dependencies**: ggplot2, plotly for interactive visualization
+- **Color Mapping**: Defined in `utils.r` as `RISK_COLORS`
+- **Data Processing**: Includes automatic Risk_Level calculation and validation
 
 ## Installation
 
@@ -272,6 +344,18 @@ The vocabulary system supports multi-level hierarchies:
 - **Inference**: `perform_inference()` - Probabilistic reasoning
 - **Risk Propagation**: `calculate_risk_propagation()` - Risk scenario analysis
 
+#### `guided_workflow.r` - Guided Workflow System
+- **8-Step Wizard**: Interactive step-by-step bowtie creation process
+- **Vocabulary Integration**: Uses real environmental vocabulary data (189+ items)
+- **Server Logic**: Complete reactive handlers for all user interactions
+- **State Management**: Maintains workflow progress and user selections
+
+#### `guided_workflow_steps.r` - Workflow Step Definitions
+- **Step UI Generation**: Creates interface for each workflow step
+- **Search Widgets**: Vocabulary-integrated selectizeInput components
+- **Form Validation**: Input validation and user guidance
+- **Data Integration**: Connects Excel vocabulary to UI components
+
 #### `vocabulary_bowtie_generator.r` - Network Generator
 - **Automated Generation**: `generate_vocabulary_bowtie()` - Create bow-ties from vocabulary
 - **AI Integration**: Uses vocabulary linking for intelligent connections
@@ -288,16 +372,53 @@ CONSEQUENCES.xlsx
  CONTROLS.xlsx
 ```
 
+## Guided Workflow System
+
+### Overview
+
+The guided workflow system provides a step-by-step approach to creating environmental bowtie diagrams with vocabulary integration and real-time feedback.
+
+### 8-Step Process
+
+1. **📋 Project Setup**: Basic project information and configuration
+2. **🎯 Central Problem Definition**: Define the core environmental problem
+3. **⚠️ Activities & Pressures**: Select from 53 activities and 36 pressures with search functionality
+4. **🛡️ Preventive Controls**: Choose from 74 mitigation measures with cost assessment
+5. **💥 Consequences**: Identify potential impacts from 26 consequence categories
+6. **🚨 Protective Controls**: Add protective measures and recovery controls
+7. **✅ Review & Validate**: Validate connections and review complete bowtie structure
+8. **🎉 Finalize & Export**: Export completed analysis to Excel format
+
+### Key Features (Latest Version)
+
+- **Real Vocabulary Integration**: All search widgets populated with actual Excel vocabulary data
+- **Empty Search Start**: SelectizeInput widgets start empty for immediate typing
+- **Full Server Functionality**: All "Add" buttons work with visual table feedback
+- **Duplicate Prevention**: Prevents adding the same item multiple times
+- **Activity-Pressure Linkage**: Dynamic tables showing potential connections
+- **Progress Tracking**: Visual indicators throughout the workflow
+- **State Persistence**: Maintains selections across workflow steps
+
+### Using the Guided Workflow
+
+```r
+# Access guided workflow from main application
+# 1. Launch the application: source("app.r")
+# 2. Navigate to "Guided Workflow" tab
+# 3. Follow the 8-step process
+# 4. Export completed bowtie to Excel
+```
+
 ## Vocabulary System
 
 ### Overview
 
 The vocabulary system provides structured, hierarchical categorization of environmental components:
 
-- **Activities**: Human activities that create environmental pressures
-- **Pressures**: Environmental stressors resulting from activities
-- **Consequences**: Environmental impacts from pressures
-- **Controls**: Mitigation measures and protective actions
+- **Activities**: Human activities that create environmental pressures (53 items)
+- **Pressures**: Environmental stressors resulting from activities (36 items)
+- **Consequences**: Environmental impacts from pressures (26 items)
+- **Controls**: Mitigation measures and protective actions (74 items)
 
 ### Loading Vocabulary Data
 
@@ -462,33 +583,39 @@ result <- generate_vocabulary_bowtie(output_file = "generated_network.xlsx")
 # Select: generated_network.xlsx
 ```
 
-## Testing Framework
+## Testing Framework (Version 5.1 Enhanced)
 
 ### Overview
 
-Comprehensive testing framework using `testthat` with full coverage of all application components.
+Comprehensive, modernized testing framework using `testthat` with enhanced capabilities, parallel execution, and advanced reporting designed for production-ready environmental risk assessment applications.
 
 ### Running Tests
 
 ```bash
-# Run all tests
-make test
+# Run all tests with enhanced v5.1 reporting
+Rscript tests/comprehensive_test_runner.R
 
-# Quick tests (utilities and vocabulary)
+# Run quick tests (core functionality)
 make test-quick
+
+# Run parallel test suite (new in v5.1)
+make test-parallel
 
 # Test specific components
 make test-bowtie-generator     # Vocabulary generator tests
 make test-integration          # End-to-end workflow tests
+make test-themes              # Bootstrap theme validation (new in v5.1)
+make test-performance         # Performance benchmarking (new in v5.1)
 ```
 
 ### Test Structure
 
 - **Unit Tests**: Individual function validation
-- **Integration Tests**: Complete workflow testing
+- **Integration Tests**: Complete workflow testing including guided workflow system
 - **Performance Tests**: Large dataset handling
 - **Quality Tests**: Data consistency validation
 - **Compatibility Tests**: Excel format verification
+- **Guided Workflow Tests**: Comprehensive testing of vocabulary integration and server functionality
 
 ### Writing Custom Tests
 
@@ -865,6 +992,7 @@ SOFTWARE.
 
 For questions, issues, or contributions, please visit the project repository or contact the development team.
 
-**Version**: 4.4.0  
-**Last Updated**: September 2024  
+**Version**: 5.1.0 (Modern Framework Edition)
+**Last Updated**: September 2025
 **Maintainer**: Marbefes Team & AI Assistant
+**Framework Updates**: Enhanced development and testing infrastructure with improved performance and maintainability

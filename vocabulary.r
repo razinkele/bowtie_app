@@ -1,6 +1,6 @@
 # vocabulary.R
 # Reads hierarchical data from Excel files for activities, pressures, consequences, and controls
-# Version 4.4.0 - Refreshed with enhanced error handling and validation
+# Version 5.1.0 - Modern framework with enhanced error handling and validation
 # Date: September 2025
 
 # Enhanced package loading with better error handling
@@ -366,4 +366,4 @@ if (!interactive()) {
   vocabulary_data <- load_vocabulary()
 }
 
-cat("✅ Vocabulary management system loaded (v5.0.0)\n")
+cat("✅ Vocabulary management system loaded (v5.1.0)\n")

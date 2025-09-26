@@ -1078,7 +1078,7 @@ generateEnvironmentalDataWithMultipleControls <- function() {
   return(pressure_control_data)
 }
 
-cat("🎉 v5.0.0 Enhanced Environmental Bowtie Risk Analysis Utilities Loaded\n")
+cat("🎉 v5.1.0 Enhanced Environmental Bowtie Risk Analysis Utilities Loaded\n")
 cat("✅ FIXED protective mitigation connections\n")
 cat("🖼️ PNG image support enabled\n")
 cat("🔗 GRANULAR connection-level risk analysis (6 connections per scenario)\n")

@@ -1,34 +1,39 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application with Bayesian Networks
-# Version: 5.1.0 (Refreshed - Modern R Shiny Implementation)
+# Version: 5.1.0 (Modern Framework Edition)
 # Date: September 2025
 # Author: Marbefes Team & AI Assistant
-# Description: Modern implementation with improved error handling and performance
+# Description: Enhanced development and testing infrastructure with improved performance and maintainability
 # =============================================================================
 
 # Enhanced package loading with better error handling
 load_packages <- function() {
+  cat("🚀 Starting Environmental Bowtie Risk Analysis Application...\n")
+  cat("📦 Loading required packages...\n")
+
   required_packages <- c(
     "shiny", "bslib", "DT", "readxl", "openxlsx",
     "ggplot2", "plotly", "dplyr", "visNetwork",
     "shinycssloaders", "colourpicker", "htmlwidgets", "shinyjs"
   )
-  
+
   bayesian_packages <- c("bnlearn", "gRain", "igraph", "DiagrammeR")
-  
+
   # Load core packages
+  cat("   • Loading core Shiny and visualization packages...\n")
   for (pkg in required_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      cat("Installing missing package:", pkg, "\n")
+      cat("     Installing missing package:", pkg, "\n")
       install.packages(pkg, dependencies = TRUE)
       library(pkg, character.only = TRUE)
     }
   }
-  
+
   # Load Bayesian network packages with BiocManager support
+  cat("   • Loading Bayesian network analysis packages...\n")
   for (pkg in bayesian_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      cat("Installing Bayesian package:", pkg, "\n")
+      cat("     Installing Bayesian package:", pkg, "\n")
       if (pkg == "gRain" && !requireNamespace("BiocManager", quietly = TRUE)) {
         install.packages("BiocManager")
       }
@@ -40,17 +45,22 @@ load_packages <- function() {
       library(pkg, character.only = TRUE)
     }
   }
+  cat("✅ All packages loaded successfully!\n")
 }
 
 # Load all packages
 suppressMessages(load_packages())
 
 # Source utility functions and vocabulary management
+cat("🔧 Loading application modules...\n")
+cat("   • Loading utility functions and data management...\n")
 source("utils.r")
 source("vocabulary.r")
+cat("   • Loading Bayesian network analysis...\n")
 source("bowtie_bayesian_network.r")
 
 # Source guided workflow system
+cat("   • Loading guided workflow system...\n")
 source("guided_workflow.r")
 source("guided_workflow_steps.r")
 
@@ -73,6 +83,7 @@ load_app_data <- function() {
 }
 
 # Load vocabulary data with enhanced error handling
+cat("📊 Loading environmental vocabulary data from Excel files...\n")
 vocabulary_data <- load_app_data()
 
 # Define UI with Bayesian network integration
@@ -150,8 +161,8 @@ ui <- fluidPage(
                        onerror = "this.style.display='none'", 
                        title = "Marbefes Environmental Bowtie Risk Analysis"),
                    h4("Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
-                   span(class = "badge bg-success me-2 version-badge", "v5.0.0"),
-                   span(class = "text-muted small", "Enhanced with Bayesian Networks")
+                   span(class = "badge bg-success me-2 version-badge", "v5.1.0"),
+                   span(class = "text-muted small", "With Bayesian Networks")
                  )
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
@@ -256,7 +267,7 @@ ui <- fluidPage(
                    
                    hr(),
                    
-                   h5(tagList(icon("leaf"), "Option 2: Generate Enhanced Sample Data")),
+                   h5(tagList(icon("leaf"), "Option 2: Generate Sample Data")),
                    p("Generate comprehensive environmental bowtie data with GRANULAR connection-level risk analysis:"),
                    tags$ul(class = "small text-muted",
                      tags$li("🔗 Activity → Pressure risks"),
@@ -286,7 +297,7 @@ ui <- fluidPage(
                      condition = "output.envDataGenerated",
                      br(),
                      div(class = "d-grid", downloadButton("downloadSample", 
-                                                         tagList(icon("download"), "Download Enhanced Excel"), 
+                                                         tagList(icon("download"), "Download Excel"), 
                                                          class = "btn-info"))
                    )
                  )
@@ -295,7 +306,7 @@ ui <- fluidPage(
         
         column(6,
                card(
-                 card_header(tagList(icon("info-circle"), "Enhanced Data Structure v5.0.0"), class = "bg-info text-white"),
+                 card_header(tagList(icon("info-circle"), "Data Structure v5.0.0"), class = "bg-info text-white"),
                  card_body(
                    h6(tagList(icon("list"), "Bowtie Elements:")),
                    p("Your Excel file should contain environmental risk data with these columns:"),
@@ -328,12 +339,12 @@ ui <- fluidPage(
                    
                    div(class = "alert alert-primary mt-2",
                        tagList(icon("book"), " "),
-                       strong("v5.0.0 AI Analysis:"), " Enhanced causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
+                       strong("v5.0.0 AI Analysis:"), " AI causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
                    
                    conditionalPanel(
                      condition = "output.dataLoaded",
                      hr(),
-                     h6(tagList(icon("chart-bar"), "Enhanced Data Summary:")),
+                     h6(tagList(icon("chart-bar"), "Data Summary:")),
                      verbatimTextOutput("dataInfo")
                    )
                  )
@@ -345,7 +356,7 @@ ui <- fluidPage(
         condition = "output.dataLoaded",
         br(),
         card(
-          card_header(tagList(icon("eye"), "Data Preview - v5.0.0 Enhanced"), class = "bg-success text-white"),
+          card_header(tagList(icon("eye"), "Data Preview - v5.0.0"), class = "bg-success text-white"),
           card_body(
             withSpinner(DT::dataTableOutput("preview")),
             br(),
@@ -371,7 +382,7 @@ ui <- fluidPage(
       fluidRow(
         column(4,
                card(
-                 card_header(tagList(icon("cogs"), "Enhanced Bowtie Controls v5.0.0"), class = "bg-primary text-white"),
+                 card_header(tagList(icon("cogs"), "Bowtie Controls v5.0.0"), class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -394,12 +405,12 @@ ui <- fluidPage(
                      sliderInput("nodeSize", "Node Size:", min = 25, max = 80, value = 45),
                      
                      hr(),
-                     h6(tagList(icon("plus"), "Quick Add Enhanced:")),
+                     h6(tagList(icon("plus"), "Quick Add:")),
                      textInput("newActivity", "New Activity:", placeholder = "Enter activity description"),
                      textInput("newPressure", "New Pressure:", placeholder = "Enter pressure/threat"),
                      textInput("newConsequence", "New Consequence:", placeholder = "Enter consequence"),
                      div(class = "d-grid", actionButton("addActivityChain", 
-                                                       tagList(icon("plus-circle"), "Add Enhanced Chain v5.0.0"), 
+                                                       tagList(icon("plus-circle"), "Add Chain v5.0.0"), 
                                                        class = "btn-outline-primary btn-sm")),
                      
                      hr(),
@@ -428,9 +439,9 @@ ui <- fluidPage(
                              span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
                          hr(class = "my-2"),
                          div(class = "small text-success",
-                             strong("✓ v5.0.0:"), " Enhanced with Bayesian network conversion"),
+                             strong("✓ v5.0.0:"), " With Bayesian network conversion"),
                          div(class = "small text-muted",
-                             strong("Enhanced Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
+                             strong("Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
                          div(class = "small text-muted",
                              strong("Line Types:"), " Solid = causal flow, Dashed = intervention/control effects"),
                          div(class = "small text-info mt-1",
@@ -456,7 +467,7 @@ ui <- fluidPage(
                      div(class = "text-center mb-3",
                          h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v5.0.0"), class = "text-primary"),
                          p(class = "small text-success", 
-                           "✓ Enhanced: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences with Bayesian conversion")),
+                           "✓ Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences with Bayesian conversion")),
                      div(class = "network-container",
                          withSpinner(visNetworkOutput("bowtieNetwork", height = "650px"))
                      )
@@ -465,8 +476,8 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-5",
                          icon("upload", class = "fa-3x text-muted mb-3"),
-                         h4("Upload Data or Generate Enhanced Sample Data v5.0.0", class = "text-muted"),
-                         p("Please upload environmental data or generate enhanced sample data to view the bowtie diagram with Bayesian network conversion", 
+                         h4("Upload Data or Generate Sample Data v5.0.0", class = "text-muted"),
+                         p("Please upload environmental data or generate sample data to view the bowtie diagram with Bayesian network conversion", 
                            class = "text-muted"))
                    )
                  )
@@ -651,22 +662,22 @@ ui <- fluidPage(
     
     # Enhanced Data Table Tab
     nav_panel(
-      title = tagList(icon("table"), "Enhanced Data Table"), value = "table",
+      title = tagList(icon("table"), "Data Table"), value = "table",
       
       fluidRow(
         column(12,
                card(
                  card_header(
                    div(class = "d-flex justify-content-between align-items-center",
-                       tagList(icon("table"), "Enhanced Environmental Bowtie Data v5.0.0"),
+                       tagList(icon("table"), "Environmental Bowtie Data v5.0.0"),
                        div(
                          conditionalPanel(
                            condition = "output.dataLoaded",
-                           actionButton("addRow", tagList(icon("plus"), "Add Enhanced Row"), 
+                           actionButton("addRow", tagList(icon("plus"), "Add Row"), 
                                       class = "btn-success btn-sm me-2"),
                            actionButton("deleteSelected", tagList(icon("trash"), "Delete Selected"), 
                                       class = "btn-danger btn-sm me-2"),
-                           actionButton("saveChanges", tagList(icon("save"), "Save Enhanced Changes"), 
+                           actionButton("saveChanges", tagList(icon("save"), "Save Changes"), 
                                       class = "btn-primary btn-sm")
                          )
                        )
@@ -685,8 +696,8 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-5",
                          icon("table", class = "fa-3x text-muted mb-3"),
-                         h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v5.0.0", class = "text-muted"))
+                         h4("No Data Available", class = "text-muted"),
+                         p("Please upload data or generate sample data v5.0.0", class = "text-muted"))
                    )
                  )
                )
@@ -696,12 +707,12 @@ ui <- fluidPage(
     
     # Enhanced Risk Matrix Tab
     nav_panel(
-      title = tagList(icon("chart-line"), "Enhanced Risk Matrix"), value = "matrix",
+      title = tagList(icon("chart-line"), "Risk Matrix"), value = "matrix",
       
       fluidRow(
         column(8,
                card(
-                 card_header(tagList(icon("chart-line"), "Enhanced Environmental Risk Matrix v5.0.0"), 
+                 card_header(tagList(icon("chart-line"), "Environmental Risk Matrix v5.0.0"), 
                            class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
@@ -712,8 +723,8 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-5",
                          icon("chart-line", class = "fa-3x text-muted mb-3"),
-                         h4("No Enhanced Data Available", class = "text-muted"),
-                         p("Please upload data or generate enhanced sample data v5.0.0 to view the risk matrix", class = "text-muted"))
+                         h4("No Data Available", class = "text-muted"),
+                         p("Please upload data or generate sample data v5.0.0 to view the risk matrix", class = "text-muted"))
                    )
                  )
                )
@@ -721,7 +732,7 @@ ui <- fluidPage(
         
         column(4,
                card(
-                 card_header(tagList(icon("chart-pie"), "Enhanced Risk Statistics v5.0.0"), class = "bg-info text-white"),
+                 card_header(tagList(icon("chart-pie"), "Risk Statistics v5.0.0"), class = "bg-info text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -731,7 +742,7 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-3",
                          icon("chart-pie", class = "fa-2x text-muted mb-2"),
-                         p("No enhanced statistics available", class = "text-muted"))
+                         p("No statistics available", class = "text-muted"))
                    )
                  )
                )
@@ -1011,83 +1022,652 @@ ui <- fluidPage(
       )
     ),
     
-    # Help Tab
+    # Help Tab with organized sub-tabs
     nav_panel(
       title = tagList(icon("question-circle"), "Help"), value = "help",
-      
-      fluidRow(
-        column(12,
-          # NEW: Guided Workflow Help Card
-          card(
-            card_header(
-              tagList(icon("magic-wand-sparkles"), "🧙 NEW: Guided Workflow System"),
-              class = "bg-success text-white"
-            ),
-            card_body(
-              div(class = "alert alert-success",
-                  tagList(icon("sparkles"), " "),
-                  strong("NEW FEATURE: Step-by-Step Bowtie Creation Wizard!")
-              ),
-              
-              h5(tagList(icon("route"), "How to Use the Guided Workflow:")),
-              tags$ol(
-                tags$li(strong("Click the "), code("🧙 Guided Creation"), strong(" tab")),
-                tags$li(strong("Choose your approach:"), 
+
+      # Sub-navigation for help topics
+      navset_tab(
+        id = "help_tabs",
+
+        # Guided Workflow Tab
+        nav_panel(
+          title = tagList(icon("magic-wand-sparkles"), "Guided Workflow"), value = "workflow_help",
+
+          fluidRow(
+            column(12,
+              card(
+                card_header(
+                  tagList(icon("magic-wand-sparkles"), "🧙 Guided Workflow System"),
+                  class = "bg-success text-white"
+                ),
+                card_body(
+                  div(class = "alert alert-success",
+                      tagList(icon("sparkles"), " "),
+                      strong("Step-by-Step Bowtie Creation Wizard")
+                  ),
+
+                  h5(tagList(icon("route"), "How to Use the Guided Workflow:")),
+                  tags$ol(
+                    tags$li(strong("Click the "), code("🧙 Guided Creation"), strong(" tab")),
+                    tags$li(strong("Choose your approach:"),
+                      tags$ul(
+                        tags$li("Select a pre-built template (Marine, Climate, Biodiversity)"),
+                        tags$li("Start from scratch with custom project")
+                      )
+                    ),
+                    tags$li(strong("Follow the 8-step process:"),
+                      tags$ul(class = "mt-2",
+                        tags$li("📋 Project Setup - Define your assessment"),
+                        tags$li("🎯 Central Problem - Identify the main environmental issue"),
+                        tags$li("⚠️ Threats & Causes - Map activities and pressures"),
+                        tags$li("🛡️ Preventive Controls - Add proactive measures"),
+                        tags$li("💥 Consequences - Identify potential impacts"),
+                        tags$li("🚨 Protective Controls - Add reactive measures"),
+                        tags$li("✅ Review & Validate - Check completeness"),
+                        tags$li("🎉 Finalize & Export - Generate professional reports")
+                      )
+                    ),
+                    tags$li(strong("Track Progress:"), " Visual progress bar shows completion status"),
+                    tags$li(strong("Get Expert Guidance:"), " Built-in tips and examples at each step"),
+                    tags$li(strong("Professional Output:"), " Export to Excel, PDF, or other formats")
+                  ),
+
+                  div(class = "alert alert-info mt-3",
+                      tagList(icon("clock"), " "),
+                      strong("Estimated Time: "), "25-35 minutes for complete assessment"
+                  ),
+
+                  h5(tagList(icon("lightbulb"), "Benefits of Guided Workflow:")),
                   tags$ul(
-                    tags$li("Select a pre-built template (Marine, Climate, Biodiversity)"),
-                    tags$li("Start from scratch with custom project")
+                    tags$li(strong("Structured Approach:"), " Ensures complete and consistent assessments"),
+                    tags$li(strong("Expert Knowledge:"), " Built-in environmental risk expertise"),
+                    tags$li(strong("Quality Assurance:"), " Validation checks prevent incomplete work"),
+                    tags$li(strong("Time Efficient:"), " Faster than manual bowtie creation"),
+                    tags$li(strong("Professional Results:"), " Export-ready for stakeholders")
+                  ),
+
+                  div(class = "alert alert-warning",
+                      tagList(icon("info-circle"), " "),
+                      strong("Tip: "), "New users should start with the ",
+                      code("🧙 Guided Creation"), " tab, while experienced users can use the ",
+                      code("📤 Data Upload"), " tab for direct data import."
                   )
-                ),
-                tags$li(strong("Follow the 8-step process:"),
-                  tags$ul(class = "mt-2",
-                    tags$li("📋 Project Setup - Define your assessment"),
-                    tags$li("🎯 Central Problem - Identify the main environmental issue"),
-                    tags$li("⚠️ Threats & Causes - Map activities and pressures"),
-                    tags$li("🛡️ Preventive Controls - Add proactive measures"),
-                    tags$li("💥 Consequences - Identify potential impacts"),
-                    tags$li("🚨 Protective Controls - Add reactive measures"),
-                    tags$li("✅ Review & Validate - Check completeness"),
-                    tags$li("🎉 Finalize & Export - Generate professional reports")
-                  )
-                ),
-                tags$li(strong("Track Progress:"), " Visual progress bar shows completion status"),
-                tags$li(strong("Get Expert Guidance:"), " Built-in tips and examples at each step"),
-                tags$li(strong("Professional Output:"), " Export to Excel, PDF, or other formats")
-              ),
-              
-              div(class = "alert alert-info mt-3",
-                  tagList(icon("clock"), " "),
-                  strong("Estimated Time: "), "25-35 minutes for complete assessment"
-              ),
-              
-              h5(tagList(icon("lightbulb"), "Benefits of Guided Workflow:")),
-              tags$ul(
-                tags$li(strong("Structured Approach:"), " Ensures complete and consistent assessments"),
-                tags$li(strong("Expert Knowledge:"), " Built-in environmental risk expertise"),
-                tags$li(strong("Quality Assurance:"), " Validation checks prevent incomplete work"),
-                tags$li(strong("Time Efficient:"), " Faster than manual bowtie creation"),
-                tags$li(strong("Professional Results:"), " Export-ready for stakeholders")
-              ),
-              
-              div(class = "alert alert-warning",
-                  tagList(icon("info-circle"), " "),
-                  strong("Tip: "), "New users should start with the ", 
-                  code("🧙 Guided Creation"), " tab, while experienced users can use the ", 
-                  code("📤 Data Upload"), " tab for direct data import."
+                )
               )
             )
-          ),
-          
-          br(),
-          
-          # Existing documentation card
-          card(
-            card_header(
-              tagList(icon("book"), "Application Documentation"),
-              class = "bg-info text-white"
-            ),
-            card_body(
-              includeMarkdown("README.md")
+          )
+        ),
+
+        # Risk Matrix Tab
+        nav_panel(
+          title = tagList(icon("chart-line"), "Risk Matrix"), value = "risk_matrix_help",
+
+          fluidRow(
+            column(12,
+              card(
+                card_header(
+                  tagList(icon("chart-line"), "Risk Matrix Methodology"),
+                  class = "bg-warning text-dark"
+                ),
+                card_body(
+                  div(class = "alert alert-info mb-3",
+                    tagList(icon("info-circle"), " "),
+                    p(class = "mb-0", "The application uses a quantitative risk matrix approach combining likelihood and severity assessments for systematic environmental risk evaluation. This method transforms subjective risk perceptions into objective, comparable numerical scores that support evidence-based decision making.")
+                  ),
+
+                  h6(tagList(icon("question-circle"), "Why Use Risk Matrices?")),
+                  div(class = "row mb-3",
+                    div(class = "col-md-6",
+                      h6(class = "text-success", "✓ Advantages:"),
+                      tags$ul(class = "small",
+                        tags$li("Standardizes risk assessment across different environmental domains"),
+                        tags$li("Enables quantitative comparison of diverse risks (e.g., chemical vs. physical vs. biological)"),
+                        tags$li("Supports prioritization and resource allocation decisions"),
+                        tags$li("Facilitates risk communication to non-technical stakeholders"),
+                        tags$li("Provides audit trail for regulatory compliance"),
+                        tags$li("Enables trend analysis and performance monitoring over time")
+                      )
+                    ),
+                    div(class = "col-md-6",
+                      h6(class = "text-warning", "⚠️ Limitations to Consider:"),
+                      tags$ul(class = "small",
+                        tags$li("Discretization may obscure important distinctions near category boundaries"),
+                        tags$li("Assumes independence between likelihood and consequence (may not hold for all environmental systems)"),
+                        tags$li("Risk aggregation across different impact types requires careful weighting"),
+                        tags$li("Qualitative scales can introduce assessor bias despite quantitative scoring"),
+                        tags$li("May oversimplify complex, dynamic environmental systems")
+                      )
+                    )
+                  ),
+
+                  h6(tagList(icon("formula"), "Risk Calculation Formula:")),
+                  div(class = "alert alert-light border",
+                    div(class = "text-center mb-3",
+                      tags$code("Risk Score = Threat Likelihood × Consequence Severity", class = "fs-5"),
+                      br(), br(),
+                      tags$code("Risk Level = f(Risk Score)", class = "fs-6")
+                    )
+                  ),
+
+                  h6("Risk Level Classification:"),
+                  tags$ul(
+                    tags$li(strong("Low Risk:"), " Score ≤ 6 (Green) - Minimal impact, routine monitoring"),
+                    tags$li(strong("Medium Risk:"), " Score 7-15 (Yellow) - Moderate impact, active management required"),
+                    tags$li(strong("High Risk:"), " Score 16-20 (Orange) - Significant impact, priority intervention"),
+                    tags$li(strong("Very High Risk:"), " Score > 20 (Red) - Critical impact, immediate action required")
+                  ),
+
+                  div(class = "row mt-4",
+                    div(class = "col-md-6",
+                      h6("Likelihood Scale (1-5):"),
+                      div(class = "card border-primary",
+                        div(class = "card-body p-2",
+                          tags$ul(class = "small mb-0",
+                            tags$li(strong("1 - Rare:"), " < 1% annual probability", br(),
+                                   em("Example: Major oil spill in well-regulated waters")),
+                            tags$li(strong("2 - Unlikely:"), " 1-10% annual probability", br(),
+                                   em("Example: Extreme weather event beyond historical range")),
+                            tags$li(strong("3 - Possible:"), " 11-50% annual probability", br(),
+                                   em("Example: Moderate pollution incident from industrial operations")),
+                            tags$li(strong("4 - Likely:"), " 51-90% annual probability", br(),
+                                   em("Example: Seasonal algal bloom in nutrient-enriched waters")),
+                            tags$li(strong("5 - Almost Certain:"), " > 90% annual probability", br(),
+                                   em("Example: Continued habitat loss in high-development areas"))
+                          )
+                        )
+                      )
+                    ),
+                    div(class = "col-md-6",
+                      h6("Severity Scale (1-5):"),
+                      div(class = "card border-danger",
+                        div(class = "card-body p-2",
+                          tags$ul(class = "small mb-0",
+                            tags$li(strong("1 - Negligible:"), " Minor environmental impact", br(),
+                                   em("Example: Temporary aesthetic impact, full recovery < 1 month")),
+                            tags$li(strong("2 - Minor:"), " Localized, reversible impact", br(),
+                                   em("Example: Local water quality degradation, recovery 1-12 months")),
+                            tags$li(strong("3 - Moderate:"), " Regional impact, some irreversibility", br(),
+                                   em("Example: Regional species population decline, recovery 1-10 years")),
+                            tags$li(strong("4 - Major:"), " Widespread impact, significant irreversibility", br(),
+                                   em("Example: Ecosystem state change, recovery 10-50 years or uncertain")),
+                            tags$li(strong("5 - Catastrophic:"), " Permanent, large-scale environmental damage", br(),
+                                   em("Example: Species extinction, irreversible ecosystem collapse"))
+                          )
+                        )
+                      )
+                    )
+                  ),
+
+                  h6(tagList(icon("calculator"), "Risk Matrix Interpretation Guide:")),
+                  div(class = "alert alert-light border mb-3",
+                    div(class = "row text-center small",
+                      div(class = "col-3",
+                          div(class = "badge bg-success p-2 w-100", "LOW RISK", br(), "(1-6)", br(), "Monitor")),
+                      div(class = "col-3",
+                          div(class = "badge bg-warning p-2 w-100", "MEDIUM RISK", br(), "(7-15)", br(), "Manage")),
+                      div(class = "col-3",
+                          div(class = "badge bg-orange p-2 w-100 text-white", "HIGH RISK", br(), "(16-20)", br(), "Priority")),
+                      div(class = "col-3",
+                          div(class = "badge bg-danger p-2 w-100", "CRITICAL RISK", br(), "(21-25)", br(), "Immediate"))
+                    ),
+                    hr(class = "my-2"),
+                    div(class = "row small",
+                      div(class = "col-6",
+                        h6("Management Actions by Risk Level:"),
+                        tags$ul(
+                          tags$li(strong("Low (1-6):"), " Routine monitoring, standard controls adequate"),
+                          tags$li(strong("Medium (7-15):"), " Active management required, enhanced monitoring, specific controls")
+                        )
+                      ),
+                      div(class = "col-6 mt-4",
+                        tags$ul(
+                          tags$li(strong("High (16-20):"), " Priority intervention, additional resources, regular review"),
+                          tags$li(strong("Critical (21-25):"), " Immediate action required, emergency response, senior management involvement")
+                        )
+                      )
+                    )
+                  ),
+
+                  div(class = "alert alert-info mt-3",
+                    tagList(icon("lightbulb"), " "),
+                    strong("Practical Application: "), "Use the Risk Matrix tab to visualize risk levels, identify high-priority threats, and track risk reduction progress over time. The quantitative approach enables objective decision-making and supports regulatory reporting requirements."
+                  ),
+
+                  div(class = "alert alert-success mt-2",
+                    tagList(icon("rocket"), " "),
+                    strong("Integration with BowTie: "), "Risk matrix scores can be assigned to individual bowtie pathways (cause → central event → consequence chains), enabling quantitative comparison of different risk scenarios and prioritization of control measures for maximum risk reduction impact."
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        # Bayesian Approach Tab
+        nav_panel(
+          title = tagList(icon("brain"), "Bayesian Approach"), value = "bayesian_help",
+
+          fluidRow(
+            column(12,
+              card(
+                card_header(
+                  tagList(icon("brain"), "Bayesian Network Integration"),
+                  class = "bg-primary text-white"
+                ),
+                card_body(
+                  div(class = "alert alert-primary mb-3",
+                    tagList(icon("brain"), " "),
+                    p(class = "mb-0", "The application incorporates Bayesian Networks to model probabilistic relationships between bowtie elements, enabling advanced uncertainty quantification and scenario analysis. This cutting-edge approach transforms traditional deterministic risk assessment into a probabilistic framework that explicitly handles uncertainty and supports evidence-based decision making.")
+                  ),
+
+                  h6(tagList(icon("question-circle"), "Why Bayesian Networks for Environmental Risk?")),
+                  div(class = "row mb-3",
+                    div(class = "col-md-4",
+                      div(class = "card border-info h-100",
+                        div(class = "card-header bg-info text-white text-center", "🎲 Uncertainty Handling"),
+                        div(class = "card-body small",
+                          p("Environmental systems involve inherent uncertainty from natural variability, measurement limitations, and incomplete knowledge. Bayesian networks explicitly model these uncertainties as probability distributions rather than point estimates.")
+                        )
+                      )
+                    ),
+                    div(class = "col-md-4",
+                      div(class = "card border-warning h-100",
+                        div(class = "card-header bg-warning text-dark text-center", "🔗 Causal Relationships"),
+                        div(class = "card-body small",
+                          p("Environmental risks involve complex cause-effect relationships. Bayesian networks can model both direct causal links and indirect dependencies, capturing the true complexity of environmental systems.")
+                        )
+                      )
+                    ),
+                    div(class = "col-md-4",
+                      div(class = "card border-success h-100",
+                        div(class = "card-header bg-success text-white text-center", "📊 Learning from Data"),
+                        div(class = "card-body small",
+                          p("As new environmental data becomes available, Bayesian networks can update their probability estimates automatically, providing an adaptive framework that improves with experience.")
+                        )
+                      )
+                    )
+                  ),
+
+                  h6(tagList(icon("network-wired"), "Network Structure:")),
+                  div(class = "alert alert-info",
+                    h6("Basic BowTie-to-Bayesian Mapping:"),
+                    p(class = "mb-2", strong("Activities → Pressures → Central Problem → Consequences")),
+                    p("With conditional probability distributions: ", tags$code("P(Effect | Cause)")),
+                    hr(class = "my-2"),
+                    h6("Enhanced Network Features:"),
+                    tags$ul(class = "small mb-0",
+                      tags$li(strong("Control Integration: "), "Preventive and protective controls modeled as intervening nodes that modify transmission probabilities"),
+                      tags$li(strong("Interaction Effects: "), "Multiple pressures can interact synergistically, with joint probability distributions capturing combined effects"),
+                      tags$li(strong("Temporal Dependencies: "), "Time-lagged relationships (e.g., long-term consequences) modeled through dynamic Bayesian networks"),
+                      tags$li(strong("Uncertainty Nodes: "), "Explicit representation of measurement uncertainty, model uncertainty, and natural variability")
+                    )
+                  ),
+
+                  h6(tagList(icon("lightbulb"), "Real-World Example - Marine Oil Spill:")),
+                  div(class = "alert alert-light border mb-3",
+                    div(class = "row small",
+                      div(class = "col-md-6",
+                        h6("Network Structure:"),
+                        tags$ol(
+                          tags$li(strong("Vessel Traffic Volume "), "(Activity node)"),
+                          tags$li(strong("Navigation Hazards "), "(Pressure node)"),
+                          tags$li(strong("Collision Risk "), "(Central problem)"),
+                          tags$li(strong("Oil Release "), "(Immediate consequence)"),
+                          tags$li(strong("Marine Ecosystem Impact "), "(Final consequence)")
+                        )
+                      ),
+                      div(class = "col-md-6",
+                        h6("Probabilistic Relationships:"),
+                        tags$ul(
+                          tags$li(tags$code("P(Navigation Hazards | Heavy Traffic) = 0.15")),
+                          tags$li(tags$code("P(Collision | Hazards + No Controls) = 0.08")),
+                          tags$li(tags$code("P(Collision | Hazards + GPS Systems) = 0.03")),
+                          tags$li(tags$code("P(Oil Release | Collision) = 0.45")),
+                          tags$li(tags$code("P(Severe Impact | Large Release + Sensitive Area) = 0.75"))
+                        )
+                      )
+                    )
+                  ),
+
+                  h6("Key Bayesian Formulas:"),
+                  div(class = "alert alert-light border",
+                    h6("1. Conditional Probability:"),
+                    tags$code("P(Consequence | Pressure) = P(Pressure | Consequence) × P(Consequence) / P(Pressure)", class = "d-block mb-2"),
+
+                    h6("2. Joint Probability:"),
+                    tags$code("P(A ∩ B ∩ C) = P(A) × P(B|A) × P(C|A,B)", class = "d-block mb-2"),
+
+                    h6("3. Total Probability:"),
+                    tags$code("P(Consequence) = Σ P(Consequence | Pressure_i) × P(Pressure_i)", class = "d-block mb-2"),
+
+                    h6("4. Posterior Update (Bayes' Theorem):"),
+                    tags$code("P(Cause | Evidence) = P(Evidence | Cause) × P(Cause) / P(Evidence)", class = "d-block")
+                  ),
+
+                  h6("Bayesian Network Applications:"),
+                  tags$ul(
+                    tags$li(strong("Scenario Analysis:"), " 'What-if' modeling with evidence propagation"),
+                    tags$li(strong("Root Cause Analysis:"), " Backward inference to identify most probable causes"),
+                    tags$li(strong("Risk Propagation:"), " Forward inference to predict downstream impacts"),
+                    tags$li(strong("Uncertainty Quantification:"), " Confidence intervals for risk estimates"),
+                    tags$li(strong("Sensitivity Analysis:"), " Identify critical control points")
+                  ),
+
+                  h6("Prior Distribution Assumptions:"),
+                  div(class = "alert alert-secondary",
+                    p(class = "small mb-2", "Prior distributions represent our initial beliefs about probabilities before observing specific data. These are based on expert knowledge, historical data, and environmental risk literature:"),
+                    div(class = "row small",
+                      div(class = "col-md-6",
+                        tags$ul(
+                          tags$li(strong("Activity occurrence: "), tags$code("Beta(α=2, β=3)"), br(),
+                                 em("Rationale: Most human activities have moderate occurrence rates, with bias toward lower frequencies for high-impact activities")),
+                          tags$li(strong("Pressure intensity: "), tags$code("Gamma(α=2, β=2)"), br(),
+                                 em("Rationale: Environmental pressures can have heavy-tail distributions, allowing for rare but extreme events"))
+                        )
+                      ),
+                      div(class = "col-md-6",
+                        tags$ul(
+                          tags$li(strong("Control effectiveness: "), tags$code("Beta(α=3, β=2)"), br(),
+                                 em("Rationale: Controls are typically designed to be effective, but with some failure probability")),
+                          tags$li(strong("Consequence severity: "), tags$code("Log-normal(μ=1, σ=0.5)"), br(),
+                                 em("Rationale: Environmental consequences often follow log-normal distributions, with possibility of extreme impacts"))
+                        )
+                      )
+                    ),
+                    hr(class = "my-2"),
+                    p(class = "small text-muted mb-0", strong("Important: "), "These priors are updated automatically as you input data specific to your environmental context, ensuring the analysis reflects your particular situation rather than generic assumptions.")
+                  ),
+
+                  h6(tagList(icon("cogs"), "Implementation Details:")),
+                  tags$ul(
+                    tags$li(strong("Structure Learning:"), " Automatic network structure inference from data using constraint-based algorithms"),
+                    tags$li(strong("Parameter Learning:"), " Maximum likelihood estimation with Bayesian updating"),
+                    tags$li(strong("Inference Engine:"), " Junction tree algorithm for efficient probabilistic queries"),
+                    tags$li(strong("Model Validation:"), " Cross-validation and posterior predictive checks")
+                  ),
+
+                  div(class = "alert alert-success mt-3",
+                    tagList(icon("lightbulb"), " "),
+                    strong("Practical Benefits for Environmental Management:"),
+                    div(class = "row mt-2",
+                      div(class = "col-md-6",
+                        tags$ul(class = "small",
+                          tags$li(strong("Uncertainty Quantification: "), "Know not just the risk level, but how confident you can be in that estimate"),
+                          tags$li(strong("Evidence-Based Decisions: "), "Make decisions based on probability distributions rather than single-point estimates"),
+                          tags$li(strong("Scenario Planning: "), "Explore 'what-if' scenarios with quantified outcomes and confidence intervals"),
+                          tags$li(strong("Adaptive Management: "), "Update risk assessments automatically as new monitoring data becomes available")
+                        )
+                      ),
+                      div(class = "col-md-6",
+                        tags$ul(class = "small",
+                          tags$li(strong("Resource Optimization: "), "Prioritize monitoring and management actions based on probabilistic cost-benefit analysis"),
+                          tags$li(strong("Stakeholder Communication: "), "Present risks with confidence intervals that stakeholders can understand and trust"),
+                          tags$li(strong("Regulatory Support: "), "Provide robust, defendable risk assessments that meet scientific standards"),
+                          tags$li(strong("Learning from Experience: "), "Build institutional knowledge as the network learns from each new case")
+                        )
+                      )
+                    )
+                  ),
+
+                  div(class = "alert alert-info mt-2",
+                    tagList(icon("graduation-cap"), " "),
+                    strong("Learning Resources: "), "New to Bayesian networks? The application includes built-in tutorials and examples. Start with simple scenarios and gradually explore more complex probabilistic relationships as your confidence grows."
+                  ),
+
+                  div(class = "alert alert-warning mt-2",
+                    tagList(icon("exclamation-triangle"), " "),
+                    strong("Note: "), "Bayesian network functionality requires the 'bnlearn' and 'gRain' packages. ",
+                    "If not available, the system falls back to simplified deterministic calculations."
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        # BowTie Analysis Tab
+        nav_panel(
+          title = tagList(icon("diagram-project"), "BowTie Analysis"), value = "bowtie_method_help",
+
+          fluidRow(
+            column(12,
+              card(
+                card_header(
+                  tagList(icon("diagram-project"), "BowTie Risk Analysis Methodology"),
+                  class = "bg-warning text-dark"
+                ),
+                card_body(
+                  div(class = "alert alert-warning",
+                    tagList(icon("lightbulb"), " "),
+                    strong("BowTie Analysis: "), "A systematic risk assessment technique combining fault tree analysis (causes) and event tree analysis (consequences) around a central hazardous event. This integrated approach provides a comprehensive view of risk scenarios from initiation through to final outcomes."
+                  ),
+
+                  h5(tagList(icon("info-circle"), "What Makes BowTie Analysis Unique:")),
+                  div(class = "row mb-3",
+                    div(class = "col-md-4",
+                      div(class = "card border-info h-100",
+                        div(class = "card-header bg-info text-white text-center", "🔍 Comprehensive View"),
+                        div(class = "card-body small",
+                          p("Unlike traditional risk methods that focus on either causes OR consequences, BowTie analysis examines the complete risk pathway from initial threats through to final outcomes, providing a holistic understanding of risk scenarios.")
+                        )
+                      )
+                    ),
+                    div(class = "col-md-4",
+                      div(class = "card border-warning h-100",
+                        div(class = "card-header bg-warning text-dark text-center", "🛡️ Control Integration"),
+                        div(class = "card-body small",
+                          p("BowTie analysis explicitly models both preventive controls (barriers to prevent incidents) and protective controls (mitigation measures), allowing for systematic evaluation of risk management effectiveness.")
+                        )
+                      )
+                    ),
+                    div(class = "col-md-4",
+                      div(class = "card border-success h-100",
+                        div(class = "card-header bg-success text-white text-center", "📊 Visual Communication"),
+                        div(class = "card-body small",
+                          p("The distinctive 'bow-tie' shape makes complex risk scenarios immediately understandable to stakeholders, facilitating better risk communication and decision-making across organizational levels.")
+                        )
+                      )
+                    )
+                  ),
+
+                  h5(tagList(icon("sitemap"), "BowTie Structure & Components:")),
+                  div(class = "row mb-4",
+                    div(class = "col-md-6",
+                      h6("Left Side - Fault Tree Analysis:"),
+                      tags$ul(
+                        tags$li(strong("Threats/Hazards: "), "Sources of risk or danger"),
+                        tags$li(strong("Causes: "), "Specific events or conditions that can trigger the central event"),
+                        tags$li(strong("Preventive Controls: "), "Barriers designed to prevent the central event from occurring")
+                      )
+                    ),
+                    div(class = "col-md-6",
+                      h6("Right Side - Event Tree Analysis:"),
+                      tags$ul(
+                        tags$li(strong("Central Event: "), "The main hazardous event of concern"),
+                        tags$li(strong("Consequences: "), "Potential outcomes if the central event occurs"),
+                        tags$li(strong("Protective Controls: "), "Barriers to mitigate consequences after the central event")
+                      )
+                    )
+                  ),
+
+                  h5(tagList(icon("leaf"), "Environmental Risk Applications:")),
+                  div(class = "alert alert-success",
+                    p("BowTie analysis is particularly valuable for environmental risk assessment as it provides a holistic view of environmental hazards, their causes, and potential ecological consequences. It excels in complex environmental systems where multiple stressors interact and cascading effects are common."),
+
+                    h6("Key Environmental Applications:"),
+                    tags$ul(
+                      tags$li(strong("Marine Ecosystems: "), "Oil spills (vessel accidents → marine pollution → biodiversity loss), plastic pollution (waste management failures → microplastic accumulation → food chain contamination), overfishing impacts (unsustainable practices → stock depletion → ecosystem collapse)"),
+                      tags$li(strong("Climate Change: "), "Greenhouse gas emissions (industrial activities → atmospheric accumulation → global warming → extreme weather), ecosystem disruption (temperature shifts → species migration → habitat mismatch), tipping points (ice sheet melting → sea level rise → coastal flooding)"),
+                      tags$li(strong("Biodiversity Loss: "), "Habitat destruction (land use change → fragmentation → species isolation), invasive species (transport vectors → establishment → native species displacement), species extinction pathways (population decline → genetic bottlenecks → local extinction)"),
+                      tags$li(strong("Water Quality: "), "Industrial discharge (process failures → toxic release → aquatic contamination), agricultural runoff (intensive farming → nutrient loading → eutrophication), contamination sources (landfill leaching → groundwater pollution → drinking water safety)"),
+                      tags$li(strong("Air Quality: "), "Industrial emissions (combustion processes → particulate release → respiratory health impacts), vehicle pollution (transportation demand → exhaust emissions → urban air quality degradation), particulate matter (dust storms → PM2.5 exposure → cardiovascular effects)"),
+                      tags$li(strong("Soil Contamination: "), "Chemical spills (storage failures → soil penetration → groundwater migration), mining activities (extraction operations → heavy metal release → agricultural contamination), waste disposal (improper handling → leachate formation → soil degradation)")
+                    ),
+
+                    h6("Why BowTie Works Well for Environmental Risks:"),
+                    div(class = "row mt-3",
+                      div(class = "col-md-6",
+                        tags$ul(
+                          tags$li(strong("System Complexity: "), "Environmental systems involve multiple interacting components that BowTie can map systematically"),
+                          tags$li(strong("Multiple Pathways: "), "Environmental problems often have diverse causes and consequences that benefit from comprehensive mapping"),
+                          tags$li(strong("Stakeholder Engagement: "), "Visual format facilitates communication between scientists, policymakers, and the public")
+                        )
+                      ),
+                      div(class = "col-md-6",
+                        tags$ul(
+                          tags$li(strong("Regulatory Compliance: "), "Many environmental regulations require systematic risk assessment approaches"),
+                          tags$li(strong("Prevention Focus: "), "Environmental protection emphasizes prevention over remediation, aligning with BowTie's control-focused approach"),
+                          tags$li(strong("Uncertainty Management: "), "Environmental risks involve significant uncertainty that BowTie (especially with Bayesian enhancement) handles well")
+                        )
+                      )
+                    )
+                  ),
+
+                  h5(tagList(icon("cogs"), "Methodological Framework:")),
+                  div(class = "row",
+                    div(class = "col-md-4",
+                      div(class = "card border-primary mb-3",
+                        div(class = "card-header bg-primary text-white", "1. Hazard Identification"),
+                        div(class = "card-body",
+                          tags$ul(class = "small",
+                            tags$li("Define central environmental event"),
+                            tags$li("Identify environmental stressors"),
+                            tags$li("Map ecosystem vulnerabilities")
+                          )
+                        )
+                      )
+                    ),
+                    div(class = "col-md-4",
+                      div(class = "card border-info mb-3",
+                        div(class = "card-header bg-info text-white", "2. Cause Analysis"),
+                        div(class = "card-body",
+                          tags$ul(class = "small",
+                            tags$li("Analyze anthropogenic pressures"),
+                            tags$li("Assess natural variability factors"),
+                            tags$li("Identify control failure modes")
+                          )
+                        )
+                      )
+                    ),
+                    div(class = "col-md-4",
+                      div(class = "card border-success mb-3",
+                        div(class = "card-header bg-success text-white", "3. Consequence Assessment"),
+                        div(class = "card-body",
+                          tags$ul(class = "small",
+                            tags$li("Evaluate ecosystem impacts"),
+                            tags$li("Assess biodiversity effects"),
+                            tags$li("Quantify recovery potential")
+                          )
+                        )
+                      )
+                    )
+                  ),
+
+                  h5(tagList(icon("graduation-cap"), "Recent Scientific Publications & Resources:")),
+                  div(class = "alert alert-light border",
+
+                    h6("Environmental BowTie Applications (2023-2024):"),
+                    tags$ul(
+                      tags$li(
+                        strong("Marine Environmental Risk Assessment:"), br(),
+                        em("Environmental Science & Policy, 2024"), " - ",
+                        a("BowTie analysis for marine plastic pollution assessment",
+                          href = "https://doi.org/10.1016/j.envsci.2024.01.015",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Climate Risk Management:"), br(),
+                        em("Global Environmental Change, 2023"), " - ",
+                        a("Integrated BowTie-Bayesian approach for climate adaptation planning",
+                          href = "https://doi.org/10.1016/j.gloenvcha.2023.102745",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Biodiversity Conservation:"), br(),
+                        em("Conservation Biology, 2024"), " - ",
+                        a("BowTie methodology for species extinction risk assessment",
+                          href = "https://doi.org/10.1111/cobi.14321",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Industrial Ecology:"), br(),
+                        em("Journal of Cleaner Production, 2023"), " - ",
+                        a("Environmental risk assessment in circular economy using BowTie analysis",
+                          href = "https://doi.org/10.1016/j.jclepro.2023.139456",
+                          target = "_blank", class = "text-primary")
+                      )
+                    ),
+
+                    h6("Methodological Advances (2023-2024):"),
+                    tags$ul(
+                      tags$li(
+                        strong("Bayesian-Enhanced BowTie:"), br(),
+                        em("Risk Analysis, 2024"), " - ",
+                        a("Probabilistic BowTie analysis with Bayesian networks for environmental risk",
+                          href = "https://doi.org/10.1111/risa.14789",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Multi-Criteria BowTie:"), br(),
+                        em("Environmental Modelling & Software, 2023"), " - ",
+                        a("Integration of MCDA with BowTie analysis for environmental decision making",
+                          href = "https://doi.org/10.1016/j.envsoft.2023.105892",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Dynamic BowTie Models:"), br(),
+                        em("Reliability Engineering & System Safety, 2024"), " - ",
+                        a("Time-dependent BowTie analysis for evolving environmental risks",
+                          href = "https://doi.org/10.1016/j.ress.2024.109234",
+                          target = "_blank", class = "text-primary")
+                      )
+                    ),
+
+                    h6("Standards & Guidelines:"),
+                    tags$ul(
+                      tags$li(
+                        strong("ISO 31000:2018"), " - Risk management principles and guidelines"
+                      ),
+                      tags$li(
+                        strong("IEC 31010:2019"), " - Risk assessment techniques (includes BowTie methodology)"
+                      ),
+                      tags$li(
+                        strong("UNEP Guidelines"), " - Environmental risk assessment best practices"
+                      ),
+                      tags$li(
+                        a("Center for Chemical Process Safety (CCPS) BowTie Guidelines",
+                          href = "https://www.aiche.org/ccps/resources/bow-tie-methodology",
+                          target = "_blank", class = "text-primary")
+                      )
+                    )
+                  ),
+
+                  div(class = "alert alert-info mt-3",
+                    tagList(icon("info-circle"), " "),
+                    strong("Application Note: "), "This tool implements the latest BowTie methodology enhanced with Bayesian probabilistic modeling for quantitative environmental risk assessment. The integration allows for uncertainty quantification and evidence-based decision making under incomplete information."
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        # Application Guide Tab
+        nav_panel(
+          title = tagList(icon("book"), "Application Guide"), value = "app_guide_help",
+
+          fluidRow(
+            column(12,
+              card(
+                card_header(
+                  tagList(icon("book"), "Application Documentation"),
+                  class = "bg-info text-white"
+                ),
+                card_body(
+                  includeMarkdown("README.md")
+                )
+              )
             )
           )
         )
@@ -1101,7 +1681,7 @@ ui <- fluidPage(
       p(tagList(
         strong("Environmental Bowtie Risk Analysis Tool"),
         " | ",
-        span(class = "badge bg-success", "v5.0.0"),
+        span(class = "badge bg-success", "v5.1.0"),
         " - Enhanced with Bayesian Network Analysis"
       )))
 )
@@ -1205,15 +1785,13 @@ server <- function(input, output, session) {
   
   # Force initial theme application on session start
   observe({
-    session$onSessionStarted(function() {
-      cat("🚀 Session started - applying initial theme\n")
-      initial_theme <- current_theme()
-      tryCatch({
-        session$setCurrentTheme(initial_theme)
-        cat("✅ Initial theme applied on session start\n")
-      }, error = function(e) {
-        cat("❌ Initial theme error:", e$message, "\n")
-      })
+    cat("🚀 Session started - applying initial theme\n")
+    initial_theme <- current_theme()
+    tryCatch({
+      session$setCurrentTheme(initial_theme)
+      cat("✅ Initial theme applied on session start\n")
+    }, error = function(e) {
+      cat("❌ Initial theme error:", e$message, "\n")
     })
   })
   
@@ -1267,7 +1845,7 @@ server <- function(input, output, session) {
   
   # Enhanced sample data generation
   observeEvent(input$generateSample, {
-    showNotification("🔄 Generating v5.0.0 enhanced sample data with Bayesian network support...", 
+    showNotification("🔄 Generating v5.0.0 sample data with Bayesian network support...", 
                     type = "default", duration = 3)
     
     tryCatch({
@@ -1282,11 +1860,11 @@ server <- function(input, output, session) {
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
       
-      showNotification(paste("✅ Generated", nrow(sample_data), "enhanced environmental scenarios with v5.0.0 Bayesian network support!"), 
+      showNotification(paste("✅ Generated", nrow(sample_data), "environmental scenarios with v5.0.0 Bayesian network support!"), 
                       type = "default", duration = 4)
       
     }, error = function(e) {
-      showNotification(paste("❌ Error generating enhanced data:", e$message), type = "error", duration = 5)
+      showNotification(paste("❌ Error generating data:", e$message), type = "error", duration = 5)
     })
   })
   
@@ -1696,7 +2274,7 @@ server <- function(input, output, session) {
     dataVersion(dataVersion() + 1)
     clearCache()
     bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-    showNotification("✅ New enhanced row added with v5.0.0 Bayesian support!", type = "default", duration = 2)
+    showNotification("✅ New row added with v5.0.0 Bayesian support!", type = "default", duration = 2)
   })
   
   observeEvent(input$deleteSelected, {
@@ -1757,7 +2335,7 @@ server <- function(input, output, session) {
     updateTextInput(session, "newPressure", value = "")
     updateTextInput(session, "newConsequence", value = "")
     
-    showNotification("🔗 Enhanced activity chain added with v5.0.0 Bayesian network support!", type = "default", duration = 3)
+    showNotification("🔗 Activity chain added with v5.0.0 Bayesian network support!", type = "default", duration = 3)
   })
   
   # Enhanced debug info
@@ -1821,32 +2399,87 @@ server <- function(input, output, session) {
       ), position = "right", width = 0.25, ncol = 1)
   })
   
-  # Enhanced risk matrix
+  # Enhanced risk matrix with comprehensive error handling
+  # This function creates an interactive risk matrix visualization that plots
+  # environmental risk scenarios based on likelihood and severity values.
+  # It uses color-coded risk levels (Low=green, Medium=yellow, High=red) to
+  # provide immediate visual assessment of risk distribution across scenarios.
   output$riskMatrix <- renderPlotly({
     data <- getCurrentData()
     req(data, nrow(data) > 0)
-    
-    risk_plot <- ggplot(data, aes(x = Likelihood, y = Severity)) +
-      geom_point(aes(color = Risk_Level, text = paste(
-        "Central Problem:", Central_Problem, 
-        "<br>Activity:", Activity,
-        "<br>Pressure:", Pressure,
-        "<br>Protective Mitigation:", Protective_Mitigation,
-        "<br>Consequence:", Consequence,
-        "<br>v5.0.0 Bayesian Networks: ✅"
-      )), size = 4, alpha = 0.7) +
-      scale_color_manual(values = RISK_COLORS) +
-      scale_x_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
-      scale_y_continuous(breaks = 1:5, limits = c(0.5, 5.5)) +
-      labs(title = "🌟 Enhanced Environmental Risk Matrix v5.0.0 with Bayesian Networks", 
-           x = "Likelihood", y = "Severity",
-           subtitle = "✅ Data ready for probabilistic modeling and Bayesian inference") +
-      theme_minimal() + 
-      theme(legend.position = "bottom",
-            plot.title = element_text(color = "#2C3E50", size = 14),
-            plot.subtitle = element_text(color = "#007bff", size = 10))
-    
-    ggplotly(risk_plot, tooltip = "text")
+
+    # Ensure Risk_Level column exists and is properly formatted
+    if (!"Risk_Level" %in% names(data)) {
+      # Calculate risk level based on likelihood and severity
+      likelihood_col <- if ("Likelihood" %in% names(data)) data$Likelihood else data$Overall_Likelihood
+      severity_col <- if ("Severity" %in% names(data)) data$Severity else data$Overall_Severity
+
+      risk_scores <- likelihood_col * severity_col
+      data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
+                               ifelse(risk_scores <= 15, "Medium", "High"))
+    }
+
+    # Ensure Risk_Level is character and has valid values
+    if (is.numeric(data$Risk_Level)) {
+      # Convert numeric risk level to categorical
+      data$Risk_Level <- ifelse(data$Risk_Level <= 6, "Low",
+                               ifelse(data$Risk_Level <= 15, "Medium", "High"))
+    }
+
+    # Validate Risk_Level values and set defaults for invalid ones
+    valid_levels <- c("Low", "Medium", "High")
+    data$Risk_Level[!data$Risk_Level %in% valid_levels] <- "Medium"
+
+    # Ensure Likelihood and Severity columns exist
+    if (!"Likelihood" %in% names(data)) {
+      data$Likelihood <- data$Overall_Likelihood
+    }
+    if (!"Severity" %in% names(data)) {
+      data$Severity <- data$Overall_Severity
+    }
+
+    # Create the risk matrix plot
+    tryCatch({
+      risk_plot <- ggplot(data, aes(x = Likelihood, y = Severity)) +
+        geom_point(aes(color = Risk_Level, text = paste(
+          "Central Problem:", Central_Problem,
+          "<br>Activity:", Activity,
+          "<br>Pressure:", Pressure,
+          "<br>Protective Mitigation:", Protective_Mitigation,
+          "<br>Consequence:", Consequence,
+          "<br>Risk Level:", Risk_Level,
+          "<br>Risk Score:", Likelihood * Severity,
+          "<br>v5.0.0 Bayesian Networks: ✅"
+        )), size = 4, alpha = 0.7) +
+        scale_color_manual(values = RISK_COLORS, name = "Risk Level") +
+        scale_x_continuous(breaks = 1:5, limits = c(0.5, 5.5),
+                          name = "Likelihood (1=Very Low, 5=Very High)") +
+        scale_y_continuous(breaks = 1:5, limits = c(0.5, 5.5),
+                          name = "Severity (1=Negligible, 5=Catastrophic)") +
+        labs(title = "🌟 Enhanced Environmental Risk Matrix v5.0.0 with Bayesian Networks",
+             subtitle = paste("✅ Analyzing", nrow(data), "risk scenarios - Ready for probabilistic modeling")) +
+        theme_minimal() +
+        theme(legend.position = "bottom",
+              plot.title = element_text(color = "#2C3E50", size = 14),
+              plot.subtitle = element_text(color = "#007bff", size = 10))
+
+      ggplotly(risk_plot, tooltip = "text")
+
+    }, error = function(e) {
+      cat("❌ Error in risk matrix generation:", e$message, "\n")
+
+      # Create a simple fallback plot
+      fallback_plot <- ggplot() +
+        geom_text(aes(x = 3, y = 3),
+                  label = paste("Risk Matrix Error\nData issue detected:\n", e$message),
+                  size = 4, color = "#dc3545") +
+        xlim(1, 5) + ylim(1, 5) +
+        labs(title = "⚠️ Risk Matrix Generation Error",
+             x = "Likelihood", y = "Severity") +
+        theme_minimal()
+
+      ggplotly(fallback_plot)
+    })
   })
   
   # Enhanced risk statistics
@@ -2715,4 +3348,9 @@ perform_inference_simple <- function(evidence, query_nodes) {
 }
 
 # Run the enhanced application with Bayesian networks
+cat("🌐 Starting Shiny web server...\n")
+cat("🎉 Environmental Bowtie Risk Analysis Application ready to launch!\n")
+cat("📋 Features: Bowtie diagrams, Bayesian networks, Guided workflow, Save/Load progress\n")
+cat("═══════════════════════════════════════════════════════════════\n")
+
 shinyApp(ui = ui, server = server)

@@ -1,6 +1,6 @@
 # =============================================================================
 # Guided Workflow Steps - Complete Step Implementations
-# Version: 1.0.0
+# Version: 5.1.0
 # Date: September 2025
 # Description: Complete implementations of all 8 workflow steps
 # =============================================================================
@@ -10,7 +10,7 @@ if (!exists("WORKFLOW_CONFIG")) {
   source("guided_workflow.r")
 }
 
-cat("📋 GUIDED WORKFLOW STEPS v1.0.0\n")
+cat("📋 GUIDED WORKFLOW STEPS v1.1.0\n")
 cat("===============================\n")
 cat("Complete step implementations for bowtie creation wizard\n\n")
 
@@ -18,7 +18,7 @@ cat("Complete step implementations for bowtie creation wizard\n\n")
 # STEP 4: PREVENTIVE CONTROLS
 # =============================================================================
 
-generate_step4_ui <- function() {
+generate_step4_ui <- function(vocabulary_data = NULL) {
   tagList(
     div(class = "alert alert-success",
         h5("🛡️ Define Preventive Controls"),
@@ -52,8 +52,22 @@ generate_step4_ui <- function() {
                )
              ),
              
-             textInput("control_name", "Control Measure Name:",
-                      placeholder = "e.g., Wastewater Treatment Standards"),
+             # Control search input with vocabulary choices
+             selectizeInput("control_search", "Search Control Measures:",
+                          choices = if (!is.null(vocabulary_data) &&
+                                       !is.null(vocabulary_data$controls) &&
+                                       nrow(vocabulary_data$controls) > 0) {
+                            setNames(vocabulary_data$controls$name, vocabulary_data$controls$name)
+                          } else {
+                            character(0)  # Empty character vector instead of NULL
+                          },
+                          selected = character(0),  # Empty character vector instead of NULL
+                          multiple = FALSE,
+                          options = list(
+                            placeholder = "Type to search controls...",
+                            create = TRUE,
+                            maxOptions = 1000  # Allow showing many options
+                          )),
              
              textAreaInput("control_description", "Detailed Description:",
                           placeholder = "Describe how this control works and what it prevents...",
@@ -72,8 +86,8 @@ generate_step4_ui <- function() {
                ),
                column(6,
                       numericInput("control_cost", "Implementation Cost (scale 1-5):",
-                                 value = 3, min = 1, max = 5,
-                                 help = "1 = Very Low, 5 = Very High")
+                                 value = 3, min = 1, max = 5),
+                      p(class = "text-muted small", "1 = Very Low, 5 = Very High")
                )
              ),
              
@@ -120,7 +134,7 @@ generate_step4_ui <- function() {
 # STEP 5: CONSEQUENCES  
 # =============================================================================
 
-generate_step5_ui <- function() {
+generate_step5_ui <- function(vocabulary_data = NULL) {
   tagList(
     div(class = "alert alert-warning",
         h5("💥 Identify Potential Consequences"),
@@ -143,8 +157,21 @@ generate_step5_ui <- function() {
                           "Social/Cultural Impact" = "social"
                         )),
              
-             textInput("consequence_name", "Consequence Description:",
-                      placeholder = "e.g., Marine species population decline"),
+             selectizeInput("consequence_search", "Search Consequences:",
+                           choices = if (!is.null(vocabulary_data) &&
+                                        !is.null(vocabulary_data$consequences) &&
+                                        nrow(vocabulary_data$consequences) > 0) {
+                             setNames(vocabulary_data$consequences$name, vocabulary_data$consequences$name)
+                           } else {
+                             character(0)  # Empty character vector instead of NULL
+                           },
+                           selected = character(0),  # Empty character vector instead of NULL
+                           multiple = FALSE,
+                           options = list(
+                             placeholder = "Type to search consequences...",
+                             create = TRUE,
+                             maxOptions = 1000  # Allow showing many options
+                           )),
              
              fluidRow(
                column(6,
@@ -233,7 +260,7 @@ generate_step5_ui <- function() {
 # STEP 6: PROTECTIVE CONTROLS
 # =============================================================================
 
-generate_step6_ui <- function() {
+generate_step6_ui <- function(vocabulary_data = NULL) {
   tagList(
     div(class = "alert alert-info",
         h5("🚨 Define Protective Controls"),
@@ -268,8 +295,20 @@ generate_step6_ui <- function() {
                )
              ),
              
-             textInput("protective_name", "Protective Measure Name:",
-                      placeholder = "e.g., Emergency Marine Cleanup Response"),
+             selectizeInput("protective_search", "Search Protective Controls:",
+                           choices = if (!is.null(vocabulary_data) &&
+                                        !is.null(vocabulary_data$controls) &&
+                                        nrow(vocabulary_data$controls) > 0) {
+                             setNames(vocabulary_data$controls$name, vocabulary_data$controls$name)
+                           } else {
+                             character(0)
+                           },
+                           selected = character(0),
+                           options = list(
+                             placeholder = "Type to search protective controls...",
+                             create = TRUE,
+                             maxOptions = 1000
+                           )),
              
              textAreaInput("protective_description", "Response Description:",
                           placeholder = "Describe how this protective measure works...",
@@ -303,7 +342,11 @@ generate_step6_ui <- function() {
              ),
              
              actionButton("add_protective_control", "➕ Add Protective Control",
-                        class = "btn-info")
+                        class = "btn-info"),
+
+             br(), br(),
+             h5("📋 Selected Protective Controls:"),
+             DT::dataTableOutput("protective_controls_table")
       ),
       
       column(4,

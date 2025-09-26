@@ -1,6 +1,6 @@
 # =============================================================================
 # Guided Workflow System - Step-by-Step Bowtie Creation
-# Version: 1.0.0
+# Version: 5.1.0
 # Date: September 2025
 # Description: Comprehensive wizard-based system for guided bowtie diagram creation
 #              with progress tracking, validation, and expert guidance
@@ -11,7 +11,7 @@ library(bslib)
 library(dplyr)
 library(DT)
 
-cat("🧙 GUIDED WORKFLOW SYSTEM v1.0.0\n")
+cat("🧙 GUIDED WORKFLOW SYSTEM v1.1.0\n")
 cat("=================================\n")
 cat("Step-by-step bowtie creation with expert guidance\n\n")
 
@@ -211,6 +211,7 @@ guided_workflow_ui <- function() {
           column(4,
                  div(class = "text-end",
                      actionButton("workflow_help", "❓ Help", class = "btn-light btn-sm me-2"),
+                     actionButton("workflow_load", "📂 Load Progress", class = "btn-light btn-sm me-2"),
                      actionButton("workflow_save", "💾 Save Progress", class = "btn-light btn-sm")
                  )
           )
@@ -448,7 +449,7 @@ generate_step2_ui <- function() {
 }
 
 # Step 3: Threats & Causes
-generate_step3_ui <- function() {
+generate_step3_ui <- function(vocabulary_data = NULL) {
   tagList(
     div(class = "alert alert-danger",
         h5("⚠️ Map Threats Leading to Your Problem"),
@@ -461,14 +462,22 @@ generate_step3_ui <- function() {
              p("What human activities contribute to this problem?"),
              
              fluidRow(
-               column(8,
-                      selectizeInput("activity_search", "Search Activities:",
-                                   choices = NULL,
-                                   options = list(
-                                     placeholder = "Type to search activities...",
-                                     create = TRUE
-                                   ))
-               ),
+               column(8, {
+                 # Prepare activity choices from vocabulary data
+                 activity_choices <- NULL
+                 if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
+                   activity_choices <- setNames(vocabulary_data$activities$name, vocabulary_data$activities$name)
+                 }
+
+                 selectizeInput("activity_search", "Search Activities:",
+                              choices = if (is.null(activity_choices)) character(0) else activity_choices,
+                              selected = character(0),
+                              options = list(
+                                placeholder = "Type to search activities...",
+                                create = TRUE,
+                                maxOptions = 1000
+                              ))
+               }),
                column(4,
                       br(),
                       actionButton("add_activity", "➕ Add Activity", 
@@ -491,14 +500,22 @@ generate_step3_ui <- function() {
              p("What environmental pressures result from these activities?"),
              
              fluidRow(
-               column(8,
-                      selectizeInput("pressure_search", "Search Pressures:",
-                                   choices = NULL,
-                                   options = list(
-                                     placeholder = "Type to search pressures...",
-                                     create = TRUE
-                                   ))
-               ),
+               column(8, {
+                 # Prepare pressure choices from vocabulary data
+                 pressure_choices <- NULL
+                 if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
+                   pressure_choices <- setNames(vocabulary_data$pressures$name, vocabulary_data$pressures$name)
+                 }
+
+                 selectizeInput("pressure_search", "Search Pressures:",
+                              choices = if (is.null(pressure_choices)) character(0) else pressure_choices,
+                              selected = character(0),
+                              options = list(
+                                placeholder = "Type to search pressures...",
+                                create = TRUE,
+                                maxOptions = 1000
+                              ))
+               }),
                column(4,
                       br(),
                       actionButton("add_pressure", "➕ Add Pressure",
@@ -573,14 +590,14 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   # Render current step content
   output$current_step_content <- renderUI({
     current_step <- workflow_state()$current_step
-    
+
     switch(current_step,
            "1" = generate_step1_ui(),
-           "2" = generate_step2_ui(), 
-           "3" = generate_step3_ui(),
-           "4" = generate_step4_ui(),
-           "5" = generate_step5_ui(),
-           "6" = generate_step6_ui(),
+           "2" = generate_step2_ui(),
+           "3" = generate_step3_ui(vocabulary_data),
+           "4" = generate_step4_ui(vocabulary_data),
+           "5" = generate_step5_ui(vocabulary_data),
+           "6" = generate_step6_ui(vocabulary_data),
            "7" = generate_step7_ui(),
            "8" = generate_step8_ui()
     )
@@ -629,7 +646,271 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       workflow_state(state)
     }
   })
-  
+
+  # Reactive values to store selected activities and pressures
+  selected_items <- reactiveValues(
+    activities = data.frame(name = character(), stringsAsFactors = FALSE),
+    pressures = data.frame(name = character(), stringsAsFactors = FALSE),
+    controls = data.frame(name = character(), stringsAsFactors = FALSE),
+    consequences = data.frame(name = character(), stringsAsFactors = FALSE),
+    protective_controls = data.frame(name = character(), stringsAsFactors = FALSE)
+  )
+
+  # Handle Add Activity button
+  observeEvent(input$add_activity, {
+    activity_name <- input$activity_search
+    if (!is.null(activity_name) && activity_name != "" && !activity_name %in% selected_items$activities$name) {
+      new_activity <- data.frame(name = activity_name, stringsAsFactors = FALSE)
+      selected_items$activities <- rbind(selected_items$activities, new_activity)
+
+      # Clear the search box
+      updateSelectizeInput(session, "activity_search", selected = "")
+
+      cat("✅ Added activity:", activity_name, "\n")
+    }
+  })
+
+  # Handle Add Pressure button
+  observeEvent(input$add_pressure, {
+    pressure_name <- input$pressure_search
+    if (!is.null(pressure_name) && pressure_name != "" && !pressure_name %in% selected_items$pressures$name) {
+      new_pressure <- data.frame(name = pressure_name, stringsAsFactors = FALSE)
+      selected_items$pressures <- rbind(selected_items$pressures, new_pressure)
+
+      # Clear the search box
+      updateSelectizeInput(session, "pressure_search", selected = "")
+
+      cat("✅ Added pressure:", pressure_name, "\n")
+    }
+  })
+
+  # Handle Add Preventive Control button
+  observeEvent(input$add_preventive_control, {
+    control_name <- input$control_search
+    if (!is.null(control_name) && control_name != "" && !control_name %in% selected_items$controls$name) {
+      new_control <- data.frame(name = control_name, stringsAsFactors = FALSE)
+      selected_items$controls <- rbind(selected_items$controls, new_control)
+
+      # Clear the search box
+      updateSelectizeInput(session, "control_search", selected = "")
+
+      cat("✅ Added preventive control:", control_name, "\n")
+    }
+  })
+
+  # Handle Add Consequence button
+  observeEvent(input$add_consequence, {
+    consequence_name <- input$consequence_search
+    if (!is.null(consequence_name) && consequence_name != "" && !consequence_name %in% selected_items$consequences$name) {
+      new_consequence <- data.frame(name = consequence_name, stringsAsFactors = FALSE)
+      selected_items$consequences <- rbind(selected_items$consequences, new_consequence)
+
+      # Clear the search box
+      updateSelectizeInput(session, "consequence_search", selected = "")
+
+      cat("✅ Added consequence:", consequence_name, "\n")
+    }
+  })
+
+  # Handle Add Protective Control button
+  observeEvent(input$add_protective_control, {
+    protective_name <- input$protective_search
+    if (!is.null(protective_name) && protective_name != "" && !protective_name %in% selected_items$protective_controls$name) {
+      new_protective <- data.frame(name = protective_name, stringsAsFactors = FALSE)
+      selected_items$protective_controls <- rbind(selected_items$protective_controls, new_protective)
+      # Clear the search box
+      updateSelectizeInput(session, "protective_search", selected = "")
+      cat("✅ Added protective control:", protective_name, "\n")
+    }
+  })
+
+  # Render selected activities table
+  output$selected_activities_table <- DT::renderDataTable({
+    if (nrow(selected_items$activities) == 0) {
+      data.frame("No activities selected yet" = character(0))
+    } else {
+      selected_items$activities
+    }
+  }, options = list(
+    pageLength = 5,
+    searching = FALSE,
+    info = FALSE,
+    paging = FALSE
+  ), rownames = FALSE)
+
+  # Render selected pressures table
+  output$selected_pressures_table <- DT::renderDataTable({
+    if (nrow(selected_items$pressures) == 0) {
+      data.frame("No pressures selected yet" = character(0))
+    } else {
+      selected_items$pressures
+    }
+  }, options = list(
+    pageLength = 5,
+    searching = FALSE,
+    info = FALSE,
+    paging = FALSE
+  ), rownames = FALSE)
+
+  # Render selected preventive controls table
+  output$preventive_controls_table <- DT::renderDataTable({
+    if (nrow(selected_items$controls) == 0) {
+      data.frame("No preventive controls selected yet" = character(0))
+    } else {
+      selected_items$controls
+    }
+  }, options = list(
+    pageLength = 5,
+    searching = FALSE,
+    info = FALSE,
+    paging = FALSE
+  ), rownames = FALSE)
+
+  # Render selected consequences table
+  output$consequences_table <- DT::renderDataTable({
+    if (nrow(selected_items$consequences) == 0) {
+      data.frame("No consequences selected yet" = character(0))
+    } else {
+      selected_items$consequences
+    }
+  }, options = list(
+    pageLength = 5,
+    searching = FALSE,
+    info = FALSE,
+    paging = FALSE
+  ), rownames = FALSE)
+
+  # Render selected protective controls table
+  output$protective_controls_table <- DT::renderDataTable({
+    if (nrow(selected_items$protective_controls) == 0) {
+      data.frame("No protective controls selected yet" = character(0))
+    } else {
+      selected_items$protective_controls
+    }
+  }, options = list(
+    pageLength = 5,
+    searching = FALSE,
+    info = FALSE,
+    paging = FALSE
+  ), rownames = FALSE)
+
+  # Render activity-pressure connections table
+  output$activity_pressure_connections <- DT::renderDataTable({
+    if (nrow(selected_items$activities) == 0 || nrow(selected_items$pressures) == 0) {
+      data.frame("Message" = "Add activities and pressures first to see their potential connections")
+    } else {
+      # Create a simple cross-reference table showing all activity-pressure combinations
+      connections <- expand.grid(
+        Activity = selected_items$activities$name,
+        Pressure = selected_items$pressures$name,
+        stringsAsFactors = FALSE
+      )
+      connections$Connection <- "Possible Link"  # In a full implementation, this could be user-defined
+      connections
+    }
+  }, options = list(
+    pageLength = 10,
+    searching = TRUE,
+    info = TRUE,
+    paging = TRUE
+  ), rownames = FALSE)
+
+  # Save progress handler
+  observeEvent(input$workflow_save, {
+    tryCatch({
+      # Create a comprehensive save object
+      save_data <- list(
+        timestamp = Sys.time(),
+        current_step = workflow_state$current_step,
+        completed_steps = workflow_state$completed_steps,
+        selected_items = reactiveValuesToList(selected_items),
+        inputs = list(
+          project_name = input$project_name %||% "",
+          project_description = input$project_description %||% "",
+          analysis_scope = input$analysis_scope %||% "",
+          problem_statement = input$problem_statement %||% ""
+        )
+      )
+
+      # Save to file with timestamp
+      filename <- paste0("workflow_progress_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".rds")
+      saveRDS(save_data, file = filename)
+
+      # Show success message
+      showNotification(
+        paste("Progress saved successfully to", filename),
+        type = "success",
+        duration = 3
+      )
+      cat("✅ Progress saved to:", filename, "\n")
+
+    }, error = function(e) {
+      showNotification(
+        paste("Error saving progress:", e$message),
+        type = "error",
+        duration = 5
+      )
+      cat("❌ Error saving progress:", e$message, "\n")
+    })
+  })
+
+  # Load progress handler
+  observeEvent(input$workflow_load, {
+    tryCatch({
+      # Get list of available save files
+      save_files <- list.files(pattern = "^workflow_progress_.*\\.rds$", full.names = TRUE)
+
+      if (length(save_files) == 0) {
+        showNotification(
+          "No saved progress files found",
+          type = "warning",
+          duration = 3
+        )
+        return()
+      }
+
+      # Get the most recent save file
+      latest_file <- save_files[which.max(file.mtime(save_files))]
+      load_data <- readRDS(latest_file)
+
+      # Restore workflow state
+      workflow_state$current_step <- load_data$current_step
+      workflow_state$completed_steps <- load_data$completed_steps
+
+      # Restore selected items
+      selected_items$activities <- load_data$selected_items$activities %||% data.frame(name = character(), stringsAsFactors = FALSE)
+      selected_items$pressures <- load_data$selected_items$pressures %||% data.frame(name = character(), stringsAsFactors = FALSE)
+      selected_items$controls <- load_data$selected_items$controls %||% data.frame(name = character(), stringsAsFactors = FALSE)
+      selected_items$consequences <- load_data$selected_items$consequences %||% data.frame(name = character(), stringsAsFactors = FALSE)
+      selected_items$protective_controls <- load_data$selected_items$protective_controls %||% data.frame(name = character(), stringsAsFactors = FALSE)
+
+      # Restore input fields
+      if (!is.null(load_data$inputs)) {
+        updateTextInput(session, "project_name", value = load_data$inputs$project_name %||% "")
+        updateTextAreaInput(session, "project_description", value = load_data$inputs$project_description %||% "")
+        updateTextInput(session, "analysis_scope", value = load_data$inputs$analysis_scope %||% "")
+        updateTextAreaInput(session, "problem_statement", value = load_data$inputs$problem_statement %||% "")
+      }
+
+      # Show success message
+      showNotification(
+        paste("Progress loaded from", basename(latest_file),
+              "- saved on", format(load_data$timestamp, "%Y-%m-%d %H:%M:%S")),
+        type = "success",
+        duration = 4
+      )
+      cat("✅ Progress loaded from:", latest_file, "\n")
+
+    }, error = function(e) {
+      showNotification(
+        paste("Error loading progress:", e$message),
+        type = "error",
+        duration = 5
+      )
+      cat("❌ Error loading progress:", e$message, "\n")
+    })
+  })
+
   # Return workflow state for integration
   return(workflow_state)
 }
