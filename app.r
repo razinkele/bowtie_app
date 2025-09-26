@@ -1591,6 +1591,34 @@ ui <- fluidPage(
                           target = "_blank", class = "text-primary")
                       ),
                       tags$li(
+                        strong("Marine Biodiversity Risk Assessment:"), br(),
+                        em("Arpha Preprints, 2025"), " - ",
+                        a("Bowtie method for marine biodiversity change assessment using DAPSI(W)R(M) framework",
+                          href = "https://doi.org/10.3897/arphapreprints.e167392",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Marine Environmental Management:"), br(),
+                        em("ScienceDirect, 2018"), " - ",
+                        a("Putting on a bow-tie to sort out marine policy and management complexity",
+                          href = "https://www.sciencedirect.com/science/article/pii/S0048969718331322",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Wastewater Treatment Risk Assessment:"), br(),
+                        em("ResearchGate, 2020"), " - ",
+                        a("Risk assessment of industrial wastewater treatment using bow-tie method",
+                          href = "https://www.researchgate.net/publication/337903092_Risk_assessment_of_an_industrial_wastewater_treatment_and_reclamation_plant_using_the_bow-tie_method",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Petroleum Storage Environmental Risk:"), br(),
+                        em("Sustainability (MDPI), 2025"), " - ",
+                        a("Sustainable Risk Management for Petroleum Storage: Bow-Tie and Dynamic Bayesian Networks",
+                          href = "https://www.mdpi.com/2071-1050/17/6/2642",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
                         strong("General Environmental Risk:"), br(),
                         em("ResearchGate, 2016"), " - ",
                         a("Environmental Risk Assessment Utilizing Bow-Tie Methodology",
@@ -1599,13 +1627,45 @@ ui <- fluidPage(
                       )
                     ),
 
-                    h6("Methodological Advances (2021-2023):"),
+                    h6("Recent Environmental Applications (2024-2025):"),
+                    tags$ul(
+                      tags$li(
+                        strong("Digital Twin Safety Management:"), br(),
+                        em("Systems (MDPI), 2024"), " - ",
+                        a("The BowTie as a Digital Twin: Data-Driven Safety Management",
+                          href = "https://www.mdpi.com/2313-576X/10/2/34",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Food Processing Industry Risk:"), br(),
+                        em("ResearchGate, 2024"), " - ",
+                        a("Risk evaluation of grease interceptor treatment using bowtie analysis",
+                          href = "https://www.researchgate.net/publication/379141514_Evaluation_of_risk_associated_with_treatment_of_fat_oil_and_grease_Grease_interceptor_from_food_processing_industry_effluent_using_bowtie_analysis",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Subsea Pipeline Environmental Risk:"), br(),
+                        em("ResearchGate, 2023"), " - ",
+                        a("Risk Identification and Bowtie Analysis for Subsea Pipeline Management",
+                          href = "https://www.researchgate.net/publication/374146704_Risk_Identification_and_Bowtie_Analysis_for_Risk_Management_of_Subsea_Pipelines",
+                          target = "_blank", class = "text-primary")
+                      )
+                    ),
+
+                    h6("Methodological Advances (2021-2024):"),
                     tags$ul(
                       tags$li(
                         strong("Fuzzy BowTie Analysis:"), br(),
                         em("Applied Soft Computing, 2021"), " - ",
                         a("Comprehensive methodology for quantification of Bow-tie under type II fuzzy data",
                           href = "https://www.sciencedirect.com/science/article/abs/pii/S1568494621000715",
+                          target = "_blank", class = "text-primary")
+                      ),
+                      tags$li(
+                        strong("Quantitative and Graphical Improvements:"), br(),
+                        em("ResearchGate, 2024"), " - ",
+                        a("Use and misuse of Bowtie Analysis: quantitative and graphical approaches",
+                          href = "https://www.researchgate.net/publication/377471510_Use_and_misuse_of_Bowtie_Analysis_and_ways_to_make_it_better_using_quantitative_and_graphical_approaches",
                           target = "_blank", class = "text-primary")
                       ),
                       tags$li(
