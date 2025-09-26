@@ -475,7 +475,10 @@ generate_step3_ui <- function(vocabulary_data = NULL) {
                               options = list(
                                 placeholder = "Type to search activities...",
                                 create = TRUE,
-                                maxOptions = 1000
+                                maxOptions = 1000,
+                                openOnFocus = FALSE,
+                                selectOnTab = FALSE,
+                                hideSelected = FALSE
                               ))
                }),
                column(4,
@@ -513,7 +516,10 @@ generate_step3_ui <- function(vocabulary_data = NULL) {
                               options = list(
                                 placeholder = "Type to search pressures...",
                                 create = TRUE,
-                                maxOptions = 1000
+                                maxOptions = 1000,
+                                openOnFocus = FALSE,
+                                selectOnTab = FALSE,
+                                hideSelected = FALSE
                               ))
                }),
                column(4,

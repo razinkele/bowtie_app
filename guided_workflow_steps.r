@@ -66,7 +66,10 @@ generate_step4_ui <- function(vocabulary_data = NULL) {
                           options = list(
                             placeholder = "Type to search controls...",
                             create = TRUE,
-                            maxOptions = 1000  # Allow showing many options
+                            maxOptions = 1000,  # Allow showing many options
+                            openOnFocus = FALSE,
+                            selectOnTab = FALSE,
+                            hideSelected = FALSE
                           )),
              
              textAreaInput("control_description", "Detailed Description:",
@@ -170,7 +173,10 @@ generate_step5_ui <- function(vocabulary_data = NULL) {
                            options = list(
                              placeholder = "Type to search consequences...",
                              create = TRUE,
-                             maxOptions = 1000  # Allow showing many options
+                             maxOptions = 1000,  # Allow showing many options
+                             openOnFocus = FALSE,
+                             selectOnTab = FALSE,
+                             hideSelected = FALSE
                            )),
              
              fluidRow(
@@ -307,7 +313,10 @@ generate_step6_ui <- function(vocabulary_data = NULL) {
                            options = list(
                              placeholder = "Type to search protective controls...",
                              create = TRUE,
-                             maxOptions = 1000
+                             maxOptions = 1000,
+                             openOnFocus = FALSE,
+                             selectOnTab = FALSE,
+                             hideSelected = FALSE
                            )),
              
              textAreaInput("protective_description", "Response Description:",
