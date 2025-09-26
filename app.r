@@ -1570,56 +1570,56 @@ ui <- fluidPage(
                     h6("Environmental BowTie Applications (2023-2024):"),
                     tags$ul(
                       tags$li(
-                        strong("Marine Environmental Risk Assessment:"), br(),
-                        em("Environmental Science & Policy, 2024"), " - ",
-                        a("BowTie analysis for marine plastic pollution assessment",
-                          href = "https://doi.org/10.1016/j.envsci.2024.01.015",
+                        strong("Urban Waterlogging Risk Assessment:"), br(),
+                        em("Frontiers in Environmental Science, 2023"), " - ",
+                        a("Risk analysis of waterlogging using bow-tie Bayesian network model",
+                          href = "https://www.frontiersin.org/journals/environmental-science/articles/10.3389/fenvs.2023.1258544/full",
                           target = "_blank", class = "text-primary")
                       ),
                       tags$li(
-                        strong("Climate Risk Management:"), br(),
-                        em("Global Environmental Change, 2023"), " - ",
-                        a("Integrated BowTie-Bayesian approach for climate adaptation planning",
-                          href = "https://doi.org/10.1016/j.gloenvcha.2023.102745",
+                        strong("Sustainability Assessment:"), br(),
+                        em("Sustainability (MDPI), 2022"), " - ",
+                        a("Health-Safety Risk Assessment of Landfill with Fuzzy Multi-Criteria and Bow Tie Model",
+                          href = "https://www.mdpi.com/2071-1050/14/22/15465",
                           target = "_blank", class = "text-primary")
                       ),
                       tags$li(
-                        strong("Biodiversity Conservation:"), br(),
-                        em("Conservation Biology, 2024"), " - ",
-                        a("BowTie methodology for species extinction risk assessment",
-                          href = "https://doi.org/10.1111/cobi.14321",
+                        strong("Laboratory Safety:"), br(),
+                        em("Journal of Chemical Health & Safety, 2017"), " - ",
+                        a("Using bowtie methodology to support laboratory hazard identification and risk management",
+                          href = "https://pubs.acs.org/doi/10.1016/j.jchas.2016.10.003",
                           target = "_blank", class = "text-primary")
                       ),
                       tags$li(
-                        strong("Industrial Ecology:"), br(),
-                        em("Journal of Cleaner Production, 2023"), " - ",
-                        a("Environmental risk assessment in circular economy using BowTie analysis",
-                          href = "https://doi.org/10.1016/j.jclepro.2023.139456",
+                        strong("General Environmental Risk:"), br(),
+                        em("ResearchGate, 2016"), " - ",
+                        a("Environmental Risk Assessment Utilizing Bow-Tie Methodology",
+                          href = "https://www.researchgate.net/publication/290587167_Environmental_Risk_Assessment_Utilizing_Bow-Tie_Methodology",
                           target = "_blank", class = "text-primary")
                       )
                     ),
 
-                    h6("Methodological Advances (2023-2024):"),
+                    h6("Methodological Advances (2021-2023):"),
                     tags$ul(
                       tags$li(
-                        strong("Bayesian-Enhanced BowTie:"), br(),
-                        em("Risk Analysis, 2024"), " - ",
-                        a("Probabilistic BowTie analysis with Bayesian networks for environmental risk",
-                          href = "https://doi.org/10.1111/risa.14789",
+                        strong("Fuzzy BowTie Analysis:"), br(),
+                        em("Applied Soft Computing, 2021"), " - ",
+                        a("Comprehensive methodology for quantification of Bow-tie under type II fuzzy data",
+                          href = "https://www.sciencedirect.com/science/article/abs/pii/S1568494621000715",
                           target = "_blank", class = "text-primary")
                       ),
                       tags$li(
-                        strong("Multi-Criteria BowTie:"), br(),
-                        em("Environmental Modelling & Software, 2023"), " - ",
-                        a("Integration of MCDA with BowTie analysis for environmental decision making",
-                          href = "https://doi.org/10.1016/j.envsoft.2023.105892",
+                        strong("Aviation Safety Applications:"), br(),
+                        em("Aerospace (MDPI), 2020"), " - ",
+                        a("Systematic Methodology for Developing Bowtie in Risk Assessment: Application to Borescope Inspection",
+                          href = "https://www.mdpi.com/2226-4310/7/7/86",
                           target = "_blank", class = "text-primary")
                       ),
                       tags$li(
-                        strong("Dynamic BowTie Models:"), br(),
-                        em("Reliability Engineering & System Safety, 2024"), " - ",
-                        a("Time-dependent BowTie analysis for evolving environmental risks",
-                          href = "https://doi.org/10.1016/j.ress.2024.109234",
+                        strong("Industrial Risk Management:"), br(),
+                        em("Chemical Engineering Progress, 2019"), " - ",
+                        a("Enhancing PHAs: The Power of Bowties",
+                          href = "https://www.aiche.org/resources/publications/cep/2019/february/enhancing-phas-power-bowties",
                           target = "_blank", class = "text-primary")
                       )
                     ),
@@ -1636,8 +1636,8 @@ ui <- fluidPage(
                         strong("UNEP Guidelines"), " - Environmental risk assessment best practices"
                       ),
                       tags$li(
-                        a("Center for Chemical Process Safety (CCPS) BowTie Guidelines",
-                          href = "https://www.aiche.org/ccps/resources/bow-tie-methodology",
+                        a("Center for Chemical Process Safety (CCPS) - Bow Ties in Risk Management",
+                          href = "https://www.aiche.org/ccps/resources/publications/books/bow-ties-risk-management-concept-book-process-safety",
                           target = "_blank", class = "text-primary")
                       )
                     )
