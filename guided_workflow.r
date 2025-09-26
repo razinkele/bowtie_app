@@ -829,7 +829,13 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
         timestamp = Sys.time(),
         current_step = workflow_state$current_step,
         completed_steps = workflow_state$completed_steps,
-        selected_items = reactiveValuesToList(selected_items),
+        selected_items = list(
+          activities = selected_items$activities,
+          pressures = selected_items$pressures,
+          controls = selected_items$controls,
+          consequences = selected_items$consequences,
+          protective_controls = selected_items$protective_controls
+        ),
         inputs = list(
           project_name = input$project_name %||% "",
           project_description = input$project_description %||% "",
