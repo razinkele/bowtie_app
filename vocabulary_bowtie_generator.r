@@ -282,16 +282,19 @@ enhance_with_risk_data <- function(bowtie_data) {
         }
       }),
       
-      # Calculate risk level (likelihood × severity)
-      Risk_Level = Threat_Likelihood * Consequence_Severity,
-      
-      # Risk rating categories
-      Risk_Rating = case_when(
-        Risk_Level <= 4 ~ "Low",
-        Risk_Level <= 9 ~ "Medium", 
-        Risk_Level <= 16 ~ "High",
-        Risk_Level > 16 ~ "Very High"
+      # Calculate risk score (likelihood × severity)
+      Risk_Score = Threat_Likelihood * Consequence_Severity,
+
+      # Risk level categories (categorical)
+      Risk_Level = case_when(
+        Risk_Score <= 4 ~ "Low",
+        Risk_Score <= 9 ~ "Medium",
+        Risk_Score <= 16 ~ "High",
+        Risk_Score > 16 ~ "Very High"
       ),
+
+      # Keep Risk_Rating for backward compatibility
+      Risk_Rating = Risk_Level,
       
       # Add unique identifiers
       Entry_ID = paste0("VocabGen_", sprintf("%04d", row_number())),
@@ -328,7 +331,7 @@ export_bowtie_to_excel <- function(bowtie_data, output_file) {
       length(unique(bowtie_data$Problem)),
       length(unique(bowtie_data$Activity)),
       length(unique(bowtie_data$Consequence)),
-      round(mean(bowtie_data$Risk_Level, na.rm = TRUE), 2),
+      round(mean(bowtie_data$Risk_Score, na.rm = TRUE), 2),
       sum(bowtie_data$Risk_Rating %in% c("High", "Very High"), na.rm = TRUE),
       as.character(Sys.Date())
     ),
