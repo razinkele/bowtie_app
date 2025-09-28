@@ -3,7 +3,27 @@
     "allow": [
       "Bash(Rscript:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(tree:*)",
+      "WebSearch",
+      "WebFetch(domain:www.frontiersin.org)",
+      "WebFetch(domain:www.mdpi.com)",
+      "WebFetch(domain:www.aiche.org)",
+      "WebFetch(domain:www.sciencedirect.com)",
+      "WebFetch(domain:doi.org)",
+      "WebFetch(domain:preprints.arphahub.com)",
+      "Bash(if not exist archive mkdir archive)",
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(ipconfig)",
+      "Bash(git commit:*)",
+      "Bash(taskkill:*)",
+      "Bash(findstr:*)",
+      "Read(//c/Users/DELL/OneDrive/**)",
+      "Bash(if not exist utils mkdir utils)",
+      "Bash(powershell:*)",
+      "Bash(del workflow_progress_*.rds)"
     ],
     "deny": [],
     "ask": []
