@@ -613,20 +613,40 @@ generate_template_selector_ui <- function() {
   )
 }
 
-# Apply template to workflow
+# Apply template to workflow with enhanced compatibility
 apply_template <- function(template_id, workflow_state) {
-  if (template_id %in% names(WORKFLOW_CONFIG$templates)) {
+  tryCatch({
+    if (!template_id %in% names(WORKFLOW_CONFIG$templates)) {
+      cat("Warning: Template", template_id, "not found\n")
+      return(workflow_state)
+    }
+
     template <- WORKFLOW_CONFIG$templates[[template_id]]
-    
-    # Pre-fill template data
+
+    # Ensure project_data structure exists
+    if (is.null(workflow_state$project_data)) {
+      workflow_state$project_data <- list()
+    }
+
+    # Apply template data with safe assignment
     workflow_state$project_data$template_applied <- template_id
-    workflow_state$project_data$central_problem <- template$central_problem
-    workflow_state$project_data$example_activities <- template$example_activities
-    workflow_state$project_data$example_pressures <- template$example_pressures
-    workflow_state$project_data$project_type <- tolower(gsub(" ", "_", template$category))
-  }
-  
-  return(workflow_state)
+    workflow_state$central_problem <- template$central_problem %||% ""
+    workflow_state$project_data$example_activities <- template$example_activities %||% character(0)
+    workflow_state$project_data$example_pressures <- template$example_pressures %||% character(0)
+    workflow_state$project_data$project_type <- tolower(gsub("[^A-Za-z0-9_]", "_", template$category %||% "general"))
+
+    # Set project name based on template
+    if (is.null(workflow_state$project_name) || nchar(workflow_state$project_name) == 0) {
+      workflow_state$project_name <- template$name %||% paste("Environmental Assessment -", template_id)
+    }
+
+    cat("✅ Applied template:", template$name, "\n")
+    return(workflow_state)
+
+  }, error = function(e) {
+    cat("❌ Error applying template:", e$message, "\n")
+    return(workflow_state)
+  })
 }
 
 cat("✅ Guided Workflow Steps Complete!\n")

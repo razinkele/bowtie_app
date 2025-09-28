@@ -1514,14 +1514,33 @@ server <- function(input, output, session) {
     vocabulary_data = vocabulary_data
   )
 
-  # Optional: React to workflow completion
+  # React to workflow completion - only when actually completed (step 8)
   observeEvent(guided_workflow_state()$workflow_complete, {
-    showNotification("🎉 Bowtie workflow completed successfully!",
-                    type = "default", duration = 5)
+    req(guided_workflow_state()$workflow_complete)  # Only proceed if not NULL/FALSE
+    state <- guided_workflow_state()
 
-    # Auto-switch to visualization tab
-    nav_select("main_tabs", selected = "bowtie", session = session)
-  })
+    # Enhanced validation: only trigger if genuinely completed
+    if (!is.null(state) &&
+        isTRUE(state$workflow_complete) &&  # Use isTRUE for safer boolean check
+        !is.null(state$current_step) &&
+        state$current_step >= 8 &&
+        length(state$completed_steps) >= 7) {  # Must have completed at least 7 steps
+
+      showNotification("🎉 Bowtie workflow completed successfully!",
+                      type = "default", duration = 5)
+
+      # Auto-switch to visualization tab
+      nav_select("main_tabs", selected = "bowtie", session = session)
+
+      cat("✅ Genuine workflow completion triggered from step", state$current_step, "\n")
+      cat("   Completed steps:", paste(state$completed_steps, collapse = ", "), "\n")
+    } else {
+      cat("⚠️ Prevented premature workflow completion trigger:\n")
+      cat("   Step:", state$current_step %||% "unknown", "\n")
+      cat("   Complete flag:", state$workflow_complete %||% "unknown", "\n")
+      cat("   Completed steps:", length(state$completed_steps %||% c()), "\n")
+    }
+  }, ignoreInit = TRUE)  # Ignore initial reactive trigger
 
   # Automatic data integration: Watch for exported workflow data
   observeEvent(guided_workflow_state()$converted_main_data, {
