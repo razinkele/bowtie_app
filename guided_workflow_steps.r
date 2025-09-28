@@ -61,7 +61,7 @@ generate_step4_ui <- function(vocabulary_data = NULL) {
                           } else {
                             character(0)  # Empty character vector instead of NULL
                           },
-                          selected = character(0),  # Empty character vector instead of NULL
+                          selected = NULL,  # Use NULL instead of character(0)
                           multiple = FALSE,
                           options = list(
                             placeholder = "Type to search controls...",
@@ -69,7 +69,8 @@ generate_step4_ui <- function(vocabulary_data = NULL) {
                             maxOptions = 1000,  # Allow showing many options
                             openOnFocus = FALSE,
                             selectOnTab = FALSE,
-                            hideSelected = FALSE
+                            hideSelected = FALSE,
+                            clearAfterSelect = TRUE
                           )),
              
              textAreaInput("control_description", "Detailed Description:",
@@ -168,7 +169,7 @@ generate_step5_ui <- function(vocabulary_data = NULL) {
                            } else {
                              character(0)  # Empty character vector instead of NULL
                            },
-                           selected = character(0),  # Empty character vector instead of NULL
+                           selected = NULL,  # Use NULL instead of character(0)
                            multiple = FALSE,
                            options = list(
                              placeholder = "Type to search consequences...",
@@ -176,7 +177,8 @@ generate_step5_ui <- function(vocabulary_data = NULL) {
                              maxOptions = 1000,  # Allow showing many options
                              openOnFocus = FALSE,
                              selectOnTab = FALSE,
-                             hideSelected = FALSE
+                             hideSelected = FALSE,
+                             clearAfterSelect = TRUE
                            )),
              
              fluidRow(
@@ -309,14 +311,15 @@ generate_step6_ui <- function(vocabulary_data = NULL) {
                            } else {
                              character(0)
                            },
-                           selected = character(0),
+                           selected = NULL,
                            options = list(
                              placeholder = "Type to search protective controls...",
                              create = TRUE,
                              maxOptions = 1000,
                              openOnFocus = FALSE,
                              selectOnTab = FALSE,
-                             hideSelected = FALSE
+                             hideSelected = FALSE,
+                             clearAfterSelect = TRUE
                            )),
              
              textAreaInput("protective_description", "Response Description:",
@@ -451,6 +454,21 @@ generate_step7_ui <- function() {
     
     br(),
     fluidRow(
+      column(12,
+             h4("🎯 Graphical Bowtie View"),
+             div(class = "card",
+                 div(class = "card-body",
+                     p("Visual representation of your completed bowtie diagram:"),
+                     div(id = "bowtie-graph-container",
+                         plotOutput("bowtie_diagram", height = "400px")
+                     )
+                 )
+             )
+      )
+    ),
+
+    br(),
+    fluidRow(
       column(6,
              h4("🔧 Final Adjustments"),
              p("Make any final modifications before completing your bowtie:"),
@@ -516,14 +534,32 @@ generate_step8_ui <- function() {
              ),
              
              fluidRow(
-               column(6,
+               column(4,
                       downloadButton("download_bowtie", "📥 Download Files",
                                    class = "btn-success btn-lg")
                ),
-               column(6,
+               column(4,
                       actionButton("save_to_cloud", "☁️ Save to Cloud",
                                  class = "btn-primary btn-lg")
+               ),
+               column(4,
+                      actionButton("export_to_main_app", "🔄 Export to Main App",
+                                 class = "btn-warning btn-lg",
+                                 title = "Convert guided workflow data to main application format for analysis")
                )
+             ),
+
+             br(),
+             div(class = "alert alert-info",
+                 h6("🔄 Export to Main App"),
+                 p("Click 'Export to Main App' to convert your guided workflow data into the main application's format. This will enable you to:"),
+                 tags$ul(
+                   tags$li("📊 View data in the main bowtie diagram"),
+                   tags$li("📈 Access risk matrix analysis"),
+                   tags$li("🔍 Use Bayesian network modeling"),
+                   tags$li("📋 Generate detailed data tables"),
+                   tags$li("🎯 Perform advanced risk analysis")
+                 )
              )
       ),
       

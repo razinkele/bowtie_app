@@ -19,7 +19,7 @@ server <- function(input, output, session) {
 
   # Theme management reactive values
   themeUpdateTrigger <- reactiveVal(0)
-  appliedTheme <- reactiveVal("journal")
+  appliedTheme <- reactiveVal("zephyr")
 
   # Optimized data retrieval with caching
   getCurrentData <- reactive({
@@ -1520,7 +1520,42 @@ server <- function(input, output, session) {
                     type = "default", duration = 5)
 
     # Auto-switch to visualization tab
-    updateNavsetCardTab(session, "main_tabs", selected = "bowtie")
+    nav_select("main_tabs", selected = "bowtie", session = session)
+  })
+
+  # Automatic data integration: Watch for exported workflow data
+  observeEvent(guided_workflow_state()$converted_main_data, {
+    workflow_state <- guided_workflow_state()
+    exported_data <- workflow_state$converted_main_data
+
+    if (!is.null(exported_data) && nrow(exported_data) > 0) {
+      cat("🔄 Loading guided workflow data into main application...\n")
+      cat("📊 Data rows:", nrow(exported_data), "\n")
+
+      # Load the converted data into main application reactive values
+      currentData(exported_data)
+      editedData(exported_data)
+      envDataGenerated(TRUE)
+
+      # Update data version for reactive triggers
+      dataVersion(dataVersion() + 1)
+
+      # Update problem selection choices for bowtie diagram
+      problem_choices <- unique(exported_data$Central_Problem)
+      updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
+      updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
+
+      showNotification(
+        paste("✅ Successfully loaded", nrow(exported_data),
+              "bowtie scenarios from guided workflow!"),
+        type = "message", duration = 5
+      )
+
+      # Auto-switch to the bowtie visualization tab
+      nav_select("main_tabs", selected = "bowtie", session = session)
+
+      cat("✅ Guided workflow data integration complete\n")
+    }
   })
 
   # Enhanced Theme Apply Button Handlers with CSS-based theme switching
@@ -1664,6 +1699,7 @@ server <- function(input, output, session) {
     showNotification("🎨 Applied custom theme with your colors!",
                     type = "message", duration = 3)
   })
+
 
 }
 

@@ -1,1 +1,46 @@
+# Excel lock files
 /.~lock.environmental_bowtie_data_2025-06-19.xlsx#
+.~lock.*
+
+# Archive folder (contains development history and old files)
+archive/
+
+# Temporary workflow files
+workflow_progress_*.rds
+
+# Log files
+*.log
+shiny_log.txt
+
+# R temporary files
+.Rhistory
+.RData
+.Ruserdata
+
+# Performance and quality reports
+performance_benchmark_results.*
+code_quality_report.*
+memory_usage_log.csv
+R_STYLE_GUIDE.txt
+
+# Cache directories
+cache/
+.sass-cache/
+
+# IDE files
+.vscode/
+.idea/
+*.Rproj
+.Rproj.user/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*_backup_*
+*.bak
+
+# Test output files
+test_results.*

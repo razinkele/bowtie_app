@@ -117,7 +117,10 @@ init_workflow_state <- function() {
     validation_status = list(),
     progress_percentage = 0,
     start_time = Sys.time(),
-    step_times = list()
+    step_times = list(),
+    # Missing properties for integration
+    project_name = "",
+    central_problem = ""
   )
 }
 
@@ -383,7 +386,7 @@ generate_step2_ui <- function() {
     fluidRow(
       column(8,
              h4("Central Environmental Problem"),
-             textInput("central_problem", "Problem Statement:",
+             textInput("problem_statement", "Problem Statement:",
                       placeholder = "e.g., Marine ecosystem contamination from plastic pollution"),
              
              selectInput("problem_category", "Problem Category:",
@@ -471,14 +474,15 @@ generate_step3_ui <- function(vocabulary_data = NULL) {
 
                  selectizeInput("activity_search", "Search Activities:",
                               choices = if (is.null(activity_choices)) character(0) else activity_choices,
-                              selected = character(0),
+                              selected = NULL,
                               options = list(
                                 placeholder = "Type to search activities...",
                                 create = TRUE,
                                 maxOptions = 1000,
                                 openOnFocus = FALSE,
                                 selectOnTab = FALSE,
-                                hideSelected = FALSE
+                                hideSelected = FALSE,
+                                clearAfterSelect = TRUE
                               ))
                }),
                column(4,
@@ -512,14 +516,15 @@ generate_step3_ui <- function(vocabulary_data = NULL) {
 
                  selectizeInput("pressure_search", "Search Pressures:",
                               choices = if (is.null(pressure_choices)) character(0) else pressure_choices,
-                              selected = character(0),
+                              selected = NULL,
                               options = list(
                                 placeholder = "Type to search pressures...",
                                 create = TRUE,
                                 maxOptions = 1000,
                                 openOnFocus = FALSE,
                                 selectOnTab = FALSE,
-                                hideSelected = FALSE
+                                hideSelected = FALSE,
+                                clearAfterSelect = TRUE
                               ))
                }),
                column(4,
@@ -653,6 +658,29 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
     }
   })
 
+  # Initialize problem statement as reactive value for editing
+  problem_statement_reactive <- reactiveVal("")
+
+  # Sync problem statement when input changes
+  observeEvent(input$problem_statement, {
+    if (!is.null(input$problem_statement)) {
+      problem_statement_reactive(input$problem_statement)
+      # Also update workflow state
+      state <- workflow_state()
+      state$central_problem <- input$problem_statement
+      workflow_state(state)
+    }
+  })
+
+  # Sync project name when input changes (Step 1)
+  observeEvent(input$project_name, {
+    if (!is.null(input$project_name)) {
+      state <- workflow_state()
+      state$project_name <- input$project_name
+      workflow_state(state)
+    }
+  })
+
   # Reactive values to store selected activities and pressures
   selected_items <- reactiveValues(
     activities = data.frame(name = character(), stringsAsFactors = FALSE),
@@ -670,7 +698,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       selected_items$activities <- rbind(selected_items$activities, new_activity)
 
       # Clear the search box
-      updateSelectizeInput(session, "activity_search", selected = "")
+      updateSelectizeInput(session, "activity_search", selected = character(0))
 
       cat("✅ Added activity:", activity_name, "\n")
     }
@@ -684,7 +712,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       selected_items$pressures <- rbind(selected_items$pressures, new_pressure)
 
       # Clear the search box
-      updateSelectizeInput(session, "pressure_search", selected = "")
+      updateSelectizeInput(session, "pressure_search", selected = character(0))
 
       cat("✅ Added pressure:", pressure_name, "\n")
     }
@@ -698,7 +726,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       selected_items$controls <- rbind(selected_items$controls, new_control)
 
       # Clear the search box
-      updateSelectizeInput(session, "control_search", selected = "")
+      updateSelectizeInput(session, "control_search", selected = character(0))
 
       cat("✅ Added preventive control:", control_name, "\n")
     }
@@ -712,7 +740,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       selected_items$consequences <- rbind(selected_items$consequences, new_consequence)
 
       # Clear the search box
-      updateSelectizeInput(session, "consequence_search", selected = "")
+      updateSelectizeInput(session, "consequence_search", selected = character(0))
 
       cat("✅ Added consequence:", consequence_name, "\n")
     }
@@ -725,7 +753,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       new_protective <- data.frame(name = protective_name, stringsAsFactors = FALSE)
       selected_items$protective_controls <- rbind(selected_items$protective_controls, new_protective)
       # Clear the search box
-      updateSelectizeInput(session, "protective_search", selected = "")
+      updateSelectizeInput(session, "protective_search", selected = character(0))
       cat("✅ Added protective control:", protective_name, "\n")
     }
   })
@@ -825,16 +853,17 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   observeEvent(input$workflow_save, {
     tryCatch({
       # Create a comprehensive save object
+      current_state <- workflow_state()
       save_data <- list(
         timestamp = Sys.time(),
-        current_step = workflow_state$current_step,
-        completed_steps = workflow_state$completed_steps,
+        current_step = current_state$current_step,
+        completed_steps = current_state$completed_steps,
         selected_items = list(
-          activities = selected_items$activities,
-          pressures = selected_items$pressures,
-          controls = selected_items$controls,
-          consequences = selected_items$consequences,
-          protective_controls = selected_items$protective_controls
+          activities = isolate(selected_items$activities),
+          pressures = isolate(selected_items$pressures),
+          controls = isolate(selected_items$controls),
+          consequences = isolate(selected_items$consequences),
+          protective_controls = isolate(selected_items$protective_controls)
         ),
         inputs = list(
           project_name = input$project_name %||% "",
@@ -851,7 +880,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       # Show success message
       showNotification(
         paste("Progress saved successfully to", filename),
-        type = "success",
+        type = "message",
         duration = 3
       )
       cat("✅ Progress saved to:", filename, "\n")
@@ -886,8 +915,12 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       load_data <- readRDS(latest_file)
 
       # Restore workflow state
-      workflow_state$current_step <- load_data$current_step
-      workflow_state$completed_steps <- load_data$completed_steps
+      current_state <- workflow_state()
+      current_state$current_step <- load_data$current_step
+      current_state$completed_steps <- load_data$completed_steps
+      current_state$project_name <- load_data$inputs$project_name %||% ""
+      current_state$central_problem <- load_data$inputs$problem_statement %||% ""
+      workflow_state(current_state)
 
       # Restore selected items
       selected_items$activities <- load_data$selected_items$activities %||% data.frame(name = character(), stringsAsFactors = FALSE)
@@ -908,7 +941,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       showNotification(
         paste("Progress loaded from", basename(latest_file),
               "- saved on", format(load_data$timestamp, "%Y-%m-%d %H:%M:%S")),
-        type = "success",
+        type = "message",
         duration = 4
       )
       cat("✅ Progress loaded from:", latest_file, "\n")
@@ -921,6 +954,984 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       )
       cat("❌ Error loading progress:", e$message, "\n")
     })
+  })
+
+  # =============================================================================
+  # Step 7: Review & Validate Server Logic
+  # =============================================================================
+
+  # Review outputs for step 7
+  output$review_central_problem <- renderText({
+    # Use reactive value if available, otherwise fall back to input
+    problem_text <- problem_statement_reactive()
+    if (is.null(problem_text) || nchar(trimws(problem_text)) == 0) {
+      problem_text <- input$problem_statement %||% "No central problem defined"
+    }
+    problem_text
+  })
+
+  output$activity_count <- renderText({
+    nrow(selected_items$activities)
+  })
+
+  output$pressure_count <- renderText({
+    nrow(selected_items$pressures)
+  })
+
+  output$preventive_count <- renderText({
+    nrow(selected_items$controls)
+  })
+
+  output$consequence_count <- renderText({
+    nrow(selected_items$consequences)
+  })
+
+  output$protective_count <- renderText({
+    nrow(selected_items$protective_controls)
+  })
+
+  output$review_activities <- DT::renderDataTable({
+    if (nrow(selected_items$activities) == 0) {
+      data.frame(Activity = "No activities added yet")
+    } else {
+      selected_items$activities
+    }
+  }, options = list(pageLength = 5, searching = FALSE, info = FALSE))
+
+  output$review_pressures <- DT::renderDataTable({
+    if (nrow(selected_items$pressures) == 0) {
+      data.frame(Pressure = "No pressures added yet")
+    } else {
+      selected_items$pressures
+    }
+  }, options = list(pageLength = 5, searching = FALSE, info = FALSE))
+
+  output$review_preventive <- DT::renderDataTable({
+    if (nrow(selected_items$controls) == 0) {
+      data.frame(Control = "No preventive controls added yet")
+    } else {
+      selected_items$controls
+    }
+  }, options = list(pageLength = 5, searching = FALSE, info = FALSE))
+
+  output$review_consequences <- DT::renderDataTable({
+    if (nrow(selected_items$consequences) == 0) {
+      data.frame(Consequence = "No consequences added yet")
+    } else {
+      selected_items$consequences
+    }
+  }, options = list(pageLength = 5, searching = FALSE, info = FALSE))
+
+  output$review_protective <- DT::renderDataTable({
+    if (nrow(selected_items$protective_controls) == 0) {
+      data.frame(Control = "No protective controls added yet")
+    } else {
+      selected_items$protective_controls
+    }
+  }, options = list(pageLength = 5, searching = FALSE, info = FALSE))
+
+  output$validation_results <- renderUI({
+    total_activities <- nrow(selected_items$activities)
+    total_pressures <- nrow(selected_items$pressures)
+    total_preventive <- nrow(selected_items$controls)
+    total_consequences <- nrow(selected_items$consequences)
+    total_protective <- nrow(selected_items$protective_controls)
+
+    validations <- list()
+
+    if (total_activities == 0) {
+      validations <- append(validations, list(div(class = "alert alert-warning", "⚠️ No activities defined")))
+    } else {
+      validations <- append(validations, list(div(class = "alert alert-success", paste("✅", total_activities, "activities defined"))))
+    }
+
+    if (total_pressures == 0) {
+      validations <- append(validations, list(div(class = "alert alert-warning", "⚠️ No pressures defined")))
+    } else {
+      validations <- append(validations, list(div(class = "alert alert-success", paste("✅", total_pressures, "pressures defined"))))
+    }
+
+    if (total_consequences == 0) {
+      validations <- append(validations, list(div(class = "alert alert-warning", "⚠️ No consequences defined")))
+    } else {
+      validations <- append(validations, list(div(class = "alert alert-success", paste("✅", total_consequences, "consequences defined"))))
+    }
+
+    tagList(validations)
+  })
+
+  output$bowtie_statistics <- renderText({
+    total_activities <- nrow(selected_items$activities)
+    total_pressures <- nrow(selected_items$pressures)
+    total_preventive <- nrow(selected_items$controls)
+    total_consequences <- nrow(selected_items$consequences)
+    total_protective <- nrow(selected_items$protective_controls)
+
+    paste(
+      "Total Elements:", total_activities + total_pressures + total_preventive + total_consequences + total_protective, "\n",
+      "Activities:", total_activities, "\n",
+      "Pressures:", total_pressures, "\n",
+      "Preventive Controls:", total_preventive, "\n",
+      "Consequences:", total_consequences, "\n",
+      "Protective Controls:", total_protective
+    )
+  })
+
+  output$completeness_score <- renderUI({
+    total_activities <- nrow(selected_items$activities)
+    total_pressures <- nrow(selected_items$pressures)
+    total_consequences <- nrow(selected_items$consequences)
+
+    # Basic completeness check
+    score <- 0
+    if (total_activities > 0) score <- score + 25
+    if (total_pressures > 0) score <- score + 25
+    if (total_consequences > 0) score <- score + 25
+
+    # Check problem statement using reactive value
+    problem_text <- problem_statement_reactive()
+    if (is.null(problem_text) || nchar(trimws(problem_text)) == 0) {
+      problem_text <- input$problem_statement %||% ""
+    }
+    if (nchar(trimws(problem_text)) > 0) score <- score + 25
+
+    color <- if (score >= 75) "success" else if (score >= 50) "warning" else "danger"
+
+    div(class = paste("alert alert-", color),
+        h5(paste("Completeness Score:", score, "%")),
+        if (score == 100) p("🎉 Your bowtie is complete!") else p("Complete all sections to reach 100%")
+    )
+  })
+
+  # =============================================================================
+  # Step 7: Edit Button Handlers
+  # =============================================================================
+
+  # Edit Central Problem Handler
+  observeEvent(input$edit_central_problem, {
+    showModal(modalDialog(
+      title = "✏️ Edit Central Problem",
+      textAreaInput("edit_problem_text",
+                   "Central Problem Statement:",
+                   value = input$problem_statement %||% "",
+                   placeholder = "Define the central environmental problem...",
+                   height = "120px"),
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("save_edited_problem", "💾 Save Changes", class = "btn-primary")
+      ),
+      easyClose = TRUE
+    ))
+  })
+
+  # Save edited problem
+  observeEvent(input$save_edited_problem, {
+    if (!is.null(input$edit_problem_text) && nchar(trimws(input$edit_problem_text)) > 0) {
+      # Update the reactive value immediately
+      problem_statement_reactive(input$edit_problem_text)
+
+      # Update workflow state for integration
+      current_state <- workflow_state()
+      current_state$central_problem <- input$edit_problem_text
+      workflow_state(current_state)
+
+      # Try to update the UI input as well for consistency
+      tryCatch({
+        updateTextAreaInput(session, "problem_statement", value = input$edit_problem_text)
+      }, error = function(e) {
+        cat("Warning: Could not update problem_statement UI element:", e$message, "\n")
+      })
+
+      showNotification("✅ Central problem updated successfully!", type = "message")
+      removeModal()
+    } else {
+      showNotification("⚠️ Please enter a valid problem statement", type = "warning")
+    }
+  })
+
+  # Add More Threats Handler (goes back to step 3)
+  observeEvent(input$add_more_threats, {
+    showModal(modalDialog(
+      title = "➕ Add More Threats & Causes",
+      p("You will be redirected to Step 3 to add more activities and pressures."),
+      p("Your current progress will be preserved."),
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("confirm_add_threats", "🔄 Go to Step 3", class = "btn-warning")
+      ),
+      easyClose = TRUE
+    ))
+  })
+
+  # Confirm add threats
+  observeEvent(input$confirm_add_threats, {
+    current_state <- workflow_state()
+    current_state$current_step <- 3
+    workflow_state(current_state)
+    showNotification("🔄 Redirected to Step 3 - Add Activities & Pressures", type = "message")
+    removeModal()
+  })
+
+  # Add More Consequences Handler (goes back to step 5)
+  observeEvent(input$add_more_consequences, {
+    showModal(modalDialog(
+      title = "➕ Add More Consequences",
+      p("You will be redirected to Step 5 to add more consequences."),
+      p("Your current progress will be preserved."),
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("confirm_add_consequences", "🔄 Go to Step 5", class = "btn-danger")
+      ),
+      easyClose = TRUE
+    ))
+  })
+
+  # Confirm add consequences
+  observeEvent(input$confirm_add_consequences, {
+    current_state <- workflow_state()
+    current_state$current_step <- 5
+    workflow_state(current_state)
+    showNotification("🔄 Redirected to Step 5 - Add Consequences", type = "message")
+    removeModal()
+  })
+
+  # =============================================================================
+  # Step 7: Graphical Bowtie View
+  # =============================================================================
+
+  # Bowtie diagram output
+  output$bowtie_diagram <- renderPlot({
+    # Create a simple bowtie visualization using ggplot2
+    tryCatch({
+      if (!require(ggplot2, quietly = TRUE)) {
+        plot.new()
+        text(0.5, 0.5, "ggplot2 package required for visualization", cex = 1.2)
+        return()
+      }
+
+      # Get current data with safe access
+      activities <- tryCatch({
+        if (is.null(selected_items$activities)) data.frame() else selected_items$activities
+      }, error = function(e) data.frame())
+
+      pressures <- tryCatch({
+        if (is.null(selected_items$pressures)) data.frame() else selected_items$pressures
+      }, error = function(e) data.frame())
+
+      controls <- tryCatch({
+        if (is.null(selected_items$controls)) data.frame() else selected_items$controls
+      }, error = function(e) data.frame())
+
+      consequences <- tryCatch({
+        if (is.null(selected_items$consequences)) data.frame() else selected_items$consequences
+      }, error = function(e) data.frame())
+
+      protective_controls <- tryCatch({
+        if (is.null(selected_items$protective_controls)) data.frame() else selected_items$protective_controls
+      }, error = function(e) data.frame())
+
+      # Debug output (commented out for production)
+      # cat("Bowtie diagram debug:\n")
+      # cat("- Activities:", nrow(activities), "rows, columns:", paste(names(activities), collapse = ", "), "\n")
+
+      # Check if we have any meaningful data
+      total_elements <- nrow(activities) + nrow(pressures) + nrow(consequences)
+
+      if (total_elements == 0) {
+        # Show instructional diagram with bowtie-specific icons and larger fonts
+        ggplot() +
+          theme_void() +
+          theme(
+            plot.background = element_rect(fill = "white", color = NA),
+            panel.background = element_rect(fill = "white", color = NA)
+          ) +
+          # Central problem (large, prominent)
+          geom_point(aes(x = 0.5, y = 0.5), size = 20, color = "#FF6B6B", alpha = 0.8) +
+          geom_text(aes(x = 0.5, y = 0.5), label = "⚠️\nCentral\nProblem", size = 5, fontface = "bold", color = "white") +
+
+          # Activities (left side, human/industrial activities)
+          geom_point(aes(x = 0.15, y = 0.7), size = 14, color = "#4ECDC4", alpha = 0.7) +
+          geom_text(aes(x = 0.15, y = 0.7), label = "🏭\nActivity", size = 4, color = "white", fontface = "bold") +
+
+          # Pressures (environmental stressors)
+          geom_point(aes(x = 0.3, y = 0.55), size = 14, color = "#45B7D1", alpha = 0.7) +
+          geom_text(aes(x = 0.3, y = 0.55), label = "🌊\nPressure", size = 4, color = "white", fontface = "bold") +
+
+          # Consequences (environmental impacts)
+          geom_point(aes(x = 0.7, y = 0.55), size = 14, color = "#FFEAA7", alpha = 0.8) +
+          geom_text(aes(x = 0.7, y = 0.55), label = "💥\nConsequence", size = 4, color = "#8B4513", fontface = "bold") +
+
+          # Controls (protection measures)
+          geom_point(aes(x = 0.85, y = 0.7), size = 14, color = "#96CEB4", alpha = 0.8) +
+          geom_text(aes(x = 0.85, y = 0.7), label = "🛡️\nControl", size = 4, color = "white", fontface = "bold") +
+
+          # Enhanced connecting lines with arrows
+          geom_segment(aes(x = 0.22, y = 0.68, xend = 0.43, yend = 0.52),
+                      arrow = arrow(length = unit(0.02, "npc"), type = "closed"),
+                      linewidth = 1.5, color = "#666666", alpha = 0.8) +
+          geom_segment(aes(x = 0.37, y = 0.53, xend = 0.43, yend = 0.51),
+                      arrow = arrow(length = unit(0.02, "npc"), type = "closed"),
+                      linewidth = 1.5, color = "#666666", alpha = 0.8) +
+          geom_segment(aes(x = 0.57, y = 0.51, xend = 0.63, yend = 0.54),
+                      arrow = arrow(length = unit(0.02, "npc"), type = "closed"),
+                      linewidth = 1.5, color = "#666666", alpha = 0.8) +
+
+          # Preventive controls barrier (left side)
+          geom_rect(aes(xmin = 0.24, xmax = 0.26, ymin = 0.35, ymax = 0.65),
+                   fill = "#96CEB4", alpha = 0.6) +
+          geom_text(aes(x = 0.25, y = 0.3), label = "🚧 Preventive", size = 3.5, color = "#2D5016", angle = 90, fontface = "bold") +
+
+          # Protective controls barrier (right side)
+          geom_rect(aes(xmin = 0.74, xmax = 0.76, ymin = 0.35, ymax = 0.65),
+                   fill = "#DDA0DD", alpha = 0.6) +
+          geom_text(aes(x = 0.75, y = 0.3), label = "🛡️ Protective", size = 3.5, color = "#4A0E4E", angle = 90, fontface = "bold") +
+
+          # Enhanced instructions with larger font
+          annotate("text", x = 0.5, y = 0.15,
+                  label = "🎯 Complete the guided workflow steps to build your bowtie diagram\n🏭 Activities → 🌊 Pressures → ⚠️ Central Problem → 💥 Consequences → 🛡️ Controls",
+                  size = 5, hjust = 0.5, vjust = 0.5, color = "#2C3E50", fontface = "bold") +
+
+          # Title
+          annotate("text", x = 0.5, y = 0.9,
+                  label = "🎯 Environmental Bowtie Risk Analysis",
+                  size = 6, hjust = 0.5, vjust = 0.5, color = "#2C3E50", fontface = "bold") +
+
+          xlim(0, 1) + ylim(0, 1)
+      } else {
+        # Create bowtie layout data
+        center_x <- 0.5
+        center_y <- 0.5
+
+        # Create nodes data frame
+        nodes <- data.frame(
+          x = numeric(0),
+          y = numeric(0),
+          label = character(0),
+          type = character(0),
+          stringsAsFactors = FALSE
+        )
+
+        # Central problem - use reactive value
+        problem_text <- problem_statement_reactive()
+        if (is.null(problem_text) || nchar(trimws(problem_text)) == 0) {
+          problem_text <- input$problem_statement %||% "Central Problem"
+        }
+        central_problem <- if (nchar(problem_text) > 0) {
+          paste("⚠️", substr(problem_text, 1, 15))
+        } else {
+          "⚠️ Central Problem"
+        }
+
+        nodes <- rbind(nodes, data.frame(
+          x = center_x, y = center_y,
+          label = central_problem,
+          type = "problem"
+        ))
+
+        # Activities (left side, top) - handle multiple possible column names
+        if (nrow(activities) > 0) {
+          activity_col <- NULL
+          for (col in c("Activity", "name", "Name", "activity")) {
+            if (col %in% names(activities)) {
+              activity_col <- col
+              break
+            }
+          }
+
+          if (!is.null(activity_col)) {
+            for (i in 1:min(3, nrow(activities))) {
+              activity_label <- paste("🏭", substr(as.character(activities[[activity_col]][i]), 1, 12))
+              nodes <- rbind(nodes, data.frame(
+                x = 0.1, y = 0.7 - (i-1) * 0.15,
+                label = activity_label,
+                type = "activity",
+                stringsAsFactors = FALSE
+              ))
+            }
+          } else {
+            cat("Warning: No recognized activity column found in:", paste(names(activities), collapse = ", "), "\n")
+          }
+        }
+
+        # Pressures (left side, closer to center)
+        if (nrow(pressures) > 0) {
+          pressure_col <- NULL
+          for (col in c("Pressure", "name", "Name", "pressure")) {
+            if (col %in% names(pressures)) {
+              pressure_col <- col
+              break
+            }
+          }
+
+          if (!is.null(pressure_col)) {
+            for (i in 1:min(3, nrow(pressures))) {
+              pressure_label <- paste("🌊", substr(as.character(pressures[[pressure_col]][i]), 1, 12))
+              nodes <- rbind(nodes, data.frame(
+                x = 0.25, y = 0.65 - (i-1) * 0.1,
+                label = pressure_label,
+                type = "pressure",
+                stringsAsFactors = FALSE
+              ))
+            }
+          } else {
+            cat("Warning: No recognized pressure column found in:", paste(names(pressures), collapse = ", "), "\n")
+          }
+        }
+
+        # Preventive Controls (left side, middle)
+        if (nrow(controls) > 0) {
+          control_col <- NULL
+          for (col in c("Control", "name", "Name", "control")) {
+            if (col %in% names(controls)) {
+              control_col <- col
+              break
+            }
+          }
+
+          if (!is.null(control_col)) {
+            for (i in 1:min(2, nrow(controls))) {
+              control_label <- paste("🚧", substr(as.character(controls[[control_col]][i]), 1, 12))
+              nodes <- rbind(nodes, data.frame(
+                x = 0.3, y = 0.3 + (i-1) * 0.1,
+                label = control_label,
+                type = "preventive",
+                stringsAsFactors = FALSE
+              ))
+            }
+          } else {
+            cat("Warning: No recognized control column found in:", paste(names(controls), collapse = ", "), "\n")
+          }
+        }
+
+        # Consequences (right side)
+        if (nrow(consequences) > 0) {
+          consequence_col <- NULL
+          for (col in c("Consequence", "name", "Name", "consequence")) {
+            if (col %in% names(consequences)) {
+              consequence_col <- col
+              break
+            }
+          }
+
+          if (!is.null(consequence_col)) {
+            for (i in 1:min(3, nrow(consequences))) {
+              consequence_label <- paste("💥", substr(as.character(consequences[[consequence_col]][i]), 1, 12))
+              nodes <- rbind(nodes, data.frame(
+                x = 0.75, y = 0.65 - (i-1) * 0.1,
+                label = consequence_label,
+                type = "consequence",
+                stringsAsFactors = FALSE
+              ))
+            }
+          } else {
+            cat("Warning: No recognized consequence column found in:", paste(names(consequences), collapse = ", "), "\n")
+          }
+        }
+
+        # Protective Controls (right side, bottom)
+        if (nrow(protective_controls) > 0) {
+          protective_col <- NULL
+          for (col in c("Control", "name", "Name", "control")) {
+            if (col %in% names(protective_controls)) {
+              protective_col <- col
+              break
+            }
+          }
+
+          if (!is.null(protective_col)) {
+            for (i in 1:min(2, nrow(protective_controls))) {
+              protective_label <- paste("🛡️", substr(as.character(protective_controls[[protective_col]][i]), 1, 12))
+              nodes <- rbind(nodes, data.frame(
+                x = 0.7, y = 0.3 + (i-1) * 0.1,
+                label = protective_label,
+                type = "protective",
+                stringsAsFactors = FALSE
+              ))
+            }
+          } else {
+            cat("Warning: No recognized protective control column found in:", paste(names(protective_controls), collapse = ", "), "\n")
+          }
+        }
+
+        # Create connections data frame
+        connections <- data.frame(
+          x1 = numeric(0), y1 = numeric(0),
+          x2 = numeric(0), y2 = numeric(0),
+          stringsAsFactors = FALSE
+        )
+
+        # Add connections from activities to center
+        activity_nodes <- nodes[nodes$type == "activity", , drop = FALSE]
+        if (nrow(activity_nodes) > 0) {
+          for (i in 1:nrow(activity_nodes)) {
+            connections <- rbind(connections, data.frame(
+              x1 = activity_nodes$x[i], y1 = activity_nodes$y[i],
+              x2 = center_x, y2 = center_y,
+              stringsAsFactors = FALSE
+            ))
+          }
+        }
+
+        # Add connections from center to consequences
+        consequence_nodes <- nodes[nodes$type == "consequence", , drop = FALSE]
+        if (nrow(consequence_nodes) > 0) {
+          for (i in 1:nrow(consequence_nodes)) {
+            connections <- rbind(connections, data.frame(
+              x1 = center_x, y1 = center_y,
+              x2 = consequence_nodes$x[i], y2 = consequence_nodes$y[i],
+              stringsAsFactors = FALSE
+            ))
+          }
+        }
+
+        # Define colors for each type
+        type_colors <- c(
+          "problem" = "#FF6B6B",
+          "activity" = "#4ECDC4",
+          "pressure" = "#45B7D1",
+          "preventive" = "#96CEB4",
+          "consequence" = "#FFEAA7",
+          "protective" = "#DDA0DD"
+        )
+
+        # Create the plot
+        p <- ggplot() +
+          theme_void() +
+          theme(
+            plot.background = element_rect(fill = "white", color = NA),
+            panel.background = element_rect(fill = "white", color = NA)
+          ) +
+          xlim(0, 1) + ylim(0, 1)
+
+        # Add connections with enhanced arrows
+        if (nrow(connections) > 0) {
+          p <- p + geom_segment(data = connections,
+                               aes(x = x1, y = y1, xend = x2, yend = y2),
+                               arrow = arrow(length = unit(0.02, "npc"), type = "closed"),
+                               color = "#666666", linewidth = 1.2, alpha = 0.8)
+        }
+
+        # Add nodes with enhanced styling
+        if (nrow(nodes) > 0) {
+          # Filter type_colors to only include types present in nodes
+          present_types <- unique(nodes$type)
+          filtered_colors <- type_colors[names(type_colors) %in% present_types]
+
+          # Determine node sizes based on type
+          node_sizes <- ifelse(nodes$type == "problem", 16, 12)
+
+          p <- p + geom_point(data = nodes,
+                             aes(x = x, y = y, color = type),
+                             size = node_sizes, alpha = 0.9) +
+                   scale_color_manual(values = filtered_colors,
+                                    limits = present_types) +
+                   geom_text(data = nodes,
+                            aes(x = x, y = y, label = label),
+                            size = 3.5, hjust = 0.5, vjust = 0.5,
+                            color = "white", fontface = "bold")
+        }
+
+        # Add enhanced legend with icons
+        p <- p + guides(color = guide_legend(title = "🎯 Bowtie Elements",
+                                           override.aes = list(size = 6))) +
+                theme(legend.position = "bottom",
+                      legend.title = element_text(size = 12, face = "bold"),
+                      legend.text = element_text(size = 10),
+                      legend.background = element_rect(fill = "white", color = "gray80"),
+                      legend.margin = margin(10, 10, 10, 10))
+
+        p
+      }
+    }, error = function(e) {
+      # Fallback plot if ggplot2 fails
+      plot.new()
+      text(0.5, 0.5, paste("Error creating bowtie diagram:", e$message), cex = 1)
+    })
+  })
+
+  # =============================================================================
+  # Step 8: Export Functionality Handlers
+  # =============================================================================
+
+  # Download bowtie files handler
+  output$download_bowtie <- downloadHandler(
+    filename = function() {
+      timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+      project_name <- if (!is.null(workflow_state()$project_name)) {
+        gsub("[^A-Za-z0-9_-]", "_", workflow_state()$project_name)
+      } else {
+        "Bowtie_Analysis"
+      }
+      paste0(project_name, "_", timestamp, ".zip")
+    },
+    content = function(file) {
+      tryCatch({
+        # Create temporary directory
+        temp_dir <- tempdir()
+        files_to_zip <- c()
+
+        # Get current workflow data
+        current_state <- workflow_state()
+        selected_formats <- input$export_formats
+        report_sections <- input$report_sections
+
+        # Collect all workflow data
+        workflow_data <- list(
+          project_info = list(
+            name = current_state$project_name %||% "Environmental Risk Assessment Project",
+            central_problem = current_state$central_problem %||% problem_statement_reactive() %||% "",
+            timestamp = Sys.time(),
+            created_by = "Guided Workflow System v5.1.0"
+          ),
+          activities = selected_items$activities %||% data.frame(),
+          pressures = selected_items$pressures %||% data.frame(),
+          controls = selected_items$controls %||% data.frame(),
+          consequences = selected_items$consequences %||% data.frame(),
+          protective_controls = selected_items$protective_controls %||% data.frame()
+        )
+
+        # Generate files based on selected formats
+        if ("excel" %in% selected_formats) {
+          excel_file <- file.path(temp_dir, "bowtie_analysis.xlsx")
+          if (require(openxlsx, quietly = TRUE)) {
+            wb <- createWorkbook()
+
+            # Project info sheet
+            addWorksheet(wb, "Project_Info")
+            writeData(wb, "Project_Info", data.frame(
+              Field = c("Project Name", "Central Problem", "Created", "Timestamp"),
+              Value = c(
+                workflow_data$project_info$name,
+                workflow_data$project_info$central_problem,
+                workflow_data$project_info$created_by,
+                as.character(workflow_data$project_info$timestamp)
+              )
+            ))
+
+            # Data sheets
+            if (nrow(workflow_data$activities) > 0) {
+              addWorksheet(wb, "Activities")
+              writeData(wb, "Activities", workflow_data$activities)
+            }
+            if (nrow(workflow_data$pressures) > 0) {
+              addWorksheet(wb, "Pressures")
+              writeData(wb, "Pressures", workflow_data$pressures)
+            }
+            if (nrow(workflow_data$controls) > 0) {
+              addWorksheet(wb, "Preventive_Controls")
+              writeData(wb, "Preventive_Controls", workflow_data$controls)
+            }
+            if (nrow(workflow_data$consequences) > 0) {
+              addWorksheet(wb, "Consequences")
+              writeData(wb, "Consequences", workflow_data$consequences)
+            }
+            if (nrow(workflow_data$protective_controls) > 0) {
+              addWorksheet(wb, "Protective_Controls")
+              writeData(wb, "Protective_Controls", workflow_data$protective_controls)
+            }
+
+            saveWorkbook(wb, excel_file, overwrite = TRUE)
+            files_to_zip <- c(files_to_zip, excel_file)
+          }
+        }
+
+        if ("csv" %in% selected_formats) {
+          # Export each data frame as separate CSV
+          if (nrow(workflow_data$activities) > 0) {
+            csv_file <- file.path(temp_dir, "activities.csv")
+            write.csv(workflow_data$activities, csv_file, row.names = FALSE)
+            files_to_zip <- c(files_to_zip, csv_file)
+          }
+          if (nrow(workflow_data$pressures) > 0) {
+            csv_file <- file.path(temp_dir, "pressures.csv")
+            write.csv(workflow_data$pressures, csv_file, row.names = FALSE)
+            files_to_zip <- c(files_to_zip, csv_file)
+          }
+          if (nrow(workflow_data$controls) > 0) {
+            csv_file <- file.path(temp_dir, "preventive_controls.csv")
+            write.csv(workflow_data$controls, csv_file, row.names = FALSE)
+            files_to_zip <- c(files_to_zip, csv_file)
+          }
+          if (nrow(workflow_data$consequences) > 0) {
+            csv_file <- file.path(temp_dir, "consequences.csv")
+            write.csv(workflow_data$consequences, csv_file, row.names = FALSE)
+            files_to_zip <- c(files_to_zip, csv_file)
+          }
+          if (nrow(workflow_data$protective_controls) > 0) {
+            csv_file <- file.path(temp_dir, "protective_controls.csv")
+            write.csv(workflow_data$protective_controls, csv_file, row.names = FALSE)
+            files_to_zip <- c(files_to_zip, csv_file)
+          }
+        }
+
+        if ("json" %in% selected_formats) {
+          json_file <- file.path(temp_dir, "bowtie_analysis.json")
+          if (require(jsonlite, quietly = TRUE)) {
+            writeLines(toJSON(workflow_data, pretty = TRUE), json_file)
+            files_to_zip <- c(files_to_zip, json_file)
+          }
+        }
+
+        if ("png" %in% selected_formats) {
+          png_file <- file.path(temp_dir, "bowtie_diagram.png")
+          if (require(ggplot2, quietly = TRUE)) {
+            # Create enhanced bowtie diagram
+            ggsave(png_file, plot = last_plot(), width = 12, height = 8, dpi = 300)
+            files_to_zip <- c(files_to_zip, png_file)
+          }
+        }
+
+        # Create README file
+        readme_file <- file.path(temp_dir, "README.txt")
+        readme_content <- paste0(
+          "Environmental Bowtie Risk Analysis Export\n",
+          "=========================================\n\n",
+          "Project: ", workflow_data$project_info$name, "\n",
+          "Central Problem: ", workflow_data$project_info$central_problem, "\n",
+          "Generated: ", workflow_data$project_info$timestamp, "\n",
+          "Created by: ", workflow_data$project_info$created_by, "\n\n",
+          "Files included:\n",
+          paste0("- ", basename(files_to_zip), collapse = "\n"), "\n\n",
+          "Data Summary:\n",
+          "- Activities: ", nrow(workflow_data$activities), " items\n",
+          "- Pressures: ", nrow(workflow_data$pressures), " items\n",
+          "- Preventive Controls: ", nrow(workflow_data$controls), " items\n",
+          "- Consequences: ", nrow(workflow_data$consequences), " items\n",
+          "- Protective Controls: ", nrow(workflow_data$protective_controls), " items\n"
+        )
+        writeLines(readme_content, readme_file)
+        files_to_zip <- c(files_to_zip, readme_file)
+
+        # Create ZIP file
+        if (length(files_to_zip) > 0) {
+          zip(file, files_to_zip, flags = "-j")  # -j flag excludes directory structure
+        } else {
+          # Create empty file if no data
+          writeLines("No data available for export", file)
+        }
+
+      }, error = function(e) {
+        # Error handling - create simple text file with error message
+        writeLines(paste("Export error:", e$message), file)
+      })
+    }
+  )
+
+  # Save to cloud handler (placeholder functionality)
+  observeEvent(input$save_to_cloud, {
+    tryCatch({
+      # Get current workflow data
+      current_state <- workflow_state()
+
+      # For now, show a success message (cloud integration would go here)
+      showModal(modalDialog(
+        title = "☁️ Cloud Save Feature",
+        div(
+          h4("🚧 Development Notice"),
+          p("The cloud save functionality is currently in development."),
+          p("Your bowtie analysis has been prepared for cloud storage with the following details:"),
+          hr(),
+          p(strong("Project Name:"), current_state$project_name %||% "Unnamed Project"),
+          p(strong("Central Problem:"), current_state$central_problem %||% "Not defined"),
+          p(strong("Data Components:")),
+          tags$ul(
+            tags$li("Activities: ", nrow(selected_items$activities %||% data.frame()), " items"),
+            tags$li("Pressures: ", nrow(selected_items$pressures %||% data.frame()), " items"),
+            tags$li("Preventive Controls: ", nrow(selected_items$controls %||% data.frame()), " items"),
+            tags$li("Consequences: ", nrow(selected_items$consequences %||% data.frame()), " items"),
+            tags$li("Protective Controls: ", nrow(selected_items$protective_controls %||% data.frame()), " items")
+          ),
+          hr(),
+          p("💡 ", strong("Tip:"), " Use the Download Files button to export your analysis locally."),
+          p("🔄 Cloud integration will be available in a future update.")
+        ),
+        footer = tagList(
+          modalButton("Close"),
+          downloadButton("download_from_modal", "📥 Download Instead", class = "btn-success")
+        ),
+        easyClose = TRUE,
+        size = "l"
+      ))
+
+      # Show notification
+      showNotification(
+        "☁️ Cloud save initiated (development mode)",
+        type = "message",
+        duration = 3
+      )
+
+    }, error = function(e) {
+      showNotification(
+        paste("❌ Cloud save error:", e$message),
+        type = "error",
+        duration = 5
+      )
+    })
+  })
+
+  # Alternative download from modal
+  output$download_from_modal <- downloadHandler(
+    filename = function() {
+      timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+      project_name <- if (!is.null(workflow_state()$project_name)) {
+        gsub("[^A-Za-z0-9_-]", "_", workflow_state()$project_name)
+      } else {
+        "Bowtie_Analysis"
+      }
+      paste0(project_name, "_", timestamp, ".zip")
+    },
+    content = function(file) {
+      # Reuse the same content generation logic as main download
+      # This ensures consistency between download methods
+      if (exists("output") && exists("download_bowtie", envir = as.environment(output))) {
+        # Call the main download handler's content function
+        output$download_bowtie$content(file)
+      } else {
+        writeLines("Error: Download functionality not available", file)
+      }
+    }
+  )
+
+  # =============================================================================
+  # GUIDED WORKFLOW TO MAIN APP DATA CONVERSION
+  # =============================================================================
+
+  # Convert guided workflow data to main application format
+  convert_workflow_to_main_format <- function() {
+    tryCatch({
+      # Get current workflow data
+      current_state <- workflow_state()
+
+      # Check if we have sufficient data
+      if (is.null(selected_items$activities) || nrow(selected_items$activities) == 0 ||
+          is.null(selected_items$pressures) || nrow(selected_items$pressures) == 0) {
+        showNotification("⚠️ Need at least activities and pressures to convert data",
+                        type = "warning", duration = 4)
+        return(NULL)
+      }
+
+      # Create all possible combinations (Cartesian product)
+      activities_df <- selected_items$activities
+      pressures_df <- selected_items$pressures
+      controls_df <- selected_items$controls %||% data.frame(name = "No Preventive Control Specified")
+      consequences_df <- selected_items$consequences %||% data.frame(name = "Environmental Impact")
+      protective_df <- selected_items$protective_controls %||% data.frame(name = "Emergency Response Measures")
+
+      # Generate main application format data
+      converted_data <- data.frame()
+
+      # Create combinations based on available data
+      for (i in 1:nrow(activities_df)) {
+        for (j in 1:nrow(pressures_df)) {
+          for (k in 1:min(nrow(controls_df), 3)) {  # Limit to 3 controls per combination
+            for (l in 1:min(nrow(consequences_df), 2)) {  # Limit to 2 consequences per combination
+              for (m in 1:min(nrow(protective_df), 2)) {  # Limit to 2 protective controls
+
+                new_row <- data.frame(
+                  # Core bowtie components
+                  Activity = activities_df$name[i],
+                  Pressure = pressures_df$name[j],
+                  Preventive_Control = controls_df$name[k],
+                  Central_Problem = current_state$central_problem %||% problem_statement_reactive() %||% "Environmental Risk Assessment",
+                  Consequence = consequences_df$name[l],
+                  Protective_Mitigation = protective_df$name[m],
+
+                  # Generated escalation factors (realistic examples)
+                  Escalation_Factor = sample(c(
+                    "Extreme weather events and system stress",
+                    "Equipment malfunction and human error",
+                    "Infrastructure failures during peak demand",
+                    "Economic pressures reducing maintenance",
+                    "Climate change altering environmental conditions",
+                    "Regulatory compliance failures",
+                    "Emergency response delays"
+                  ), 1),
+
+                  # Risk assessment scores (randomized but realistic)
+                  Activity_to_Pressure_Likelihood = sample(2:5, 1),
+                  Activity_to_Pressure_Severity = sample(2:5, 1),
+                  Pressure_to_Control_Effectiveness = sample(2:5, 1),
+                  Control_to_Problem_Prevention = sample(2:5, 1),
+                  Problem_to_Consequence_Likelihood = sample(2:5, 1),
+                  Problem_to_Consequence_Severity = sample(2:5, 1),
+                  Consequence_to_Protection_Effectiveness = sample(2:5, 1),
+                  Protection_to_Recovery_Success = sample(2:5, 1),
+
+                  # Escalation factor connection scores
+                  Control_to_Escalation_Likelihood = sample(2:5, 1),
+                  Control_to_Escalation_Severity = sample(2:5, 1),
+                  Escalation_to_Central_Likelihood = sample(2:5, 1),
+                  Escalation_to_Central_Severity = sample(2:5, 1),
+
+                  stringsAsFactors = FALSE
+                )
+
+                # Calculate combined risk scores
+                new_row$Activity_to_Pressure_Risk <- new_row$Activity_to_Pressure_Likelihood * new_row$Activity_to_Pressure_Severity
+                new_row$Problem_to_Consequence_Risk <- new_row$Problem_to_Consequence_Likelihood * new_row$Problem_to_Consequence_Severity
+                new_row$Overall_Pathway_Risk <- (new_row$Activity_to_Pressure_Risk + new_row$Problem_to_Consequence_Risk) / 2
+
+                # Add main app required columns
+                new_row$Likelihood <- new_row$Problem_to_Consequence_Likelihood
+                new_row$Severity <- new_row$Problem_to_Consequence_Severity
+                risk_score <- new_row$Likelihood * new_row$Severity
+                new_row$Risk_Level <- ifelse(risk_score <= 6, "Low",
+                                           ifelse(risk_score <= 15, "Medium", "High"))
+
+                converted_data <- rbind(converted_data, new_row)
+              }
+            }
+          }
+        }
+      }
+
+      # Limit total rows to prevent overwhelming the interface
+      if (nrow(converted_data) > 100) {
+        converted_data <- converted_data[sample(nrow(converted_data), 100), ]
+        showNotification("📊 Converted data limited to 100 scenarios for performance",
+                        type = "message", duration = 3)
+      }
+
+      return(converted_data)
+
+    }, error = function(e) {
+      cat("❌ Error converting workflow data:", e$message, "\n")
+      showNotification(paste("❌ Data conversion error:", e$message),
+                      type = "error", duration = 5)
+      return(NULL)
+    })
+  }
+
+  # Export workflow data to main application
+  observeEvent(input$export_to_main_app, {
+    showNotification("🔄 Converting guided workflow data to main application format...",
+                    type = "default", duration = 3)
+
+    converted_data <- convert_workflow_to_main_format()
+
+    if (!is.null(converted_data) && nrow(converted_data) > 0) {
+
+      # Store converted data in workflow state for external access
+      current_state <- workflow_state()
+      current_state$converted_main_data <- converted_data
+      workflow_state(current_state)
+
+      showNotification(
+        paste("✅ Successfully converted", nrow(converted_data),
+              "bowtie scenarios! Data is ready for main application."),
+        type = "message", duration = 5
+      )
+
+      # Additional notification with instructions
+      showNotification(
+        "📋 Navigate to other tabs to view your data in bowtie diagrams, risk matrices, and data tables.",
+        type = "message", duration = 7
+      )
+
+    } else {
+      showNotification("❌ Failed to convert workflow data. Please ensure you have completed the workflow.",
+                      type = "error", duration = 5)
+    }
   })
 
   # Return workflow state for integration

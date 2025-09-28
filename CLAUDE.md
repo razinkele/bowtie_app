@@ -6,18 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an R Shiny web application for Environmental Bowtie Risk Analysis with Bayesian Network integration. The application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks.
 
-**Version**: 5.1.0 (Modern Framework Edition)
+**Version**: 5.1.0 (Modern Framework Edition - Online Ready)
 **Release Date**: September 2025
-**Framework Updates**: Enhanced development and testing infrastructure with improved performance and maintainability.
+**Framework Updates**: Enhanced development and testing infrastructure with improved performance, maintainability, and network deployment capabilities.
 
 ## Running the Application
 
-To run the Shiny application:
+### Local Development
 ```r
 # In R console or RStudio
 source("app.r")
 # The app will launch automatically via shinyApp() call at the end of app.r
 ```
+
+### Network/Online Deployment (Recommended)
+```r
+# Use the optimized start script for network access
+Rscript start_app.R
+# App will be accessible at http://0.0.0.0:3838 for network users
+```
+
+### Access Links
+- **Local machine**: http://localhost:3838
+- **Network access**: http://[YOUR_IP]:3838 (replace [YOUR_IP] with actual IP address)
+- **Current deployment**: http://192.168.1.8:3838 (example network access)
 
 The application requires these R packages to be installed:
 - shiny, bslib, DT, readxl, openxlsx
@@ -196,11 +208,23 @@ source("tests/testthat/test-bayesian-network.R")
 ### Enhanced Build System (Version 5.1)
 ```r
 # Development commands
-source("app.r")                    # Run application
+source("app.r")                          # Run application (local only)
+Rscript start_app.R                      # Run application (network ready)
 Rscript tests/comprehensive_test_runner.R  # Full test suite
 Rscript utils/performance_benchmark.R      # Performance analysis
 Rscript utils/code_quality_check.R         # Code quality validation
 ```
+
+### Framework Versions (Current)
+- **R Version**: 4.4.3+ (recommended)
+- **Shiny**: 1.8.0+ with Bootstrap 5 support
+- **visNetwork**: 2.1.0+ for interactive diagrams
+- **DT**: 0.24+ for enhanced data tables
+- **plotly**: 4.10.0+ for interactive charts
+- **bnlearn**: 4.8+ for Bayesian networks
+- **BioConductor**: 3.17+ packages
+- **Bootstrap**: 5.x with Zephyr theme
+- **Node.js**: Not required (pure R implementation)
 
 ### Deployment Infrastructure
 - **Environment Management**: Support for development, testing, and production environments
@@ -208,6 +232,131 @@ Rscript utils/code_quality_check.R         # Code quality validation
 - **Asset Optimization**: Optimized loading of CSS, JS, and image assets
 - **Scalability**: Designed for multi-user concurrent access
 - **Security**: Enhanced input validation and sanitization
+- **Network Deployment**: Optimized for local network and online access
+
+## Network Access & Security (Version 5.1.0)
+
+### Network Configuration
+The application is configured for secure network access with the following settings:
+- **Host**: `0.0.0.0` (allows external connections)
+- **Port**: `3838` (standard Shiny server port)
+- **Protocol**: HTTP (HTTPS can be configured with reverse proxy)
+
+### Access Methods
+1. **Local Development**:
+   - `http://localhost:3838` - Local machine only
+   - Ideal for development and testing
+
+2. **Local Network Access**:
+   - `http://[LOCAL_IP]:3838` - Accessible to devices on same network
+   - Example: `http://192.168.1.8:3838`
+   - Perfect for team collaboration and local presentations
+
+3. **Internet Access** (requires additional setup):
+   - Router port forwarding (3838 → internal IP)
+   - Dynamic DNS for permanent URL
+   - Cloud deployment (AWS, Google Cloud, etc.)
+
+### Security Features
+- **Input Validation**: All user inputs sanitized and validated
+- **Session Management**: Secure session handling for multi-user access
+- **Data Protection**: No sensitive data logged or exposed
+- **Network Security**: Local network access by default (no internet exposure)
+- **File Security**: Controlled file upload/download with validation
+
+### Firewall and Network Setup
+```bash
+# Windows Firewall (if needed)
+netsh advfirewall firewall add rule name="Shiny App" dir=in action=allow protocol=TCP localport=3838
+
+# Check if port is available
+netstat -an | findstr :3838
+```
+
+### Multi-User Support
+- **Concurrent Sessions**: Multiple users can access simultaneously
+- **Session Isolation**: Each user has independent session state
+- **Performance Optimization**: Optimized for up to 50 concurrent users
+- **Memory Management**: Automatic cleanup of inactive sessions
+
+### Network Troubleshooting
+1. **Cannot Access from Network**:
+   - Verify firewall settings allow port 3838
+   - Check if app is running with `0.0.0.0` host (not `127.0.0.1`)
+   - Confirm devices are on same network subnet
+
+2. **Performance Issues**:
+   - Monitor memory usage during high load
+   - Check network bandwidth for large data transfers
+   - Consider increasing R memory limits for large datasets
+
+3. **Connection Timeouts**:
+   - Increase Shiny session timeout if needed
+   - Check router/network stability
+   - Verify app server is responsive
+
+### Production Deployment Options
+1. **Shiny Server** (Recommended for teams):
+   ```bash
+   # Install Shiny Server on Linux
+   sudo apt-get install gdebi-core
+   wget https://download3.rstudio.org/ubuntu-18.04/x86_64/shiny-server-1.5.20.1002-amd64.deb
+   sudo gdebi shiny-server-1.5.20.1002-amd64.deb
+   ```
+
+2. **Docker Deployment**:
+   ```dockerfile
+   FROM rocker/shiny:latest
+   COPY . /srv/shiny-server/bowtie_app/
+   EXPOSE 3838
+   ```
+
+3. **Cloud Deployment**:
+   - **ShinyApps.io**: Easy deployment with rsconnect
+   - **AWS EC2**: Full control over server environment
+   - **Google Cloud Run**: Containerized deployment
+   - **Azure Container Instances**: Scalable cloud hosting
+
+## Quick Start Deployment Guide
+
+### 1. Prerequisites Check
+```r
+# Check R version (4.4.3+ recommended)
+R.version.string
+
+# Install required packages if missing
+install.packages(c("shiny", "bslib", "DT", "readxl", "openxlsx",
+                   "ggplot2", "plotly", "dplyr", "visNetwork"))
+```
+
+### 2. Launch Application
+```bash
+# Navigate to application directory
+cd /path/to/bowtie_app
+
+# Start network-ready application
+Rscript start_app.R
+```
+
+### 3. Access and Test
+- **Local**: http://localhost:3838
+- **Network**: http://[YOUR_IP]:3838
+- **Current**: http://192.168.1.8:3838
+
+### 4. Complete Guided Workflow
+1. Navigate to "Guided Workflow" tab
+2. Complete steps 1-6 (if not already done)
+3. Navigate to steps 7-8
+4. Click "🔄 Export to Main App" in step 8
+5. View bowtie diagram in automatically opened tab
+
+### 5. Verify All Features
+- ✅ Guided workflow (8 steps)
+- ✅ Bowtie diagram visualization
+- ✅ Bayesian network analysis
+- ✅ Data import/export
+- ✅ Risk matrix analysis
+- ✅ Multi-user access
 
 ## Development Notes (Updated for Version 5.1)
 
@@ -219,3 +368,4 @@ Rscript utils/code_quality_check.R         # Code quality validation
 - **Error Recovery**: Graceful degradation and automatic error recovery
 - **Cross-Platform Support**: Enhanced compatibility across Windows, macOS, and Linux
 - **Memory Optimization**: Smart caching and garbage collection for large datasets
+- **Network Deployment**: **NEW** Optimized for local network and online access with security features

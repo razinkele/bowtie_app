@@ -3,7 +3,7 @@
 
 ui <- fluidPage(
   useShinyjs(),
-  theme = bs_theme(version = 5, bootswatch = "journal"),
+  theme = bs_theme(version = 5, bootswatch = "zephyr"),
 
   # Add custom CSS for PNG image styling and enhanced layout
   tags$head(
