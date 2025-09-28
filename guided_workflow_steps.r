@@ -54,13 +54,7 @@ generate_step4_ui <- function(vocabulary_data = NULL) {
              
              # Control search input with vocabulary choices
              selectizeInput("control_search", "Search Control Measures:",
-                          choices = if (!is.null(vocabulary_data) &&
-                                       !is.null(vocabulary_data$controls) &&
-                                       nrow(vocabulary_data$controls) > 0) {
-                            setNames(vocabulary_data$controls$name, vocabulary_data$controls$name)
-                          } else {
-                            character(0)  # Empty character vector instead of NULL
-                          },
+                          choices = character(0),  # Always start with empty choices
                           selected = NULL,  # Use NULL instead of character(0)
                           multiple = FALSE,
                           options = list(
@@ -162,13 +156,7 @@ generate_step5_ui <- function(vocabulary_data = NULL) {
                         )),
              
              selectizeInput("consequence_search", "Search Consequences:",
-                           choices = if (!is.null(vocabulary_data) &&
-                                        !is.null(vocabulary_data$consequences) &&
-                                        nrow(vocabulary_data$consequences) > 0) {
-                             setNames(vocabulary_data$consequences$name, vocabulary_data$consequences$name)
-                           } else {
-                             character(0)  # Empty character vector instead of NULL
-                           },
+                           choices = character(0),  # Always start with empty choices
                            selected = NULL,  # Use NULL instead of character(0)
                            multiple = FALSE,
                            options = list(
@@ -304,13 +292,7 @@ generate_step6_ui <- function(vocabulary_data = NULL) {
              ),
              
              selectizeInput("protective_search", "Search Protective Controls:",
-                           choices = if (!is.null(vocabulary_data) &&
-                                        !is.null(vocabulary_data$controls) &&
-                                        nrow(vocabulary_data$controls) > 0) {
-                             setNames(vocabulary_data$controls$name, vocabulary_data$controls$name)
-                           } else {
-                             character(0)
-                           },
+                           choices = character(0),
                            selected = NULL,
                            options = list(
                              placeholder = "Type to search protective controls...",

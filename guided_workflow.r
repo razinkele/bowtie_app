@@ -473,7 +473,7 @@ generate_step3_ui <- function(vocabulary_data = NULL) {
                  }
 
                  selectizeInput("activity_search", "Search Activities:",
-                              choices = if (is.null(activity_choices)) character(0) else activity_choices,
+                              choices = character(0),  # Start with empty choices
                               selected = NULL,
                               options = list(
                                 placeholder = "Type to search activities...",
@@ -515,7 +515,7 @@ generate_step3_ui <- function(vocabulary_data = NULL) {
                  }
 
                  selectizeInput("pressure_search", "Search Pressures:",
-                              choices = if (is.null(pressure_choices)) character(0) else pressure_choices,
+                              choices = character(0),  # Start with empty choices
                               selected = NULL,
                               options = list(
                                 placeholder = "Type to search pressures...",
@@ -561,7 +561,13 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   
   # Initialize workflow state
   workflow_state <- reactiveVal(init_workflow_state())
-  
+
+  # Separate reactive value for current step (isolated from input updates)
+  current_step <- reactiveVal(1)
+
+  # Loading flag to prevent observer interference during restoration
+  loading_in_progress <- reactiveVal(FALSE)
+
   # Render progress UI
   output$workflow_progress_ui <- renderUI({
     workflow_progress_ui(workflow_state())
@@ -574,6 +580,8 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   
   # Handle step navigation
   observeEvent(input$goto_step, {
+    current_step(as.numeric(input$goto_step))
+    # Also update main workflow state for saving
     state <- workflow_state()
     state$current_step <- input$goto_step
     workflow_state(state)
@@ -598,11 +606,11 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
     )
   })
   
-  # Render current step content
+  # Render current step content (isolated from input updates)
   output$current_step_content <- renderUI({
-    current_step <- workflow_state()$current_step
+    step_num <- current_step()
 
-    switch(current_step,
+    switch(as.character(step_num),
            "1" = generate_step1_ui(),
            "2" = generate_step2_ui(),
            "3" = generate_step3_ui(vocabulary_data),
@@ -644,16 +652,20 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   observeEvent(input$next_step, {
     state <- workflow_state()
     if (state$current_step < state$total_steps) {
-      state$current_step <- state$current_step + 1
+      new_step <- state$current_step + 1
+      current_step(new_step)
+      state$current_step <- new_step
       state$completed_steps <- unique(c(state$completed_steps, state$current_step - 1))
       workflow_state(update_workflow_progress(state))
     }
   })
-  
+
   observeEvent(input$prev_step, {
     state <- workflow_state()
     if (state$current_step > 1) {
-      state$current_step <- state$current_step - 1
+      new_step <- state$current_step - 1
+      current_step(new_step)
+      state$current_step <- new_step
       workflow_state(state)
     }
   })
@@ -661,25 +673,46 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   # Initialize problem statement as reactive value for editing
   problem_statement_reactive <- reactiveVal("")
 
-  # Sync problem statement when input changes
-  observeEvent(input$problem_statement, {
-    if (!is.null(input$problem_statement)) {
-      problem_statement_reactive(input$problem_statement)
-      # Also update workflow state
-      state <- workflow_state()
-      state$central_problem <- input$problem_statement
-      workflow_state(state)
-    }
-  })
+  # Create separate reactive values for input storage (don't trigger UI re-renders)
+  input_values <- reactiveValues(
+    project_name = "",
+    problem_statement = ""
+  )
 
-  # Sync project name when input changes (Step 1)
+  # Create debounced reactive values to prevent rapid updates
+  problem_statement_debounced <- debounce(reactive(input$problem_statement), 1000)
+  project_name_debounced <- debounce(reactive(input$project_name), 1000)
+
+  # Update input storage immediately (for immediate feedback) without touching workflow_state
+  observeEvent(input$problem_statement, {
+    if (!is.null(input$problem_statement) && !loading_in_progress()) {
+      problem_statement_reactive(input$problem_statement)
+      input_values$problem_statement <- input$problem_statement
+    }
+  }, ignoreInit = TRUE)
+
   observeEvent(input$project_name, {
-    if (!is.null(input$project_name)) {
+    if (!is.null(input$project_name) && !loading_in_progress()) {
+      input_values$project_name <- input$project_name
+    }
+  }, ignoreInit = TRUE)
+
+  # Only update main workflow state on debounced changes (for save functionality)
+  observeEvent(problem_statement_debounced(), {
+    if (!is.null(problem_statement_debounced()) && !loading_in_progress()) {
       state <- workflow_state()
-      state$project_name <- input$project_name
+      state$central_problem <- problem_statement_debounced()
       workflow_state(state)
     }
-  })
+  }, ignoreInit = TRUE)
+
+  observeEvent(project_name_debounced(), {
+    if (!is.null(project_name_debounced()) && !loading_in_progress()) {
+      state <- workflow_state()
+      state$project_name <- project_name_debounced()
+      workflow_state(state)
+    }
+  }, ignoreInit = TRUE)
 
   # Reactive values to store selected activities and pressures
   selected_items <- reactiveValues(
@@ -689,6 +722,45 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
     consequences = data.frame(name = character(), stringsAsFactors = FALSE),
     protective_controls = data.frame(name = character(), stringsAsFactors = FALSE)
   )
+
+  # Update selectizeInput choices when steps change
+  observe({
+    current_step_value <- current_step()
+    if (!is.null(vocabulary_data)) {
+      # Step 3: Update activity and pressure search choices
+      if (current_step_value == 3) {
+        if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
+          activity_choices <- setNames(vocabulary_data$activities$name, vocabulary_data$activities$name)
+          updateSelectizeInput(session, "activity_search", choices = activity_choices, selected = character(0), server = TRUE)
+        }
+        if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
+          pressure_choices <- setNames(vocabulary_data$pressures$name, vocabulary_data$pressures$name)
+          updateSelectizeInput(session, "pressure_search", choices = pressure_choices, selected = character(0), server = TRUE)
+        }
+      }
+      # Step 4: Update control search choices
+      else if (current_step_value == 4) {
+        if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+          control_choices <- setNames(vocabulary_data$controls$name, vocabulary_data$controls$name)
+          updateSelectizeInput(session, "control_search", choices = control_choices, selected = character(0), server = TRUE)
+        }
+      }
+      # Step 5: Update consequence search choices
+      else if (current_step_value == 5) {
+        if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
+          consequence_choices <- setNames(vocabulary_data$consequences$name, vocabulary_data$consequences$name)
+          updateSelectizeInput(session, "consequence_search", choices = consequence_choices, selected = character(0), server = TRUE)
+        }
+      }
+      # Step 6: Update protective control search choices
+      else if (current_step_value == 6) {
+        if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+          protective_choices <- setNames(vocabulary_data$controls$name, vocabulary_data$controls$name)
+          updateSelectizeInput(session, "protective_search", choices = protective_choices, selected = character(0), server = TRUE)
+        }
+      }
+    }
+  })
 
   # Handle Add Activity button
   observeEvent(input$add_activity, {
@@ -866,10 +938,10 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
           protective_controls = isolate(selected_items$protective_controls)
         ),
         inputs = list(
-          project_name = input$project_name %||% "",
+          project_name = input_values$project_name %||% input$project_name %||% "",
           project_description = input$project_description %||% "",
           analysis_scope = input$analysis_scope %||% "",
-          problem_statement = input$problem_statement %||% ""
+          problem_statement = input_values$problem_statement %||% input$problem_statement %||% ""
         )
       )
 
@@ -898,10 +970,14 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   # Load progress handler
   observeEvent(input$workflow_load, {
     tryCatch({
+      # Set loading flag to prevent observer interference
+      loading_in_progress(TRUE)
+
       # Get list of available save files
       save_files <- list.files(pattern = "^workflow_progress_.*\\.rds$", full.names = TRUE)
 
       if (length(save_files) == 0) {
+        loading_in_progress(FALSE)
         showNotification(
           "No saved progress files found",
           type = "warning",
@@ -922,6 +998,9 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       current_state$central_problem <- load_data$inputs$problem_statement %||% ""
       workflow_state(current_state)
 
+      # Also update isolated step
+      current_step(as.numeric(load_data$current_step %||% 1))
+
       # Restore selected items
       selected_items$activities <- load_data$selected_items$activities %||% data.frame(name = character(), stringsAsFactors = FALSE)
       selected_items$pressures <- load_data$selected_items$pressures %||% data.frame(name = character(), stringsAsFactors = FALSE)
@@ -935,6 +1014,11 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
         updateTextAreaInput(session, "project_description", value = load_data$inputs$project_description %||% "")
         updateTextInput(session, "analysis_scope", value = load_data$inputs$analysis_scope %||% "")
         updateTextAreaInput(session, "problem_statement", value = load_data$inputs$problem_statement %||% "")
+
+        # Also update our internal reactive values
+        input_values$project_name <- load_data$inputs$project_name %||% ""
+        input_values$problem_statement <- load_data$inputs$problem_statement %||% ""
+        problem_statement_reactive(load_data$inputs$problem_statement %||% "")
       }
 
       # Show success message
@@ -946,7 +1030,12 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       )
       cat("✅ Progress loaded from:", latest_file, "\n")
 
+      # Reset loading flag to allow normal input behavior
+      loading_in_progress(FALSE)
+
     }, error = function(e) {
+      # Reset loading flag on error
+      loading_in_progress(FALSE)
       showNotification(
         paste("Error loading progress:", e$message),
         type = "error",
