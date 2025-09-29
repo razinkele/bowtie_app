@@ -1079,19 +1079,13 @@ generateEnvironmentalDataWithMultipleControls <- function() {
 }
 
 # Generate bowtie data using ALL vocabulary elements from Excel files
-generateDataFromVocabulary <- function() {
-  cat("🔄 Generating comprehensive bowtie data from ALL vocabulary elements...\n")
+generateDataFromVocabulary <- function(scenario_type = "marine_pollution") {
+  cat("🔄 Redirecting to FOCUSED bow-tie generation instead of comprehensive data...\n")
+  cat("📋 Using focused scenario:", scenario_type, "\n")
 
-  # Check if vocabulary_data is available
-  if (!exists("vocabulary_data") || is.null(vocabulary_data)) {
-    stop("Vocabulary data not available. Please ensure Excel files are loaded.")
-  }
+  # Redirect to our focused scenario-specific function
+  return(generateScenarioSpecificBowtie(scenario_type))
 
-  # Extract all vocabulary elements
-  activities <- vocabulary_data$activities
-  pressures <- vocabulary_data$pressures
-  consequences <- vocabulary_data$consequences
-  controls <- vocabulary_data$controls
 
   cat("📊 Using vocabulary data:\n")
   cat("   • Activities:", nrow(activities), "items\n")
