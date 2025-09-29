@@ -2,7 +2,7 @@
 
 A comprehensive R Shiny web application for environmental risk assessment using bow-tie diagrams enhanced with Bayesian network analysis and AI-powered vocabulary linking.
 
-![Version](https://img.shields.io/badge/version-5.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.2.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -25,29 +25,37 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 - [Contributing](#contributing)
 - [License](#license)
 
-## What's New in Version 5.1 (Modern Framework Edition)
+## What's New in Version 5.2 (Advanced Framework Edition)
 
-### 🚀 Enhanced Development Infrastructure
+### 🚀 Advanced Development Framework
+- **Hot Reload System**: Automatic file change detection and application restart
+- **Performance Profiling**: Real-time memory monitoring and performance metrics
+- **CI/CD Pipeline**: GitHub Actions integration with automated testing and deployment
+- **Docker Containerization**: Multi-stage builds for development, testing, and production
+- **Consistency Validation**: Automated checking of architectural improvements
+- **Security Scanning**: Automated vulnerability detection and code quality analysis
+
+### 🎯 Advanced Testing Framework
+- **Consistency Fixes Testing**: Validates architectural improvements and circular dependency fixes
+- **Performance Regression Testing**: Automated performance monitoring and baseline comparison
+- **Icon Standardization Testing**: Ensures consistent FontAwesome icon usage across interfaces
+- **Multi-version R Testing**: Automated testing across R 4.3.2 and 4.4.3
 - **Parallel Test Execution**: Faster test runs with concurrent testing capabilities
-- **Performance Benchmarking**: Automated performance regression detection and monitoring
 - **Memory Usage Monitoring**: Prevents memory leaks in long-running processes
-- **Bootstrap Theme Testing**: Validates UI components across all 21 available themes
-- **State Persistence Testing**: Ensures data integrity across application sessions
-- **Error Recovery Testing**: Validates graceful handling of edge cases and failures
 
-### 🎯 Modern Testing Framework
-- **95%+ Test Coverage**: Comprehensive coverage of all functions in core R files
-- **Cross-Platform Testing**: Automated testing across Windows, macOS, and Linux environments
-- **Security Testing**: Enhanced input validation and data sanitization testing
-- **Load Testing**: Application behavior validation under heavy concurrent usage
-- **AI Linking Validation**: Testing of semantic similarity algorithms and causal relationship detection
+### 🔧 Modern CI/CD Pipeline
+- **GitHub Actions Integration**: Complete automation for testing, security, and deployment
+- **Docker Containerization**: Multi-stage builds for all environments
+- **Container Orchestration**: Docker Compose with monitoring and load balancing
+- **Automated Deployment**: Streamlined deployment package creation
+- **Security Analysis**: Vulnerability scanning and code quality checks
+- **Performance Monitoring**: Real-time performance tracking and regression detection
 
-### 🔧 Development Tools Enhancement
-- **Structured Logging**: New logging system for debugging and monitoring
-- **Code Quality Validation**: Automated syntax checking and style validation
-- **Performance Profiling**: Built-in performance monitoring tools
-- **Environment Management**: Support for development, testing, and production environments
-- **Asset Optimization**: Optimized loading of CSS, JS, and image assets
+### 🎨 Consistency Improvements
+- **Resolved Circular Dependencies**: Eliminated problematic import loops in guided workflow
+- **Standardized Icon Usage**: Consistent FontAwesome icon implementation across all components
+- **Updated Documentation**: Accurate architectural documentation matching actual file structure
+- **Enhanced Module Loading**: Robust dependency management with error handling
 
 ## Overview
 
