@@ -1,8 +1,8 @@
 # =============================================================================
-# Performance Benchmark Tool for Environmental Bowtie Risk Analysis
-# Version: 5.1.0
+# Advanced Performance Benchmark Tool for Environmental Bowtie Risk Analysis
+# Version: 5.2.0 (Advanced Framework Edition)
 # Author: Enhanced Development Framework
-# Description: Comprehensive performance monitoring and benchmarking
+# Description: Comprehensive performance monitoring, regression detection, and optimization insights
 # =============================================================================
 
 # Load required libraries
@@ -23,13 +23,30 @@ source("vocabulary.r")
 # Core Performance Benchmarks
 # =============================================================================
 
-run_performance_benchmarks <- function() {
-  cat("🚀 Starting Performance Benchmark Suite\n")
-  cat("=======================================\n")
+run_performance_benchmarks <- function(include_regression_tests = TRUE,
+                                       generate_report = TRUE,
+                                       compare_baseline = TRUE) {
+  cat("🚀 Starting Advanced Performance Benchmark Suite v5.2\n")
+  cat("====================================================\n")
 
-  # Memory usage before tests
+  # Enhanced memory and system monitoring
   initial_memory <- pryr::mem_used()
-  cat("📊 Initial memory usage:", format(initial_memory, units = "Mb"), "\n\n")
+  system_info <- list(
+    r_version = R.version.string,
+    platform = Sys.info()[["sysname"]],
+    cores = parallel::detectCores(),
+    memory_gb = round(as.numeric(system("wmic computersystem get TotalPhysicalMemory /value", intern = TRUE)[2]) / 1024^3, 2)
+  )
+
+  cat("📊 System Information:\n")
+  cat("   R Version:", system_info$r_version, "\n")
+  cat("   Platform:", system_info$platform, "\n")
+  cat("   CPU Cores:", system_info$cores, "\n")
+  cat("   Initial Memory:", format(initial_memory, units = "Mb"), "\n\n")
+
+  # Initialize results storage
+  benchmark_results <- list()
+  start_time <- Sys.time()
 
   # 1. Data Loading Performance
   cat("1️⃣ Data Loading Performance\n")

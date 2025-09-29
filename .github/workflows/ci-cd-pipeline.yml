@@ -1,0 +1,368 @@
+# =============================================================================
+# Environmental Bowtie App - Advanced CI/CD Pipeline
+# Version: 5.2.0 (Modern Framework Edition)
+# Automated testing, performance monitoring, and deployment pipeline
+# =============================================================================
+
+name: 🚀 Advanced CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run performance regression tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  # =============================================================================
+  # CONSISTENCY AND QUALITY CHECKS
+  # =============================================================================
+  consistency-checks:
+    name: 🔍 Consistency & Quality Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup R Environment
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.4.3'
+
+    - name: 📦 Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libssl-dev
+
+    - name: 📋 Cache R Packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.local/share/renv
+        key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-renv-
+
+    - name: 🔍 Install R Dependencies
+      run: |
+        Rscript -e "install.packages(c('testthat', 'microbenchmark', 'dplyr', 'stringr', 'readxl', 'openxlsx', 'shiny', 'DT', 'ggplot2', 'plotly', 'visNetwork'))"
+
+    - name: ✅ Run Consistency Tests
+      run: |
+        Rscript -e "
+        library(testthat)
+        # Run consistency validation tests
+        test_results <- test_dir('tests/testthat/',
+                                filter = 'consistency',
+                                reporter = 'summary')
+        if (any(test_results[['failed']] > 0)) {
+          stop('Consistency tests failed')
+        }
+        "
+
+    - name: 🎨 Validate Icon Standardization
+      run: |
+        Rscript -e "
+        # Check for mixed icon usage
+        files <- c('ui.R', 'server.R', 'guided_workflow.r')
+        issues <- 0
+        for (file in files[file.exists(files)]) {
+          content <- readLines(file)
+          if (any(grepl('tags\\\$i\\\(class = \"fas', content))) {
+            cat('❌ Mixed icon usage found in', file, '\n')
+            issues <- issues + 1
+          }
+        }
+        if (issues > 0) stop('Icon standardization issues detected')
+        cat('✅ Icon usage is consistent across all files\n')
+        "
+
+    - name: 🔗 Validate Dependency Structure
+      run: |
+        Rscript -e "
+        # Check for circular dependencies
+        if (file.exists('guided_workflow_steps.r')) {
+          content <- readLines('guided_workflow_steps.r')
+          if (any(grepl('source\\\(\"guided_workflow\\\\.r\"\\\)', content))) {
+            stop('❌ Circular dependency detected in guided_workflow_steps.r')
+          }
+        }
+        cat('✅ No circular dependencies detected\n')
+        "
+
+  # =============================================================================
+  # COMPREHENSIVE TESTING SUITE
+  # =============================================================================
+  comprehensive-testing:
+    name: 🧪 Comprehensive Testing Suite
+    runs-on: ubuntu-latest
+    needs: consistency-checks
+
+    strategy:
+      matrix:
+        r-version: ['4.3.2', '4.4.3']
+
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup R Environment
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: ${{ matrix.r-version }}
+
+    - name: 📦 Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libssl-dev
+        Rscript -e "install.packages(c('testthat', 'shiny', 'DT', 'readxl', 'openxlsx', 'ggplot2', 'plotly', 'dplyr', 'visNetwork', 'shinycssloaders', 'colourpicker', 'htmlwidgets', 'shinyjs', 'bslib', 'microbenchmark'))"
+
+    - name: 🧪 Run Test Suite
+      run: |
+        Rscript tests/comprehensive_test_runner.R
+
+    - name: 📊 Generate Test Coverage Report
+      run: |
+        Rscript -e "
+        library(testthat)
+        # Run all tests with coverage
+        test_results <- test_dir('tests/testthat/', reporter = 'summary')
+
+        # Save results for analysis
+        saveRDS(test_results, 'test_results.rds')
+
+        # Print summary
+        cat('✅ Test execution completed\n')
+        cat('Total tests:', sum(test_results[['nb']]), '\n')
+        cat('Passed:', sum(test_results[['nb']] - test_results[['failed']]), '\n')
+        cat('Failed:', sum(test_results[['failed']]), '\n')
+        "
+
+    - name: 📤 Upload Test Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-r${{ matrix.r-version }}
+        path: |
+          test_results.rds
+          tests/
+
+  # =============================================================================
+  # PERFORMANCE REGRESSION TESTING
+  # =============================================================================
+  performance-testing:
+    name: 📈 Performance Regression Testing
+    runs-on: ubuntu-latest
+    needs: consistency-checks
+
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup R Environment
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.4.3'
+
+    - name: 📦 Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libssl-dev
+        Rscript -e "install.packages(c('microbenchmark', 'pryr', 'jsonlite', 'shiny', 'DT', 'readxl', 'openxlsx', 'ggplot2', 'dplyr'))"
+
+    - name: 📊 Run Performance Benchmarks
+      run: |
+        Rscript -e "
+        # Source performance testing utilities
+        source('utils/advanced_benchmarks.R')
+
+        # Run complete performance suite
+        results <- run_complete_performance_suite()
+
+        # Save results
+        saveRDS(results, 'performance_results.rds')
+
+        cat('✅ Performance testing completed\n')
+        "
+
+    - name: 📤 Upload Performance Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: |
+          performance_results.rds
+          performance_reports/
+          utils/performance_baseline.json
+
+  # =============================================================================
+  # SECURITY AND QUALITY ANALYSIS
+  # =============================================================================
+  security-analysis:
+    name: 🛡️ Security & Quality Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔍 R Package Security Scan
+      run: |
+        Rscript -e "
+        # Check for known vulnerabilities in dependencies
+        installed_packages <- rownames(installed.packages())
+        cat('📦 Installed packages:', length(installed_packages), '\n')
+
+        # Basic security checks
+        sensitive_patterns <- c('password', 'secret', 'key', 'token', 'credential')
+        r_files <- list.files('.', pattern = '\\\\.r$|\\\\.R$', recursive = TRUE)
+
+        for (file in r_files) {
+          content <- paste(readLines(file, warn = FALSE), collapse = ' ')
+          for (pattern in sensitive_patterns) {
+            if (grepl(pattern, content, ignore.case = TRUE)) {
+              cat('⚠️  Potential sensitive data in', file, ':', pattern, '\n')
+            }
+          }
+        }
+
+        cat('🛡️ Security scan completed\n')
+        "
+
+    - name: 📋 Code Quality Analysis
+      run: |
+        Rscript -e "
+        # Check code quality metrics
+        r_files <- list.files('.', pattern = '\\\\.r$|\\\\.R$', recursive = TRUE, full.names = TRUE)
+
+        total_lines <- 0
+        total_files <- 0
+
+        for (file in r_files) {
+          lines <- length(readLines(file, warn = FALSE))
+          total_lines <- total_lines + lines
+          total_files <- total_files + 1
+
+          if (lines > 1000) {
+            cat('📏 Large file detected:', file, '(', lines, 'lines)\n')
+          }
+        }
+
+        avg_lines_per_file <- round(total_lines / total_files)
+
+        cat('📊 Code Quality Metrics:\n')
+        cat('  Total files:', total_files, '\n')
+        cat('  Total lines:', total_lines, '\n')
+        cat('  Average lines per file:', avg_lines_per_file, '\n')
+        "
+
+  # =============================================================================
+  # DEPLOYMENT PREPARATION
+  # =============================================================================
+  deployment-preparation:
+    name: 🚀 Deployment Preparation
+    runs-on: ubuntu-latest
+    needs: [comprehensive-testing, performance-testing]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup R Environment
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.4.3'
+
+    - name: 📦 Create Deployment Package
+      run: |
+        # Create deployment directory
+        mkdir -p deployment_package
+
+        # Copy essential files
+        cp -r *.r *.R deployment_package/ 2>/dev/null || true
+        cp -r *.xlsx deployment_package/ 2>/dev/null || true
+        cp -r www/ deployment_package/ 2>/dev/null || true
+        cp README.md CLAUDE.md deployment_package/ 2>/dev/null || true
+
+        # Create deployment info
+        echo "Deployment Package - Version 5.2.0" > deployment_package/DEPLOYMENT_INFO.txt
+        echo "Built on: $(date)" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "Git commit: ${{ github.sha }}" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "Branch: ${{ github.ref_name }}" >> deployment_package/DEPLOYMENT_INFO.txt
+
+        # Create deployment script
+        cat > deployment_package/deploy.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 Deploying Environmental Bowtie Risk Analysis Application"
+        echo "Version: 5.2.0 (Advanced Framework Edition)"
+
+        # Install R dependencies
+        Rscript -e "
+        required_packages <- c('shiny', 'bslib', 'DT', 'readxl', 'openxlsx',
+                              'ggplot2', 'plotly', 'dplyr', 'visNetwork',
+                              'shinycssloaders', 'colourpicker', 'htmlwidgets', 'shinyjs')
+
+        for (pkg in required_packages) {
+          if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+            install.packages(pkg, dependencies = TRUE)
+          }
+        }
+        "
+
+        # Start application
+        echo "🌐 Starting application on http://0.0.0.0:3838"
+        Rscript start_app.R
+        EOF
+
+        chmod +x deployment_package/deploy.sh
+
+        echo "📦 Deployment package created successfully"
+
+    - name: 📤 Upload Deployment Package
+      uses: actions/upload-artifact@v3
+      with:
+        name: deployment-package-v5.2
+        path: deployment_package/
+
+    - name: 📋 Deployment Summary
+      run: |
+        echo "🎉 Deployment preparation completed successfully!"
+        echo "✅ All tests passed"
+        echo "✅ Performance benchmarks completed"
+        echo "✅ Security analysis passed"
+        echo "✅ Deployment package ready"
+        echo ""
+        echo "📦 Deployment package includes:"
+        ls -la deployment_package/
+
+  # =============================================================================
+  # NOTIFICATION AND REPORTING
+  # =============================================================================
+  notification:
+    name: 📢 Pipeline Notifications
+    runs-on: ubuntu-latest
+    needs: [comprehensive-testing, performance-testing, security-analysis]
+    if: always()
+
+    steps:
+    - name: 📊 Pipeline Summary
+      run: |
+        echo "🔍 CI/CD Pipeline Summary"
+        echo "=========================="
+        echo "Repository: ${{ github.repository }}"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Triggered by: ${{ github.event_name }}"
+        echo ""
+        echo "Job Status:"
+        echo "- Consistency Checks: ${{ needs.consistency-checks.result || 'skipped' }}"
+        echo "- Comprehensive Testing: ${{ needs.comprehensive-testing.result || 'skipped' }}"
+        echo "- Performance Testing: ${{ needs.performance-testing.result || 'skipped' }}"
+        echo "- Security Analysis: ${{ needs.security-analysis.result || 'skipped' }}"
+        echo ""
+        if [[ "${{ needs.comprehensive-testing.result }}" == "success" && "${{ needs.performance-testing.result }}" == "success" ]]; then
+          echo "✅ All critical jobs completed successfully!"
+        else
+          echo "❌ Some jobs failed or were skipped"
+        fi

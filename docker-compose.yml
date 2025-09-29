@@ -1,0 +1,166 @@
+# =============================================================================
+# Docker Compose Configuration for Environmental Bowtie Risk Analysis App
+# Version: 5.2.0 (Advanced Framework Edition)
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PRODUCTION SERVICE
+  # =============================================================================
+  bowtie-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: bowtie-app-prod
+    ports:
+      - "3838:3838"
+    volumes:
+      # Mount data directory for persistence
+      - ./data:/srv/shiny-server/bowtie_app/data
+      - ./logs:/var/log/shiny-server
+      - ./performance_reports:/srv/shiny-server/bowtie_app/performance_reports
+    environment:
+      - SHINY_ENV=production
+      - R_PROFILE_USER=/srv/shiny-server/bowtie_app/.Rprofile.prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3838/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - bowtie-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bowtie.rule=Host(`bowtie.localhost`)"
+      - "traefik.http.services.bowtie.loadbalancer.server.port=3838"
+
+  # =============================================================================
+  # DEVELOPMENT SERVICE
+  # =============================================================================
+  bowtie-app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: bowtie-app-dev
+    ports:
+      - "3839:3838"
+    volumes:
+      # Mount entire app directory for hot reload
+      - .:/srv/shiny-server/bowtie_app
+      - ./dev_logs:/srv/shiny-server/bowtie_app/dev_logs
+    environment:
+      - SHINY_ENV=development
+      - SHINY_HOST=0.0.0.0
+      - SHINY_PORT=3838
+    restart: "no"
+    networks:
+      - bowtie-network
+    profiles:
+      - dev
+
+  # =============================================================================
+  # TESTING SERVICE
+  # =============================================================================
+  bowtie-app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    container_name: bowtie-app-test
+    volumes:
+      - ./test_results:/srv/shiny-server/bowtie_app/test_results
+      - ./performance_reports:/srv/shiny-server/bowtie_app/performance_reports
+    environment:
+      - SHINY_ENV=testing
+    command: >
+      sh -c "
+      echo '🧪 Running Comprehensive Test Suite' &&
+      Rscript tests/comprehensive_test_runner.R &&
+      echo '📊 Running Performance Benchmarks' &&
+      Rscript utils/advanced_benchmarks.R &&
+      echo '✅ All tests completed'
+      "
+    networks:
+      - bowtie-network
+    profiles:
+      - test
+
+  # =============================================================================
+  # MONITORING SERVICE
+  # =============================================================================
+  performance-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    container_name: bowtie-performance-monitor
+    volumes:
+      - ./performance_reports:/srv/shiny-server/bowtie_app/performance_reports
+      - ./logs:/srv/shiny-server/bowtie_app/logs
+    environment:
+      - MONITORING_INTERVAL=30
+    command: >
+      sh -c "
+      echo '📡 Starting Performance Monitor' &&
+      while true; do
+        Rscript -e '
+        source(\"utils/advanced_benchmarks.R\")
+        current_memory <- as.numeric(pryr::mem_used()) / 1024^2
+        timestamp <- Sys.time()
+        cat(format(timestamp), \" - Memory:\", round(current_memory, 2), \"MB\\n\")
+        '
+        sleep $${MONITORING_INTERVAL:-60}
+      done
+      "
+    restart: unless-stopped
+    networks:
+      - bowtie-network
+    profiles:
+      - monitoring
+
+  # =============================================================================
+  # LOAD BALANCER (NGINX)
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: bowtie-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - bowtie-app
+    networks:
+      - bowtie-network
+    profiles:
+      - production
+      - loadbalancer
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  bowtie-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  bowtie-data:
+    driver: local
+  bowtie-logs:
+    driver: local
+  performance-data:
+    driver: local

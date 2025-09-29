@@ -1,6 +1,6 @@
-# comprehensive_test_runner.R (Version 5.1)
+# comprehensive_test_runner.R (Version 5.2 - Advanced Framework)
 # Enhanced test runner with parallel execution, performance monitoring, and advanced reporting
-# Version 5.1 Features: Parallel testing, memory monitoring, performance benchmarking
+# Version 5.2 Features: Parallel testing, memory monitoring, performance benchmarking, CI/CD integration, advanced analytics
 
 suppressWarnings(suppressMessages({
   library(testthat)
@@ -22,19 +22,26 @@ if (basename(current_dir) == "tests") {
 }
 
 cat("========================================\n")
-cat("Environmental Bowtie App Test Runner v5.1\n")
-cat("Enhanced with parallel execution & monitoring\n")
+cat("Environmental Bowtie App Test Runner v5.2\n")
+cat("Enhanced with parallel execution, monitoring & CI/CD integration\n")
 cat("========================================\n\n")
 
 cat("Working directory:", getwd(), "\n")
 
-# Test configuration
+# Enhanced test configuration with new categories
 test_config <- list(
   run_preventive_controls = TRUE,
   run_vocabulary_basic = TRUE,
   run_utils_basic = TRUE,
   run_integration = TRUE,
-  skip_problematic_tests = TRUE  # Skip tests causing segfaults
+  run_consistency_checks = TRUE,  # NEW: Test consistency fixes
+  run_icon_standardization = TRUE,  # NEW: Test icon usage
+  run_circular_dependency = TRUE,  # NEW: Test import logic
+  run_performance_regression = TRUE,  # NEW: Performance monitoring
+  skip_problematic_tests = TRUE,  # Skip tests causing segfaults
+  parallel_execution = TRUE,  # NEW: Enable parallel testing
+  memory_profiling = TRUE,  # NEW: Memory usage monitoring
+  generate_coverage_report = TRUE  # NEW: Code coverage analysis
 )
 
 # Custom test reporter for better output

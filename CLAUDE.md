@@ -192,9 +192,9 @@ The application now includes updated environmental scenario templates across mul
 - ✅ **Enhanced scenario coverage** - 53/53 activities, 35/36 pressures, 74/74 controls, 26/26 consequences
 - ✅ **Realistic environmental modeling** - Multi-dimensional risk analysis across all vocabulary elements
 
-## Testing Framework (Version 5.1 Enhanced)
+## Testing Framework (Version 5.2 Advanced)
 
-The application includes a comprehensive, modernized testing framework using `testthat` with enhanced capabilities and improved reliability:
+The application includes a state-of-the-art testing framework with comprehensive test coverage, performance regression detection, and CI/CD integration:
 
 ### Running Tests
 ```r
@@ -210,13 +210,18 @@ source("tests/testthat/test-vocabulary.R")
 source("tests/testthat/test-bayesian-network.R")
 ```
 
-### Enhanced Test Structure (Version 5.1)
+### Advanced Test Structure (Version 5.2)
+#### **Core Test Suites:**
 - `tests/testthat/test-utils.R`: Core utility functions, data generation, validation with advanced edge cases
 - `tests/testthat/test-vocabulary.R`: Vocabulary management and hierarchical data processing with performance benchmarks
 - `tests/testthat/test-bayesian-network.R`: Bayesian network creation and inference with probabilistic validation
 - `tests/testthat/test-shiny-app.R`: Integration tests for Shiny application components with UI/server validation
 - `tests/testthat/test-vocabulary-bowtie-generator.R`: Vocabulary-based bow-tie generation with AI linking validation
 - `tests/testthat/test-integration-workflow.R`: End-to-end integration tests with complete workflow coverage
+
+#### **New Advanced Test Suites:**
+- `tests/testthat/test-consistency-fixes.R`: **NEW** Validates consistency fixes (circular dependencies, icon standardization)
+- `tests/testthat/test-performance-regression.R`: **NEW** Performance regression testing and memory monitoring
 - `tests/testthat/test-preventive-controls.R`: Preventive controls functionality and vocabulary integration
 - `tests/testthat/test-guided-workflow-integration.R`: Complete guided workflow system with state management tests
 - `tests/testthat/test-enhanced-themes.R`: **NEW** Bootstrap theme integration and UI component testing
@@ -416,14 +421,138 @@ Rscript start_app.R
 - ✅ Risk matrix analysis
 - ✅ Multi-user access
 
-## Development Notes (Updated for Version 5.1)
+## Development Framework (Version 5.2 Advanced)
 
-- **Reactive Programming**: Enhanced reactive patterns with debouncing and throttling for better performance
-- **Bayesian Network Integration**: Advanced BioConductor packages with fallback mechanisms
-- **Asset Management**: Optimized asset loading from `www/` directory with CDN support
-- **Testing Framework**: Comprehensive test coverage with parallel execution capabilities
-- **Build System**: **NEW** Automated build pipelines with dependency management
-- **Error Recovery**: Graceful degradation and automatic error recovery
-- **Cross-Platform Support**: Enhanced compatibility across Windows, macOS, and Linux
-- **Memory Optimization**: Smart caching and garbage collection for large datasets
-- **Network Deployment**: **NEW** Optimized for local network and online access with security features
+### Modern Development Infrastructure
+The application now includes a comprehensive development framework with advanced tooling and automation:
+
+#### **Enhanced Development Configuration (`dev_config.R`)**
+- **Hot Reload System**: Automatic file change detection and application restart
+- **Performance Profiling**: Real-time memory monitoring and performance metrics
+- **Development Logger**: Enhanced logging with file output and categorization
+- **Icon Standardization Validator**: Automatic validation of consistent icon usage
+- **Dependency Validator**: Checks for circular dependencies and import issues
+
+#### **Development Tools and Commands**
+```r
+# Load development environment
+source("dev_config.R")
+
+# Available development functions
+dev_log("INFO", "Development message", "CATEGORY")
+dev_profile("event_name")  # Performance profiling
+validate_icon_usage()      # Icon consistency check
+validate_dependencies()    # Dependency structure validation
+```
+
+#### **Advanced Features**
+- **Hot Reload**: Automatic application restart on file changes
+- **Memory Monitoring**: Real-time memory usage tracking
+- **Performance Profiling**: Startup time and operation benchmarking
+- **Code Quality Validation**: Automated consistency checks
+- **Development Server**: Enhanced development server with debugging features
+
+### Advanced Performance Benchmarking (`utils/advanced_benchmarks.R`)
+
+#### **Consistency Fixes Performance Analysis**
+- **Module Loading Performance**: Tests impact of circular dependency fixes
+- **Icon Rendering Optimization**: Benchmarks icon standardization performance
+- **Memory Usage Analysis**: Monitors memory impact of consistency improvements
+
+#### **Performance Regression Detection**
+- **Baseline Comparison**: Compares current performance against established baselines
+- **Automated Regression Testing**: Detects performance degradation automatically
+- **Comprehensive Reporting**: Generates detailed HTML performance reports
+
+#### **Performance Testing Commands**
+```r
+# Run consistency fixes analysis
+source("utils/advanced_benchmarks.R")
+consistency_results <- benchmark_consistency_fixes()
+
+# Detect performance regressions
+regression_results <- detect_performance_regression()
+
+# Run complete performance suite
+all_results <- run_complete_performance_suite()
+
+# Start real-time monitoring
+start_performance_monitor(interval_seconds = 5)
+```
+
+### CI/CD Pipeline Integration
+
+#### **GitHub Actions Workflow (`.github/workflows/ci-cd-pipeline.yml`)**
+- **Consistency Validation**: Automated checking of circular dependencies and icon usage
+- **Comprehensive Testing**: Multi-version R testing across different environments
+- **Performance Regression Testing**: Automated performance monitoring
+- **Security Analysis**: Code quality and security vulnerability scanning
+- **Deployment Preparation**: Automated deployment package creation
+
+#### **Docker Containerization**
+- **Multi-stage Dockerfile**: Optimized for development, testing, and production
+- **Docker Compose**: Complete orchestration with monitoring and load balancing
+- **Development Containers**: Hot reload enabled development environment
+- **Production Deployment**: Optimized containers for production use
+
+#### **Container Commands**
+```bash
+# Production deployment
+docker-compose up bowtie-app
+
+# Development environment
+docker-compose --profile dev up bowtie-app-dev
+
+# Run tests
+docker-compose --profile test up bowtie-app-test
+
+# Performance monitoring
+docker-compose --profile monitoring up performance-monitor
+```
+
+### Enhanced Testing Framework (Version 5.2)
+
+#### **New Test Categories**
+- **Consistency Fixes**: Validates architectural improvements and fixes
+- **Performance Regression**: Automated performance monitoring and alerting
+- **Icon Standardization**: Ensures consistent icon usage across interfaces
+- **Dependency Structure**: Validates proper module loading and imports
+
+#### **Advanced Test Features**
+- **Parallel Test Execution**: Faster test runs with concurrent testing
+- **Memory Usage Monitoring**: Prevents memory leaks in long-running processes
+- **Performance Benchmarking**: Automated performance regression detection
+- **CI/CD Integration**: Seamless integration with GitHub Actions pipeline
+
+### Development Workflow (Version 5.2)
+
+#### **Enhanced Development Commands**
+```bash
+# Start development environment
+source dev_config.R
+
+# Run comprehensive tests
+Rscript tests/comprehensive_test_runner.R
+
+# Performance analysis
+Rscript utils/advanced_benchmarks.R
+
+# Build and test with Docker
+docker-compose --profile dev up
+
+# Deploy to production
+docker-compose --profile production up
+```
+
+#### **Quality Assurance Pipeline**
+1. **Local Development**: Hot reload, performance monitoring, code validation
+2. **Testing**: Comprehensive test suite with performance regression detection
+3. **CI/CD**: Automated testing, security scanning, and deployment preparation
+4. **Production**: Containerized deployment with monitoring and scaling
+
+#### **Key Improvements in Version 5.2**
+- **Resolved Consistency Issues**: Eliminated circular dependencies and standardized icons
+- **Advanced Performance Monitoring**: Real-time performance tracking and regression detection
+- **Modern CI/CD Pipeline**: Automated testing, security scanning, and deployment
+- **Container Orchestration**: Docker and Docker Compose for all environments
+- **Enhanced Developer Experience**: Hot reload, automated validation, and comprehensive tooling
