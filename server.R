@@ -155,13 +155,29 @@ server <- function(input, output, session) {
     })
   })
 
-  # Enhanced sample data generation
+  # Enhanced sample data generation with scenario-specific single central problem
   observeEvent(input$generateSample, {
-    showNotification("🔄 Generating comprehensive data from vocabulary elements...",
+    # Get selected environmental scenario
+    selected_scenario <- input$data_scenario_template
+    scenario_name <- if (is.null(selected_scenario) || selected_scenario == "") {
+      "custom scenario"
+    } else {
+      switch(selected_scenario,
+        "marine_pollution" = "Marine pollution",
+        "industrial_contamination" = "Industrial contamination",
+        "oil_spills" = "Oil spills",
+        "agricultural_runoff" = "Agricultural runoff",
+        "overfishing_depletion" = "Overfishing depletion",
+        "custom scenario"
+      )
+    }
+
+    showNotification(paste("🎯 Generating", scenario_name, "bowtie with SINGLE central problem..."),
                     type = "default", duration = 3)
 
     tryCatch({
-      sample_data <- generateDataFromVocabulary()
+      # Use new scenario-specific function
+      sample_data <- generateScenarioSpecificBowtie(selected_scenario)
       currentData(sample_data)
       editedData(sample_data)
       envDataGenerated(TRUE)
@@ -172,11 +188,19 @@ server <- function(input, output, session) {
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
 
-      showNotification(paste("✅ Generated", nrow(sample_data), "comprehensive bowtie scenarios from ALL vocabulary elements!"),
-                      type = "default", duration = 4)
+      # Enhanced notification with scenario details
+      central_problem <- unique(sample_data$Central_Problem)[1]
+      n_activities <- length(unique(sample_data$Activity))
+      n_consequences <- length(unique(sample_data$Consequence))
+
+      showNotification(
+        paste("✅ Generated", nrow(sample_data), "scenarios for:", central_problem,
+              "| Activities:", n_activities, "| Consequences:", n_consequences),
+        type = "success", duration = 5)
 
     }, error = function(e) {
-      showNotification(paste("❌ Error generating data:", e$message), type = "error", duration = 5)
+      showNotification(paste("❌ Error generating scenario-specific data:", e$message),
+                      type = "error", duration = 5)
     })
   })
 

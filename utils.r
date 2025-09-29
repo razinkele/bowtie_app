@@ -1191,6 +1191,202 @@ generateDataFromVocabulary <- function() {
   return(bowtie_data)
 }
 
+# Generate scenario-specific bowtie data with SINGLE central problem
+generateScenarioSpecificBowtie <- function(scenario_type = "") {
+  cat("🎯 Generating scenario-specific bowtie with SINGLE central problem...\n")
+
+  # Check if vocabulary_data is available
+  if (!exists("vocabulary_data") || is.null(vocabulary_data)) {
+    stop("Vocabulary data not available. Please ensure Excel files are loaded.")
+  }
+
+  # Extract vocabulary elements
+  activities <- vocabulary_data$activities
+  pressures <- vocabulary_data$pressures
+  consequences <- vocabulary_data$consequences
+  controls <- vocabulary_data$controls
+
+  # Define scenario-specific central problems and related vocabulary
+  scenario_config <- switch(scenario_type,
+    "marine_pollution" = list(
+      central_problem = "Marine pollution from shipping activities",
+      relevant_activities = c("Commercial shipping", "Port operations", "Oil transportation",
+                             "Ballast water discharge", "Cargo handling", "Marine tourism"),
+      relevant_pressures = c("Chemical pollution", "Oil spills", "Waste discharge",
+                            "Ballast water discharge", "Underwater noise", "Physical disturbance"),
+      relevant_consequences = c("Marine ecosystem degradation", "Water quality deterioration",
+                               "Marine species mortality", "Habitat destruction", "Food chain disruption")
+    ),
+    "industrial_contamination" = list(
+      central_problem = "Industrial contamination through chemical discharge",
+      relevant_activities = c("Industrial manufacturing", "Chemical processing", "Waste treatment",
+                             "Mining operations", "Power generation", "Petrochemical production"),
+      relevant_pressures = c("Chemical pollution", "Heavy metal contamination", "Toxic waste discharge",
+                            "Groundwater contamination", "Soil contamination", "Air emissions"),
+      relevant_consequences = c("Groundwater contamination", "Soil ecosystem degradation",
+                               "Human health impacts", "Agricultural productivity loss", "Biodiversity loss")
+    ),
+    "oil_spills" = list(
+      central_problem = "Oil spills from maritime transportation",
+      relevant_activities = c("Oil transportation", "Tanker operations", "Pipeline transport",
+                             "Offshore drilling", "Fuel transfer", "Storage operations"),
+      relevant_pressures = c("Oil spills", "Hydrocarbon pollution", "Chemical pollution",
+                            "Surface water contamination", "Sediment contamination", "Physical smothering"),
+      relevant_consequences = c("Marine ecosystem degradation", "Coastal habitat destruction",
+                               "Marine species mortality", "Water quality deterioration", "Economic losses")
+    ),
+    "agricultural_runoff" = list(
+      central_problem = "Agricultural runoff causing eutrophication",
+      relevant_activities = c("Intensive agriculture", "Fertilizer application", "Livestock farming",
+                             "Crop irrigation", "Pesticide use", "Agricultural drainage"),
+      relevant_pressures = c("Nutrient pollution", "Chemical pollution", "Fertilizer runoff",
+                            "Pesticide contamination", "Sediment input", "Organic pollution"),
+      relevant_consequences = c("Eutrophication", "Water quality deterioration", "Algal blooms",
+                               "Aquatic ecosystem degradation", "Oxygen depletion", "Fish kills")
+    ),
+    "overfishing_depletion" = list(
+      central_problem = "Overfishing and commercial stock depletion",
+      relevant_activities = c("Commercial fishing", "Trawling operations", "Fish processing",
+                             "Aquaculture", "Recreational fishing", "Fish trading"),
+      relevant_pressures = c("Overfishing", "Habitat destruction", "Bycatch mortality",
+                            "Stock depletion", "Ecosystem disruption", "Physical disturbance"),
+      relevant_consequences = c("Fish stock collapse", "Marine ecosystem degradation",
+                               "Food web disruption", "Economic losses", "Biodiversity loss")
+    ),
+    # Default for custom or empty scenario
+    list(
+      central_problem = "Environmental degradation",
+      relevant_activities = sample(activities$name, min(10, nrow(activities))),
+      relevant_pressures = sample(pressures$name, min(8, nrow(pressures))),
+      relevant_consequences = sample(consequences$name, min(6, nrow(consequences)))
+    )
+  )
+
+  cat("📋 Scenario:", scenario_type, "\n")
+  cat("🎯 Central Problem:", scenario_config$central_problem, "\n")
+
+  # Filter vocabulary based on scenario (use fuzzy matching for flexibility)
+  filter_vocabulary <- function(vocab_names, relevant_terms) {
+    if (length(relevant_terms) == 0) return(vocab_names)
+
+    # Use exact matches and partial matches
+    exact_matches <- vocab_names[tolower(vocab_names) %in% tolower(relevant_terms)]
+
+    # Add partial matches for broader coverage
+    partial_matches <- character(0)
+    for (term in relevant_terms) {
+      matches <- vocab_names[grepl(tolower(term), tolower(vocab_names))]
+      partial_matches <- c(partial_matches, matches)
+    }
+
+    # Combine and remove duplicates
+    all_matches <- unique(c(exact_matches, partial_matches))
+
+    # If we don't have enough matches, supplement with random items
+    if (length(all_matches) < 3) {
+      additional <- sample(setdiff(vocab_names, all_matches),
+                          min(5, length(setdiff(vocab_names, all_matches))))
+      all_matches <- c(all_matches, additional)
+    }
+
+    return(all_matches)
+  }
+
+  # Filter vocabulary elements based on scenario
+  filtered_activities <- filter_vocabulary(activities$name, scenario_config$relevant_activities)
+  filtered_pressures <- filter_vocabulary(pressures$name, scenario_config$relevant_pressures)
+  filtered_consequences <- filter_vocabulary(consequences$name, scenario_config$relevant_consequences)
+
+  cat("📊 Filtered vocabulary:\n")
+  cat("   • Activities:", length(filtered_activities), "relevant items\n")
+  cat("   • Pressures:", length(filtered_pressures), "relevant items\n")
+  cat("   • Consequences:", length(filtered_consequences), "relevant items\n")
+
+  # Generate activity-pressure combinations
+  activity_pressure_combinations <- list()
+  for (activity in filtered_activities) {
+    # Each activity causes 1-2 relevant pressures
+    n_pressures <- sample(1:2, 1)
+    selected_pressures <- sample(filtered_pressures,
+                                min(n_pressures, length(filtered_pressures)),
+                                replace = FALSE)
+
+    for (pressure in selected_pressures) {
+      activity_pressure_combinations[[length(activity_pressure_combinations) + 1]] <- list(
+        activity = activity,
+        pressure = pressure
+      )
+    }
+  }
+
+  # Generate bowtie data with SINGLE central problem
+  bowtie_data <- data.frame(
+    Activity = character(0),
+    Pressure = character(0),
+    Preventive_Control = character(0),
+    Central_Problem = character(0),
+    Consequence = character(0),
+    Protective_Control = character(0),
+    stringsAsFactors = FALSE
+  )
+
+  # Build comprehensive data with single central problem
+  central_problem <- scenario_config$central_problem
+
+  for (combo in activity_pressure_combinations) {
+    activity <- combo$activity
+    pressure <- combo$pressure
+
+    # Select 1-2 preventive controls for this pressure
+    n_prev_controls <- sample(1:2, 1)
+    selected_prev_controls <- sample(controls$name,
+                                   min(n_prev_controls, nrow(controls)),
+                                   replace = FALSE)
+
+    for (prev_control in selected_prev_controls) {
+      # Select 1-2 relevant consequences
+      n_consequences <- sample(1:2, 1)
+      selected_consequences <- sample(filtered_consequences,
+                                    min(n_consequences, length(filtered_consequences)),
+                                    replace = FALSE)
+
+      for (consequence in selected_consequences) {
+        # Select 1-2 protective controls (different from preventive)
+        available_prot_controls <- setdiff(controls$name, prev_control)
+        n_prot_controls <- sample(1:2, 1)
+        selected_prot_controls <- sample(available_prot_controls,
+                                       min(n_prot_controls, length(available_prot_controls)),
+                                       replace = FALSE)
+
+        for (prot_control in selected_prot_controls) {
+          # Add row to bowtie data with SINGLE central problem
+          bowtie_data <- rbind(bowtie_data, data.frame(
+            Activity = activity,
+            Pressure = pressure,
+            Preventive_Control = prev_control,
+            Central_Problem = central_problem,  # Same for all rows!
+            Consequence = consequence,
+            Protective_Control = prot_control,
+            stringsAsFactors = FALSE
+          ))
+        }
+      }
+    }
+  }
+
+  # Add default columns that the app expects
+  bowtie_data <- addDefaultColumns(bowtie_data)
+
+  cat("✅ Generated", nrow(bowtie_data), "bowtie scenarios with SINGLE central problem\n")
+  cat("🎯 Central Problem:", unique(bowtie_data$Central_Problem), "\n")
+  cat("📊 Activities:", length(unique(bowtie_data$Activity)), "\n")
+  cat("⚠️ Pressures:", length(unique(bowtie_data$Pressure)), "\n")
+  cat("💥 Consequences:", length(unique(bowtie_data$Consequence)), "\n")
+  cat("🛡️ Controls:", length(unique(c(bowtie_data$Preventive_Control, bowtie_data$Protective_Control))), "\n")
+
+  return(bowtie_data)
+}
+
 cat("🎉 v5.1.0 Enhanced Environmental Bowtie Risk Analysis Utilities Loaded\n")
 cat("✅ FIXED protective mitigation connections\n")
 cat("🖼️ PNG image support enabled\n")
