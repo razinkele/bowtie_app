@@ -65,7 +65,7 @@ check_memory <- function() {
 
 # ENHANCED function to generate environmental management sample data with FIXED connections and granular risk values
 generateEnvironmentalDataFixed <- function() {
-  cat("🔄 Generating v5.0.0 enhanced environmental management data with GRANULAR bowtie connection risks\n")
+  cat("🔄 Generating enhanced environmental management data with GRANULAR bowtie connection risks\n")
   
   # Create comprehensive data with PROPERLY MAPPED protective mitigations
   sample_data <- data.frame(
@@ -149,7 +149,7 @@ generateEnvironmentalDataFixed <- function() {
       "Water pollution", "Water stress"
     ),
     
-    # v5.0.0 FIXED Protective Mitigation - PROPERLY MAPPED to specific consequences
+    # FIXED Protective Mitigation - PROPERLY MAPPED to specific consequences
     Protective_Mitigation = c(
       "Algae bloom emergency response and lake aeration systems",           # → Algal blooms and dead zones
       "Algae bloom monitoring and aquatic ecosystem restoration",           # → Algal blooms and dead zones  
@@ -196,7 +196,7 @@ generateEnvironmentalDataFixed <- function() {
       "Long-term environmental damage", "Water scarcity and ecosystem stress"
     ),
     
-    # GRANULAR BOWTIE CONNECTION RISKS (v5.0.0 Enhancement)
+    # GRANULAR BOWTIE CONNECTION RISKS (Enhancement)
     # Connection 1: Activity → Pressure
     Activity_to_Pressure_Likelihood = c(4, 3, 3, 4, 4, 5, 3, 4, 3, 4, 3, 3, 4, 3, 4, 4, 3, 2, 2, 5, 4, 2, 3, 4, 3, 3, 2),
     Activity_to_Pressure_Severity = c(3, 4, 2, 4, 3, 4, 4, 3, 4, 4, 3, 4, 3, 4, 3, 3, 2, 3, 3, 4, 3, 3, 4, 3, 2, 4, 3),
@@ -257,7 +257,7 @@ generateEnvironmentalDataFixed <- function() {
   sample_data$Likelihood <- sample_data$Overall_Likelihood
   sample_data$Severity <- sample_data$Overall_Severity
   
-  cat("✅ Generated", nrow(sample_data), "rows of v5.0.0 enhanced environmental data with GRANULAR bowtie connection risks\n")
+  cat("✅ Generated", nrow(sample_data), "rows of enhanced environmental data with GRANULAR bowtie connection risks\n")
   cat("🔗 Each protective mitigation is properly mapped to its corresponding consequence\n")
   cat("📊 Added granular likelihood/severity for 6 bowtie connections per scenario\n")
   cat("🎯 Overall risk calculated from pathway chain analysis\n")
@@ -282,10 +282,10 @@ addDefaultColumns <- function(data) {
   
   if (!"Activity" %in% names(data)) data$Activity <- paste("Activity", seq_len(n_rows))
   if (!"Pressure" %in% names(data)) data$Pressure <- paste("Pressure", seq_len(n_rows))
-  if (!"Preventive_Control" %in% names(data)) data$Preventive_Control <- paste("v5.0.0 Enhanced preventive control", seq_len(n_rows))
-  if (!"Escalation_Factor" %in% names(data)) data$Escalation_Factor <- paste("v5.0.0 Enhanced escalation factor", seq_len(n_rows))
-  if (!"Central_Problem" %in% names(data)) data$Central_Problem <- "Environmental Risk v5.0.0"
-  if (!"Protective_Mitigation" %in% names(data)) data$Protective_Mitigation <- paste("v5.0.0 FIXED protective mitigation", seq_len(n_rows))
+  if (!"Preventive_Control" %in% names(data)) data$Preventive_Control <- paste("Enhanced preventive control", seq_len(n_rows))
+  if (!"Escalation_Factor" %in% names(data)) data$Escalation_Factor <- paste("Enhanced escalation factor", seq_len(n_rows))
+  if (!"Central_Problem" %in% names(data)) data$Central_Problem <- "Environmental Risk"
+  if (!"Protective_Mitigation" %in% names(data)) data$Protective_Mitigation <- paste("FIXED protective mitigation", seq_len(n_rows))
   if (!"Consequence" %in% names(data)) data$Consequence <- paste("Consequence", seq_len(n_rows))
   
   # Add granular connection risk columns if missing
@@ -373,15 +373,15 @@ clearCache <- function() {
   rm(list = ls(envir = .cache), envir = .cache)
 }
 
-# v5.0.0 FIXED node creation for comprehensive bowtie structure
+# FIXED node creation for comprehensive bowtie structure
 createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
   cache_key <- paste0("nodes_fixed_v423_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
   if (exists(cache_key, envir = .cache)) {
-    cat("📋 Using cached nodes for v5.0.0\n")
+    cat("📋 Using cached nodes\n")
     return(get(cache_key, envir = .cache))
   }
   
-  cat("🔧 Creating v5.0.0 FIXED bowtie nodes\n")
+  cat("🔧 Creating FIXED bowtie nodes\n")
   
   # Pre-calculate unique values for each element
   activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
@@ -401,7 +401,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
     n_barriers <- length(preventive_controls) + length(escalation_factors) + length(protective_mitigations)
     
-    cat("🛡️ Found", length(protective_mitigations), "unique protective mitigations in v5.0.0\n")
+    cat("🛡️ Found", length(protective_mitigations), "unique protective mitigations\n")
   }
   
   total_nodes <- 1 + n_activities + n_pressures + n_consequences + n_barriers
@@ -417,9 +417,9 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
   
   idx <- 1
   
-  # Central Problem node (center) - Enhanced Diamond shape for v5.0.0
+  # Central Problem node (center) - Enhanced Diamond shape
   ids[idx] <- 1
-  labels[idx] <- paste(selected_problem, "(v5.0.0)")
+  labels[idx] <- selected_problem
   groups[idx] <- "central_problem"
   colors[idx] <- CENTRAL_PROBLEM_COLOR
   shapes[idx] <- "diamond"
@@ -427,7 +427,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
   font_sizes[idx] <- 16
   idx <- idx + 1
   
-  # Activity nodes (far left) - Enhanced for v5.0.0
+  # Activity nodes (far left) - Enhanced
   if (n_activities > 0) {
     activity_colors <- if (show_risk_levels) {
       sapply(activities, function(a) {
@@ -449,7 +449,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     idx <- idx + n_activities
   }
   
-  # Pressure nodes (left side) - Enhanced for v5.0.0
+  # Pressure nodes (left side) - Enhanced
   if (n_pressures > 0) {
     pressure_colors <- if (show_risk_levels) {
       sapply(pressures, function(p) {
@@ -471,7 +471,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     idx <- idx + n_pressures
   }
   
-  # Consequence nodes (right side) - Enhanced for v5.0.0
+  # Consequence nodes (right side) - Enhanced
   if (n_consequences > 0) {
     cons_colors <- if (show_risk_levels) {
       sapply(consequences, function(c) {
@@ -493,7 +493,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     idx <- idx + n_consequences
   }
   
-  # v5.0.0 Enhanced barrier and escalation factor nodes
+  # Enhanced barrier and escalation factor nodes
   if (show_barriers) {
     if (exists("preventive_controls") && length(preventive_controls) > 0) {
       prev_indices <- idx:(idx + length(preventive_controls) - 1)
@@ -519,7 +519,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
       idx <- idx + length(escalation_factors)
     }
     
-    # v5.0.0 ENHANCED Protective Mitigation nodes
+    # ENHANCED Protective Mitigation nodes
     if (exists("protective_mitigations") && length(protective_mitigations) > 0) {
       prot_indices <- idx:(idx + length(protective_mitigations) - 1)
       ids[prot_indices] <- 400 + seq_len(length(protective_mitigations))
@@ -527,10 +527,10 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
       groups[prot_indices] <- "protective_mitigation"
       colors[prot_indices] <- PROTECTIVE_COLOR
       shapes[prot_indices] <- "square"
-      sizes[prot_indices] <- node_size * 0.9  # Slightly larger for v5.0.0
-      font_sizes[prot_indices] <- 11         # Larger font for v5.0.0
+      sizes[prot_indices] <- node_size * 0.9  # Slightly larger
+      font_sizes[prot_indices] <- 11         # Larger font
       
-      cat("🔗 Created", length(protective_mitigations), "protective mitigation nodes for v5.0.0\n")
+      cat("🔗 Created", length(protective_mitigations), "protective mitigation nodes\n")
     }
   }
   
@@ -545,7 +545,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     stringsAsFactors = FALSE
   )
   
-  cat("✅ Created", nrow(nodes), "total nodes for v5.0.0 FIXED bowtie\n")
+  cat("✅ Created", nrow(nodes), "total nodes for FIXED bowtie\n")
   
   # Cache the result
   assign(cache_key, nodes, envir = .cache)
@@ -557,7 +557,7 @@ createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_ris
   createBowtieNodesFixed(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers)
 }
 
-# v5.0.0 FIXED edge creation function with PROPER protective mitigation connections
+# FIXED edge creation function with PROPER protective mitigation connections
 createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
   # Create a unique cache key that includes mitigation data for proper caching
   if(!requireNamespace("digest", quietly = TRUE)) {
@@ -570,11 +570,11 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
   
   cache_key <- paste0("edges_fixed_v423_", nrow(hazard_data), "_", show_barriers, "_", mitigation_hash)
   if (exists(cache_key, envir = .cache)) {
-    cat("📋 Using cached edges for v5.0.0\n")
+    cat("📋 Using cached edges\n")
     return(get(cache_key, envir = .cache))
   }
   
-  cat("🔧 Creating v5.0.0 FIXED bowtie edges with enhanced protective mitigation connections\n")
+  cat("🔧 Creating FIXED bowtie edges with enhanced protective mitigation connections\n")
   
   activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
   pressures <- unique(hazard_data$Pressure[hazard_data$Pressure != ""])
@@ -629,14 +629,14 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
     }
     
   } else {
-    # v5.0.0 FIXED Complex flow with PROPER protective mitigation mapping
+    # FIXED Complex flow with PROPER protective mitigation mapping
     
     preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
     escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
     protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
     
-    cat("🛡️ v5.0.0 Found", length(protective_mitigations), "unique protective mitigations\n")
-    cat("🎯 v5.0.0 Found", length(consequences), "unique consequences\n")
+    cat("🛡️ Found", length(protective_mitigations), "unique protective mitigations\n")
+    cat("🎯 Found", length(consequences), "unique consequences\n")
     
     # Activity → Pressure connections
     for (i in seq_along(activities)) {
@@ -752,7 +752,7 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
       }
     }
     
-    # v5.0.0 FIXED: Central Problem → Protective Mitigation → Consequence pathway
+    # FIXED: Central Problem → Protective Mitigation → Consequence pathway
     # ENHANCED row-wise mapping with validation
     
     mitigation_connections <- 0
@@ -766,7 +766,7 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
       stringsAsFactors = FALSE
     )
     
-    cat("🔍 v5.0.0 Processing", nrow(mitigation_map), "mitigation mappings\n")
+    cat("🔍 Processing", nrow(mitigation_map), "mitigation mappings\n")
     
     # Method 1: Enhanced row-wise mapping with validation
     for (i in seq_len(nrow(hazard_data))) {
@@ -779,24 +779,24 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
         mitigation_idx <- which(protective_mitigations == mitigation)
         
         if (length(consequence_idx) > 0 && length(mitigation_idx) > 0) {
-          # Central Problem → Protective Mitigation (enhanced width for v5.0.0)
+          # Central Problem → Protective Mitigation (enhanced width)
           from <- c(from, 1)
           to <- c(to, 400 + mitigation_idx)
           arrows <- c(arrows, "to")
           colors <- c(colors, "#C0392B")
-          widths <- c(widths, 3)  # Enhanced width for v5.0.0
+          widths <- c(widths, 3)  # Enhanced width
           dashes <- c(dashes, FALSE)
           
-          # Protective Mitigation → Consequence (enhanced connection for v5.0.0)
+          # Protective Mitigation → Consequence (enhanced connection)
           from <- c(from, 400 + mitigation_idx)
           to <- c(to, 200 + consequence_idx)
           arrows <- c(arrows, "to")
           colors <- c(colors, "#3498DB")
-          widths <- c(widths, 3)  # Enhanced width for v5.0.0
+          widths <- c(widths, 3)  # Enhanced width
           dashes <- c(dashes, TRUE)  # Dashed to show intervention effect
           
           mitigation_connections <- mitigation_connections + 1
-          cat("✅ v5.0.0 Connected mitigation", mitigation_idx, "('", substr(mitigation, 1, 30), "...') to consequence", consequence_idx, "('", consequence, "')\n")
+          cat("✅ Connected mitigation", mitigation_idx, "('", substr(mitigation, 1, 30), "...') to consequence", consequence_idx, "('", consequence, "')\n")
         }
       }
     }
@@ -819,11 +819,11 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
         widths <- c(widths, 3)
         dashes <- c(dashes, FALSE)
         direct_connections <- direct_connections + 1
-        cat("⚠️ v5.0.0 Direct connection to consequence", i, "('", consequence, "') - no proper mitigation\n")
+        cat("⚠️ Direct connection to consequence", i, "('", consequence, "') - no proper mitigation\n")
       }
     }
     
-    cat("📊 v5.0.0 Connection Summary:\n")
+    cat("📊 Connection Summary:\n")
     cat("   🔗 Mitigation connections:", mitigation_connections, "\n")
     cat("   ➡️ Direct connections:", direct_connections, "\n")
   }
@@ -838,7 +838,7 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
     stringsAsFactors = FALSE
   )
   
-  cat("✅ Created", nrow(edges), "edges with v5.0.0 FIXED protective mitigation connections\n")
+  cat("✅ Created", nrow(edges), "edges with FIXED protective mitigation connections\n")
   
   # Cache the result
   assign(cache_key, edges, envir = .cache)
@@ -850,16 +850,16 @@ createBowtieEdges <- function(hazard_data, show_barriers) {
   createBowtieEdgesFixed(hazard_data, show_barriers)
 }
 
-# v5.0.0 Enhanced function to create a default row for data editing with granular risks
-createDefaultRowFixed <- function(selected_problem = "New Environmental Risk v5.0.0") {
+# Enhanced function to create a default row for data editing with granular risks
+createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
   new_row <- data.frame(
-    Activity = "New Enhanced Activity v5.0.0",
-    Pressure = "New Enhanced Pressure v5.0.0",
-    Preventive_Control = "New Enhanced Preventive Control v5.0.0",
-    Escalation_Factor = "New Enhanced Escalation Factor v5.0.0",
+    Activity = "New Enhanced Activity",
+    Pressure = "New Enhanced Pressure",
+    Preventive_Control = "New Enhanced Preventive Control",
+    Escalation_Factor = "New Enhanced Escalation Factor",
     Central_Problem = selected_problem,
-    Protective_Mitigation = "New v5.0.0 FIXED Protective Mitigation with enhanced mapping",
-    Consequence = "New Enhanced Consequence v5.0.0",
+    Protective_Mitigation = "New FIXED Protective Mitigation with enhanced mapping",
+    Consequence = "New Enhanced Consequence",
     
     # Granular connection risks
     Activity_to_Pressure_Likelihood = 3L,
@@ -905,7 +905,7 @@ validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
   }
 }
 
-# v5.0.0 Enhanced data summary function with granular connection analysis
+# Enhanced data summary function with granular connection analysis
 getDataSummaryFixed <- function(data) {
   if (is.null(data) || nrow(data) == 0) return(NULL)
   
@@ -914,7 +914,7 @@ getDataSummaryFixed <- function(data) {
   
   if (has_granular_data) {
     paste(
-      "📊 v5.0.0 GRANULAR ENHANCED Summary:",
+      "📊 GRANULAR ENHANCED Summary:",
       "Rows:", nrow(data),
       "| Activities:", length(unique(data$Activity)),
       "| Central Problems:", length(unique(data$Central_Problem)),
@@ -922,18 +922,18 @@ getDataSummaryFixed <- function(data) {
       "| Consequences:", length(unique(data$Consequence)),
       "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", "),
       "| 🔗 GRANULAR: 6 connection risks per scenario",
-      "| ✅ v5.0.0 PATHWAY ANALYSIS with enhanced mapping"
+      "| ✅ PATHWAY ANALYSIS with enhanced mapping"
     )
   } else {
     paste(
-      "📊 v5.0.0 Enhanced Summary:",
+      "📊 Enhanced Summary:",
       "Rows:", nrow(data),
       "| Activities:", length(unique(data$Activity)),
       "| Central Problems:", length(unique(data$Central_Problem)),
       "| 🛡️ FIXED Protective Mitigations:", length(unique(data$Protective_Mitigation[data$Protective_Mitigation != ""])),
       "| Consequences:", length(unique(data$Consequence)),
       "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", "),
-      "| ✅ v5.0.0 FIXED connections with enhanced mapping"
+      "| ✅ FIXED connections with enhanced mapping"
     )
   }
 }
@@ -943,7 +943,7 @@ getDataSummary <- function(data) {
   getDataSummaryFixed(data)
 }
 
-# v5.0.0 Enhanced validation function for protective mitigations
+# Enhanced validation function for protective mitigations
 validateProtectiveMitigations <- function(data) {
   if (is.null(data) || nrow(data) == 0) return(list(valid = TRUE, issues = character(0)))
   
@@ -970,15 +970,15 @@ validateProtectiveMitigations <- function(data) {
   if (mapping_ratio < 0.8) {
     issues <- c(issues, paste("⚠️ Low mitigation coverage: only", round(mapping_ratio * 100, 1), "% of consequences have unique mitigations"))
   } else {
-    issues <- c(issues, paste("✅ Good mitigation coverage:", round(mapping_ratio * 100, 1), "% - v5.0.0 FIXED quality"))
+    issues <- c(issues, paste("✅ Good mitigation coverage:", round(mapping_ratio * 100, 1), "% - FIXED quality"))
   }
   
   list(valid = length(issues) == 0, issues = issues)
 }
 
-# NEW v5.0.0: Generate data with multiple preventive controls per pressure
+# NEW: Generate data with multiple preventive controls per pressure
 generateEnvironmentalDataWithMultipleControls <- function() {
-  cat("🔄 Generating v5.0.0 data with MULTIPLE PREVENTIVE CONTROLS per pressure\n")
+  cat("🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure\n")
   
   # Define pressure-control relationships (2 controls per activity for tidier diagram)
   pressure_control_data <- data.frame(
@@ -1076,6 +1076,119 @@ generateEnvironmentalDataWithMultipleControls <- function() {
   }
   
   return(pressure_control_data)
+}
+
+# Generate bowtie data using ALL vocabulary elements from Excel files
+generateDataFromVocabulary <- function() {
+  cat("🔄 Generating comprehensive bowtie data from ALL vocabulary elements...\n")
+
+  # Check if vocabulary_data is available
+  if (!exists("vocabulary_data") || is.null(vocabulary_data)) {
+    stop("Vocabulary data not available. Please ensure Excel files are loaded.")
+  }
+
+  # Extract all vocabulary elements
+  activities <- vocabulary_data$activities
+  pressures <- vocabulary_data$pressures
+  consequences <- vocabulary_data$consequences
+  controls <- vocabulary_data$controls
+
+  cat("📊 Using vocabulary data:\n")
+  cat("   • Activities:", nrow(activities), "items\n")
+  cat("   • Pressures:", nrow(pressures), "items\n")
+  cat("   • Consequences:", nrow(consequences), "items\n")
+  cat("   • Controls:", nrow(controls), "items\n")
+
+  # Create comprehensive bowtie combinations
+  # Each activity can cause multiple pressures, each pressure needs controls and can lead to consequences
+
+  # Generate activity-pressure combinations (each activity -> multiple random pressures)
+  activity_pressure_combinations <- list()
+  for (i in 1:nrow(activities)) {
+    activity_name <- activities$name[i]
+    # Each activity causes 1-3 random pressures
+    n_pressures <- sample(1:3, 1)
+    selected_pressures <- sample(pressures$name, n_pressures, replace = FALSE)
+
+    for (pressure in selected_pressures) {
+      activity_pressure_combinations[[length(activity_pressure_combinations) + 1]] <- list(
+        activity = activity_name,
+        pressure = pressure
+      )
+    }
+  }
+
+  # Generate full bowtie data
+  bowtie_data <- data.frame(
+    Activity = character(0),
+    Pressure = character(0),
+    Preventive_Control = character(0),
+    Central_Problem = character(0),
+    Consequence = character(0),
+    Protective_Control = character(0),
+    stringsAsFactors = FALSE
+  )
+
+  # Central problems - sensible environmental issues from vocabulary
+  central_problems <- c(
+    "Marine pollution",
+    "Water ecosystem degradation",
+    "Biodiversity loss",
+    "Soil contamination",
+    "Air quality deterioration",
+    "Climate change acceleration"
+  )
+
+  # Build comprehensive data
+  for (combo in activity_pressure_combinations) {
+    activity <- combo$activity
+    pressure <- combo$pressure
+
+    # Select 1-2 preventive controls for this pressure
+    n_prev_controls <- sample(1:2, 1)
+    selected_prev_controls <- sample(controls$name, n_prev_controls, replace = FALSE)
+
+    for (prev_control in selected_prev_controls) {
+      # Select central problem
+      central_problem <- sample(central_problems, 1)
+
+      # Select 1-2 consequences
+      n_consequences <- sample(1:2, 1)
+      selected_consequences <- sample(consequences$name, n_consequences, replace = FALSE)
+
+      for (consequence in selected_consequences) {
+        # Select 1-2 protective controls
+        n_prot_controls <- sample(1:2, 1)
+        # Use different controls for protective measures
+        available_prot_controls <- setdiff(controls$name, prev_control)
+        selected_prot_controls <- sample(available_prot_controls, n_prot_controls, replace = FALSE)
+
+        for (prot_control in selected_prot_controls) {
+          # Add row to bowtie data
+          bowtie_data <- rbind(bowtie_data, data.frame(
+            Activity = activity,
+            Pressure = pressure,
+            Preventive_Control = prev_control,
+            Central_Problem = central_problem,
+            Consequence = consequence,
+            Protective_Control = prot_control,
+            stringsAsFactors = FALSE
+          ))
+        }
+      }
+    }
+  }
+
+  # Add default columns that the app expects
+  bowtie_data <- addDefaultColumns(bowtie_data)
+
+  cat("✅ Generated", nrow(bowtie_data), "comprehensive bowtie scenarios from vocabulary\n")
+  cat("🎯 Activities included:", length(unique(bowtie_data$Activity)), "/", nrow(activities), "\n")
+  cat("⚠️ Pressures included:", length(unique(bowtie_data$Pressure)), "/", nrow(pressures), "\n")
+  cat("🛡️ Controls included:", length(unique(c(bowtie_data$Preventive_Control, bowtie_data$Protective_Control))), "/", nrow(controls), "\n")
+  cat("💥 Consequences included:", length(unique(bowtie_data$Consequence)), "/", nrow(consequences), "\n")
+
+  return(bowtie_data)
 }
 
 cat("🎉 v5.1.0 Enhanced Environmental Bowtie Risk Analysis Utilities Loaded\n")

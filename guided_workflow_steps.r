@@ -118,8 +118,37 @@ generate_step4_ui <- function(vocabulary_data = NULL) {
     
     br(),
     h4("🛡️ Your Preventive Controls"),
-    DTOutput("preventive_controls_table"),
-    
+    fluidRow(
+      column(8,
+             DTOutput("preventive_controls_table")
+      ),
+      column(4,
+             div(class = "card",
+                 div(class = "card-header bg-info text-white",
+                     h6("➕ Quick Add Control")
+                 ),
+                 div(class = "card-body",
+                     selectizeInput("quick_add_control",
+                                  "Select from vocabulary:",
+                                  choices = NULL,
+                                  options = list(
+                                    placeholder = "Type to search controls...",
+                                    maxItems = 1
+                                  )),
+                     br(),
+                     actionButton("add_quick_control", "➕ Add Control",
+                                class = "btn-info btn-sm"),
+                     br(), br(),
+                     textInput("custom_control_name",
+                             "Or add custom control:",
+                             placeholder = "Enter custom control name"),
+                     actionButton("add_custom_control", "➕ Add Custom",
+                                class = "btn-secondary btn-sm")
+                 )
+             )
+      )
+    ),
+
     br(),
     div(class = "alert alert-info",
         h6("💡 Expert Guidance:"),
@@ -248,7 +277,36 @@ generate_step5_ui <- function(vocabulary_data = NULL) {
     
     br(),
     h4("💥 Identified Consequences"),
-    DTOutput("consequences_table")
+    fluidRow(
+      column(8,
+             DTOutput("consequences_table")
+      ),
+      column(4,
+             div(class = "card",
+                 div(class = "card-header bg-warning text-white",
+                     h6("➕ Quick Add Consequence")
+                 ),
+                 div(class = "card-body",
+                     selectizeInput("quick_add_consequence",
+                                  "Select from vocabulary:",
+                                  choices = NULL,
+                                  options = list(
+                                    placeholder = "Type to search consequences...",
+                                    maxItems = 1
+                                  )),
+                     br(),
+                     actionButton("add_quick_consequence", "➕ Add Consequence",
+                                class = "btn-warning btn-sm"),
+                     br(), br(),
+                     textInput("custom_consequence_name",
+                             "Or add custom consequence:",
+                             placeholder = "Enter custom consequence"),
+                     actionButton("add_custom_consequence", "➕ Add Custom",
+                                class = "btn-secondary btn-sm")
+                 )
+             )
+      )
+    )
   )
 }
 
@@ -374,7 +432,36 @@ generate_step6_ui <- function(vocabulary_data = NULL) {
     
     br(),
     h4("🚨 Your Protective Controls"),
-    DTOutput("protective_controls_table")
+    fluidRow(
+      column(8,
+             DTOutput("protective_controls_table")
+      ),
+      column(4,
+             div(class = "card",
+                 div(class = "card-header bg-danger text-white",
+                     h6("➕ Quick Add Protection")
+                 ),
+                 div(class = "card-body",
+                     selectizeInput("quick_add_protective",
+                                  "Select from vocabulary:",
+                                  choices = NULL,
+                                  options = list(
+                                    placeholder = "Type to search protections...",
+                                    maxItems = 1
+                                  )),
+                     br(),
+                     actionButton("add_quick_protective", "➕ Add Protection",
+                                class = "btn-danger btn-sm"),
+                     br(), br(),
+                     textInput("custom_protective_name",
+                             "Or add custom protection:",
+                             placeholder = "Enter custom protection"),
+                     actionButton("add_custom_protective", "➕ Add Custom",
+                                class = "btn-secondary btn-sm")
+                 )
+             )
+      )
+    )
   )
 }
 

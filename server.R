@@ -148,7 +148,7 @@ server <- function(input, output, session) {
 
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
       updateSelectInput(session, "bayesianProblem", choices = unique(data$Central_Problem))
-      showNotification("✅ Data loaded successfully with v5.0.0 Bayesian network ready!", type = "default", duration = 3)
+      showNotification("✅ Data loaded successfully with Bayesian network ready!", type = "default", duration = 3)
 
     }, error = function(e) {
       showNotification(paste("❌ Error loading data:", e$message), type = "error")
@@ -157,11 +157,11 @@ server <- function(input, output, session) {
 
   # Enhanced sample data generation
   observeEvent(input$generateSample, {
-    showNotification("🔄 Generating v5.0.0 sample data with Bayesian network support...",
+    showNotification("🔄 Generating comprehensive data from vocabulary elements...",
                     type = "default", duration = 3)
 
     tryCatch({
-      sample_data <- generateEnvironmentalDataFixed()
+      sample_data <- generateDataFromVocabulary()
       currentData(sample_data)
       editedData(sample_data)
       envDataGenerated(TRUE)
@@ -172,7 +172,7 @@ server <- function(input, output, session) {
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
 
-      showNotification(paste("✅ Generated", nrow(sample_data), "environmental scenarios with v5.0.0 Bayesian network support!"),
+      showNotification(paste("✅ Generated", nrow(sample_data), "comprehensive bowtie scenarios from ALL vocabulary elements!"),
                       type = "default", duration = 4)
 
     }, error = function(e) {
@@ -222,7 +222,7 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "dataLoaded", suspendWhenHidden = FALSE)
 
-  # Enhanced data info with v5.0.0 details
+  # Enhanced data info with details
   output$dataInfo <- renderText({
     data <- getCurrentData()
     req(data)
@@ -231,7 +231,7 @@ server <- function(input, output, session) {
 
   # Enhanced download handler
   output$downloadSample <- downloadHandler(
-    filename = function() paste("enhanced_environmental_bowtie_v5.0.0_", Sys.Date(), ".xlsx", sep = ""),
+    filename = function() paste("enhanced_environmental_bowtie_", Sys.Date(), ".xlsx", sep = ""),
     content = function(file) {
       data <- getCurrentData()
       req(data)
@@ -513,7 +513,7 @@ server <- function(input, output, session) {
         autoWidth = FALSE,
         dom = 'Blfrtip',
         buttons = c('copy', 'csv', 'excel'),
-        language = list(processing = "Loading v5.0.0 enhanced data with Bayesian network support...")
+        language = list(processing = "Loading enhanced data with Bayesian network support...")
       ),
       editable = list(target = 'cell'),
       extensions = c('Buttons', 'Scroller'),
@@ -561,7 +561,7 @@ server <- function(input, output, session) {
     inferenceCompleted(FALSE)
 
     if (runif(1) < 0.3) {
-      showNotification("✓ Cell updated - v5.0.0 Bayesian network ready for recreation", type = "default", duration = 1)
+      showNotification("✓ Cell updated - Bayesian network ready for recreation", type = "default", duration = 1)
     }
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
@@ -570,20 +570,58 @@ server <- function(input, output, session) {
     selectedRows(input$editableTable_rows_selected)
   })
 
-  # Enhanced row operations
+  # Enhanced row operations with safe column matching
   observeEvent(input$addRow, {
-    data <- getCurrentData()
-    req(data)
+    tryCatch({
+      data <- getCurrentData()
 
-    selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk v5.0.0"
-    new_row <- createDefaultRowFixed(selected_problem)
-    updated_data <- rbind(data, new_row)
+      # Initialize data if none exists
+      if (is.null(data) || nrow(data) == 0) {
+        cat("🔄 Initializing data for addRow operation...\n")
+        initial_data <- generateEnvironmentalDataFixed()
+        # Take only the structure but remove all rows to start fresh
+        data <- initial_data[0, , drop = FALSE]
+        currentData(data)
+        editedData(data)
+        showNotification("📊 Initialized new dataset for editing", type = "default", duration = 2)
+      }
 
-    editedData(updated_data)
-    dataVersion(dataVersion() + 1)
-    clearCache()
-    bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-    showNotification("✅ New row added with v5.0.0 Bayesian support!", type = "default", duration = 2)
+      selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk"
+      new_row <- createDefaultRowFixed(selected_problem)
+
+      # Ensure column structure compatibility
+      existing_cols <- names(data)
+      new_row_cols <- names(new_row)
+
+      # Add missing columns to new_row with NA values
+      for (col in existing_cols) {
+        if (!col %in% new_row_cols) {
+          new_row[[col]] <- NA
+        }
+      }
+
+      # Add missing columns to data with appropriate defaults
+      for (col in new_row_cols) {
+        if (!col %in% existing_cols) {
+          data[[col]] <- NA
+        }
+      }
+
+      # Reorder columns to match
+      new_row <- new_row[, names(data), drop = FALSE]
+
+      updated_data <- rbind(data, new_row)
+
+      editedData(updated_data)
+      dataVersion(dataVersion() + 1)
+      clearCache()
+      bayesianNetworkCreated(FALSE)  # Reset Bayesian network
+      showNotification("✅ New row added with Bayesian support!", type = "default", duration = 2)
+
+    }, error = function(e) {
+      cat("Error in addRow:", e$message, "\n")
+      showNotification(paste("❌ Error adding row:", e$message), type = "error", duration = 5)
+    })
   })
 
   observeEvent(input$deleteSelected, {
@@ -595,7 +633,7 @@ server <- function(input, output, session) {
       dataVersion(dataVersion() + 1)
       clearCache()
       bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - v5.0.0 Bayesian network reset"), type = "warning", duration = 2)
+      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - Bayesian network reset"), type = "warning", duration = 2)
     } else {
       showNotification("❌ No rows selected", type = "error", duration = 2)
     }
@@ -605,7 +643,7 @@ server <- function(input, output, session) {
     edited <- editedData()
     if (!is.null(edited)) {
       currentData(edited)
-      showNotification("💾 Changes saved with v5.0.0 Bayesian network support!", type = "default", duration = 2)
+      showNotification("💾 Changes saved with Bayesian network support!", type = "default", duration = 2)
     }
   })
 
@@ -623,10 +661,10 @@ server <- function(input, output, session) {
     new_row <- data.frame(
       Activity = input$newActivity,
       Pressure = input$newPressure,
-      Preventive_Control = "v5.0.0 Enhanced preventive control",
-      Escalation_Factor = "v5.0.0 Enhanced escalation factor",
+      Preventive_Control = "Enhanced preventive control",
+      Escalation_Factor = "Enhanced escalation factor",
       Central_Problem = input$selectedProblem,
-      Protective_Mitigation = paste("v5.0.0 Enhanced protective mitigation for", input$newConsequence),
+      Protective_Mitigation = paste("Enhanced protective mitigation for", input$newConsequence),
       Consequence = input$newConsequence,
       Likelihood = 3L,
       Severity = 3L,
@@ -644,14 +682,14 @@ server <- function(input, output, session) {
     updateTextInput(session, "newPressure", value = "")
     updateTextInput(session, "newConsequence", value = "")
 
-    showNotification("🔗 Activity chain added with v5.0.0 Bayesian network support!", type = "default", duration = 3)
+    showNotification("🔗 Activity chain added with Bayesian network support!", type = "default", duration = 3)
   })
 
   # Enhanced debug info
   output$debugInfo <- renderText({
     data <- getCurrentData()
     if (!is.null(data)) {
-      paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - v5.0.0 Enhanced bowtie structure with Bayesian network support")
+      paste("✅ Loaded:", nrow(data), "rows,", ncol(data), "columns - Enhanced bowtie structure with Bayesian network support")
     } else {
       "No enhanced data loaded"
     }
@@ -673,9 +711,9 @@ server <- function(input, output, session) {
     edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
 
     visNetwork(nodes, edges,
-               main = paste("🌟 Enhanced Bowtie Analysis v5.0.0 with Bayesian Networks:", input$selectedProblem),
-               submain = if(input$showBarriers) "✅ Interconnected pathways with v5.0.0 Bayesian network conversion ready" else "Direct causal relationships with enhanced connections",
-               footer = "🔧 v5.0.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
+               main = paste("🌟 Enhanced Bowtie Analysis with Bayesian Networks:", input$selectedProblem),
+               submain = if(input$showBarriers) "✅ Interconnected pathways with Bayesian network conversion ready" else "Direct causal relationships with enhanced connections",
+               footer = "🔧 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
       visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                font = list(color = "#2C3E50", face = "Arial", size = 12)) %>%
       visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -701,7 +739,7 @@ server <- function(input, output, session) {
              color = "#F39C12", shape = "triangleDown", size = 15),
         list(label = "Central Problem (Main Risk)",
              color = "#C0392B", shape = "diamond", size = 18),
-        list(label = "Protective Mitigation (v5.0.0)",
+        list(label = "Protective Mitigation",
              color = "#3498DB", shape = "square", size = 15),
         list(label = "Consequences (Impacts)",
              color = "#E67E22", shape = "hexagon", size = 15)
@@ -754,14 +792,14 @@ server <- function(input, output, session) {
           "<br>Consequence:", Consequence,
           "<br>Risk Level:", Risk_Level,
           "<br>Risk Score:", Likelihood * Severity,
-          "<br>v5.0.0 Bayesian Networks: ✅"
+          "<br>Bayesian Networks: ✅"
         )), size = 4, alpha = 0.7) +
         scale_color_manual(values = RISK_COLORS, name = "Risk Level") +
         scale_x_continuous(breaks = 1:5, limits = c(0.5, 5.5),
                           name = "Likelihood (1=Very Low, 5=Very High)") +
         scale_y_continuous(breaks = 1:5, limits = c(0.5, 5.5),
                           name = "Severity (1=Negligible, 5=Catastrophic)") +
-        labs(title = "🌟 Enhanced Environmental Risk Matrix v5.0.0 with Bayesian Networks",
+        labs(title = "🌟 Enhanced Environmental Risk Matrix with Bayesian Networks",
              subtitle = paste("✅ Analyzing", nrow(data), "risk scenarios - Ready for probabilistic modeling")) +
         theme_minimal() +
         theme(legend.position = "bottom",
@@ -806,7 +844,7 @@ server <- function(input, output, session) {
 
     footer_row <- data.frame(
       Icon = "🧠",
-      `Risk Level` = "v5.0.0 Bayesian",
+      `Risk Level` = "Bayesian",
       Count = nrow(data),
       `Percentage (%)` = 100.0,
       stringsAsFactors = FALSE,
@@ -820,7 +858,7 @@ server <- function(input, output, session) {
 
   # Enhanced download bowtie diagram
   output$downloadBowtie <- downloadHandler(
-    filename = function() paste("enhanced_bowtie_v5.0.0_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
+    filename = function() paste("enhanced_bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
     content = function(file) {
       data <- getCurrentData()
       req(data, input$selectedProblem)
@@ -830,9 +868,9 @@ server <- function(input, output, session) {
       edges <- createBowtieEdgesFixed(problem_data, TRUE)
 
       network <- visNetwork(nodes, edges,
-                          main = paste("🌟 Enhanced Environmental Bowtie Analysis v5.0.0 with Bayesian Networks:", input$selectedProblem),
-                          submain = paste("Generated on", Sys.Date(), "- v5.0.0 with Bayesian network support"),
-                          footer = "🔧 v5.0.0 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
+                          main = paste("🌟 Enhanced Environmental Bowtie Analysis with Bayesian Networks:", input$selectedProblem),
+                          submain = paste("Generated on", Sys.Date(), "- with Bayesian network support"),
+                          footer = "🔧 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
         visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
                 font = list(color = "#2C3E50", face = "Arial")) %>%
         visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
@@ -852,7 +890,7 @@ server <- function(input, output, session) {
                color = "#F39C12", shape = "triangleDown", size = 15),
           list(label = "Central Problem (Main Risk)",
                color = "#C0392B", shape = "diamond", size = 18),
-          list(label = "Protective Mitigation (v5.0.0)",
+          list(label = "Protective Mitigation",
                color = "#3498DB", shape = "square", size = 15),
           list(label = "Consequences (Impacts)",
                color = "#E67E22", shape = "hexagon", size = 15)

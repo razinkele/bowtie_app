@@ -240,6 +240,16 @@ guided_workflow_ui <- function() {
           border-radius: 10px;
           margin-bottom: 20px;
         }
+        /* Hide any text that looks like raw HTML in workflow steps */
+        .list-group-item {
+          overflow: hidden;
+        }
+        .list-group-item > div::before {
+          content: '';
+          display: block;
+          height: 0;
+          overflow: hidden;
+        }
         .workflow-step {
           border: 2px solid #e9ecef;
           border-radius: 10px;
@@ -288,7 +298,7 @@ guided_workflow_ui <- function() {
     div(class = "workflow-header",
         fluidRow(
           column(8,
-                 h2(tagList(icon("magic-wand-sparkles"), "Guided Bowtie Creation Wizard"), style = "margin: 0;"),
+                 h2(tagList(icon("magic"), "Guided Bowtie Creation Wizard"), style = "margin: 0;"),
                  p("Step-by-step environmental risk assessment with expert guidance", style = "margin: 5px 0 0 0;")
           ),
           column(4,
@@ -395,19 +405,19 @@ workflow_steps_sidebar_ui <- function(state) {
       ""
     }
     
-    icon_html <- if (i %in% completed_steps) {
-      as.character(icon("check-circle", class = "text-success"))
+    step_icon <- if (i %in% completed_steps) {
+      tags$i(class = "fas fa-check-circle text-success", style = "margin-right: 8px;")
     } else if (i == current_step) {
-      as.character(icon("arrow-right", class = "text-primary"))
+      tags$i(class = "fas fa-play text-primary", style = "margin-right: 8px;")
     } else {
-      as.character(icon("clock", class = "text-muted"))
+      tags$i(class = "fas fa-clock text-muted", style = "margin-right: 8px;")
     }
-    
+
     div(class = paste("list-group-item", status_class),
         onclick = paste0("Shiny.setInputValue('goto_step', ", i, ")"),
         style = "cursor: pointer;",
         div(
-          span(icon_html, style = "margin-right: 8px;"),
+          step_icon,
           strong(step$title),
           br(),
           tags$small(step$description)
@@ -448,7 +458,22 @@ generate_step1_ui <- function() {
       column(6,
              h4("📝 Template Selection"),
              p("Choose a template to get started quickly with pre-filled examples:"),
-             uiOutput("template_selector"),
+
+             # Listbox with environmental scenarios
+             div(class = "mb-3",
+                 h6("Select from common scenarios:"),
+                 selectInput("problem_template", "Quick Start Templates:",
+                           choices = c(
+                             "Custom (define your own)" = "",
+                             "🌊 Marine pollution from shipping & coastal activities" = "marine_pollution",
+                             "🏭 Industrial contamination through chemical discharge" = "industrial_contamination",
+                             "🚢 Oil spills from maritime transportation" = "oil_spills",
+                             "🌾 Agricultural runoff causing eutrophication" = "agricultural_runoff",
+                             "🐟 Overfishing and commercial stock depletion" = "overfishing_depletion"
+                           ),
+                           selected = ""
+                 )
+             ),
              br(),
              div(class = "alert alert-info",
                  h6("💡 Expert Tip:"),
@@ -507,21 +532,15 @@ generate_step2_ui <- function() {
       ),
       column(4,
              h4("🔍 Problem Examples"),
+
              div(class = "card",
                  div(class = "card-body",
-                     h6("Marine Examples:"),
+                     h6("Additional Examples:"),
                      tags$ul(
                        tags$li("Ocean acidification"),
                        tags$li("Coral reef bleaching"),
-                       tags$li("Marine plastic pollution"),
-                       tags$li("Overfishing impacts")
-                     ),
-                     h6("Terrestrial Examples:"),
-                     tags$ul(
-                       tags$li("Deforestation"),
-                       tags$li("Soil degradation"),
-                       tags$li("Biodiversity loss"),
-                       tags$li("Invasive species spread")
+                       tags$li("Deforestation impacts"),
+                       tags$li("Biodiversity loss")
                      )
                  )
              ),
@@ -990,6 +1009,8 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
         control_choices <- safe_get_vocabulary_choices(vocabulary_data, "controls")
         if (length(control_choices) > 0) {
           updateSelectizeInput(session, "control_search", choices = control_choices, selected = character(0), server = TRUE)
+          # Also update quick add control choices
+          updateSelectizeInput(session, "quick_add_control", choices = control_choices, selected = character(0), server = TRUE)
         } else {
           cat("No control choices available, keeping empty\n")
         }
@@ -999,6 +1020,8 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
         consequence_choices <- safe_get_vocabulary_choices(vocabulary_data, "consequences")
         if (length(consequence_choices) > 0) {
           updateSelectizeInput(session, "consequence_search", choices = consequence_choices, selected = character(0), server = TRUE)
+          # Also update quick add consequence choices
+          updateSelectizeInput(session, "quick_add_consequence", choices = consequence_choices, selected = character(0), server = TRUE)
         } else {
           cat("No consequence choices available, keeping empty\n")
         }
@@ -1008,6 +1031,8 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
         protective_choices <- safe_get_vocabulary_choices(vocabulary_data, "controls")
         if (length(protective_choices) > 0) {
           updateSelectizeInput(session, "protective_search", choices = protective_choices, selected = character(0), server = TRUE)
+          # Also update quick add protective choices
+          updateSelectizeInput(session, "quick_add_protective", choices = protective_choices, selected = character(0), server = TRUE)
         } else {
           cat("No protective control choices available, keeping empty\n")
         }
@@ -1027,12 +1052,9 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   observeEvent(input$add_activity, {
     activity_name <- input$activity_search
     if (!is.null(activity_name) && activity_name != "" && !activity_name %in% selected_items$activities$name) {
-      new_activity <- data.frame(name = activity_name, stringsAsFactors = FALSE)
-      selected_items$activities <- rbind(selected_items$activities, new_activity)
-
+      selected_items$activities <- safe_add_item(selected_items$activities, activity_name, "Vocabulary")
       # Clear the search box
       updateSelectizeInput(session, "activity_search", selected = character(0))
-
       cat("✅ Added activity:", activity_name, "\n")
     }
   })
@@ -1041,12 +1063,9 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   observeEvent(input$add_pressure, {
     pressure_name <- input$pressure_search
     if (!is.null(pressure_name) && pressure_name != "" && !pressure_name %in% selected_items$pressures$name) {
-      new_pressure <- data.frame(name = pressure_name, stringsAsFactors = FALSE)
-      selected_items$pressures <- rbind(selected_items$pressures, new_pressure)
-
+      selected_items$pressures <- safe_add_item(selected_items$pressures, pressure_name, "Vocabulary")
       # Clear the search box
       updateSelectizeInput(session, "pressure_search", selected = character(0))
-
       cat("✅ Added pressure:", pressure_name, "\n")
     }
   })
@@ -1055,12 +1074,9 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   observeEvent(input$add_preventive_control, {
     control_name <- input$control_search
     if (!is.null(control_name) && control_name != "" && !control_name %in% selected_items$controls$name) {
-      new_control <- data.frame(name = control_name, stringsAsFactors = FALSE)
-      selected_items$controls <- rbind(selected_items$controls, new_control)
-
+      selected_items$controls <- safe_add_item(selected_items$controls, control_name, "Vocabulary")
       # Clear the search box
       updateSelectizeInput(session, "control_search", selected = character(0))
-
       cat("✅ Added preventive control:", control_name, "\n")
     }
   })
@@ -1069,12 +1085,9 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   observeEvent(input$add_consequence, {
     consequence_name <- input$consequence_search
     if (!is.null(consequence_name) && consequence_name != "" && !consequence_name %in% selected_items$consequences$name) {
-      new_consequence <- data.frame(name = consequence_name, stringsAsFactors = FALSE)
-      selected_items$consequences <- rbind(selected_items$consequences, new_consequence)
-
+      selected_items$consequences <- safe_add_item(selected_items$consequences, consequence_name, "Vocabulary")
       # Clear the search box
       updateSelectizeInput(session, "consequence_search", selected = character(0))
-
       cat("✅ Added consequence:", consequence_name, "\n")
     }
   })
@@ -1083,16 +1096,234 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
   observeEvent(input$add_protective_control, {
     protective_name <- input$protective_search
     if (!is.null(protective_name) && protective_name != "" && !protective_name %in% selected_items$protective_controls$name) {
-      new_protective <- data.frame(name = protective_name, stringsAsFactors = FALSE)
-      selected_items$protective_controls <- rbind(selected_items$protective_controls, new_protective)
+      selected_items$protective_controls <- safe_add_item(selected_items$protective_controls, protective_name, "Vocabulary")
       # Clear the search box
       updateSelectizeInput(session, "protective_search", selected = character(0))
       cat("✅ Added protective control:", protective_name, "\n")
     }
   })
 
+  # Delete row observers for editable tables
+  observeEvent(input$delete_activities, {
+    row_to_delete <- input$delete_activities
+    if (!is.null(row_to_delete) && row_to_delete > 0 && row_to_delete <= nrow(selected_items$activities)) {
+      item_name <- selected_items$activities$name[row_to_delete]
+      selected_items$activities <- selected_items$activities[-row_to_delete, , drop = FALSE]
+      showNotification(paste("🗑️ Removed activity:", item_name), type = "warning")
+      cat("🗑️ Removed activity:", item_name, "\n")
+    }
+  })
+
+  observeEvent(input$delete_pressures, {
+    row_to_delete <- input$delete_pressures
+    if (!is.null(row_to_delete) && row_to_delete > 0 && row_to_delete <= nrow(selected_items$pressures)) {
+      item_name <- selected_items$pressures$name[row_to_delete]
+      selected_items$pressures <- selected_items$pressures[-row_to_delete, , drop = FALSE]
+      showNotification(paste("🗑️ Removed pressure:", item_name), type = "warning")
+      cat("🗑️ Removed pressure:", item_name, "\n")
+    }
+  })
+
+  observeEvent(input$delete_preventive_controls, {
+    row_to_delete <- input$delete_preventive_controls
+    if (!is.null(row_to_delete) && row_to_delete > 0 && row_to_delete <= nrow(selected_items$controls)) {
+      item_name <- selected_items$controls$name[row_to_delete]
+      selected_items$controls <- selected_items$controls[-row_to_delete, , drop = FALSE]
+      showNotification(paste("🗑️ Removed preventive control:", item_name), type = "warning")
+      cat("🗑️ Removed preventive control:", item_name, "\n")
+    }
+  })
+
+  observeEvent(input$delete_consequences, {
+    row_to_delete <- input$delete_consequences
+    if (!is.null(row_to_delete) && row_to_delete > 0 && row_to_delete <= nrow(selected_items$consequences)) {
+      item_name <- selected_items$consequences$name[row_to_delete]
+      selected_items$consequences <- selected_items$consequences[-row_to_delete, , drop = FALSE]
+      showNotification(paste("🗑️ Removed consequence:", item_name), type = "warning")
+      cat("🗑️ Removed consequence:", item_name, "\n")
+    }
+  })
+
+  observeEvent(input$delete_protective_controls, {
+    row_to_delete <- input$delete_protective_controls
+    if (!is.null(row_to_delete) && row_to_delete > 0 && row_to_delete <= nrow(selected_items$protective_controls)) {
+      item_name <- selected_items$protective_controls$name[row_to_delete]
+      selected_items$protective_controls <- selected_items$protective_controls[-row_to_delete, , drop = FALSE]
+      showNotification(paste("🗑️ Removed protective control:", item_name), type = "warning")
+      cat("🗑️ Removed protective control:", item_name, "\n")
+    }
+  })
+
+  # Helper function to safely add items with consistent column structure
+  safe_add_item <- function(item_collection, new_item_name, item_type = "Custom") {
+    tryCatch({
+      # Initialize collection if empty
+      if (is.null(item_collection) || nrow(item_collection) == 0) {
+        item_collection <- data.frame(name = character(0), stringsAsFactors = FALSE)
+      }
+
+      # Get existing column structure
+      existing_cols <- names(item_collection)
+
+      # Create new item with base structure
+      new_item <- data.frame(name = new_item_name, stringsAsFactors = FALSE)
+
+      # Add any missing columns with appropriate default values
+      for (col in existing_cols) {
+        if (!col %in% names(new_item)) {
+          if (col == "level") {
+            new_item[[col]] <- item_type
+          } else if (col == "id") {
+            new_item[[col]] <- paste0(toupper(substr(item_type, 1, 3)), "_", nrow(item_collection) + 1)
+          } else {
+            new_item[[col]] <- NA
+          }
+        }
+      }
+
+      # Reorder columns to match existing structure
+      new_item <- new_item[, existing_cols, drop = FALSE]
+
+      # Return updated collection
+      return(rbind(item_collection, new_item))
+
+    }, error = function(e) {
+      cat("Error in safe_add_item:", e$message, "\n")
+      return(item_collection)  # Return original collection on error
+    })
+  }
+
+  # Cell editing observers for vocabulary-based editing
+  observeEvent(input$selected_activities_table_cell_edit, {
+    info <- input$selected_activities_table_cell_edit
+    if (!is.null(info) && info$col == 0) {  # Name column
+      selected_items$activities[info$row, "name"] <- info$value
+      showNotification("✏️ Activity updated", type = "message")
+    }
+  })
+
+  observeEvent(input$selected_pressures_table_cell_edit, {
+    info <- input$selected_pressures_table_cell_edit
+    if (!is.null(info) && info$col == 0) {  # Name column
+      selected_items$pressures[info$row, "name"] <- info$value
+      showNotification("✏️ Pressure updated", type = "message")
+    }
+  })
+
+  observeEvent(input$preventive_controls_table_cell_edit, {
+    info <- input$preventive_controls_table_cell_edit
+    if (!is.null(info) && info$col == 0) {  # Name column
+      selected_items$controls[info$row, "name"] <- info$value
+      showNotification("✏️ Control updated", type = "message")
+    }
+  })
+
+  observeEvent(input$consequences_table_cell_edit, {
+    info <- input$consequences_table_cell_edit
+    if (!is.null(info) && info$col == 0) {  # Name column
+      selected_items$consequences[info$row, "name"] <- info$value
+      showNotification("✏️ Consequence updated", type = "message")
+    }
+  })
+
+  observeEvent(input$protective_controls_table_cell_edit, {
+    info <- input$protective_controls_table_cell_edit
+    if (!is.null(info) && info$col == 0) {  # Name column
+      selected_items$protective_controls[info$row, "name"] <- info$value
+      showNotification("✏️ Protective control updated", type = "message")
+    }
+  })
+
+  # Quick Add observers for vocabulary-based additions
+  observeEvent(input$add_quick_control, {
+    control_name <- input$quick_add_control
+    if (!is.null(control_name) && control_name != "") {
+      # Check if already exists
+      if (!control_name %in% selected_items$controls$name) {
+        selected_items$controls <- safe_add_item(selected_items$controls, control_name, "Vocabulary")
+        updateSelectizeInput(session, "quick_add_control", selected = character(0))
+        showNotification(paste("✅ Added control:", control_name), type = "success")
+      } else {
+        showNotification("⚠️ Control already exists", type = "warning")
+      }
+    }
+  })
+
+  observeEvent(input$add_custom_control, {
+    control_name <- input$custom_control_name
+    if (!is.null(control_name) && control_name != "" && nchar(trimws(control_name)) > 0) {
+      control_name <- trimws(control_name)
+      # Check if already exists
+      if (!control_name %in% selected_items$controls$name) {
+        selected_items$controls <- safe_add_item(selected_items$controls, control_name, "Custom")
+        updateTextInput(session, "custom_control_name", value = "")
+        showNotification(paste("✅ Added custom control:", control_name), type = "success")
+      } else {
+        showNotification("⚠️ Control already exists", type = "warning")
+      }
+    }
+  })
+
+  observeEvent(input$add_quick_consequence, {
+    consequence_name <- input$quick_add_consequence
+    if (!is.null(consequence_name) && consequence_name != "") {
+      # Check if already exists
+      if (!consequence_name %in% selected_items$consequences$name) {
+        selected_items$consequences <- safe_add_item(selected_items$consequences, consequence_name, "Vocabulary")
+        updateSelectizeInput(session, "quick_add_consequence", selected = character(0))
+        showNotification(paste("✅ Added consequence:", consequence_name), type = "success")
+      } else {
+        showNotification("⚠️ Consequence already exists", type = "warning")
+      }
+    }
+  })
+
+  observeEvent(input$add_custom_consequence, {
+    consequence_name <- input$custom_consequence_name
+    if (!is.null(consequence_name) && consequence_name != "" && nchar(trimws(consequence_name)) > 0) {
+      consequence_name <- trimws(consequence_name)
+      # Check if already exists
+      if (!consequence_name %in% selected_items$consequences$name) {
+        selected_items$consequences <- safe_add_item(selected_items$consequences, consequence_name, "Custom")
+        updateTextInput(session, "custom_consequence_name", value = "")
+        showNotification(paste("✅ Added custom consequence:", consequence_name), type = "success")
+      } else {
+        showNotification("⚠️ Consequence already exists", type = "warning")
+      }
+    }
+  })
+
+  observeEvent(input$add_quick_protective, {
+    protective_name <- input$quick_add_protective
+    if (!is.null(protective_name) && protective_name != "") {
+      # Check if already exists
+      if (!protective_name %in% selected_items$protective_controls$name) {
+        selected_items$protective_controls <- safe_add_item(selected_items$protective_controls, protective_name, "Vocabulary")
+        updateSelectizeInput(session, "quick_add_protective", selected = character(0))
+        showNotification(paste("✅ Added protective control:", protective_name), type = "success")
+      } else {
+        showNotification("⚠️ Protective control already exists", type = "warning")
+      }
+    }
+  })
+
+  observeEvent(input$add_custom_protective, {
+    protective_name <- input$custom_protective_name
+    if (!is.null(protective_name) && protective_name != "" && nchar(trimws(protective_name)) > 0) {
+      protective_name <- trimws(protective_name)
+      # Check if already exists
+      if (!protective_name %in% selected_items$protective_controls$name) {
+        selected_items$protective_controls <- safe_add_item(selected_items$protective_controls, protective_name, "Custom")
+        updateTextInput(session, "custom_protective_name", value = "")
+        showNotification(paste("✅ Added custom protective control:", protective_name), type = "success")
+      } else {
+        showNotification("⚠️ Protective control already exists", type = "warning")
+      }
+    }
+  })
+
   # Helper function for consistent empty state handling in data tables
-  render_workflow_data_table <- function(data_reactive, empty_message, table_id = NULL) {
+  render_workflow_data_table <- function(data_reactive, empty_message, table_id = NULL, editable = FALSE, vocab_type = NULL) {
     DT::renderDataTable({
       tryCatch({
         data <- data_reactive()
@@ -1113,10 +1344,21 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
           names(data)[1] <- "name"
         }
 
+        # Add delete buttons if editable
+        if (editable && nrow(data) > 0) {
+          data$Actions <- sprintf('<button class="btn btn-danger btn-sm delete-row" onclick="Shiny.setInputValue(\'delete_row_%s\', %d, {priority: \'event\'})">🗑️</button>',
+                                table_id %||% "table", 1:nrow(data))
+        }
+
         # Add row numbers for better UX
         if (nrow(data) > 0) {
           data$` ` <- paste0("🔸 ", 1:nrow(data))
-          data <- data[, c(ncol(data), 1:(ncol(data)-1))]
+          # Reorder columns: row number, name, other columns, actions (if any)
+          if (editable) {
+            data <- data[, c(ncol(data)-1, 1:(ncol(data)-2), ncol(data))]
+          } else {
+            data <- data[, c(ncol(data), 1:(ncol(data)-1))]
+          }
         }
 
         return(data)
@@ -1129,51 +1371,135 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
         )
       })
     }, options = list(
-      pageLength = 5,
+      pageLength = if (editable) 10 else 5,
       searching = FALSE,
       info = FALSE,
-      paging = FALSE,
+      paging = if (editable) TRUE else FALSE,
       ordering = FALSE,
       columnDefs = list(
         list(width = "30px", targets = 0),  # Narrow first column for numbering
-        list(className = "dt-center", targets = 0)
-      )
-    ), rownames = FALSE, escape = FALSE)
+        list(className = "dt-center", targets = 0),
+        if (editable) list(width = "80px", targets = -1, orderable = FALSE)  # Actions column
+      ),
+      dom = if (editable) "lrtip" else "t"
+    ), rownames = FALSE, escape = FALSE, editable = if (editable) list(target = "cell", disable = list(columns = c(0, if (editable) ncol(data) else NULL))) else FALSE)
   }
 
-  # Render selected activities table with consistent handling
-  output$selected_activities_table <- render_workflow_data_table(
+  # Enhanced function for editable tables with vocabulary integration
+  render_editable_vocabulary_table <- function(data_reactive, empty_message, table_id, vocab_type) {
+    DT::renderDataTable({
+      tryCatch({
+        data <- data_reactive()
+
+        if (is.null(data) || !is.data.frame(data) || nrow(data) == 0) {
+          # Create properly structured empty state with add row option
+          empty_df <- data.frame(
+            Status = empty_message,
+            stringsAsFactors = FALSE
+          )
+          names(empty_df) <- "Item"
+          return(empty_df)
+        }
+
+        # Ensure data has proper structure with required columns
+        required_cols <- c("name", "level", "id")
+        for (col in required_cols) {
+          if (!col %in% names(data)) {
+            if (col == "name" && ncol(data) > 0) {
+              names(data)[1] <- "name"
+            } else if (col == "level") {
+              data$level <- "User Added"
+            } else if (col == "id") {
+              data$id <- paste0("USR_", 1:nrow(data))
+            }
+          }
+        }
+
+        # Add delete buttons
+        if (nrow(data) > 0) {
+          data$Actions <- sprintf('<button class="btn btn-danger btn-sm delete-row" onclick="Shiny.setInputValue(\'delete_%s\', %d, {priority: \'event\'})"><i class="fa fa-trash"></i></button>',
+                                table_id, 1:nrow(data))
+        }
+
+        # Reorder columns for better display: name, level, actions
+        display_cols <- c("name", "level")
+        if ("Actions" %in% names(data)) {
+          display_cols <- c(display_cols, "Actions")
+        }
+
+        data <- data[, display_cols, drop = FALSE]
+
+        # Rename columns for better display
+        names(data)[names(data) == "name"] <- "Name"
+        names(data)[names(data) == "level"] <- "Category"
+
+        return(data)
+
+      }, error = function(e) {
+        cat("Error rendering editable table:", e$message, "\n")
+        data.frame(
+          Name = paste("Error loading data:", e$message),
+          Category = "Error",
+          stringsAsFactors = FALSE
+        )
+      })
+    }, options = list(
+      pageLength = 10,
+      searching = TRUE,
+      info = TRUE,
+      paging = TRUE,
+      ordering = TRUE,
+      columnDefs = list(
+        list(width = "60%", targets = 0),  # Name column
+        list(width = "25%", targets = 1),  # Category column
+        list(width = "15%", targets = -1, orderable = FALSE)  # Actions column
+      ),
+      dom = "lftip"
+    ), rownames = FALSE, escape = FALSE,
+    editable = list(
+      target = "cell",
+      disable = list(columns = c(ncol(data) - 1))  # Disable actions column editing
+    ))
+  }
+
+  # Render selected activities table with editable functionality
+  output$selected_activities_table <- render_editable_vocabulary_table(
     data_reactive = reactive(selected_items$activities),
     empty_message = "🎯 No activities selected yet. Use the search box above to add activities.",
-    table_id = "activities"
+    table_id = "activities",
+    vocab_type = "activities"
   )
 
-  # Render selected pressures table with consistent handling
-  output$selected_pressures_table <- render_workflow_data_table(
+  # Render selected pressures table with editable functionality
+  output$selected_pressures_table <- render_editable_vocabulary_table(
     data_reactive = reactive(selected_items$pressures),
     empty_message = "🌊 No pressures selected yet. Use the search box above to add pressures.",
-    table_id = "pressures"
+    table_id = "pressures",
+    vocab_type = "pressures"
   )
 
-  # Render selected preventive controls table with consistent handling
-  output$preventive_controls_table <- render_workflow_data_table(
+  # Render selected preventive controls table with editable functionality
+  output$preventive_controls_table <- render_editable_vocabulary_table(
     data_reactive = reactive(selected_items$controls),
     empty_message = "🛡️ No preventive controls selected yet. Use the search box above to add controls.",
-    table_id = "preventive_controls"
+    table_id = "preventive_controls",
+    vocab_type = "controls"
   )
 
-  # Render selected consequences table with consistent handling
-  output$consequences_table <- render_workflow_data_table(
+  # Render selected consequences table with editable functionality
+  output$consequences_table <- render_editable_vocabulary_table(
     data_reactive = reactive(selected_items$consequences),
     empty_message = "💥 No consequences selected yet. Use the search box above to add consequences.",
-    table_id = "consequences"
+    table_id = "consequences",
+    vocab_type = "consequences"
   )
 
-  # Render selected protective controls table with consistent handling
-  output$protective_controls_table <- render_workflow_data_table(
+  # Render selected protective controls table with editable functionality
+  output$protective_controls_table <- render_editable_vocabulary_table(
     data_reactive = reactive(selected_items$protective_controls),
     empty_message = "🚨 No protective controls selected yet. Use the search box above to add protective controls.",
-    table_id = "protective_controls"
+    table_id = "protective_controls",
+    vocab_type = "controls"
   )
 
   # Render activity-pressure connections table
@@ -2487,15 +2813,15 @@ create_guided_workflow_tab <- function() {
     # Check if bslib nav_panel function is available
     if (exists("nav_panel", mode = "function")) {
       nav_panel(
-        title = tagList(icon("magic-wand-sparkles"), "Guided Creation"),
-        icon = icon("magic-wand-sparkles"),
+        title = tagList(icon("magic"), "Guided Creation"),
+        icon = icon("magic"),
         value = "guided_workflow",
         guided_workflow_ui()
       )
     } else {
       # Fallback for older Shiny versions
       tabPanel(
-        title = tagList(icon("magic-wand-sparkles"), "Guided Creation"),
+        title = tagList(icon("magic"), "Guided Creation"),
         value = "guided_workflow",
         guided_workflow_ui()
       )
