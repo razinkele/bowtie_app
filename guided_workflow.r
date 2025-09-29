@@ -1242,7 +1242,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       if (!control_name %in% selected_items$controls$name) {
         selected_items$controls <- safe_add_item(selected_items$controls, control_name, "Vocabulary")
         updateSelectizeInput(session, "quick_add_control", selected = character(0))
-        showNotification(paste("✅ Added control:", control_name), type = "success")
+        showNotification(paste("✅ Added control:", control_name), type = "message")
       } else {
         showNotification("⚠️ Control already exists", type = "warning")
       }
@@ -1257,7 +1257,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       if (!control_name %in% selected_items$controls$name) {
         selected_items$controls <- safe_add_item(selected_items$controls, control_name, "Custom")
         updateTextInput(session, "custom_control_name", value = "")
-        showNotification(paste("✅ Added custom control:", control_name), type = "success")
+        showNotification(paste("✅ Added custom control:", control_name), type = "message")
       } else {
         showNotification("⚠️ Control already exists", type = "warning")
       }
@@ -1271,7 +1271,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       if (!consequence_name %in% selected_items$consequences$name) {
         selected_items$consequences <- safe_add_item(selected_items$consequences, consequence_name, "Vocabulary")
         updateSelectizeInput(session, "quick_add_consequence", selected = character(0))
-        showNotification(paste("✅ Added consequence:", consequence_name), type = "success")
+        showNotification(paste("✅ Added consequence:", consequence_name), type = "message")
       } else {
         showNotification("⚠️ Consequence already exists", type = "warning")
       }
@@ -1286,7 +1286,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       if (!consequence_name %in% selected_items$consequences$name) {
         selected_items$consequences <- safe_add_item(selected_items$consequences, consequence_name, "Custom")
         updateTextInput(session, "custom_consequence_name", value = "")
-        showNotification(paste("✅ Added custom consequence:", consequence_name), type = "success")
+        showNotification(paste("✅ Added custom consequence:", consequence_name), type = "message")
       } else {
         showNotification("⚠️ Consequence already exists", type = "warning")
       }
@@ -1300,7 +1300,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       if (!protective_name %in% selected_items$protective_controls$name) {
         selected_items$protective_controls <- safe_add_item(selected_items$protective_controls, protective_name, "Vocabulary")
         updateSelectizeInput(session, "quick_add_protective", selected = character(0))
-        showNotification(paste("✅ Added protective control:", protective_name), type = "success")
+        showNotification(paste("✅ Added protective control:", protective_name), type = "message")
       } else {
         showNotification("⚠️ Protective control already exists", type = "warning")
       }
@@ -1315,7 +1315,7 @@ guided_workflow_server <- function(input, output, session, vocabulary_data = NUL
       if (!protective_name %in% selected_items$protective_controls$name) {
         selected_items$protective_controls <- safe_add_item(selected_items$protective_controls, protective_name, "Custom")
         updateTextInput(session, "custom_protective_name", value = "")
-        showNotification(paste("✅ Added custom protective control:", protective_name), type = "success")
+        showNotification(paste("✅ Added custom protective control:", protective_name), type = "message")
       } else {
         showNotification("⚠️ Protective control already exists", type = "warning")
       }

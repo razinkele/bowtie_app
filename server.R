@@ -462,7 +462,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "evidenceActivity", selected = "")
     updateSelectInput(session, "evidencePressure", selected = "")
     updateSelectInput(session, "evidenceControl", selected = "")
-    showNotification("ℹ️ Baseline scenario set (no evidence)", type = "info", duration = 2)
+    showNotification("ℹ️ Baseline scenario set (no evidence)", type = "message", duration = 2)
   })
 
   # Download Bayesian results
