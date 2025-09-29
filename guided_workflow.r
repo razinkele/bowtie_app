@@ -406,11 +406,11 @@ workflow_steps_sidebar_ui <- function(state) {
     }
     
     step_icon <- if (i %in% completed_steps) {
-      tags$i(class = "fas fa-check-circle text-success", style = "margin-right: 8px;")
+      icon("check-circle", class = "text-success", style = "margin-right: 8px;")
     } else if (i == current_step) {
-      tags$i(class = "fas fa-play text-primary", style = "margin-right: 8px;")
+      icon("play", class = "text-primary", style = "margin-right: 8px;")
     } else {
-      tags$i(class = "fas fa-clock text-muted", style = "margin-right: 8px;")
+      icon("clock", class = "text-muted", style = "margin-right: 8px;")
     }
 
     div(class = paste("list-group-item", status_class),

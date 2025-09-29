@@ -59,10 +59,19 @@ source("vocabulary.r")
 cat("   • Loading Bayesian network analysis...\n")
 source("bowtie_bayesian_network.r")
 
-# Source guided workflow system
+# Source guided workflow system with dependency management
 cat("   • Loading guided workflow system...\n")
-source("guided_workflow.r")
-source("guided_workflow_steps.r")
+tryCatch({
+  # Load workflow configuration first
+  source("guided_workflow.r")
+  cat("     ✓ Guided workflow core loaded\n")
+
+  # Load step definitions (depends on WORKFLOW_CONFIG from guided_workflow.r)
+  source("guided_workflow_steps.r")
+  cat("     ✓ Workflow step definitions loaded\n")
+}, error = function(e) {
+  cat("     ⚠️ Warning: Failed to load guided workflow system:", e$message, "\n")
+})
 
 # Enhanced vocabulary data loading with graceful fallback
 load_app_data <- function() {

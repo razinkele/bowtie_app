@@ -5,10 +5,8 @@
 # Description: Complete implementations of all 8 workflow steps
 # =============================================================================
 
-# Load required for step definitions
-if (!exists("WORKFLOW_CONFIG")) {
-  source("guided_workflow.r")
-}
+# Configuration loaded by global.R - no need for circular dependency
+# WORKFLOW_CONFIG is available when this file is sourced by global.R
 
 cat("📋 GUIDED WORKFLOW STEPS v1.1.0\n")
 cat("===============================\n")

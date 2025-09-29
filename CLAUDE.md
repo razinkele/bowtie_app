@@ -41,13 +41,31 @@ Missing packages are automatically installed when the application starts.
 
 ## Core Architecture
 
-The application follows a modular Shiny architecture with four main R files:
+The application follows a modular Shiny architecture with separate files for different concerns:
 
-### `app.r` (Main Application File)
-- Contains the complete Shiny UI and server logic
-- UI defined at line 55, server function at line 930
-- Integrates all modules and handles the main application flow
-- Entry point: `shinyApp(ui = ui, server = server)` at line 2356
+### `app.r` (Application Launcher)
+- Lightweight launcher that loads all required modules
+- Sources global.R, ui.R, and server.R files
+- Entry point: `shinyApp(ui = ui, server = server)` at line 27
+- Contains startup messages and module loading sequence
+
+### `global.R` (Global Configuration)
+- Package loading and dependency management
+- Vocabulary data initialization and error handling
+- Sources all utility and workflow modules
+- Enhanced package loading with BiocManager support
+
+### `ui.R` (User Interface Definition)
+- Complete Shiny UI definition with Bootstrap 5 themes
+- All tabbed interface layouts and input components
+- Environmental scenario selectors and form elements
+- FontAwesome icon integration and responsive design
+
+### `server.R` (Server Logic)
+- Complete Shiny server function with all reactive logic
+- Data processing, visualization, and export functionality
+- Session management and user interaction handlers
+- Integration with Bayesian networks and guided workflow
 
 ### `utils.r` (Utility Functions)
 - Environmental data generation and processing functions
@@ -157,10 +175,10 @@ The application now includes updated environmental scenario templates across mul
 
 ### UI/UX Enhancements (September 2025)
 
-#### **FontAwesome Icon Integration Fixed:**
-- ✅ **Resolved HTML rendering issues** - Fixed raw HTML text display in workflow step indicators
-- ✅ **Direct icon element usage** - Replaced `icon()` function calls with direct `tags$i()` elements
-- ✅ **Consistent icon display** - Uniform FontAwesome icon rendering across all components
+#### **FontAwesome Icon Integration Standardized:**
+- ✅ **Standardized icon usage** - Consistent use of `icon()` function across all components
+- ✅ **Removed circular dependencies** - Fixed import logic in guided workflow modules
+- ✅ **Consistent icon display** - Uniform FontAwesome icon rendering across all interfaces
 - ✅ **Theme compatibility** - Icons properly integrate with Bootstrap 5 Zephyr theme
 
 #### **Environmental Scenario Updates:**
