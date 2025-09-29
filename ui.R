@@ -181,18 +181,29 @@ ui <- fluidPage(
 
                    hr(),
 
-                   h5(tagList(icon("leaf"), "Option 2: Generate Sample Data")),
-                   p("Generate comprehensive environmental bowtie data with GRANULAR connection-level risk analysis:"),
+                   h5(tagList(icon("leaf"), "Option 2: Generate Data Using Standardized Dictionaries")),
+                   p("Create sensible central problem bowties (e.g., marine pollution) using all vocabulary elements from expert dictionaries:"),
                    tags$ul(class = "small text-muted",
-                     tags$li("🔗 Activity → Pressure risks"),
-                     tags$li("🛡️ Pressure → Control effectiveness"),
-                     tags$li("⚠️ Control → Escalation risks"),
-                     tags$li("🔥 Escalation → Central Problem risks"),
-                     tags$li("🛡️ Central → Mitigation effectiveness"),
-                     tags$li("💥 Mitigation → Consequence residual risks")
+                     tags$li("📊 Complete vocabulary coverage (53 activities, 36 pressures, 74 controls)")
+                   ),
+
+                   # Environmental scenario selector
+                   div(class = "mb-3",
+                       h6("Select scenario:"),
+                       selectInput("data_scenario_template", "Environmental Scenario:",
+                                 choices = c(
+                                   "Custom (define your own)" = "",
+                                   "🌊 Marine pollution from shipping & coastal activities" = "marine_pollution",
+                                   "🏭 Industrial contamination through chemical discharge" = "industrial_contamination",
+                                   "🚢 Oil spills from maritime transportation" = "oil_spills",
+                                   "🌾 Agricultural runoff causing eutrophication" = "agricultural_runoff",
+                                   "🐟 Overfishing and commercial stock depletion" = "overfishing_depletion"
+                                 ),
+                                 selected = ""
+                       )
                    ),
                    div(class = "d-grid mb-2", actionButton("generateSample",
-                                                     tagList(icon("seedling"), "Generate GRANULAR Data v5.0.0"),
+                                                     tagList(icon("seedling"), "Generate data from elements from vocabulary"),
                                                      class = "btn-success")),
 
                    h6(tagList(icon("shield-alt"), "Option 2b: Multiple Preventive Controls Data")),
@@ -220,7 +231,7 @@ ui <- fluidPage(
 
         column(6,
                card(
-                 card_header(tagList(icon("info-circle"), "Data Structure v5.0.0"), class = "bg-info text-white"),
+                 card_header(tagList(icon("info-circle"), "Data Structure"), class = "bg-info text-white"),
                  card_body(
                    h6(tagList(icon("list"), "Bowtie Elements:")),
                    p("Your Excel file should contain environmental risk data with these columns:"),
@@ -245,7 +256,7 @@ ui <- fluidPage(
 
                    div(class = "alert alert-success mt-3",
                        tagList(icon("check-circle"), " "),
-                       strong("v5.0.0 ENHANCED:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
+                       strong("ENHANCED:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
 
                    div(class = "alert alert-info mt-2",
                        tagList(icon("brain"), " "),
@@ -253,7 +264,7 @@ ui <- fluidPage(
 
                    div(class = "alert alert-primary mt-2",
                        tagList(icon("book"), " "),
-                       strong("v5.0.0 AI Analysis:"), " AI causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
+                       strong("AI Analysis:"), " AI causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
 
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -270,7 +281,7 @@ ui <- fluidPage(
         condition = "output.dataLoaded",
         br(),
         card(
-          card_header(tagList(icon("eye"), "Data Preview - v5.0.0"), class = "bg-success text-white"),
+          card_header(tagList(icon("eye"), "Data Preview"), class = "bg-success text-white"),
           card_body(
             withSpinner(DT::dataTableOutput("preview")),
             br(),
@@ -283,20 +294,20 @@ ui <- fluidPage(
 
     # Guided Workflow Tab
     nav_panel(
-      title = tagList(icon("magic-wand-sparkles"), "🧙 Guided Creation"),
-      icon = icon("magic-wand-sparkles"),
+      title = tagList(icon("magic"), "🧙 Guided Creation"),
+      icon = icon("magic"),
       value = "guided_workflow",
       guided_workflow_ui()
     ),
 
     # Enhanced Bowtie Visualization Tab
     nav_panel(
-      title = tagList(icon("project-diagram"), "Bowtie Diagram v5.0.0"), value = "bowtie",
+      title = tagList(icon("project-diagram"), "Bowtie Diagram"), value = "bowtie",
 
       fluidRow(
         column(4,
                card(
-                 card_header(tagList(icon("cogs"), "Bowtie Controls v5.0.0"), class = "bg-primary text-white"),
+                 card_header(tagList(icon("cogs"), "Bowtie Controls"), class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -324,11 +335,11 @@ ui <- fluidPage(
                      textInput("newPressure", "New Pressure:", placeholder = "Enter pressure/threat"),
                      textInput("newConsequence", "New Consequence:", placeholder = "Enter consequence"),
                      div(class = "d-grid", actionButton("addActivityChain",
-                                                       tagList(icon("plus-circle"), "Add Chain v5.0.0"),
+                                                       tagList(icon("plus-circle"), "Add Chain"),
                                                        class = "btn-outline-primary btn-sm")),
 
                      hr(),
-                     h6(tagList(icon("palette"), "Bowtie Visual Legend v5.0.0:")),
+                     h6(tagList(icon("palette"), "Bowtie Visual Legend:")),
                      div(class = "p-3 border rounded enhanced-legend",
                          div(class = "d-flex align-items-center mb-1",
                              span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "◼"),
@@ -353,7 +364,7 @@ ui <- fluidPage(
                              span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
                          hr(class = "my-2"),
                          div(class = "small text-success",
-                             strong("✓ v5.0.0:"), " With Bayesian network conversion"),
+                             strong("✓ Enhanced:"), " With Bayesian network conversion"),
                          div(class = "small text-muted",
                              strong("Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
                          div(class = "small text-muted",
@@ -364,7 +375,7 @@ ui <- fluidPage(
 
                      hr(),
                      div(class = "d-grid", downloadButton("downloadBowtie",
-                                                         tagList(icon("download"), "Download Diagram v5.0.0"),
+                                                         tagList(icon("download"), "Download Diagram"),
                                                          class = "btn-success"))
                    )
                  )
@@ -373,13 +384,13 @@ ui <- fluidPage(
 
         column(8,
                card(
-                 card_header(tagList(icon("sitemap"), "Bowtie Diagram v5.0.0"),
+                 card_header(tagList(icon("sitemap"), "Bowtie Diagram"),
                            class = "bg-success text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
                      div(class = "text-center mb-3",
-                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis - v5.0.0"), class = "text-primary"),
+                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis"), class = "text-primary"),
                          p(class = "small text-success",
                            "✓ Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences with Bayesian conversion")),
                      div(class = "network-container",
@@ -390,7 +401,7 @@ ui <- fluidPage(
                      condition = "!output.dataLoaded",
                      div(class = "text-center p-5",
                          icon("upload", class = "fa-3x text-muted mb-3"),
-                         h4("Upload Data or Generate Sample Data v5.0.0", class = "text-muted"),
+                         h4("Upload Data or Generate Sample Data", class = "text-muted"),
                          p("Please upload environmental data or generate sample data to view the bowtie diagram with Bayesian network conversion",
                            class = "text-muted"))
                    )
@@ -583,7 +594,7 @@ ui <- fluidPage(
                card(
                  card_header(
                    div(class = "d-flex justify-content-between align-items-center",
-                       tagList(icon("table"), "Environmental Bowtie Data v5.0.0"),
+                       tagList(icon("table"), "Environmental Bowtie Data"),
                        div(
                          conditionalPanel(
                            condition = "output.dataLoaded",
@@ -603,7 +614,7 @@ ui <- fluidPage(
                      condition = "output.dataLoaded",
                      div(class = "alert alert-success",
                          tagList(icon("check-circle"), " "),
-                         "✓ v5.0.0 ENHANCED: Click on any cell to edit. Data ready for Bayesian network conversion."),
+                         "✓ ENHANCED: Click on any cell to edit. Data ready for Bayesian network conversion."),
                      withSpinner(DT::dataTableOutput("editableTable"))
                    ),
                    conditionalPanel(
@@ -611,7 +622,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("table", class = "fa-3x text-muted mb-3"),
                          h4("No Data Available", class = "text-muted"),
-                         p("Please upload data or generate sample data v5.0.0", class = "text-muted"))
+                         p("Please upload data or generate sample data", class = "text-muted"))
                    )
                  )
                )
@@ -626,7 +637,7 @@ ui <- fluidPage(
       fluidRow(
         column(8,
                card(
-                 card_header(tagList(icon("chart-line"), "Environmental Risk Matrix v5.0.0"),
+                 card_header(tagList(icon("chart-line"), "Environmental Risk Matrix"),
                            class = "bg-primary text-white"),
                  card_body(
                    conditionalPanel(
@@ -638,7 +649,7 @@ ui <- fluidPage(
                      div(class = "text-center p-5",
                          icon("chart-line", class = "fa-3x text-muted mb-3"),
                          h4("No Data Available", class = "text-muted"),
-                         p("Please upload data or generate sample data v5.0.0 to view the risk matrix", class = "text-muted"))
+                         p("Please upload data or generate sample data to view the risk matrix", class = "text-muted"))
                    )
                  )
                )
@@ -646,7 +657,7 @@ ui <- fluidPage(
 
         column(4,
                card(
-                 card_header(tagList(icon("chart-pie"), "Risk Statistics v5.0.0"), class = "bg-info text-white"),
+                 card_header(tagList(icon("chart-pie"), "Risk Statistics"), class = "bg-info text-white"),
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
@@ -946,18 +957,18 @@ ui <- fluidPage(
 
         # Guided Workflow Tab
         nav_panel(
-          title = tagList(icon("magic-wand-sparkles"), "Guided Workflow"), value = "workflow_help",
+          title = tagList(icon("magic"), "Guided Workflow"), value = "workflow_help",
 
           fluidRow(
             column(12,
               card(
                 card_header(
-                  tagList(icon("magic-wand-sparkles"), "🧙 Guided Workflow System"),
+                  tagList(icon("magic"), "🧙 Guided Workflow System"),
                   class = "bg-success text-white"
                 ),
                 card_body(
                   div(class = "alert alert-success",
-                      tagList(icon("sparkles"), " "),
+                      tagList(icon("star"), " "),
                       strong("Step-by-Step Bowtie Creation Wizard")
                   ),
 
@@ -1055,7 +1066,7 @@ ui <- fluidPage(
                     )
                   ),
 
-                  h6(tagList(icon("formula"), "Risk Calculation Formula:")),
+                  h6(tagList(icon("calculator"), "Risk Calculation Formula:")),
                   div(class = "alert alert-light border",
                     div(class = "text-center mb-3",
                       tags$code("Risk Score = Threat Likelihood × Consequence Severity", class = "fs-5"),

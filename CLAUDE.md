@@ -134,6 +134,46 @@ The application features a comprehensive 8-step guided workflow for creating bow
 - **Data Persistence**: Maintains state across workflow steps
 - **Export Integration**: Seamless export to Excel format compatible with main application
 
+### Environmental Scenario Templates (Latest Update - September 2025)
+
+The application now includes updated environmental scenario templates across multiple interfaces:
+
+#### **Guided Workflow (Step 1) - Environmental Scenarios:**
+1. 🌊 **Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
+2. 🏭 **Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
+3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
+4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
+5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts *(NEW)*
+
+#### **Data Upload Interface (Option 2) - Environmental Scenarios:**
+- 📊 **Complete vocabulary coverage** (53 activities, 36 pressures, 74 controls)
+1. 🌊 **Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
+2. 🏭 **Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
+3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
+4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
+5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts
+
+**✅ Latest Update (September 2025):** All 5 environmental scenarios now synchronized between guided workflow and Data Upload interfaces for consistent user experience.
+
+### UI/UX Enhancements (September 2025)
+
+#### **FontAwesome Icon Integration Fixed:**
+- ✅ **Resolved HTML rendering issues** - Fixed raw HTML text display in workflow step indicators
+- ✅ **Direct icon element usage** - Replaced `icon()` function calls with direct `tags$i()` elements
+- ✅ **Consistent icon display** - Uniform FontAwesome icon rendering across all components
+- ✅ **Theme compatibility** - Icons properly integrate with Bootstrap 5 Zephyr theme
+
+#### **Environmental Scenario Updates:**
+- ✅ **New overfishing scenario** - Added comprehensive marine resource depletion template
+- ✅ **Fish emoji integration** - Used 🐟 emoji for visual consistency
+- ✅ **Streamlined data interface** - Removed redundant scenarios from data upload page
+- ✅ **Template positioning** - Optimized scenario selector placement in Step 1
+
+#### **Data Generation Enhancements:**
+- ✅ **Comprehensive vocabulary coverage** - Generated 357+ scenarios from complete vocabulary
+- ✅ **Enhanced scenario coverage** - 53/53 activities, 35/36 pressures, 74/74 controls, 26/26 consequences
+- ✅ **Realistic environmental modeling** - Multi-dimensional risk analysis across all vocabulary elements
+
 ## Testing Framework (Version 5.1 Enhanced)
 
 The application includes a comprehensive, modernized testing framework using `testthat` with enhanced capabilities and improved reliability:
