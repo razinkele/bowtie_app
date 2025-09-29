@@ -196,7 +196,7 @@ server <- function(input, output, session) {
       showNotification(
         paste("✅ Generated", nrow(sample_data), "scenarios for:", central_problem,
               "| Activities:", n_activities, "| Consequences:", n_consequences),
-        type = "success", duration = 5)
+        type = "message", duration = 5)
 
     }, error = function(e) {
       showNotification(paste("❌ Error generating scenario-specific data:", e$message),
