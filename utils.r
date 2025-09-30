@@ -443,9 +443,9 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     labels[activity_indices] <- activities
     groups[activity_indices] <- "activity"
     colors[activity_indices] <- activity_colors
-    shapes[activity_indices] <- "box"
-    sizes[activity_indices] <- node_size * 0.9
-    font_sizes[activity_indices] <- 11
+    shapes[activity_indices] <- "ellipse"
+    sizes[activity_indices] <- node_size
+    font_sizes[activity_indices] <- 12
     idx <- idx + n_activities
   }
   
