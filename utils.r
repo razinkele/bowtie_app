@@ -375,7 +375,7 @@ clearCache <- function() {
 
 # Updated node creation for comprehensive bowtie structure
 createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
-  cache_key <- paste0("nodes_updated_v423_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
+  cache_key <- paste0("nodes_updated_v424_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
   if (exists(cache_key, envir = .cache)) {
     cat("📋 Using cached nodes\n")
     return(get(cache_key, envir = .cache))
@@ -414,9 +414,15 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
   shapes <- character(total_nodes)
   sizes <- numeric(total_nodes)
   font_sizes <- numeric(total_nodes)
-  
+  font_aligns <- character(total_nodes)
+  font_vadjusts <- numeric(total_nodes)
+
+  # Initialize default values
+  font_aligns[1:total_nodes] <- "center"
+  font_vadjusts[1:total_nodes] <- 0
+
   idx <- 1
-  
+
   # Central Problem node (center) - Improved Diamond shape
   ids[idx] <- 1
   labels[idx] <- selected_problem
@@ -443,9 +449,11 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     labels[activity_indices] <- activities
     groups[activity_indices] <- "activity"
     colors[activity_indices] <- activity_colors
-    shapes[activity_indices] <- "ellipse"
+    shapes[activity_indices] <- "box"
     sizes[activity_indices] <- node_size
-    font_sizes[activity_indices] <- 12
+    font_sizes[activity_indices] <- 14
+    font_aligns[activity_indices] <- "bottom"
+    font_vadjusts[activity_indices] <- 50
     idx <- idx + n_activities
   }
   
@@ -542,6 +550,8 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     shape = shapes,
     size = sizes,
     font.size = font_sizes,
+    font.align = font_aligns,
+    font.vadjust = font_vadjusts,
     stringsAsFactors = FALSE
   )
   
