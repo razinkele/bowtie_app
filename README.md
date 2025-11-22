@@ -2,7 +2,7 @@
 
 A comprehensive R Shiny web application for environmental risk assessment using bow-tie diagrams enhanced with Bayesian network analysis and AI-powered vocabulary linking.
 
-![Version](https://img.shields.io/badge/version-5.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.3.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -11,7 +11,10 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 - [Overview](#overview)
 - [Features](#features)
 - [Installation](#installation)
+- [Documentation](#documentation)
+- [Deployment](#deployment)
 - [Quick Start](#quick-start)
+- [Environmental Scenarios](#environmental-scenarios)
 - [Data File Formats](#data-file-formats)
 - [Application Architecture](#application-architecture)
 - [Vocabulary System](#vocabulary-system)
@@ -24,6 +27,37 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
+
+## What's New in Version 5.3.0 (Production-Ready Edition)
+
+### 📚 Comprehensive Documentation Package
+- **Complete PDF Manual**: 118 KB comprehensive user and technical documentation
+- **Automated Compilation**: New `compile_manual.R` script for PDF generation
+- **Complete Coverage**: Installation, UI overview, all 12 scenarios, workflows, troubleshooting
+- **Professional Format**: Optimized for distribution and user reference
+
+### 🎨 UI/UX Enhancements
+- **Vocabulary Statistics Card**: Real-time display of 53 activities, 36 pressures, 74 controls, 26 consequences
+- **Vertically Aligned Selectors**: Improved environmental scenario selector layout in Data Input
+- **Enhanced Information Density**: Optimized 3-column layout for better user experience
+- **Better Visual Hierarchy**: Separated labels and improved visual flow
+
+### 🐛 Critical Bug Fixes
+- **Option 2b Scenario Generation Fixed**: Replaced non-existent function with correct `generateScenarioSpecificBowtie()`
+- **All 12 Scenarios Working**: Both Option 2 and Option 2b now fully functional
+- **Linux Case-Sensitivity Resolved**: Fixed utils.r filename references in deployment scripts
+- **Enhanced Error Handling**: Added tryCatch blocks and graceful fallback mechanisms
+
+### 🔧 Configuration & Deployment
+- **Enhanced Directory Validation**: REQUIRED_DIRS and OPTIONAL_DIRS configuration in config.R
+- **Windows PowerShell Support**: New `check_deployment_readiness.ps1` for Windows users
+- **Improved Deployment Scripts**: config.R now properly copied, XLSX files validated
+- **Linux Compatibility**: All case-sensitivity issues resolved for production deployment
+
+### 📁 Codebase Cleanup
+- **Professional Structure**: Removed 11 backup/temporary files (9 backups, 1 machine-specific, 1 temp)
+- **Production-Ready Organization**: Clean directory structure with enhanced .gitignore
+- **Version Standardization**: All configuration files and documentation updated to v5.3.0
 
 ## What's New in Version 5.2 (Advanced Framework Edition)
 
@@ -198,6 +232,37 @@ install.packages("testthat")
    Rscript -e "source('app.R')"
    ```
 
+## Documentation
+
+### Comprehensive PDF Manual (New in v5.3.0)
+
+A complete **118 KB PDF manual** is now available covering all aspects of the application:
+
+- **File**: `docs/Environmental_Bowtie_Risk_Analysis_Manual_v5.3.0.pdf`
+- **Content**:
+  - Executive summary and system requirements
+  - Installation and setup guide
+  - Complete UI overview (all 8 tabs)
+  - All 12 environmental scenarios documented
+  - Step-by-step guided workflow instructions (8 steps)
+  - Bayesian network analysis guide
+  - Risk matrix and visualization tutorials
+  - Advanced features and customization
+  - Troubleshooting and support
+  - Technical appendices and references
+
+### Compile Manual from Source
+
+```r
+# Automated PDF generation from R Markdown source
+Rscript compile_manual.R
+
+# Manual will be generated at: docs/Environmental_Bowtie_Risk_Analysis_Manual_v5.3.0.pdf
+# Source file: docs/USER_MANUAL.Rmd
+```
+
+The script automatically installs required packages (rmarkdown, knitr, TinyTeX) if needed.
+
 ## Deployment
 
 For production deployment on shiny-server or Docker, see the **[deployment](./deployment/)** directory:
@@ -206,6 +271,7 @@ For production deployment on shiny-server or Docker, see the **[deployment](./de
 - **Docker**: Use `deployment/docker-compose.yml` for containerized deployment
 - **Quick Start**: See `deployment/README.md` for deployment options
 - **Full Guide**: See `docs/DEPLOYMENT_GUIDE.md` for comprehensive instructions
+- **PDF Manual**: Complete user and technical documentation in `docs/Environmental_Bowtie_Risk_Analysis_Manual_v5.3.0.pdf`
 
 ## Quick Start
 
@@ -246,6 +312,36 @@ make setup
 # Clean temporary files
 make clean
 ```
+
+## Environmental Scenarios
+
+The application includes **12 comprehensive environmental scenarios** for risk assessment:
+
+### General Environmental Scenarios (5)
+
+1. **🌊 Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
+2. **🏭 Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
+3. **🚢 Oil spills from maritime transportation** - Petroleum-based contamination scenarios
+4. **🌾 Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
+5. **🐟 Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts
+
+### Martinique-Specific Scenarios (7)
+
+6. **🏖️ Martinique: Coastal erosion and beach degradation** - Shoreline erosion and habitat loss
+7. **🌊 Martinique: Sargassum seaweed influx impacts** - Mass seaweed accumulation effects
+8. **🪸 Martinique: Coral reef degradation and bleaching** - Coral ecosystem decline
+9. **💧 Martinique: Watershed pollution from agriculture** - Agricultural runoff and water quality
+10. **🌿 Martinique: Mangrove forest degradation** - Mangrove ecosystem threats
+11. **🌀 Martinique: Hurricane and tropical storm impacts** - Extreme weather event risks
+12. **🚤 Martinique: Marine tourism environmental pressures** - Tourism-related environmental impacts
+
+### Data Generation Options
+
+- **Option 1**: Upload custom Excel file with your own bow-tie data
+- **Option 2**: Generate focused bow-tie from scenarios (~20-30 rows, streamlined analysis)
+- **Option 2b**: Generate comprehensive bow-tie with multiple controls (~40-90 rows, detailed analysis)
+
+All scenarios utilize the application's comprehensive vocabulary database of 189 elements (53 activities, 36 pressures, 74 controls, 26 consequences).
 
 ## Data File Formats
 
@@ -330,11 +426,33 @@ The vocabulary system supports multi-level hierarchies:
 
 ### Core Components
 
-#### `app.r` - Main Application
-- **UI Definition**: Complete Shiny user interface (line 55)
-- **Server Logic**: Application server function (line 930)
-- **Integration Point**: Combines all modules and functionality
-- **Entry Point**: `shinyApp(ui = ui, server = server)` (line 2356)
+The application follows a **modular architecture** with separate files for different concerns:
+
+#### `app.R` - Application Launcher
+- **Lightweight Entry Point**: Main application launcher
+- **Module Loading**: Sources global.R, ui.R, and server.R
+- **Startup Configuration**: Application initialization and messages
+- **Shiny Entry Point**: `shinyApp(ui = ui, server = server)` (line 27)
+
+#### `global.R` - Global Configuration
+- **Package Management**: Automatic installation and loading of dependencies
+- **Vocabulary Initialization**: Loads environmental vocabulary data (189 elements)
+- **Utility Loading**: Sources all utility and workflow modules
+- **BiocManager Support**: Enhanced package loading for Bayesian network packages
+
+#### `ui.R` - User Interface Definition
+- **Complete UI Definition**: All Shiny UI components and layouts
+- **Bootstrap 5 Themes**: Zephyr theme with 21 available themes
+- **Tabbed Interface**: 8 main tabs including Guided Workflow
+- **FontAwesome Icons**: Standardized icon usage across all components
+- **Environmental Scenario Selectors**: Integrated scenario selection widgets
+
+#### `server.R` - Server Logic
+- **Complete Server Function**: All reactive logic and event handlers
+- **Data Processing**: Bow-tie generation, Bayesian network analysis
+- **Visualization**: Interactive diagrams, risk matrices, network graphs
+- **Session Management**: Multi-user support with session isolation
+- **Export Functionality**: Excel, CSV, RDS data export capabilities
 
 #### `utils.r` - Utility Functions
 - **Data Generation**: `generateEnvironmentalDataFixed()` - Creates sample environmental data
@@ -681,21 +799,46 @@ make app
 ### File Organization
 
 ```
-├── app.r                          # Main Shiny application
+├── app.R                          # Application launcher (modular entry point)
+├── global.R                       # Global configuration and package loading
+├── ui.R                           # Complete UI definition (Bootstrap 5)
+├── server.R                       # Complete server logic
+├── config.R                       # Application configuration (v5.3.0)
 ├── utils.r                        # Utility functions
-├── vocabulary.r                   # Vocabulary management
+├── vocabulary.R                   # Vocabulary management
 ├── vocabulary-ai-linker.r         # AI-powered linking
 ├── bowtie_bayesian_network.r      # Bayesian analysis
-├── vocabulary_bowtie_generator.r   # Network generator
+├── vocabulary_bowtie_generator.R  # Network generator
+├── guided_workflow.R              # 8-step guided workflow system
+├── start_app.R                    # Network-ready launcher script
+├── compile_manual.R               # PDF manual compilation (NEW v5.3.0)
+├── docs/                          # Documentation
+│   ├── Environmental_Bowtie_Risk_Analysis_Manual_v5.3.0.pdf  # Complete manual (NEW)
+│   ├── USER_MANUAL.Rmd            # Manual source (NEW)
+│   ├── DEPLOYMENT_GUIDE.md        # Deployment instructions
+│   ├── CONFIGURATION_GUIDE.md     # Configuration reference
+│   ├── DEVELOPMENT_GUIDE.md       # Development guide
+│   ├── API_REFERENCE.md           # API documentation
+│   └── release-notes/             # Version release notes
+│       └── RELEASE_NOTES_v5.3.0.md  # v5.3.0 release notes (NEW)
+├── deployment/                    # Deployment scripts
+│   ├── deploy_shiny_server.sh     # Linux deployment script
+│   ├── check_deployment_readiness.sh  # Linux validation
+│   ├── check_deployment_readiness.ps1 # Windows validation (NEW)
+│   └── docker-compose.yml         # Docker deployment
 ├── tests/                         # Testing framework
-│   ├── testthat/                  # Test suites
+│   ├── testthat/                  # Test suites (11+ tests)
 │   ├── fixtures/                  # Test data
-│   └── test_runner.R              # Test execution
-├── www/                           # Web assets
-├── CAUSES.xlsx                    # Activities vocabulary
-├── CONSEQUENCES.xlsx              # Consequences vocabulary
-├── CONTROLS.xlsx                  # Controls vocabulary
-└── environmental_bowtie_data_*.xlsx # Sample data
+│   ├── test_runner.R              # Quick test execution
+│   └── comprehensive_test_runner.R  # Full test suite
+├── www/                           # Web assets (CSS, JS, images)
+├── CAUSES.xlsx                    # Activities vocabulary (53 items)
+├── CONSEQUENCES.xlsx              # Consequences vocabulary (26 items)
+├── CONTROLS.xlsx                  # Controls vocabulary (74 items)
+├── environmental_bowtie_data_*.xlsx # Sample datasets
+├── VERSION_HISTORY.md             # Complete version history (NEW)
+├── CLAUDE.md                      # Development guidance (updated v5.3.0)
+└── README.md                      # This file (updated v5.3.0)
 ```
 
 ## API Reference
@@ -1004,7 +1147,7 @@ SOFTWARE.
 
 For questions, issues, or contributions, please visit the project repository or contact the development team.
 
-**Version**: 5.1.0 (Modern Framework Edition)
-**Last Updated**: September 2025
+**Version**: 5.3.0 (Production-Ready Edition)
+**Last Updated**: November 2025
 **Maintainer**: Marbefes Team & AI Assistant
-**Framework Updates**: Enhanced development and testing infrastructure with improved performance and maintainability
+**Framework Updates**: Production-ready with comprehensive deployment framework, UI/UX improvements, critical bug fixes, Linux compatibility, and complete documentation package
