@@ -6,17 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an R Shiny web application for Environmental Bowtie Risk Analysis with Bayesian Network integration. The application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks.
 
-**Version**: 5.1.0 (Modern Framework Edition - Online Ready)
-**Release Date**: September 2025
-**Framework Updates**: Enhanced development and testing infrastructure with improved performance, maintainability, and network deployment capabilities.
+**Version**: 5.3.0 (Production-Ready Edition)
+**Release Date**: November 2025
+**Framework Updates**: Production-ready with comprehensive deployment framework, UI/UX improvements, bug fixes, Linux compatibility, and clean codebase structure.
 
 ## Running the Application
 
 ### Local Development
 ```r
 # In R console or RStudio
-source("app.r")
-# The app will launch automatically via shinyApp() call at the end of app.r
+source("app.R")
+# The app will launch automatically via shinyApp() call at the end of app.R
 ```
 
 ### Network/Online Deployment (Recommended)
@@ -67,13 +67,13 @@ The application follows a modular Shiny architecture with separate files for dif
 - Session management and user interaction handlers
 - Integration with Bayesian networks and guided workflow
 
-### `utils.r` (Utility Functions)
+### `utils.R` (Utility Functions)
 - Environmental data generation and processing functions
 - Sample data creation for bowtie analysis
 - Data manipulation and formatting utilities
 - Caching mechanisms for performance optimization
 
-### `vocabulary.r` (Data Management)
+### `vocabulary.R` (Data Management)
 - Hierarchical data reading from Excel files
 - Functions for loading activities, pressures, consequences, and controls
 - Data structure management for bowtie components
@@ -83,23 +83,18 @@ The application follows a modular Shiny architecture with separate files for dif
 - Probabilistic risk modeling and inference
 - Network visualization and analysis functions
 
-### `vocabulary_bowtie_generator.r` (Vocabulary-Based Network Generator)
+### `vocabulary_bowtie_generator.R` (Vocabulary-Based Network Generator)
 - Generates bow-tie networks using vocabulary elements from Excel files
 - AI-powered intelligent linking between vocabulary components
 - Creates Excel output compatible with main application
 - Supports multiple central problems and configurable parameters
 
-### `guided_workflow.r` (Guided Workflow System)
+### `guided_workflow.R` (Guided Workflow System)
 - Step-by-step wizard for creating bowtie diagrams
 - 8-step guided process with vocabulary integration
 - Interactive workflow with progress tracking
 - Server-side handlers for all user interactions
 
-### `guided_workflow_steps.r` (Guided Workflow Step Definitions)
-- UI definitions for each workflow step
-- Vocabulary-integrated search widgets
-- Form validation and user guidance
-- Step-specific components and layouts
 
 ## Data Structure
 
@@ -271,7 +266,7 @@ source("tests/testthat/test-bayesian-network.R")
 ### Enhanced Build System (Version 5.1)
 ```r
 # Development commands
-source("app.r")                          # Run application (local only)
+source("app.R")                          # Run application (local only)
 Rscript start_app.R                      # Run application (network ready)
 Rscript tests/comprehensive_test_runner.R  # Full test suite
 Rscript utils/performance_benchmark.R      # Performance analysis
@@ -280,6 +275,7 @@ Rscript utils/code_quality_check.R         # Code quality validation
 
 ### Framework Versions (Current)
 - **R Version**: 4.4.3+ (recommended)
+- **File Extension Standard**: All R files use `.R` extension (Linux compatible)
 - **Shiny**: 1.8.0+ with Bootstrap 5 support
 - **visNetwork**: 2.1.0+ for interactive diagrams
 - **DT**: 0.24+ for enhanced data tables

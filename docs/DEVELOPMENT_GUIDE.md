@@ -109,8 +109,7 @@ bowtie_app/
 ├── docker-compose.yml             # Container orchestration
 │
 ├── Core Application Modules/
-│   ├── guided_workflow.r          # Guided workflow system core
-│   ├── guided_workflow_steps.r    # Workflow step implementations
+│   ├── guided_workflow.r          # Guided workflow system (includes all step implementations)
 │   ├── utils.r                    # Utility functions and data generation
 │   ├── vocabulary.r               # Vocabulary management system
 │   └── bowtie_bayesian_network.r  # Bayesian network integration

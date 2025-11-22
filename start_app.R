@@ -1,37 +1,19 @@
 # Simple app launcher for Environmental Bowtie Risk Analysis
-# This script should work around any server function conflicts
+# Uses runApp to avoid double-loading issues
 
 library(shiny)
 
-# Source the files in order
-cat("Loading global configuration...\n")
-source("global.R")
+cat("Starting Environmental Bowtie Risk Analysis Application...\n")
+cat("Loading on http://127.0.0.1:4848...\n")
+cat("Access locally: http://localhost:4848\n\n")
 
-cat("Loading UI...\n")
-source("ui.R")
-
-cat("Loading server...\n")
-source("server.R")
-
-cat("Starting app...\n")
-
-# Start the app with explicit options
+# Set options before running
 options(shiny.maxRequestSize = 30*1024^2)  # 30MB max file size
-options(shiny.host = "0.0.0.0")
-options(shiny.port = 3838)
 
-# Launch with error handling
-tryCatch({
-  shinyApp(ui = ui, server = server)
-}, error = function(e) {
-  cat("Error starting app:", e$message, "\n")
-  cat("Trying alternative method...\n")
-
-  # Alternative launch method
-  shiny::runApp(
-    appDir = ".",
-    host = "0.0.0.0",
-    port = 3838,
-    launch.browser = FALSE
-  )
-})
+# Launch the app using runApp (will source global.R, ui.R, server.R automatically)
+shiny::runApp(
+  appDir = ".",
+  host = "127.0.0.1",
+  port = 4848,
+  launch.browser = TRUE
+)

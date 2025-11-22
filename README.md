@@ -2,7 +2,7 @@
 
 A comprehensive R Shiny web application for environmental risk assessment using bow-tie diagrams enhanced with Bayesian network analysis and AI-powered vocabulary linking.
 
-![Version](https://img.shields.io/badge/version-5.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.1.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -195,8 +195,17 @@ install.packages("testthat")
    ```bash
    make app
    # or
-   Rscript -e "source('app.r')"
+   Rscript -e "source('app.R')"
    ```
+
+## Deployment
+
+For production deployment on shiny-server or Docker, see the **[deployment](./deployment/)** directory:
+
+- **Shiny Server**: Use `deployment/deploy_shiny_server.sh` for automated deployment
+- **Docker**: Use `deployment/docker-compose.yml` for containerized deployment
+- **Quick Start**: See `deployment/README.md` for deployment options
+- **Full Guide**: See `docs/DEPLOYMENT_GUIDE.md` for comprehensive instructions
 
 ## Quick Start
 
@@ -204,7 +213,7 @@ install.packages("testthat")
 
 1. **Start the application**:
    ```r
-   source("app.r")
+   source("app.R")
    ```
 
 2. **Load or generate data**:
@@ -358,13 +367,8 @@ The vocabulary system supports multi-level hierarchies:
 - **Server Logic**: Complete reactive handlers for all user interactions
 - **State Management**: Maintains workflow progress and user selections
 
-#### `guided_workflow_steps.r` - Workflow Step Definitions
-- **Step UI Generation**: Creates interface for each workflow step
-- **Search Widgets**: Vocabulary-integrated selectizeInput components
-- **Form Validation**: Input validation and user guidance
-- **Data Integration**: Connects Excel vocabulary to UI components
 
-#### `vocabulary_bowtie_generator.r` - Network Generator
+#### `vocabulary_bowtie_generator.R` - Network Generator
 - **Automated Generation**: `generate_vocabulary_bowtie()` - Create bow-ties from vocabulary
 - **AI Integration**: Uses vocabulary linking for intelligent connections
 - **Excel Export**: `export_bowtie_to_excel()` - Compatible output format
@@ -411,7 +415,7 @@ The guided workflow system provides a step-by-step approach to creating environm
 
 ```r
 # Access guided workflow from main application
-# 1. Launch the application: source("app.r")
+# 1. Launch the application: source("app.R")
 # 2. Navigate to "Guided Workflow" tab
 # 3. Follow the 8-step process
 # 4. Export completed bowtie to Excel
@@ -749,7 +753,7 @@ make app
 
 ```r
 # Load the application
-source("app.r")
+source("app.R")
 
 # In the web interface:
 # 1. Click "Generate Sample Environmental Data"
@@ -875,7 +879,7 @@ update.packages()
 
 # Clear workspace
 rm(list = ls())
-source("app.r")
+source("app.R")
 ```
 
 **Issue**: Bayesian network functions fail

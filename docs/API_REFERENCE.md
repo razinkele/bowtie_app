@@ -31,7 +31,7 @@ This document provides comprehensive API reference for the Environmental Bowtie 
 **Usage**:
 ```r
 # Launch application locally
-source("app.r")
+source("app.R")
 
 # Launch with network access
 Rscript start_app.R
@@ -144,8 +144,8 @@ WORKFLOW_CONFIG$steps
 ### Step-Specific Functions
 
 #### `workflow_step_1_ui()` through `workflow_step_8_ui()`
-**File**: `guided_workflow_steps.r`
-**Description**: UI components for each workflow step with vocabulary integration.
+**File**: `guided_workflow.R`
+**Description**: UI components for each workflow step with vocabulary integration. All step definitions are now consolidated within the main guided_workflow.R file.
 
 **Features**:
 - Real-time search through vocabulary items

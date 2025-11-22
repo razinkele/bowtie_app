@@ -1,6 +1,6 @@
 # =============================================================================
 # Advanced Performance Benchmark Tool for Environmental Bowtie Risk Analysis
-# Version: 5.2.0 (Advanced Framework Edition)
+# Version: 5.3.0 (Production-Ready Edition)
 # Author: Enhanced Development Framework
 # Description: Comprehensive performance monitoring, regression detection, and optimization insights
 # =============================================================================
@@ -16,8 +16,8 @@ suppressPackageStartupMessages({
 # Source application files for testing
 cat("🔧 Loading application components for benchmarking...\n")
 source("global.R")
-source("utils.r")
-source("vocabulary.r")
+source("utils.R")
+source("vocabulary.R")
 
 # =============================================================================
 # Core Performance Benchmarks
@@ -214,10 +214,9 @@ profile_application_startup <- function() {
   # Profile the startup process
   profvis({
     source("global.R")
-    source("utils.r")
-    source("vocabulary.r")
-    source("guided_workflow.r")
-    source("guided_workflow_steps.r")
+    source("utils.R")
+    source("vocabulary.R")
+    source("guided_workflow.R")
 
     # Simulate data loading
     sample_data <- generate_sample_environmental_data()
@@ -250,8 +249,8 @@ monitor_memory_usage <- function() {
 
   log_memory("Initial")
   source("global.R"); log_memory("Global loaded")
-  source("utils.r"); log_memory("Utils loaded")
-  source("vocabulary.r"); log_memory("Vocabulary loaded")
+  source("utils.R"); log_memory("Utils loaded")
+  source("vocabulary.R"); log_memory("Vocabulary loaded")
 
   # Generate test data
   test_data <- generate_sample_environmental_data()

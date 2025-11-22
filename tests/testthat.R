@@ -9,7 +9,7 @@ if (!file.exists("app.r")) {
 }
 
 # Load the app's dependencies and source files
-source("utils.r")
+source("utils.R")
 source("vocabulary.r") 
 source("bowtie_bayesian_network.r")
 

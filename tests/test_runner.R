@@ -30,7 +30,7 @@ cat("Loading application modules...\n")
 
 # Source the application files with error handling
 tryCatch({
-  source("utils.r")
+  source("utils.R")
   cat("✓ Loaded utils.r\n")
 }, error = function(e) {
   cat("✗ Failed to load utils.r:", e$message, "\n")

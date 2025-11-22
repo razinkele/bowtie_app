@@ -1,14 +1,18 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application with Bayesian Networks
-# Version: 5.1.0 (Modern Framework Edition)
-# Date: September 2025
+# Version: 5.3.0 (Production-Ready Edition)
+# Date: November 2025
 # Author: Marbefes Team & AI Assistant
-# Description: Enhanced development and testing infrastructure with improved performance and maintainability
+# Description: Production-ready with comprehensive deployment framework, UI improvements, and bug fixes
 # =============================================================================
+
+# Load centralized configuration first
+cat("⚙️ Loading centralized configuration...\n")
+source("config.R")
 
 # Enhanced package loading with better error handling
 load_packages <- function() {
-  cat("🚀 Starting Environmental Bowtie Risk Analysis Application...\n")
+  cat("🚀 Starting", APP_CONFIG$TITLE, "...\n")
   cat("📦 Loading required packages...\n")
 
   required_packages <- c(
@@ -54,21 +58,31 @@ suppressMessages(load_packages())
 # Source utility functions and vocabulary management
 cat("🔧 Loading application modules...\n")
 cat("   • Loading utility functions and data management...\n")
-source("utils.r")
-source("vocabulary.r")
+source("utils.R")
+source("vocabulary.R")
+source("environmental_scenarios.R")
+
+# Load translation system from separate file
+cat("   • Loading translation system...\n")
+source("translations_data.R")
+
 cat("   • Loading Bayesian network analysis...\n")
-source("bowtie_bayesian_network.r")
+source("bowtie_bayesian_network.R")
+
+cat("   • Loading vocabulary bowtie generator...\n")
+source("vocabulary_bowtie_generator.R")
 
 # Source guided workflow system with dependency management
 cat("   • Loading guided workflow system...\n")
 tryCatch({
   # Load workflow configuration first
-  source("guided_workflow.r")
+  source("guided_workflow.R")
   cat("     ✓ Guided workflow core loaded\n")
 
-  # Load step definitions (depends on WORKFLOW_CONFIG from guided_workflow.r)
-  source("guided_workflow_steps.r")
-  cat("     ✓ Workflow step definitions loaded\n")
+  # Load step definitions (depends on WORKFLOW_CONFIG from guided_workflow.R)
+  # NOTE: guided_workflow_steps.r was removed - functionality merged into guided_workflow.R
+  # source("guided_workflow_steps.r")
+  # cat("     ✓ Workflow step definitions loaded\n")
 }, error = function(e) {
   cat("     ⚠️ Warning: Failed to load guided workflow system:", e$message, "\n")
 })

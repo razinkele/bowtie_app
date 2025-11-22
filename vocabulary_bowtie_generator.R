@@ -15,16 +15,16 @@ library(dplyr)
 library(readxl)
 
 # Source required functions
-if (file.exists("vocabulary.r")) {
-  source("vocabulary.r")
+if (file.exists("vocabulary.R")) {
+  source("vocabulary.R")
 } else {
-  stop("vocabulary.r file not found. Please ensure it's in the working directory.")
+  stop("vocabulary.R file not found. Please ensure it's in the working directory.")
 }
 
-if (file.exists("vocabulary-ai-linker.r")) {
-  source("vocabulary-ai-linker.r")
+if (file.exists("vocabulary-ai-linker.R")) {
+  source("vocabulary-ai-linker.R")
 } else {
-  warning("vocabulary-ai-linker.r not found. Will use basic linking only.")
+  warning("vocabulary-ai-linker.R not found. Will use basic linking only.")
 }
 
 # =============================================================================

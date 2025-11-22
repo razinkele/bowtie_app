@@ -205,18 +205,22 @@ generateEnvironmentalDataFixed <- function() {
     Pressure_to_Control_Likelihood = c(2, 3, 2, 3, 2, 2, 3, 2, 3, 2, 3, 3, 2, 3, 2, 2, 3, 1, 1, 3, 2, 2, 2, 3, 2, 2, 3),
     Pressure_to_Control_Severity = c(4, 3, 3, 4, 4, 4, 4, 4, 4, 5, 3, 3, 4, 4, 4, 4, 3, 5, 4, 4, 4, 4, 4, 3, 3, 4, 3),
     
-    # Connection 3: Control → Escalation Factor (control failure leading to escalation)
+    # Connection 3: Escalation Factor → Control (escalation weakens control effectiveness)
     Control_to_Escalation_Likelihood = c(3, 2, 2, 3, 3, 3, 2, 3, 3, 3, 2, 2, 2, 2, 3, 3, 2, 2, 2, 4, 3, 2, 3, 3, 2, 3, 2),
     Control_to_Escalation_Severity = c(4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4, 4, 5, 4, 4, 4, 4, 3, 4, 4),
-    
-    # Connection 4: Escalation → Central Problem
+
+    # Connection 4: Failed Control → Central Problem (when control fails, problem occurs)
     Escalation_to_Central_Likelihood = c(4, 3, 3, 4, 3, 4, 3, 4, 4, 4, 3, 3, 3, 2, 3, 3, 3, 3, 3, 4, 4, 3, 3, 4, 3, 3, 3),
     Escalation_to_Central_Severity = c(5, 4, 3, 5, 4, 5, 4, 4, 5, 5, 4, 4, 4, 5, 4, 4, 3, 5, 4, 5, 4, 4, 4, 3, 4, 4, 3),
     
     # Connection 5: Central Problem → Protective Mitigation (mitigation effectiveness)
     Central_to_Mitigation_Likelihood = c(2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 3, 1, 1, 3, 2, 2, 2, 2, 2, 2, 2),
     Central_to_Mitigation_Severity = c(4, 4, 4, 5, 3, 5, 4, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4),
-    
+
+    # Connection 5a: Escalation Factor → Protective Mitigation (escalation weakens mitigation effectiveness)
+    Escalation_to_Mitigation_Likelihood = c(3, 2, 2, 3, 2, 3, 2, 3, 3, 3, 2, 2, 2, 2, 3, 3, 2, 2, 2, 3, 3, 2, 3, 3, 2, 2, 2),
+    Escalation_to_Mitigation_Severity = c(4, 3, 3, 4, 3, 4, 3, 4, 4, 4, 3, 3, 3, 3, 4, 4, 3, 3, 3, 4, 4, 3, 4, 3, 3, 3, 3),
+
     # Connection 6: Mitigation → Consequence (residual risk after mitigation)
     Mitigation_to_Consequence_Likelihood = c(2, 2, 2, 3, 2, 3, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2),
     Mitigation_to_Consequence_Severity = c(5, 4, 3, 5, 4, 5, 4, 4, 5, 5, 4, 4, 4, 5, 4, 4, 3, 5, 4, 5, 4, 4, 4, 3, 4, 4, 3),
@@ -226,18 +230,19 @@ generateEnvironmentalDataFixed <- function() {
   
   # Calculate overall pathway risk using chain multiplication
   # Overall Likelihood = Product of all likelihood values in the chain (with some adjustment to prevent overly low values)
-  overall_likelihood_raw <- with(sample_data, 
-    Activity_to_Pressure_Likelihood * 
-    (Pressure_to_Control_Likelihood/5) * 
-    (Control_to_Escalation_Likelihood/5) * 
-    (Escalation_to_Central_Likelihood/5) * 
-    (Central_to_Mitigation_Likelihood/5) * 
+  overall_likelihood_raw <- with(sample_data,
+    Activity_to_Pressure_Likelihood *
+    (Pressure_to_Control_Likelihood/5) *
+    (Control_to_Escalation_Likelihood/5) *
+    (Escalation_to_Central_Likelihood/5) *
+    (Central_to_Mitigation_Likelihood/5) *
+    (Escalation_to_Mitigation_Likelihood/5) *
     (Mitigation_to_Consequence_Likelihood/5)
   )
-  
+
   # Scale back to 1-5 range and ensure minimum of 1
   sample_data$Overall_Likelihood <- pmax(1, pmin(5, round(overall_likelihood_raw^0.3 * 2.5)))
-  
+
   # Overall Severity = Maximum severity along the pathway (worst case)
   sample_data$Overall_Severity <- with(sample_data, pmax(
     Activity_to_Pressure_Severity,
@@ -245,6 +250,7 @@ generateEnvironmentalDataFixed <- function() {
     Control_to_Escalation_Severity,
     Escalation_to_Central_Severity,
     Central_to_Mitigation_Severity,
+    Escalation_to_Mitigation_Severity,
     Mitigation_to_Consequence_Severity
   ))
   
@@ -264,10 +270,7 @@ generateEnvironmentalDataFixed <- function() {
   return(sample_data)
 }
 
-# Backward compatibility function (calls the Updated version)
-generateEnvironmentalData <- function() {
-  generateEnvironmentalDataFixed()
-}
+# Backward compatibility alias removed - use generateEnvironmentalDataFixed() directly
 
 # Function to validate required columns in uploaded data
 validateDataColumns <- function(data) {
@@ -277,15 +280,65 @@ validateDataColumns <- function(data) {
 }
 
 # Function to add default columns if missing (improved structure with granular risks)
-addDefaultColumns <- function(data) {
+addDefaultColumns <- function(data, scenario_type = "") {
   n_rows <- nrow(data)
   
   if (!"Activity" %in% names(data)) data$Activity <- paste("Activity", seq_len(n_rows))
   if (!"Pressure" %in% names(data)) data$Pressure <- paste("Pressure", seq_len(n_rows))
   if (!"Preventive_Control" %in% names(data)) data$Preventive_Control <- paste("Preventive control", seq_len(n_rows))
-  if (!"Escalation_Factor" %in% names(data)) data$Escalation_Factor <- paste("Escalation factor", seq_len(n_rows))
+  
+  # Scenario-specific escalation factors
+  if (!"Escalation_Factor" %in% names(data)) {
+    scenario_escalations <- switch(scenario_type,
+      "marine_pollution" = c("Budget cuts reducing monitoring", "Staff turnover affecting expertise", "Equipment aging reducing effectiveness", "Regulatory enforcement gaps"),
+      "industrial_contamination" = c("Cost-cutting reducing safety measures", "Maintenance delays on treatment systems", "Staff training inadequacy", "Regulatory oversight gaps"),
+      "oil_spills" = c("Severe weather conditions", "Equipment maintenance failures", "Human error in operations", "Communication system failures"),
+      "agricultural_runoff" = c("Extreme weather events", "Economic pressures on farmers", "Lack of technical support", "Equipment maintenance issues"),
+      "overfishing_depletion" = c("Enforcement capacity limitations", "Economic pressures on fishers", "IUU fishing activities", "Technology detection gaps"),
+      "martinique_coastal_erosion" = c("Climate change intensification", "Budget constraints for interventions", "Maintenance gaps in structures", "Storm frequency increases"),
+      "martinique_sargassum" = c("Climate variability", "Resource limitations for cleanup", "Forecast accuracy issues", "Equipment capacity constraints"),
+      "martinique_coral_degradation" = c("Ocean acidification", "Marine heatwave intensity", "Tourism pressure increases", "Limited enforcement resources"),
+      "martinique_watershed_pollution" = c("Legacy contamination persistence", "Economic farming pressures", "Technical support gaps", "Monitoring resource limitations"),
+      "martinique_mangrove_loss" = c("Development pressure increases", "Enforcement resource gaps", "Climate stress factors", "Community awareness limitations"),
+      "martinique_hurricane_impacts" = c("Climate change intensification", "Building code compliance gaps", "Infrastructure aging", "Emergency capacity limitations"),
+      "martinique_marine_tourism" = c("Tourism growth pressures", "Enforcement capacity gaps", "Economic incentive conflicts", "Visitor education limitations"),
+      # Default generic escalation factors
+      c("Budget constraints reducing monitoring", "Staff turnover affecting expertise", "Equipment maintenance delays", "Regulatory changes creating gaps", "Extreme weather overwhelming systems", "Human error during critical operations")
+    )
+    
+    # Cycle through scenario-specific escalation factors
+    data$Escalation_Factor <- rep_len(scenario_escalations, n_rows)
+  }
+  
   if (!"Central_Problem" %in% names(data)) data$Central_Problem <- "Environmental Risk"
-  if (!"Protective_Mitigation" %in% names(data)) data$Protective_Mitigation <- paste("Protective mitigation", seq_len(n_rows))
+  
+  # Handle Protective_Mitigation - use Protective_Control if available, otherwise create scenario-specific
+  if (!"Protective_Mitigation" %in% names(data)) {
+    if ("Protective_Control" %in% names(data)) {
+      # Use the Protective_Control values
+      data$Protective_Mitigation <- data$Protective_Control
+    } else {
+      # Create scenario-specific protective mitigations
+      scenario_mitigations <- switch(scenario_type,
+        "marine_pollution" = c("Marine pollution cleanup operations", "Ecosystem restoration programs", "Water quality recovery measures", "Marine sanctuary designation"),
+        "industrial_contamination" = c("Contaminated site remediation", "Groundwater treatment systems", "Soil decontamination programs", "Health monitoring systems"),
+        "oil_spills" = c("Oil spill cleanup operations", "Marine ecosystem restoration", "Wildlife rescue and rehabilitation", "Coastal cleanup programs"),
+        "agricultural_runoff" = c("Water treatment facilities", "Wetland restoration projects", "Alternative water supply systems", "Ecosystem recovery programs"),
+        "overfishing_depletion" = c("Stock rebuilding programs", "Habitat restoration projects", "Alternative livelihood support", "Fisheries recovery plans"),
+        "martinique_coastal_erosion" = c("Beach nourishment programs", "Coastal infrastructure relocation", "Natural buffer restoration", "Emergency coastal protection"),
+        "martinique_sargassum" = c("Beach cleanup operations", "Sargassum collection barriers", "Alternative tourism promotion", "H2S monitoring systems"),
+        "martinique_coral_degradation" = c("Coral restoration programs", "Reef rehabilitation projects", "Marine sanctuary expansion", "Tourism education programs"),
+        "martinique_watershed_pollution" = c("Water treatment infrastructure", "Soil remediation programs", "Alternative water sources", "Health surveillance systems"),
+        "martinique_mangrove_loss" = c("Mangrove replanting programs", "Coastal restoration projects", "Alternative protection measures", "Ecosystem recovery plans"),
+        "martinique_hurricane_impacts" = c("Emergency response coordination", "Infrastructure rebuilding", "Disaster recovery programs", "Community resilience building"),
+        "martinique_marine_tourism" = c("Reef restoration projects", "Marine sanctuary management", "Sustainable tourism programs", "Environmental education"),
+        # Default generic protective mitigations
+        c("Emergency response procedures", "Environmental restoration", "Impact mitigation measures", "Recovery programs", "Remediation activities", "Alternative solutions")
+      )
+      data$Protective_Mitigation <- rep_len(scenario_mitigations, n_rows)
+    }
+  }
+  
   if (!"Consequence" %in% names(data)) data$Consequence <- paste("Consequence", seq_len(n_rows))
   
   # Add granular connection risk columns if missing
@@ -299,24 +352,27 @@ addDefaultColumns <- function(data) {
   if (!"Escalation_to_Central_Severity" %in% names(data)) data$Escalation_to_Central_Severity <- sample.int(5, n_rows, replace = TRUE)
   if (!"Central_to_Mitigation_Likelihood" %in% names(data)) data$Central_to_Mitigation_Likelihood <- sample.int(3, n_rows, replace = TRUE)
   if (!"Central_to_Mitigation_Severity" %in% names(data)) data$Central_to_Mitigation_Severity <- sample.int(5, n_rows, replace = TRUE)
+  if (!"Escalation_to_Mitigation_Likelihood" %in% names(data)) data$Escalation_to_Mitigation_Likelihood <- sample.int(3, n_rows, replace = TRUE)
+  if (!"Escalation_to_Mitigation_Severity" %in% names(data)) data$Escalation_to_Mitigation_Severity <- sample.int(4, n_rows, replace = TRUE)
   if (!"Mitigation_to_Consequence_Likelihood" %in% names(data)) data$Mitigation_to_Consequence_Likelihood <- sample.int(3, n_rows, replace = TRUE)
   if (!"Mitigation_to_Consequence_Severity" %in% names(data)) data$Mitigation_to_Consequence_Severity <- sample.int(5, n_rows, replace = TRUE)
-  
+
   # Calculate overall pathway risk if granular data exists
   if (all(c("Activity_to_Pressure_Likelihood", "Mitigation_to_Consequence_Severity") %in% names(data))) {
     # Calculate overall likelihood using chain multiplication
-    overall_likelihood_raw <- with(data, 
-      Activity_to_Pressure_Likelihood * 
-      (Pressure_to_Control_Likelihood/5) * 
-      (Control_to_Escalation_Likelihood/5) * 
-      (Escalation_to_Central_Likelihood/5) * 
-      (Central_to_Mitigation_Likelihood/5) * 
+    overall_likelihood_raw <- with(data,
+      Activity_to_Pressure_Likelihood *
+      (Pressure_to_Control_Likelihood/5) *
+      (Control_to_Escalation_Likelihood/5) *
+      (Escalation_to_Central_Likelihood/5) *
+      (Central_to_Mitigation_Likelihood/5) *
+      (Escalation_to_Mitigation_Likelihood/5) *
       (Mitigation_to_Consequence_Likelihood/5)
     )
-    
+
     # Scale back to 1-5 range
     data$Overall_Likelihood <- pmax(1, pmin(5, round(overall_likelihood_raw^0.3 * 2.5)))
-    
+
     # Overall Severity = Maximum severity along the pathway
     data$Overall_Severity <- with(data, pmax(
       Activity_to_Pressure_Severity,
@@ -324,6 +380,7 @@ addDefaultColumns <- function(data) {
       Control_to_Escalation_Severity,
       Escalation_to_Central_Severity,
       Central_to_Mitigation_Severity,
+      Escalation_to_Mitigation_Severity,
       Mitigation_to_Consequence_Severity
     ))
   } else {
@@ -369,19 +426,46 @@ getRiskColor <- function(risk_level, show_risk_levels = TRUE) {
 }
 
 # Clear cache when data changes
-clearCache <- function() {
-  rm(list = ls(envir = .cache), envir = .cache)
-}
+# Duplicate clearCache function removed - use clear_cache() instead
 
 # Updated node creation for comprehensive bowtie structure
 createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
-  cache_key <- paste0("nodes_updated_v424_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
+  # Check cache first (removed aggressive cache clearing for better performance)
+  cache_key <- paste0("nodes_updated_v432_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
   if (exists(cache_key, envir = .cache)) {
     cat("📋 Using cached nodes\n")
     return(get(cache_key, envir = .cache))
   }
-  
-  cat("🔧 Creating Updated bowtie nodes\n")
+
+  cat("🔧 Creating Updated bowtie nodes (v432 - extra spacing)\n")
+
+  # Helper function to wrap text for multi-word labels
+  wrap_label <- function(text, max_width = 20) {
+    words <- strsplit(text, " ")[[1]]
+    if (length(words) < 2) {
+      return(text)  # Single word, no wrapping needed
+    }
+
+    lines <- character()
+    current_line <- ""
+
+    for (word in words) {
+      if (nchar(current_line) == 0) {
+        current_line <- word
+      } else if (nchar(paste(current_line, word)) <= max_width) {
+        current_line <- paste(current_line, word)
+      } else {
+        lines <- c(lines, current_line)
+        current_line <- word
+      }
+    }
+
+    if (nchar(current_line) > 0) {
+      lines <- c(lines, current_line)
+    }
+
+    return(paste(lines, collapse = "\n"))
+  }
   
   # Pre-calculate unique values for each element
   activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
@@ -414,23 +498,26 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
   shapes <- character(total_nodes)
   sizes <- numeric(total_nodes)
   font_sizes <- numeric(total_nodes)
-  font_aligns <- character(total_nodes)
-  font_vadjusts <- numeric(total_nodes)
-
-  # Initialize default values
-  font_aligns[1:total_nodes] <- "center"
-  font_vadjusts[1:total_nodes] <- 0
+  titles <- character(total_nodes)  # For tooltips
+  x_coords <- numeric(total_nodes)  # X coordinates for free positioning
+  y_coords <- numeric(total_nodes)  # Y coordinates for free positioning
 
   idx <- 1
 
   # Central Problem node (center) - Improved Diamond shape
   ids[idx] <- 1
-  labels[idx] <- selected_problem
+  labels[idx] <- wrap_label(selected_problem, max_width = 25)
   groups[idx] <- "central_problem"
   colors[idx] <- CENTRAL_PROBLEM_COLOR
   shapes[idx] <- "diamond"
   sizes[idx] <- node_size * 1.8
   font_sizes[idx] <- 16
+  x_coords[idx] <- 0     # Center horizontally
+  y_coords[idx] <- 0     # Center vertically
+  titles[idx] <- paste0("<b>Central Problem:</b><br/>", selected_problem,
+                       "<br/><br/><b>Type:</b> Environmental Risk Focus<br/>",
+                       "<b>Node ID:</b> ", 1, "<br/>",
+                       "<b>Connections:</b> Links activities to consequences")
   idx <- idx + 1
   
   # Activity nodes (far left) - Improved
@@ -443,17 +530,40 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     } else {
       rep(ACTIVITY_COLOR, n_activities)
     }
-    
+
     activity_indices <- idx:(idx + n_activities - 1)
     ids[activity_indices] <- 50 + seq_len(n_activities)
-    labels[activity_indices] <- activities
-    groups[activity_indices] <- "activity"
-    colors[activity_indices] <- activity_colors
-    shapes[activity_indices] <- "box"
-    sizes[activity_indices] <- node_size
-    font_sizes[activity_indices] <- 14
-    font_aligns[activity_indices] <- "bottom"
-    font_vadjusts[activity_indices] <- 50
+    labels[activity_indices] <- sapply(activities, wrap_label, max_width = 18)
+    groups[activity_indices] <- "activity_custom"
+    colors[activity_indices] <- "#8E44AD"  # Force purple color
+    shapes[activity_indices] <- "square"    # Square shape
+    sizes[activity_indices] <- node_size * 0.85  # Reduced from node_size
+    font_sizes[activity_indices] <- 11  # Reduced from 12
+
+    # Set positions for activities (far left) - FURTHER INCREASED SPACING
+    x_coords[activity_indices] <- -800  # Increased from -600
+    # Spread activities vertically - FURTHER INCREASED SPACING
+    y_spacing <- if (n_activities > 1) 250 else 0  # Increased from 180
+    y_coords[activity_indices] <- seq(-(n_activities - 1) * y_spacing / 2,
+                                       (n_activities - 1) * y_spacing / 2,
+                                       length.out = n_activities)
+
+    # Add tooltips for activities
+    for (i in seq_len(n_activities)) {
+      activity_name <- activities[i]
+      activity_data <- hazard_data[hazard_data$Activity == activity_name, ]
+      risk_level <- if(nrow(activity_data) > 0) activity_data$Risk_Level[1] else "Unknown"
+      pressures_connected <- unique(activity_data$Pressure[activity_data$Pressure != ""])
+
+      titles[activity_indices[i]] <- paste0(
+        "<b>Activity:</b><br/>", activity_name,
+        "<br/><br/><b>Type:</b> Human Action<br/>",
+        "<b>Risk Level:</b> ", risk_level, "<br/>",
+        "<b>Node ID:</b> ", 50 + i, "<br/>",
+        "<b>Connected Pressures:</b><br/>• ",
+        if(length(pressures_connected) > 0) paste(pressures_connected, collapse = "<br/>• ") else "None"
+      )
+    }
     idx <- idx + n_activities
   }
   
@@ -467,15 +577,43 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     } else {
       rep(PRESSURE_COLOR, n_pressures)
     }
-    
+
     pressure_indices <- idx:(idx + n_pressures - 1)
     ids[pressure_indices] <- 100 + seq_len(n_pressures)
-    labels[pressure_indices] <- pressures
+    labels[pressure_indices] <- sapply(pressures, wrap_label, max_width = 18)
     groups[pressure_indices] <- "pressure"
     colors[pressure_indices] <- pressure_colors
     shapes[pressure_indices] <- "triangle"
-    sizes[pressure_indices] <- node_size
-    font_sizes[pressure_indices] <- 12
+    sizes[pressure_indices] <- node_size * 0.85  # Reduced from node_size
+    font_sizes[pressure_indices] <- 11  # Reduced from 12
+
+    # Set positions for pressures (left side, between activities and central problem) - FURTHER INCREASED SPACING
+    x_coords[pressure_indices] <- -400  # Increased from -300
+    # Spread pressures vertically - FURTHER INCREASED SPACING
+    y_spacing <- if (n_pressures > 1) 220 else 0  # Increased from 150
+    y_coords[pressure_indices] <- seq(-(n_pressures - 1) * y_spacing / 2,
+                                       (n_pressures - 1) * y_spacing / 2,
+                                       length.out = n_pressures)
+
+    # Add tooltips for pressures
+    for (i in seq_len(n_pressures)) {
+      pressure_name <- pressures[i]
+      pressure_data <- hazard_data[hazard_data$Pressure == pressure_name, ]
+      risk_level <- if(nrow(pressure_data) > 0) pressure_data$Risk_Level[1] else "Unknown"
+      activities_connected <- unique(pressure_data$Activity[pressure_data$Activity != ""])
+      consequences_connected <- unique(pressure_data$Consequence[pressure_data$Consequence != ""])
+
+      titles[pressure_indices[i]] <- paste0(
+        "<b>Pressure:</b><br/>", pressure_name,
+        "<br/><br/><b>Type:</b> Environmental Threat<br/>",
+        "<b>Risk Level:</b> ", risk_level, "<br/>",
+        "<b>Node ID:</b> ", 100 + i, "<br/>",
+        "<b>From Activities:</b><br/>• ",
+        if(length(activities_connected) > 0) paste(activities_connected, collapse = "<br/>• ") else "None",
+        "<br/><b>To Consequences:</b><br/>• ",
+        if(length(consequences_connected) > 0) paste(consequences_connected, collapse = "<br/>• ") else "None"
+      )
+    }
     idx <- idx + n_pressures
   }
   
@@ -489,15 +627,40 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     } else {
       rep(CONSEQUENCE_COLOR, n_consequences)
     }
-    
+
     cons_indices <- idx:(idx + n_consequences - 1)
     ids[cons_indices] <- 200 + seq_len(n_consequences)
-    labels[cons_indices] <- consequences
+    labels[cons_indices] <- sapply(consequences, wrap_label, max_width = 18)
     groups[cons_indices] <- "consequence"
     colors[cons_indices] <- cons_colors
     shapes[cons_indices] <- "hexagon"
-    sizes[cons_indices] <- node_size
-    font_sizes[cons_indices] <- 12
+    sizes[cons_indices] <- node_size * 0.85  # Reduced from node_size
+    font_sizes[cons_indices] <- 11  # Reduced from 12
+
+    # Set positions for consequences (right side) - FURTHER INCREASED SPACING
+    x_coords[cons_indices] <- 400  # Increased from 300
+    # Spread consequences vertically - FURTHER INCREASED SPACING
+    y_spacing <- if (n_consequences > 1) 220 else 0  # Increased from 150
+    y_coords[cons_indices] <- seq(-(n_consequences - 1) * y_spacing / 2,
+                                   (n_consequences - 1) * y_spacing / 2,
+                                   length.out = n_consequences)
+
+    # Add tooltips for consequences
+    for (i in seq_len(n_consequences)) {
+      consequence_name <- consequences[i]
+      consequence_data <- hazard_data[hazard_data$Consequence == consequence_name, ]
+      risk_level <- if(nrow(consequence_data) > 0) consequence_data$Risk_Level[1] else "Unknown"
+      pressures_connected <- unique(consequence_data$Pressure[consequence_data$Pressure != ""])
+
+      titles[cons_indices[i]] <- paste0(
+        "<b>Consequence:</b><br/>", consequence_name,
+        "<br/><br/><b>Type:</b> Environmental Impact<br/>",
+        "<b>Risk Level:</b> ", risk_level, "<br/>",
+        "<b>Node ID:</b> ", 200 + i, "<br/>",
+        "<b>From Pressures:</b><br/>• ",
+        if(length(pressures_connected) > 0) paste(pressures_connected, collapse = "<br/>• ") else "None"
+      )
+    }
     idx <- idx + n_consequences
   }
   
@@ -506,38 +669,100 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     if (exists("preventive_controls") && length(preventive_controls) > 0) {
       prev_indices <- idx:(idx + length(preventive_controls) - 1)
       ids[prev_indices] <- 300 + seq_len(length(preventive_controls))
-      labels[prev_indices] <- preventive_controls
+      labels[prev_indices] <- sapply(preventive_controls, wrap_label, max_width = 16)
       groups[prev_indices] <- "preventive_control"
       colors[prev_indices] <- PREVENTIVE_COLOR
       shapes[prev_indices] <- "square"
-      sizes[prev_indices] <- node_size * 0.8
-      font_sizes[prev_indices] <- 10
+      sizes[prev_indices] <- node_size * 0.7  # Reduced from 0.8
+      font_sizes[prev_indices] <- 9  # Reduced from 10
+
+      # Set positions for preventive controls (between activities/pressures and central problem) - FURTHER INCREASED SPACING
+      x_coords[prev_indices] <- -200  # Increased from -150
+      # Spread preventive controls vertically - FURTHER INCREASED SPACING
+      y_spacing <- if (length(preventive_controls) > 1) 180 else 0  # Increased from 120
+      y_coords[prev_indices] <- seq(-(length(preventive_controls) - 1) * y_spacing / 2,
+                                     (length(preventive_controls) - 1) * y_spacing / 2,
+                                     length.out = length(preventive_controls))
+
+      # Add tooltips for preventive controls
+      for (i in seq_len(length(preventive_controls))) {
+        control_name <- preventive_controls[i]
+        titles[prev_indices[i]] <- paste0(
+          "<b>Preventive Control:</b><br/>", control_name,
+          "<br/><br/><b>Type:</b> Mitigation Measure<br/>",
+          "<b>Function:</b> Prevents threat escalation<br/>",
+          "<b>Node ID:</b> ", 300 + i, "<br/>",
+          "<b>Purpose:</b> Block or reduce risk pathways"
+        )
+      }
       idx <- idx + length(preventive_controls)
     }
-    
+
     if (exists("escalation_factors") && length(escalation_factors) > 0) {
       esc_indices <- idx:(idx + length(escalation_factors) - 1)
       ids[esc_indices] <- 350 + seq_len(length(escalation_factors))
-      labels[esc_indices] <- escalation_factors
+      labels[esc_indices] <- sapply(escalation_factors, wrap_label, max_width = 16)
       groups[esc_indices] <- "escalation_factor"
       colors[esc_indices] <- ESCALATION_COLOR
       shapes[esc_indices] <- "triangleDown"
-      sizes[esc_indices] <- node_size * 0.8
-      font_sizes[esc_indices] <- 10
+      sizes[esc_indices] <- node_size * 0.7  # Reduced from 0.8
+      font_sizes[esc_indices] <- 9  # Reduced from 10
+
+      # Set positions for escalation factors (near preventive controls) - FURTHER INCREASED SPACING
+      x_coords[esc_indices] <- -200  # Increased from -150
+      # Spread escalation factors vertically (offset from preventive controls) - FURTHER INCREASED SPACING
+      y_spacing <- if (length(escalation_factors) > 1) 180 else 0  # Increased from 120
+      y_offset <- if (exists("preventive_controls") && length(preventive_controls) > 0) 300 else 0  # Increased from 220
+      y_coords[esc_indices] <- seq(-(length(escalation_factors) - 1) * y_spacing / 2,
+                                    (length(escalation_factors) - 1) * y_spacing / 2,
+                                    length.out = length(escalation_factors)) + y_offset
+
+      # Add tooltips for escalation factors
+      for (i in seq_len(length(escalation_factors))) {
+        escalation_name <- escalation_factors[i]
+        titles[esc_indices[i]] <- paste0(
+          "<b>Escalation Factor:</b><br/>", escalation_name,
+          "<br/><br/><b>Type:</b> Risk Amplifier<br/>",
+          "<b>Function:</b> Weakens control effectiveness<br/>",
+          "<b>Node ID:</b> ", 350 + i, "<br/>",
+          "<b>Effect:</b> Reduces effectiveness of both<br/>",
+          "preventive controls AND protective mitigations"
+        )
+      }
       idx <- idx + length(escalation_factors)
     }
-    
+
     # ENHANCED Protective Mitigation nodes
     if (exists("protective_mitigations") && length(protective_mitigations) > 0) {
       prot_indices <- idx:(idx + length(protective_mitigations) - 1)
       ids[prot_indices] <- 400 + seq_len(length(protective_mitigations))
-      labels[prot_indices] <- protective_mitigations
+      labels[prot_indices] <- sapply(protective_mitigations, wrap_label, max_width = 16)
       groups[prot_indices] <- "protective_mitigation"
       colors[prot_indices] <- PROTECTIVE_COLOR
       shapes[prot_indices] <- "square"
-      sizes[prot_indices] <- node_size * 0.9  # Slightly larger
-      font_sizes[prot_indices] <- 11         # Larger font
-      
+      sizes[prot_indices] <- node_size * 0.75  # Reduced from 0.9
+      font_sizes[prot_indices] <- 10  # Reduced from 11
+
+      # Set positions for protective mitigations (between central problem and consequences) - FURTHER INCREASED SPACING
+      x_coords[prot_indices] <- 200  # Increased from 150
+      # Spread protective mitigations vertically - FURTHER INCREASED SPACING
+      y_spacing <- if (length(protective_mitigations) > 1) 180 else 0  # Increased from 120
+      y_coords[prot_indices] <- seq(-(length(protective_mitigations) - 1) * y_spacing / 2,
+                                     (length(protective_mitigations) - 1) * y_spacing / 2,
+                                     length.out = length(protective_mitigations))
+
+      # Add tooltips for protective mitigations
+      for (i in seq_len(length(protective_mitigations))) {
+        mitigation_name <- protective_mitigations[i]
+        titles[prot_indices[i]] <- paste0(
+          "<b>Protective Mitigation:</b><br/>", mitigation_name,
+          "<br/><br/><b>Type:</b> Recovery Measure<br/>",
+          "<b>Function:</b> Reduces consequence severity<br/>",
+          "<b>Node ID:</b> ", 400 + i, "<br/>",
+          "<b>Purpose:</b> Minimize impact after occurrence"
+        )
+      }
+
       cat("🔗 Created", length(protective_mitigations), "protective mitigation nodes\n")
     }
   }
@@ -550,8 +775,9 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     shape = shapes,
     size = sizes,
     font.size = font_sizes,
-    font.align = font_aligns,
-    font.vadjust = font_vadjusts,
+    title = titles,
+    x = x_coords,
+    y = y_coords,
     stringsAsFactors = FALSE
   )
   
@@ -563,9 +789,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
 }
 
 # Backward compatibility function
-createBowtieNodes <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
-  createBowtieNodesFixed(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers)
-}
+# Backward compatibility alias removed - use createBowtieNodesFixed() directly
 
 # Updated edge creation function with PROPER protective mitigation connections
 createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
@@ -578,7 +802,7 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
     mitigation_hash <- digest::digest(hazard_data$Protective_Mitigation)
   }
   
-  cache_key <- paste0("edges_updated_v423_", nrow(hazard_data), "_", show_barriers, "_", mitigation_hash)
+  cache_key <- paste0("edges_updated_v430_", nrow(hazard_data), "_", show_barriers, "_", mitigation_hash)
   if (exists(cache_key, envir = .cache)) {
     cat("📋 Using cached edges\n")
     return(get(cache_key, envir = .cache))
@@ -597,10 +821,11 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
   colors <- character(0)
   widths <- numeric(0)
   dashes <- logical(0)
+  titles <- character(0)  # For edge tooltips
   
   if (!show_barriers) {
     # Simple flow: Activity → Pressure → Central Problem → Consequence
-    
+
     # Activity → Pressure connections
     for (i in seq_along(activities)) {
       activity <- activities[i]
@@ -614,28 +839,51 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
           colors <- c(colors, "#8E44AD")
           widths <- c(widths, 2)
           dashes <- c(dashes, FALSE)
+          titles <- c(titles, paste0(
+            "<b>Activity → Pressure Link</b><br/>",
+            "<b>From:</b> ", activity, "<br/>",
+            "<b>To:</b> ", pressure, "<br/>",
+            "<b>Type:</b> Causal relationship<br/>",
+            "<b>Risk:</b> Activity generates pressure"
+          ))
         }
       }
     }
     
     # Pressure → Central Problem connections
     for (i in seq_along(pressures)) {
+      pressure <- pressures[i]
       from <- c(from, 100 + i)
       to <- c(to, 1)
       arrows <- c(arrows, "to")
       colors <- c(colors, "#E74C3C")
       widths <- c(widths, 3)
       dashes <- c(dashes, FALSE)
+      titles <- c(titles, paste0(
+        "<b>Pressure → Central Problem</b><br/>",
+        "<b>From:</b> ", pressure, "<br/>",
+        "<b>To:</b> Central Environmental Problem<br/>",
+        "<b>Type:</b> Contributing threat<br/>",
+        "<b>Effect:</b> Pressure contributes to problem"
+      ))
     }
     
     # Central Problem → Consequence connections
     for (i in seq_along(consequences)) {
+      consequence <- consequences[i]
       from <- c(from, 1)
       to <- c(to, 200 + i)
       arrows <- c(arrows, "to")
       colors <- c(colors, "#C0392B")
       widths <- c(widths, 3)
       dashes <- c(dashes, FALSE)
+      titles <- c(titles, paste0(
+        "<b>Central Problem → Consequence</b><br/>",
+        "<b>From:</b> Central Environmental Problem<br/>",
+        "<b>To:</b> ", consequence, "<br/>",
+        "<b>Type:</b> Impact manifestation<br/>",
+        "<b>Effect:</b> Problem leads to environmental impact"
+      ))
     }
     
   } else {
@@ -661,20 +909,25 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
           colors <- c(colors, "#8E44AD")
           widths <- c(widths, 2)
           dashes <- c(dashes, FALSE)
+          titles <- c(titles, paste0(
+            "<b>Activity → Pressure Link</b><br/>",
+            "<b>From:</b> ", activity, "<br/>",
+            "<b>To:</b> ", pressure, "<br/>",
+            "<b>Type:</b> Causal relationship (Complex flow)<br/>",
+            "<b>Note:</b> Can be mitigated by preventive controls"
+          ))
         }
       }
     }
     
     # Improved Pressure → Multiple Preventive Controls pathway
-    escalations_connected <- c()  # Track which escalation factors have been connected to central problem
-    
     for (i in seq_along(pressures)) {
       pressure <- pressures[i]
       # Get ALL controls for this pressure (not just the first one)
       controls_for_pressure <- unique(hazard_data$Preventive_Control[hazard_data$Pressure == pressure])
       controls_for_pressure <- controls_for_pressure[!is.na(controls_for_pressure) & controls_for_pressure != ""]
       escalation_for_pressure <- hazard_data$Escalation_Factor[hazard_data$Pressure == pressure][1]
-      
+
       # Create links to multiple preventive controls if they exist
       if (length(controls_for_pressure) > 0) {
         for (control_name in controls_for_pressure) {
@@ -687,50 +940,26 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
             colors <- c(colors, "#E74C3C")  # Red for pressure-control link
             widths <- c(widths, 2)
             dashes <- c(dashes, FALSE)
+            titles <- c(titles, paste0(
+              "<b>Pressure → Control</b><br/>",
+              "<b>From:</b> ", pressure, "<br/>",
+              "<b>To:</b> ", control_name
+            ))
             
-            # Every preventive control must have a failure path to the central problem
-            # Check if there's an escalation factor for this pressure
-            if (!is.na(escalation_for_pressure) && escalation_for_pressure != "") {
-              escalation_idx <- which(escalation_factors == escalation_for_pressure)
-              if (length(escalation_idx) > 0) {
-                # Path 1: Preventive Control → Escalation Factor (if control fails and escalates)
-                from <- c(from, 300 + control_idx)
-                to <- c(to, 350 + escalation_idx)
-                arrows <- c(arrows, "to")
-                colors <- c(colors, "#F39C12")  # Orange for control failure leading to escalation
-                widths <- c(widths, 1.5)
-                dashes <- c(dashes, TRUE)  # Dashed for failure pathway
-                
-                # Track this escalation factor for later connection to central problem
-                if (!escalation_for_pressure %in% escalations_connected) {
-                  escalations_connected <- c(escalations_connected, escalation_for_pressure)
-                }
-                
-                # Path 2: Preventive Control → Central Problem (direct failure path as backup)
-                from <- c(from, 300 + control_idx)
-                to <- c(to, 1)
-                arrows <- c(arrows, "to")
-                colors <- c(colors, "#E74C3C")  # Red for direct control failure
-                widths <- c(widths, 1)  # Thinner line for direct failure
-                dashes <- c(dashes, TRUE)
-              } else {
-                # No valid escalation factor found, direct path only
-                from <- c(from, 300 + control_idx)
-                to <- c(to, 1)
-                arrows <- c(arrows, "to")
-                colors <- c(colors, "#E74C3C")  # Red for control failure
-                widths <- c(widths, 1.5)
-                dashes <- c(dashes, TRUE)
-              }
-            } else {
-              # No escalation factor, direct failure path for each control
-              from <- c(from, 300 + control_idx)
-              to <- c(to, 1)
-              arrows <- c(arrows, "to")
-              colors <- c(colors, "#E74C3C")  # Red for control failure
-              widths <- c(widths, 1.5)  # Standard width for control failure paths
-              dashes <- c(dashes, TRUE)
-            }
+            # Control failure path to central problem
+            # (Escalation factors will connect TO controls separately)
+            from <- c(from, 300 + control_idx)
+            to <- c(to, 1)
+            arrows <- c(arrows, "to")
+            colors <- c(colors, "#E74C3C")  # Red for control failure
+            widths <- c(widths, 1.5)
+            dashes <- c(dashes, TRUE)  # Dashed for failure pathway
+            titles <- c(titles, paste0(
+              "<b>Control Failure → Central Problem</b><br/>",
+              "<b>From:</b> ", control_name, "<br/>",
+              "<b>To:</b> Central Problem<br/>",
+              "<b>Note:</b> Control failure leads to problem"
+            ))
           }
         }
       } else {
@@ -741,24 +970,40 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
         colors <- c(colors, "#E74C3C")
         widths <- c(widths, 3)
         dashes <- c(dashes, FALSE)
+        titles <- c(titles, paste0(
+          "<b>Pressure → Central (No Control)</b><br/>",
+          "<b>From:</b> ", pressure, "<br/>",
+          "<b>To:</b> Central Problem"
+        ))
       }
     }
     
-    # CRITICAL: Ensure ALL escalation factors connect to the central problem
-    # Get ALL unique escalation factors from the dataset (not just those linked to controls)
-    all_escalation_factors <- unique(hazard_data$Escalation_Factor)
-    all_escalation_factors <- all_escalation_factors[!is.na(all_escalation_factors) & all_escalation_factors != ""]
-    
-    for (escalation_name in all_escalation_factors) {
-      escalation_idx <- which(escalation_factors == escalation_name)
-      if (length(escalation_idx) > 0) {
-        # Escalation Factor → Central Problem
-        from <- c(from, 350 + escalation_idx)
-        to <- c(to, 1)
-        arrows <- c(arrows, "to")
-        colors <- c(colors, "#F39C12")  # Orange for escalated threat
-        widths <- c(widths, 2)
-        dashes <- c(dashes, FALSE)
+    # CRITICAL: Connect ALL escalation factors to their respective controls
+    # Escalation factors impact controls, causing them to fail
+    for (i in seq_len(nrow(hazard_data))) {
+      row <- hazard_data[i, ]
+      escalation <- row$Escalation_Factor
+      control <- row$Preventive_Control
+
+      if (!is.na(escalation) && escalation != "" && !is.na(control) && control != "") {
+        escalation_idx <- which(escalation_factors == escalation)
+        control_idx <- which(preventive_controls == control)
+
+        if (length(escalation_idx) > 0 && length(control_idx) > 0) {
+          # Escalation Factor → Control (escalation affects control effectiveness)
+          from <- c(from, 350 + escalation_idx)
+          to <- c(to, 300 + control_idx)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#F39C12")  # Orange for escalation impact
+          widths <- c(widths, 2)
+          dashes <- c(dashes, TRUE)  # Dashed to show negative impact
+          titles <- c(titles, paste0(
+            "<b>Escalation → Control</b><br/>",
+            "<b>From:</b> ", escalation, "<br/>",
+            "<b>To:</b> ", control, "<br/>",
+            "<b>Effect:</b> Reduces control effectiveness"
+          ))
+        }
       }
     }
     
@@ -796,7 +1041,12 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
           colors <- c(colors, "#C0392B")
           widths <- c(widths, 3)  # Improved width
           dashes <- c(dashes, FALSE)
-          
+          titles <- c(titles, paste0(
+            "<b>Central → Mitigation</b><br/>",
+            "<b>From:</b> Central Problem<br/>",
+            "<b>To:</b> ", substr(mitigation, 1, 40), "..."
+          ))
+
           # Protective Mitigation → Consequence (improved connection)
           from <- c(from, 400 + mitigation_idx)
           to <- c(to, 200 + consequence_idx)
@@ -804,22 +1054,64 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
           colors <- c(colors, "#3498DB")
           widths <- c(widths, 3)  # Improved width
           dashes <- c(dashes, TRUE)  # Dashed to show intervention effect
-          
+          titles <- c(titles, paste0(
+            "<b>Mitigation → Consequence</b><br/>",
+            "<b>From:</b> ", substr(mitigation, 1, 40), "...<br/>",
+            "<b>To:</b> ", consequence
+          ))
+
           mitigation_connections <- mitigation_connections + 1
           cat("✅ Connected mitigation", mitigation_idx, "('", substr(mitigation, 1, 30), "...') to consequence", consequence_idx, "('", consequence, "')\n")
         }
       }
     }
-    
+
+    # Connect escalation factors to protective mitigations (right side of bowtie)
+    # Escalation factors can weaken both preventive controls (left) AND protective mitigations (right)
+    cat("🔗 Connecting escalation factors to protective mitigations...\n")
+    escalation_mitigation_connections <- 0
+
+    for (i in seq_len(nrow(hazard_data))) {
+      row <- hazard_data[i, ]
+      escalation <- row$Escalation_Factor
+      mitigation <- row$Protective_Mitigation
+
+      if (!is.na(escalation) && escalation != "" && !is.na(mitigation) && mitigation != "") {
+        escalation_idx <- which(escalation_factors == escalation)
+        mitigation_idx <- which(protective_mitigations == mitigation)
+
+        if (length(escalation_idx) > 0 && length(mitigation_idx) > 0) {
+          # Escalation Factor → Protective Mitigation (escalation weakens mitigation effectiveness)
+          from <- c(from, 350 + escalation_idx)
+          to <- c(to, 400 + mitigation_idx)
+          arrows <- c(arrows, "to")
+          colors <- c(colors, "#F39C12")  # Orange for escalation impact
+          widths <- c(widths, 2)
+          dashes <- c(dashes, TRUE)  # Dashed to show negative impact
+          titles <- c(titles, paste0(
+            "<b>Escalation → Protective Mitigation</b><br/>",
+            "<b>From:</b> ", escalation, "<br/>",
+            "<b>To:</b> ", substr(mitigation, 1, 40), "...<br/>",
+            "<b>Effect:</b> Reduces mitigation effectiveness"
+          ))
+          escalation_mitigation_connections <- escalation_mitigation_connections + 1
+        }
+      }
+    }
+
+    if (escalation_mitigation_connections > 0) {
+      cat("✅ Created", escalation_mitigation_connections, "escalation → protective mitigation connections\n")
+    }
+
     # Method 2: Add remaining direct connections for consequences without proper mitigation
     for (i in seq_along(consequences)) {
       consequence <- consequences[i]
       # Check if this consequence already has a proper mitigation connection
-      has_proper_mitigation <- any(hazard_data$Consequence == consequence & 
-                                   !is.na(hazard_data$Protective_Mitigation) & 
+      has_proper_mitigation <- any(hazard_data$Consequence == consequence &
+                                   !is.na(hazard_data$Protective_Mitigation) &
                                    hazard_data$Protective_Mitigation != "" &
                                    nchar(hazard_data$Protective_Mitigation) > 10)  # Improved validation
-      
+
       if (!has_proper_mitigation) {
         # Direct central problem → consequence if no proper mitigation
         from <- c(from, 1)
@@ -828,14 +1120,20 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
         colors <- c(colors, "#C0392B")
         widths <- c(widths, 3)
         dashes <- c(dashes, FALSE)
+        titles <- c(titles, paste0(
+          "<b>Central → Consequence (No Mitigation)</b><br/>",
+          "<b>From:</b> Central Problem<br/>",
+          "<b>To:</b> ", consequence
+        ))
         direct_connections <- direct_connections + 1
         cat("⚠️ Direct connection to consequence", i, "('", consequence, "') - no proper mitigation\n")
       }
     }
     
     cat("📊 Connection Summary:\n")
-    cat("   🔗 Mitigation connections:", mitigation_connections, "\n")
-    cat("   ➡️ Direct connections:", direct_connections, "\n")
+    cat("   🔗 Central → Mitigation connections:", mitigation_connections, "\n")
+    cat("   ⚡ Escalation → Mitigation connections:", escalation_mitigation_connections, "\n")
+    cat("   ➡️ Direct consequence connections:", direct_connections, "\n")
   }
   
   edges <- data.frame(
@@ -845,6 +1143,7 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
     color = colors,
     width = widths,
     dashes = dashes,
+    title = titles,
     stringsAsFactors = FALSE
   )
   
@@ -856,9 +1155,7 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
 }
 
 # Backward compatibility function
-createBowtieEdges <- function(hazard_data, show_barriers) {
-  createBowtieEdgesFixed(hazard_data, show_barriers)
-}
+# Backward compatibility alias removed - use createBowtieEdgesFixed() directly
 
 # Improved function to create a default row for data editing with granular risks
 createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
@@ -882,6 +1179,8 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
     Escalation_to_Central_Severity = 4L,
     Central_to_Mitigation_Likelihood = 2L,
     Central_to_Mitigation_Severity = 4L,
+    Escalation_to_Mitigation_Likelihood = 2L,
+    Escalation_to_Mitigation_Severity = 3L,
     Mitigation_to_Consequence_Likelihood = 2L,
     Mitigation_to_Consequence_Severity = 3L,
     
@@ -900,9 +1199,7 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
 }
 
 # Backward compatibility function
-createDefaultRow <- function(selected_problem = "New Environmental Risk") {
-  createDefaultRowFixed(selected_problem)
-}
+# Backward compatibility alias removed - use createDefaultRowFixed() directly
 
 # Optimized numeric validation
 validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
@@ -949,9 +1246,7 @@ getDataSummaryFixed <- function(data) {
 }
 
 # Backward compatibility function
-getDataSummary <- function(data) {
-  getDataSummaryFixed(data)
-}
+# Backward compatibility alias removed - use getDataSummaryFixed() directly
 
 # Improved validation function for protective mitigations
 validateProtectiveMitigations <- function(data) {
@@ -987,8 +1282,175 @@ validateProtectiveMitigations <- function(data) {
 }
 
 # NEW: Generate data with multiple preventive controls per pressure
-generateEnvironmentalDataWithMultipleControls <- function() {
+generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
   cat("🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure\n")
+
+  # If a scenario is provided, use it as the base and expand controls
+  if (!is.null(scenario_key) && scenario_key != "") {
+    tryCatch({
+      # Use generateScenarioSpecificBowtie to get base scenario data
+      base_scenario <- generateScenarioSpecificBowtie(scenario_key)
+      if (!is.null(base_scenario) && nrow(base_scenario) > 0) {
+        cat("📋 Using scenario:", scenario_key, "\n")
+
+        # Define scenario-specific control variations
+        preventive_variations <- switch(scenario_key,
+          "marine_pollution" = list(
+            suffix = c("(routine operations)", "(emergency response)", "(enhanced monitoring)"),
+            alternatives = c("Vessel inspection programs", "Port reception facilities", "Marine spatial planning")
+          ),
+          "industrial_contamination" = list(
+            suffix = c("(primary treatment)", "(secondary treatment)", "(advanced filtration)"),
+            alternatives = c("Effluent quality monitoring", "Chemical storage protocols", "Spill containment systems")
+          ),
+          "oil_spills" = list(
+            suffix = c("(prevention phase)", "(detection phase)", "(containment phase)"),
+            alternatives = c("Automatic identification systems", "Oil spill detection sensors", "Boom deployment readiness")
+          ),
+          "agricultural_runoff" = list(
+            suffix = c("(source reduction)", "(transport interception)", "(field-level)"),
+            alternatives = c("Nutrient management plans", "Constructed treatment wetlands", "Contour farming practices")
+          ),
+          "overfishing_depletion" = list(
+            suffix = c("(catch limits)", "(spatial management)", "(gear restrictions)"),
+            alternatives = c("Electronic monitoring systems", "Observer programs", "Mesh size regulations")
+          ),
+          "martinique_coastal_erosion" = list(
+            suffix = c("(soft engineering)", "(hard engineering)", "(regulatory)"),
+            alternatives = c("Beach sand renourishment", "Seawall construction", "Building setback enforcement")
+          ),
+          "martinique_sargassum" = list(
+            suffix = c("(prediction)", "(interception)", "(removal)"),
+            alternatives = c("Satellite monitoring systems", "Offshore collection vessels", "Beach grooming equipment")
+          ),
+          "martinique_coral_degradation" = list(
+            suffix = c("(prevention)", "(active management)", "(enforcement)"),
+            alternatives = c("Water quality standards", "Coral nursery establishment", "Patrol vessel operations")
+          ),
+          "martinique_watershed_pollution" = list(
+            suffix = c("(agricultural BMPs)", "(regulatory)", "(treatment)"),
+            alternatives = c("Integrated pest management", "Buffer strip requirements", "Vegetated filter strips")
+          ),
+          "martinique_mangrove_loss" = list(
+            suffix = c("(protection)", "(restoration)", "(management)"),
+            alternatives = c("No-development zones", "Seedling propagation", "Community stewardship")
+          ),
+          "martinique_hurricane_impacts" = list(
+            suffix = c("(structural)", "(non-structural)", "(preparedness)"),
+            alternatives = c("Storm shutters requirements", "Evacuation route planning", "Emergency supply caching")
+          ),
+          "martinique_marine_tourism" = list(
+            suffix = c("(infrastructure)", "(regulation)", "(education)"),
+            alternatives = c("Permanent mooring installations", "Visitor permit systems", "Dive guide certification")
+          ),
+          # Default
+          list(
+            suffix = c("(primary measure)", "(secondary measure)", "(backup measure)"),
+            alternatives = c("Monitoring and detection", "Containment protocols", "Response procedures")
+          )
+        )
+        
+        protective_variations <- switch(scenario_key,
+          "marine_pollution" = list(
+            suffix = c("(immediate)", "(short-term)", "(long-term)"),
+            alternatives = c("Emergency cleanup crews", "Habitat assessment teams", "Ecosystem monitoring programs")
+          ),
+          "industrial_contamination" = list(
+            suffix = c("(containment)", "(treatment)", "(recovery)"),
+            alternatives = c("Excavation and disposal", "In-situ bioremediation", "Groundwater extraction")
+          ),
+          "oil_spills" = list(
+            suffix = c("(response)", "(cleanup)", "(restoration)"),
+            alternatives = c("Skimmer vessel deployment", "Shoreline protection teams", "Natural attenuation monitoring")
+          ),
+          "agricultural_runoff" = list(
+            suffix = c("(treatment)", "(diversion)", "(restoration)"),
+            alternatives = c("Aeration systems", "Bypass channels", "Native vegetation planting")
+          ),
+          "overfishing_depletion" = list(
+            suffix = c("(recovery)", "(habitat)", "(livelihood)"),
+            alternatives = c("No-take zones", "Artificial reef deployment", "Fisher retraining programs")
+          ),
+          "martinique_coastal_erosion" = list(
+            suffix = c("(emergency)", "(temporary)", "(permanent)"),
+            alternatives = c("Sandbag placement", "Geotextile installation", "Living shoreline creation")
+          ),
+          "martinique_sargassum" = list(
+            suffix = c("(mechanical)", "(manual)", "(repurposing)"),
+            alternatives = c("Front-loader operations", "Community cleanup brigades", "Composting facilities")
+          ),
+          "martinique_coral_degradation" = list(
+            suffix = c("(transplantation)", "(propagation)", "(adaptation)"),
+            alternatives = c("Fragment reattachment", "Micro-fragmentation", "Heat-resistant strain selection")
+          ),
+          "martinique_watershed_pollution" = list(
+            suffix = c("(water treatment)", "(soil remediation)", "(health)"),
+            alternatives = c("Activated carbon filtration", "Phytoremediation plots", "Blood testing programs")
+          ),
+          "martinique_mangrove_loss" = list(
+            suffix = c("(replanting)", "(hydrology)", "(succession)"),
+            alternatives = c("Propagule direct planting", "Tidal flow restoration", "Natural regeneration zones")
+          ),
+          "martinique_hurricane_impacts" = list(
+            suffix = c("(rescue)", "(assessment)", "(rebuilding)"),
+            alternatives = c("Search and rescue teams", "Structural engineers deployment", "Reconstruction financing")
+          ),
+          "martinique_marine_tourism" = list(
+            suffix = c("(active restoration)", "(passive recovery)", "(alternative sites)"),
+            alternatives = c("Coral gardening projects", "Site closure programs", "New dive site development")
+          ),
+          # Default
+          list(
+            suffix = c("(immediate response)", "(recovery phase)", "(long-term restoration)"),
+            alternatives = c("Emergency procedures", "Impact assessment", "Monitoring programs")
+          )
+        )
+
+        # Expand the scenario with multiple DIFFERENT controls per pressure
+        expanded_data <- do.call(rbind, lapply(1:nrow(base_scenario), function(i) {
+          row <- base_scenario[i, ]
+          # Create 2-3 variations with different controls
+          num_controls <- sample(2:3, 1)
+
+          replicated_rows <- do.call(rbind, replicate(num_controls, row, simplify = FALSE))
+          
+          # Create diverse preventive controls
+          if (num_controls <= length(preventive_variations$suffix)) {
+            # Use suffixes for first approach
+            replicated_rows$Preventive_Control <- paste0(row$Preventive_Control, " ", preventive_variations$suffix[1:num_controls])
+          } else {
+            # Mix suffixes and alternatives
+            replicated_rows$Preventive_Control[1] <- paste0(row$Preventive_Control, " ", preventive_variations$suffix[1])
+            replicated_rows$Preventive_Control[2:num_controls] <- preventive_variations$alternatives[1:(num_controls-1)]
+          }
+          
+          # Create diverse protective mitigations
+          if (num_controls <= length(protective_variations$suffix)) {
+            replicated_rows$Protective_Mitigation <- paste0(row$Protective_Mitigation, " ", protective_variations$suffix[1:num_controls])
+          } else {
+            replicated_rows$Protective_Mitigation[1] <- paste0(row$Protective_Mitigation, " ", protective_variations$suffix[1])
+            replicated_rows$Protective_Mitigation[2:num_controls] <- protective_variations$alternatives[1:(num_controls-1)]
+          }
+          
+          # Also update Protective_Control if it exists
+          if ("Protective_Control" %in% names(replicated_rows)) {
+            replicated_rows$Protective_Control <- replicated_rows$Protective_Mitigation
+          }
+          
+          return(replicated_rows)
+        }))
+
+        cat("✅ Expanded to", nrow(expanded_data), "rows with multiple DIFFERENT controls\n")
+        return(expanded_data)
+      }
+    }, error = function(e) {
+      cat("⚠️ Error using scenario:", scenario_key, "-", e$message, "\n")
+      cat("📋 Falling back to default scenario\n")
+    })
+  }
+  
+  # Default fallback: generate water pollution scenario with multiple controls
+  cat("📋 Using default water pollution scenario with multiple controls\n")
   
   # Define pressure-control relationships (2 controls per activity for tidier diagram)
   pressure_control_data <- data.frame(
@@ -1072,8 +1534,8 @@ generateEnvironmentalDataWithMultipleControls <- function() {
   pressure_control_data$Consequence_Severity <- sample(1:5, n_rows, replace = TRUE)
   pressure_control_data$Risk_Level <- pressure_control_data$Threat_Likelihood * pressure_control_data$Consequence_Severity
   
-  # Add default columns
-  pressure_control_data <- addDefaultColumns(pressure_control_data)
+  # Add default columns (pass empty scenario for default escalation factors)
+  pressure_control_data <- addDefaultColumns(pressure_control_data, "")
   
   cat("✅ Generated", n_rows, "entries with multiple preventive controls per pressure\n")
   cat("🎯 Unique pressures:", length(unique(pressure_control_data$Pressure)), "\n")
@@ -1242,6 +1704,49 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
       specific_pressures = c("Overfishing", "Habitat destruction", "Bycatch mortality", "Stock depletion"),
       specific_consequences = c("Fish stock collapse", "Marine ecosystem degradation", "Food web disruption", "Economic losses")
     ),
+    # Martinique-specific scenarios
+    "martinique_coastal_erosion" = list(
+      central_problem = "Coastal erosion and beach degradation in Martinique",
+      specific_activities = c("Coastal development", "Sand mining", "Infrastructure construction", "Tourism facilities", "Marina development"),
+      specific_pressures = c("Habitat destruction", "Beach erosion", "Sediment depletion", "Storm surge impacts"),
+      specific_consequences = c("Beach loss", "Coastal habitat destruction", "Tourism infrastructure damage", "Property loss", "Marine ecosystem degradation")
+    ),
+    "martinique_sargassum" = list(
+      central_problem = "Sargassum seaweed influx impacts on Martinique",
+      specific_activities = c("Climate change", "Ocean warming", "Nutrient enrichment", "Agricultural runoff", "Ocean current changes"),
+      specific_pressures = c("Massive seaweed accumulation", "Beach smothering", "Decomposition gases", "Oxygen depletion"),
+      specific_consequences = c("Tourism decline", "Beach closures", "H2S emissions health impacts", "Marine life mortality", "Economic losses")
+    ),
+    "martinique_coral_degradation" = list(
+      central_problem = "Coral reef degradation and bleaching in Martinique",
+      specific_activities = c("Ocean warming", "Coastal development", "Tourism activities", "Overfishing", "Agricultural runoff"),
+      specific_pressures = c("Thermal stress", "Pollution", "Physical damage", "Sedimentation", "Nutrient enrichment"),
+      specific_consequences = c("Coral bleaching", "Reef structural collapse", "Biodiversity loss", "Fish habitat loss", "Coastal protection loss")
+    ),
+    "martinique_watershed_pollution" = list(
+      central_problem = "Watershed pollution from agriculture in Martinique",
+      specific_activities = c("Banana cultivation", "Pesticide application", "Fertilizer use", "Soil erosion", "Legacy chlordecone contamination"),
+      specific_pressures = c("Chemical contamination", "Nutrient pollution", "Sediment runoff", "Pesticide residues", "Heavy metals"),
+      specific_consequences = c("Drinking water contamination", "Coastal water pollution", "Soil contamination", "Food chain contamination", "Human health impacts")
+    ),
+    "martinique_mangrove_loss" = list(
+      central_problem = "Mangrove forest degradation in Martinique",
+      specific_activities = c("Coastal development", "Marina construction", "Tourism infrastructure", "Pollution discharge", "Land reclamation"),
+      specific_pressures = c("Habitat destruction", "Pollution", "Hydrological changes", "Sedimentation", "Physical degradation"),
+      specific_consequences = c("Fish nursery loss", "Coastal protection reduction", "Biodiversity decline", "Carbon sequestration loss", "Storm vulnerability increase")
+    ),
+    "martinique_hurricane_impacts" = list(
+      central_problem = "Hurricane and tropical storm impacts on Martinique",
+      specific_activities = c("Climate change", "Infrastructure development", "Coastal settlement", "Deforestation", "Wetland loss"),
+      specific_pressures = c("Storm surge", "High winds", "Heavy rainfall", "Flooding", "Wave action"),
+      specific_consequences = c("Infrastructure damage", "Coastal flooding", "Marine pollution", "Ecosystem disruption", "Economic losses", "Public safety risks")
+    ),
+    "martinique_marine_tourism" = list(
+      central_problem = "Marine tourism environmental pressures in Martinique",
+      specific_activities = c("Cruise ship arrivals", "Yacht anchoring", "Diving tourism", "Beach recreation", "Tourism infrastructure"),
+      specific_pressures = c("Anchor damage", "Pollution discharge", "Physical disturbance", "Waste generation", "Underwater noise"),
+      specific_consequences = c("Coral reef damage", "Seagrass bed destruction", "Water quality deterioration", "Marine life disturbance", "Ecosystem degradation")
+    ),
     # Default - use first few items from vocabulary
     list(
       central_problem = "Environmental degradation",
@@ -1264,7 +1769,7 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   cat("   • Pressures:", length(focused_pressures), "specific items\n")
   cat("   • Consequences:", length(focused_consequences), "specific items\n")
 
-  # Generate 3-4 well-connected escalation factors (activity-pressure combinations)
+  # Generate well-connected activity-pressure combinations
   activity_pressure_combinations <- list()
 
   # Create specific, logical activity-pressure pairs for each scenario (max 2)
@@ -1289,6 +1794,34 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
       list(activity = "Commercial fishing", pressure = "Overfishing"),
       list(activity = "Trawling operations", pressure = "Habitat destruction")
     ),
+    "martinique_coastal_erosion" = list(
+      list(activity = "Coastal development", pressure = "Habitat destruction"),
+      list(activity = "Sand mining", pressure = "Beach erosion")
+    ),
+    "martinique_sargassum" = list(
+      list(activity = "Climate change", pressure = "Massive seaweed accumulation"),
+      list(activity = "Agricultural runoff", pressure = "Beach smothering")
+    ),
+    "martinique_coral_degradation" = list(
+      list(activity = "Ocean warming", pressure = "Thermal stress"),
+      list(activity = "Tourism activities", pressure = "Physical damage")
+    ),
+    "martinique_watershed_pollution" = list(
+      list(activity = "Banana cultivation", pressure = "Chemical contamination"),
+      list(activity = "Pesticide application", pressure = "Pesticide residues")
+    ),
+    "martinique_mangrove_loss" = list(
+      list(activity = "Coastal development", pressure = "Habitat destruction"),
+      list(activity = "Marina construction", pressure = "Hydrological changes")
+    ),
+    "martinique_hurricane_impacts" = list(
+      list(activity = "Climate change", pressure = "Storm surge"),
+      list(activity = "Coastal settlement", pressure = "Flooding")
+    ),
+    "martinique_marine_tourism" = list(
+      list(activity = "Cruise ship arrivals", pressure = "Pollution discharge"),
+      list(activity = "Yacht anchoring", pressure = "Anchor damage")
+    ),
     # Default - create 2 logical pairs from available elements
     list(
       list(activity = focused_activities[1], pressure = focused_pressures[1]),
@@ -1299,7 +1832,7 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   # Use the well-connected pairs (limit to 2)
   activity_pressure_combinations <- head(scenario_specific_pairs, 2)
 
-  cat("🔗 Created", length(activity_pressure_combinations), "well-connected escalation factors\n")
+  cat("🔗 Created", length(activity_pressure_combinations), "well-connected activity-pressure pairs\n")
 
   # Generate bowtie data with SINGLE central problem
   bowtie_data <- data.frame(
@@ -1315,32 +1848,60 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   # Build comprehensive data with single central problem
   central_problem <- scenario_config$central_problem
 
-  # Define scenario-specific control mappings (clean names)
+  # Define scenario-specific control mappings (more specific and descriptive names)
   scenario_control_mapping <- switch(scenario_type,
     "marine_pollution" = list(
-      preventive = c("Environmental management", "Monitoring systems", "Pollution prevention"),
-      protective = c("Oil spill response", "Marine protected areas", "Emergency procedures")
+      preventive = c("Ship emission monitoring systems", "Ballast water treatment requirements", "Port pollution prevention protocols"),
+      protective = c("Marine oil spill response teams", "Coastal ecosystem restoration", "Marine sanctuary emergency closures")
     ),
     "industrial_contamination" = list(
-      preventive = c("Environmental management", "Waste treatment", "Monitoring systems"),
-      protective = c("Site remediation", "Emergency procedures", "Health safety measures")
+      preventive = c("Industrial wastewater treatment plants", "Chemical containment systems", "Real-time pollution monitoring"),
+      protective = c("Contaminated site excavation and treatment", "Groundwater pump-and-treat systems", "Public health surveillance programs")
     ),
     "oil_spills" = list(
-      preventive = c("Maritime traffic management", "Double hull tankers", "Navigation systems"),
-      protective = c("Oil spill response", "Emergency procedures", "Site remediation")
+      preventive = c("Vessel traffic separation schemes", "Double-hulled tanker requirements", "Oil transfer safety protocols"),
+      protective = c("Oil boom deployment and containment", "Dispersant application operations", "Shoreline cleanup and wildlife rescue")
     ),
     "agricultural_runoff" = list(
-      preventive = c("Best management practices", "Nutrient management", "Buffer zones"),
-      protective = c("Water treatment", "Site remediation", "Alternative water sources")
+      preventive = c("Precision fertilizer application", "Riparian buffer zone establishment", "Cover crop requirements"),
+      protective = c("Agricultural runoff wetlands", "Algal bloom treatment systems", "Alternative drinking water sources")
     ),
     "overfishing_depletion" = list(
-      preventive = c("Fishing quotas", "Monitoring systems", "Seasonal closures"),
-      protective = c("Marine protected areas", "Stock rebuilding", "Alternative livelihoods")
+      preventive = c("Science-based catch quotas", "Vessel monitoring systems", "Seasonal fishing closures"),
+      protective = c("Fish stock rebuilding zones", "Habitat restoration for spawning", "Alternative livelihood programs")
     ),
-    # Default - use clean control names
+    "martinique_coastal_erosion" = list(
+      preventive = c("Coastal setback regulations", "Beach sand management plans", "Breakwater construction"),
+      protective = c("Emergency sand nourishment", "Infrastructure relocation assistance", "Natural dune restoration")
+    ),
+    "martinique_sargassum" = list(
+      preventive = c("Ocean current forecasting systems", "Nutrient pollution reduction", "Early warning buoy networks"),
+      protective = c("Mechanical beach cleanup equipment", "Offshore sargassum barriers", "Tourism compensation programs")
+    ),
+    "martinique_coral_degradation" = list(
+      preventive = c("Marine protected area enforcement", "Anchor-free mooring buoys", "Tourism carrying capacity limits"),
+      protective = c("Coral fragment nursery programs", "Active reef restoration", "Climate-resilient coral propagation")
+    ),
+    "martinique_watershed_pollution" = list(
+      preventive = c("Organic farming incentives", "Pesticide application restrictions", "Soil conservation practices"),
+      protective = c("Advanced water treatment facilities", "Contaminated soil excavation", "Alternative groundwater sources")
+    ),
+    "martinique_mangrove_loss" = list(
+      preventive = c("Mangrove protection legislation", "Development impact assessments", "Wetland buffer requirements"),
+      protective = c("Community mangrove replanting", "Hydrological restoration", "Alternative coastal defenses")
+    ),
+    "martinique_hurricane_impacts" = list(
+      preventive = c("Reinforced building codes", "Hurricane early warning systems", "Coastal infrastructure hardening"),
+      protective = c("Emergency evacuation coordination", "Rapid damage assessment teams", "Infrastructure reconstruction")
+    ),
+    "martinique_marine_tourism" = list(
+      preventive = c("Fixed mooring buoy systems", "Cruise ship discharge regulations", "Dive site rotation schedules"),
+      protective = c("Damaged reef restoration", "Tourist education programs", "Marine sanctuary recovery zones")
+    ),
+    # Default - use descriptive generic control names
     list(
-      preventive = c("Environmental management", "Monitoring systems", "Prevention measures"),
-      protective = c("Emergency response", "Site remediation", "Safety measures")
+      preventive = c("Environmental monitoring and compliance", "Pollution prevention protocols", "Resource management systems"),
+      protective = c("Environmental restoration programs", "Emergency response procedures", "Impact remediation measures")
     )
   )
 
@@ -1377,7 +1938,7 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   }
 
   # Add default columns that the app expects
-  bowtie_data <- addDefaultColumns(bowtie_data)
+  bowtie_data <- addDefaultColumns(bowtie_data, scenario_type)
 
   cat("✅ Generated", nrow(bowtie_data), "bowtie scenarios with SINGLE central problem\n")
   cat("🎯 Central Problem:", unique(bowtie_data$Central_Problem), "\n")
@@ -1392,7 +1953,8 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
 cat("🎉 v5.1.0 Environmental Bowtie Risk Analysis Utilities Loaded\n")
 cat("✅ Protective mitigation connections\n")
 cat("🖼️ PNG image support enabled\n")
-cat("🔗 GRANULAR connection-level risk analysis (6 connections per scenario)\n")
+cat("🔗 GRANULAR connection-level risk analysis (7 connections per scenario)\n")
+cat("   • Escalation factors affect BOTH preventive controls AND protective mitigations\n")
 cat("🎯 Overall pathway risk calculation from granular components\n")
 cat("🔧 Mapping and validation functions ready\n")
 cat("🆕 MULTIPLE PREVENTIVE CONTROLS per pressure support added\n")

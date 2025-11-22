@@ -92,15 +92,13 @@ test_that("Guided workflow initialization performance", {
   skip_if_not_installed("microbenchmark")
   library(microbenchmark)
 
-  # Ensure guided workflow files exist
+  # Ensure guided workflow file exists
   expect_true(file.exists("guided_workflow.r"), "guided_workflow.r should exist")
-  expect_true(file.exists("guided_workflow_steps.r"), "guided_workflow_steps.r should exist")
 
   # Measure guided workflow loading time
   workflow_benchmark <- microbenchmark(
     {
-      source("guided_workflow.r")
-      source("guided_workflow_steps.r")
+      source("guided_workflow.R")
     },
     times = 3,
     unit = "ms"
@@ -119,7 +117,7 @@ test_that("Large dataset processing performance", {
   library(microbenchmark)
 
   # Load utilities for data generation
-  source("utils.r")
+  source("utils.R")
 
   # Generate larger test dataset
   large_data_benchmark <- microbenchmark(
@@ -173,15 +171,14 @@ test_that("Icon rendering performance after standardization", {
   }
 })
 
-test_that("No memory leaks in circular dependency fix", {
+test_that("No memory leaks in module loading", {
   initial_objects <- length(ls(all.names = TRUE))
   initial_memory <- get_memory_usage()
 
   # Load and unload modules multiple times to test for leaks
   for (i in 1:5) {
     # Load modules
-    source("guided_workflow.r")
-    source("guided_workflow_steps.r")
+    source("guided_workflow.R")
 
     # Force garbage collection
     gc()

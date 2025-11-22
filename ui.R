@@ -74,16 +74,24 @@ ui <- fluidPage(
                    img(src = "img/marbefes.png", class = "app-title-image", alt = "Marbefes Logo",
                        onerror = "this.style.display='none'",
                        title = "Marbefes Environmental Bowtie Risk Analysis"),
-                   h4("Environmental Bowtie Risk Analysis", class = "mb-0 text-primary d-inline-block me-3"),
-                   span(class = "badge bg-success me-2 version-badge", "v5.1.0"),
-                   span(class = "text-muted small", "With Bayesian Networks")
-                 )
+                   h4(uiOutput("app_title_text", inline = TRUE), class = "mb-0 text-primary d-inline-block me-3"),
+                   span(class = "badge bg-success me-2 version-badge", paste0("v", APP_CONFIG$VERSION)),
+                   span(class = "text-muted small", uiOutput("app_subtitle_text", inline = TRUE))
+                 ),
+                # Language selector
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
-                           class = "btn-sm btn-outline-secondary", title = "Theme Settings")
+                           class = "btn-sm btn-outline-secondary", title = "Settings")
              ),
              card_body(
                id = "themePanel", class = "collapse",
+               fluidRow(
+                 column(12,
+                   uiOutput("settings_language_section"),
+                   hr(),
+                   uiOutput("settings_theme_header")
+                 )
+               ),
                fluidRow(
                  column(3, selectInput("theme_preset", "Theme:",
                                      choices = c(
@@ -161,115 +169,145 @@ ui <- fluidPage(
 
     # Data Upload Tab
     nav_panel(
-      title = tagList(icon("upload"), "Data Upload"), value = "upload",
+      title = uiOutput("tab_data_input_title", inline = TRUE), value = "upload",
 
       fluidRow(
-        column(6,
+        column(12,
                card(
-                 card_header(tagList(icon("database"), "Data Input Options"), class = "bg-primary text-white"),
+                 card_header(uiOutput("data_input_options_header", inline = TRUE), class = "bg-primary text-white"),
                  card_body(
-                   h5(tagList(icon("file-excel"), "Option 1: Upload Excel File")),
-                   fileInput("file", "Choose Excel File:", accept = c(".xlsx", ".xls"),
-                            buttonLabel = "Browse...", placeholder = "No file selected"),
+                   fluidRow(
+                     # Left column - File upload
+                     column(4,
+                       h6(uiOutput("data_upload_option1_title", inline = TRUE)),
+                       uiOutput("file_input_ui"),
+                       conditionalPanel(
+                         condition = "output.fileUploaded",
+                         selectInput("sheet", "Select Sheet:", choices = NULL),
+                         div(class = "d-grid", actionButton("loadData", tagList(icon("upload"), "Load Data"),
+                                                           class = "btn-primary"))
+                       )
+                     ),
+                     
+                     # Middle column - Generate from vocabulary
+                     column(4,
+                       div(style = "min-height: 150px;",
+                         uiOutput("data_upload_option2_title"),
+                         uiOutput("data_option2_desc")
+                       ),
+                       div(class = "mb-3",
+                         selectInput("data_scenario_template", "Select environmental scenario:",
+                                     choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
+                                     selected = "")
+                       ),
+                       div(class = "d-grid", actionButton("generateSample",
+                                                         tagList(icon("seedling"), "Generate Data"),
+                                                         class = "btn-success"))
+                     ),
+                     
+                     # Right column - Multiple controls
+                     column(4,
+                       div(style = "min-height: 150px;",
+                         uiOutput("data_upload_option2b_title"),
+                         uiOutput("data_option2b_desc")
+                       ),
+                       div(class = "mb-3",
+                         selectInput("data_scenario_template_2b", "Select environmental scenario:",
+                                     choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
+                                     selected = "")
+                       ),
+                       div(class = "d-grid", actionButton("generateMultipleControls",
+                                                         tagList(icon("shield-alt"), "Multiple Controls"),
+                                                         class = "btn-info")),
+                       conditionalPanel(
+                         condition = "output.envDataGenerated",
+                         div(class = "d-grid mt-2", downloadButton("downloadSample",
+                                                             tagList(icon("download"), "Download"),
+                                                             class = "btn-info"))
+                       )
+                     )
+                   )
+                 )
+               )
+        )
+      ),
+      
+      br(),
 
-                   conditionalPanel(
-                     condition = "output.fileUploaded",
-                     selectInput("sheet", "Select Sheet:", choices = NULL),
-                     div(class = "d-grid", actionButton("loadData", tagList(icon("upload"), "Load Data"),
-                                                       class = "btn-primary"))
-                   ),
+      fluidRow(
+        column(4,
+               card(
+                 card_header(uiOutput("data_structure_header"), class = "bg-info text-white"),
+                 card_body(
+                   uiOutput("bowtie_elements_section"),
+                   div(class = "alert alert-success mt-2 mb-0 py-2",
+                       tags$small(
+                         tagList(icon("check-circle"), " "),
+                         strong("Structure:"),
+                         br(),
+                         "Activity → Pressure → ",
+                         tags$span(class = "badge bg-success", "Control"),
+                         " → Central Problem",
+                         br(),
+                         tags$span(class = "badge bg-warning", "Escalation"),
+                         " weakens Controls & Mitigations",
+                         br(),
+                         "Central Problem → ",
+                         tags$span(class = "badge bg-info", "Mitigation"),
+                         " → Consequence"
+                       ))
+                 )
+               )
+        ),
 
-                   hr(),
-
-                   h5(tagList(icon("leaf"), "Option 2: Generate Data Using Standardized Dictionaries")),
-                   p("Create sensible central problem bowties (e.g., marine pollution) using all vocabulary elements from expert dictionaries:"),
-                   tags$ul(class = "small text-muted",
-                     tags$li("📊 Complete vocabulary coverage (53 activities, 36 pressures, 74 controls)")
-                   ),
-
-                   # Environmental scenario selector
-                   div(class = "mb-3",
-                       h6("Select scenario:"),
-                       selectInput("data_scenario_template", "Environmental Scenario:",
-                                 choices = c(
-                                   "Custom (define your own)" = "",
-                                   "🌊 Marine pollution from shipping & coastal activities" = "marine_pollution",
-                                   "🏭 Industrial contamination through chemical discharge" = "industrial_contamination",
-                                   "🚢 Oil spills from maritime transportation" = "oil_spills",
-                                   "🌾 Agricultural runoff causing eutrophication" = "agricultural_runoff",
-                                   "🐟 Overfishing and commercial stock depletion" = "overfishing_depletion"
-                                 ),
-                                 selected = ""
+        column(4,
+               card(
+                 card_header(tagList(icon("database"), "Vocabulary Statistics"), class = "bg-success text-white"),
+                 card_body(
+                   h6(tagList(icon("layer-group"), "Available Elements"), class = "text-center mb-3"),
+                   div(class = "row text-center",
+                       div(class = "col-6 mb-3",
+                           div(class = "p-2 border rounded",
+                               div(class = "display-6 text-primary", textOutput("vocab_activities_count", inline = TRUE)),
+                               div(class = "small text-muted", tagList(icon("play"), " Activities"))
+                           )
+                       ),
+                       div(class = "col-6 mb-3",
+                           div(class = "p-2 border rounded",
+                               div(class = "display-6 text-danger", textOutput("vocab_pressures_count", inline = TRUE)),
+                               div(class = "small text-muted", tagList(icon("triangle-exclamation"), " Pressures"))
+                           )
+                       ),
+                       div(class = "col-6 mb-3",
+                           div(class = "p-2 border rounded",
+                               div(class = "display-6 text-success", textOutput("vocab_controls_count", inline = TRUE)),
+                               div(class = "small text-muted", tagList(icon("shield-halved"), " Controls"))
+                           )
+                       ),
+                       div(class = "col-6 mb-3",
+                           div(class = "p-2 border rounded",
+                               div(class = "display-6 text-warning", textOutput("vocab_consequences_count", inline = TRUE)),
+                               div(class = "small text-muted", tagList(icon("burst"), " Consequences"))
+                           )
                        )
                    ),
-                   div(class = "d-grid mb-2", actionButton("generateSample",
-                                                     tagList(icon("seedling"), "Generate data from elements from vocabulary"),
-                                                     class = "btn-success")),
-
-                   h6(tagList(icon("shield-alt"), "Option 2b: Multiple Preventive Controls Data")),
-                   p("Generate data with multiple preventive controls per pressure for comprehensive risk mitigation:"),
-                   tags$ul(class = "small text-muted",
-                     tags$li("🛡️ Multiple controls per environmental pressure"),
-                     tags$li("🔗 Each pressure linked to 2-3 preventive measures"),
-                     tags$li("📊 Realistic environmental risk management"),
-                     tags$li("🎯 Demonstrates defense-in-depth approach")
-                   ),
-                   div(class = "d-grid", actionButton("generateMultipleControls",
-                                                     tagList(icon("shield-alt"), "Generate Multiple Controls Data"),
-                                                     class = "btn-info")),
-
-                   conditionalPanel(
-                     condition = "output.envDataGenerated",
-                     br(),
-                     div(class = "d-grid", downloadButton("downloadSample",
-                                                         tagList(icon("download"), "Download Excel"),
-                                                         class = "btn-info"))
+                   div(class = "alert alert-info mt-2 mb-0 py-2",
+                       tags$small(
+                         tagList(icon("info-circle"), " "),
+                         strong("Total Elements: "),
+                         textOutput("vocab_total_count", inline = TRUE)
+                       )
                    )
                  )
                )
         ),
 
-        column(6,
-               card(
-                 card_header(tagList(icon("info-circle"), "Data Structure"), class = "bg-info text-white"),
-                 card_body(
-                   h6(tagList(icon("list"), "Bowtie Elements:")),
-                   p("Your Excel file should contain environmental risk data with these columns:"),
-                   tags$ul(
-                     tags$li(tagList(icon("play", class = "text-primary"),
-                                    strong("Activity:"), " Human activities that create risk")),
-                     tags$li(tagList(icon("triangle-exclamation", class = "text-danger"),
-                                    strong("Pressure:"), " Environmental pressures/threats")),
-                     tags$li(tagList(icon("shield-halved", class = "text-success"),
-                                    strong("Preventive_Control:"), " Controls to prevent escalation")),
-                     tags$li(tagList(icon("exclamation-triangle", class = "text-warning"),
-                                    strong("Escalation_Factor:"), " Factors that worsen situations")),
-                     tags$li(tagList(icon("radiation", class = "text-danger"),
-                                    strong("Central_Problem:"), " Main environmental risk")),
-                     tags$li(tagList(icon("shield", class = "text-info"),
-                                    strong("Protective_Mitigation:"), " Measures to reduce impact")),
-                     tags$li(tagList(icon("burst", class = "text-warning"),
-                                    strong("Consequence:"), " Final environmental outcomes")),
-                     tags$li(tagList(icon("percent"), strong("Likelihood:"), " Probability (1-5)")),
-                     tags$li(tagList(icon("bolt"), strong("Severity:"), " Impact severity (1-5)"))
-                   ),
-
-                   div(class = "alert alert-success mt-3",
-                       tagList(icon("check-circle"), " "),
-                       strong("ENHANCED:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
-
-                   div(class = "alert alert-info mt-2",
-                       tagList(icon("brain"), " "),
-                       strong("NEW: Bayesian Networks:"), " Convert bowties to probabilistic networks for advanced risk inference and scenario analysis"),
-
-                   div(class = "alert alert-primary mt-2",
-                       tagList(icon("book"), " "),
-                       strong("AI Analysis:"), " AI causal analysis finds Activity→Pressure→Consequence chains and Control interventions!"),
-
-                   conditionalPanel(
-                     condition = "output.dataLoaded",
-                     hr(),
-                     h6(tagList(icon("chart-bar"), "Data Summary:")),
+        column(4,
+               conditionalPanel(
+                 condition = "output.dataLoaded",
+                 card(
+                   card_header(tagList(icon("chart-bar"), "Data Summary"), class = "bg-secondary text-white"),
+                   card_body(class = "py-2",
                      verbatimTextOutput("dataInfo")
                    )
                  )
@@ -285,7 +323,7 @@ ui <- fluidPage(
           card_body(
             withSpinner(DT::dataTableOutput("preview")),
             br(),
-            div(class = "alert alert-info", tagList(icon("info-circle"), " "),
+            div(class = "alert alert-info mb-0", tagList(icon("info-circle"), " "),
                 textOutput("debugInfo", inline = TRUE))
           )
         )
@@ -294,119 +332,164 @@ ui <- fluidPage(
 
     # Guided Workflow Tab
     nav_panel(
-      title = tagList(icon("magic"), "🧙 Guided Creation"),
+      title = uiOutput("tab_guided_creation_title", inline = TRUE),
       icon = icon("magic"),
       value = "guided_workflow",
-      guided_workflow_ui()
+      guided_workflow_ui("guided_workflow")
     ),
 
     # Enhanced Bowtie Visualization Tab
     nav_panel(
       title = tagList(icon("project-diagram"), "Bowtie Diagram"), value = "bowtie",
 
+      # Toggle controls panel button
+      div(class = "mb-3",
+          actionButton("toggleControls",
+                      tagList(icon("chevron-left"), "Hide Controls"),
+                      class = "btn-outline-secondary btn-sm")),
+
       fluidRow(
-        column(4,
+        # Controls panel
+        column(width = 4, id = "controlsPanel",
                card(
-                 card_header(tagList(icon("cogs"), "Bowtie Controls"), class = "bg-primary text-white"),
-                 card_body(
+               card_header(tagList(icon("cogs"), "Bowtie Controls"), class = "bg-primary text-white"),
+               card_body(
+                 conditionalPanel(
+                   condition = "output.dataLoaded",
+                   selectInput("selectedProblem", "Select Central Problem:", choices = NULL),
+
+                   hr(),
+                   h6(tagList(icon("edit"), "Diagram Editing:")),
+                   checkboxInput("editMode", "Enable Diagram Editing", value = FALSE),
                    conditionalPanel(
-                     condition = "output.dataLoaded",
-                     selectInput("selectedProblem", "Select Central Problem:", choices = NULL),
+                     condition = "input.editMode",
+                     div(class = "alert alert-warning small",
+                         tagList(icon("exclamation-triangle"), " "),
+                         "Use the editing toolbar in the diagram.")
+                   ),
 
-                     hr(),
-                     h6(tagList(icon("edit"), "Network Editing:")),
-                     checkboxInput("editMode", "Enable Network Editing", value = FALSE),
-                     conditionalPanel(
-                       condition = "input.editMode",
-                       div(class = "alert alert-warning small",
-                           tagList(icon("exclamation-triangle"), " "),
-                           "Use manipulation toolbar in the network.")
-                     ),
+                   hr(),
+                   h6(tagList(icon("eye"), "Display Options:")),
+                   checkboxInput("showBarriers", "Show Controls & Mitigation", value = TRUE),
+                   checkboxInput("showRiskLevels", "Color by Risk Level", value = TRUE),
+                   sliderInput("nodeSize", "Element Size:", min = 25, max = 80, value = 45),
 
-                     hr(),
-                     h6(tagList(icon("eye"), "Display Options:")),
-                     checkboxInput("showBarriers", "Show Controls & Mitigation", value = TRUE),
-                     checkboxInput("showRiskLevels", "Color by Risk Level", value = TRUE),
-                     sliderInput("nodeSize", "Node Size:", min = 25, max = 80, value = 45),
+                   hr(),
+                   h6(tagList(icon("plus"), "Quick Add:")),
+                   textInput("newActivity", "New Activity:", placeholder = "Enter activity description"),
+                   textInput("newPressure", "New Pressure:", placeholder = "Enter pressure/threat"),
+                   textInput("newConsequence", "New Consequence:", placeholder = "Enter consequence"),
+                   div(class = "d-grid", actionButton("addActivityChain",
+                                                     tagList(icon("plus-circle"), "Add Chain"),
+                                                     class = "btn-outline-primary btn-sm")),
 
-                     hr(),
-                     h6(tagList(icon("plus"), "Quick Add:")),
-                     textInput("newActivity", "New Activity:", placeholder = "Enter activity description"),
-                     textInput("newPressure", "New Pressure:", placeholder = "Enter pressure/threat"),
-                     textInput("newConsequence", "New Consequence:", placeholder = "Enter consequence"),
-                     div(class = "d-grid", actionButton("addActivityChain",
-                                                       tagList(icon("plus-circle"), "Add Chain"),
-                                                       class = "btn-outline-primary btn-sm")),
+                   hr(),
+                   h6(tagList(icon("palette"), "Bowtie Visual Legend:")),
+                   div(class = "p-3 border rounded enhanced-legend",
+                       div(class = "d-flex align-items-center mb-1",
+                           span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "◼"),
+                           span(tagList(icon("play"), " Activities (Human Actions)"))),
+                       div(class = "d-flex align-items-center mb-1",
+                           span(class = "badge bg-danger me-2", "▲"),
+                           span(tagList(icon("triangle-exclamation"), " Pressures (Environmental Threats)"))),
+                       div(class = "d-flex align-items-center mb-1",
+                           span(class = "badge bg-success me-2", "◼"),
+                           span(tagList(icon("shield-halved"), " Preventive Controls"))),
+                       div(class = "d-flex align-items-center mb-1",
+                           span(class = "badge bg-warning me-2", "▼"),
+                           span(tagList(icon("exclamation-triangle"), " Escalation Factors"))),
+                       div(class = "d-flex align-items-center mb-1",
+                           span(class = "badge" , style = "background-color: #C0392B; color: white; margin-right: 8px;", "♦"),
+                           span(tagList(icon("radiation"), " Central Problem (Main Risk)"))),
+                       div(class = "d-flex align-items-center mb-1",
+                           span(class = "badge bg-primary me-2", "◼"),
+                           span(tagList(icon("shield"), " Protective Mitigation"))),
+                       div(class = "d-flex align-items-center mb-1",
+                           span(class = "badge" , style = "background-color: #E67E22; color: white; margin-right: 8px;", "⬢"),
+                           span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
+                       hr(class = "my-2"),
+                       div(class = "small text-success",
+                           strong("✓ Enhanced:"), " With Bayesian network conversion"),
+                       div(class = "small text-muted",
+                           strong("Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
+                       div(class = "small text-muted",
+                           strong("Line Types:"), " Solid = causal flow, Dashed = intervention/control effects"),
+                       div(class = "small text-info mt-1",
+                           strong("PNG Support:"), " Add marbefes.png to www/ folder for custom branding")
+                   ),
 
-                     hr(),
-                     h6(tagList(icon("palette"), "Bowtie Visual Legend:")),
-                     div(class = "p-3 border rounded enhanced-legend",
-                         div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge" , style = "background-color: #8E44AD; color: white; margin-right: 8px;", "◼"),
-                             span(tagList(icon("play"), " Activities (Human Actions)"))),
-                         div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge bg-danger me-2", "▲"),
-                             span(tagList(icon("triangle-exclamation"), " Pressures (Environmental Threats)"))),
-                         div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge bg-success me-2", "◼"),
-                             span(tagList(icon("shield-halved"), " Preventive Controls"))),
-                         div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge bg-warning me-2", "▼"),
-                             span(tagList(icon("exclamation-triangle"), " Escalation Factors"))),
-                         div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge" , style = "background-color: #C0392B; color: white; margin-right: 8px;", "♦"),
-                             span(tagList(icon("radiation"), " Central Problem (Main Risk)"))),
-                         div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge bg-primary me-2", "◼"),
-                             span(tagList(icon("shield"), " Protective Mitigation"))),
-                         div(class = "d-flex align-items-center mb-1",
-                             span(class = "badge" , style = "background-color: #E67E22; color: white; margin-right: 8px;", "⬢"),
-                             span(tagList(icon("burst"), " Consequences (Environmental Impacts)"))),
-                         hr(class = "my-2"),
-                         div(class = "small text-success",
-                             strong("✓ Enhanced:"), " With Bayesian network conversion"),
-                         div(class = "small text-muted",
-                             strong("Flow:"), " Activity → Pressure → Control → Escalation → Central Problem → Mitigation → Consequence"),
-                         div(class = "small text-muted",
-                             strong("Line Types:"), " Solid = causal flow, Dashed = intervention/control effects"),
-                         div(class = "small text-info mt-1",
-                             strong("PNG Support:"), " Add marbefes.png to www/ folder for custom branding")
-                     ),
-
-                     hr(),
-                     div(class = "d-grid", downloadButton("downloadBowtie",
-                                                         tagList(icon("download"), "Download Diagram"),
-                                                         class = "btn-success"))
+                   hr(),
+                   h6(tagList(icon("download"), "Export Diagram:")),
+                   div(class = "d-grid gap-2",
+                       downloadButton("downloadBowtie",
+                                     tagList(icon("file-code"), "HTML (Interactive)"),
+                                     class = "btn-success btn-sm"),
+                       downloadButton("downloadBowtieJPEG",
+                                     tagList(icon("image"), "JPEG (White Background)"),
+                                     class = "btn-info btn-sm"),
+                       downloadButton("downloadBowtiePNG",
+                                     tagList(icon("image"), "PNG (Transparent)"),
+                                     class = "btn-secondary btn-sm")
                    )
                  )
                )
+             )
         ),
 
-        column(8,
-               card(
-                 card_header(tagList(icon("sitemap"), "Bowtie Diagram"),
-                           class = "bg-success text-white"),
-                 card_body(
-                   conditionalPanel(
-                     condition = "output.dataLoaded",
-                     div(class = "text-center mb-3",
-                         h5(tagList(icon("water"), "Environmental Bowtie Risk Analysis"), class = "text-primary"),
-                         p(class = "small text-success",
-                           "✓ Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences with Bayesian conversion")),
-                     div(class = "network-container",
-                         withSpinner(visNetworkOutput("bowtieNetwork", height = "650px"))
-                     )
-                   ),
-                   conditionalPanel(
-                     condition = "!output.dataLoaded",
-                     div(class = "text-center p-5",
-                         icon("upload", class = "fa-3x text-muted mb-3"),
-                         h4("Upload Data or Generate Sample Data", class = "text-muted"),
-                         p("Please upload environmental data or generate sample data to view the bowtie diagram with Bayesian network conversion",
-                           class = "text-muted"))
+        # Diagram panel with flexible width
+        column(width = 8, id = "diagramPanel",
+             card(
+               card_header(
+                 tagList(
+                   icon("sitemap"), "Bowtie Diagram",
+                   tags$span(
+                     class = "float-end",
+                     actionButton("bowtie_help", "", icon = icon("question-circle"),
+                                class = "btn-sm btn-link text-white",
+                                style = "padding: 0; text-decoration: none;",
+                                title = "Click for diagram legend and help")
                    )
+                 ),
+                 class = "bg-success text-white"
+               ),
+               card_body(
+                 # Help panel (hidden by default)
+                 conditionalPanel(
+                   condition = "input.bowtie_help % 2 == 1",
+                   div(class = "alert alert-info mb-3",
+                     # Rendered in server.R as uiOutput("bowtie_legend_help")
+                     tags$small(
+                       tags$ul(class = "mb-2",
+                         tags$li(tags$strong("Purple rectangles:"), " Activities - human actions causing environmental pressures"),
+                         tags$li(tags$strong("Red ovals:"), " Pressures - environmental stressors resulting from activities"),
+                         tags$li(tags$strong("Green rectangles:"), " Preventive Controls - measures to stop pressures reaching the central problem"),
+                         tags$li(tags$strong("Orange triangles:"), " Escalation Factors - conditions that weaken both preventive controls AND protective mitigations"),
+                         tags$li(tags$strong("Red diamond (center):"), " Central Problem - the main environmental issue being assessed"),
+                         tags$li(tags$strong("Blue squares:"), " Protective Mitigations - measures to reduce consequences after the problem occurs"),
+                         tags$li(tags$strong("Orange ovals:"), " Consequences - environmental impacts resulting from the central problem")
+                       ),
+                       tags$p(class = "mb-0",
+                         tags$strong("Interaction:"), " Hover over elements for details. Click and drag to reposition elements. Use mouse wheel to zoom. Double-click elements for more information."
+                       )
+                     )
+                   )
+                 ),
+                 conditionalPanel(
+                   condition = "output.dataLoaded",
+                   div(class = "network-container",
+                       withSpinner(visNetworkOutput("bowtieNetwork", height = "650px"))
+                   )
+                 ),
+                 conditionalPanel(
+                   condition = "!output.dataLoaded",
+                   div(class = "text-center p-5",
+                       icon("upload", class = "fa-3x text-muted mb-3"),
+                       h4("Upload Data or Generate Sample Data", class = "text-muted"),
+                       p("Please upload environmental data or generate sample data to view the bowtie diagram",
+                         class = "text-muted"))
                  )
                )
+             )
         )
       )
     ),
@@ -637,9 +720,47 @@ ui <- fluidPage(
       fluidRow(
         column(8,
                card(
-                 card_header(tagList(icon("chart-line"), "Environmental Risk Matrix"),
-                           class = "bg-primary text-white"),
+                 card_header(
+                   tagList(
+                     icon("chart-line"), "Environmental Risk Matrix",
+                     tags$span(
+                       class = "float-end",
+                       actionButton("matrix_help", "", icon = icon("question-circle"),
+                                  class = "btn-sm btn-link text-white",
+                                  style = "padding: 0; text-decoration: none;",
+                                  title = "Click for risk matrix guide and interpretation")
+                     )
+                   ),
+                   class = "bg-primary text-white"
+                 ),
                  card_body(
+                   # Help panel (hidden by default)
+                   conditionalPanel(
+                     condition = "input.matrix_help % 2 == 1",
+                     div(class = "alert alert-info mb-3",
+                       h6(tagList(icon("info-circle"), "Risk Matrix Guide & Interpretation")),
+                       tags$small(
+                         tags$p(tags$strong("Understanding the Graph:")),
+                         tags$ul(class = "mb-2",
+                           tags$li(tags$strong("X-Axis (Horizontal):"), " Likelihood - How likely is this risk to occur? (1 = Very Unlikely, 2 = Unlikely, 3 = Possible, 4 = Likely, 5 = Very Likely)"),
+                           tags$li(tags$strong("Y-Axis (Vertical):"), " Severity - How serious would the impact be? (1 = Negligible, 2 = Minor, 3 = Moderate, 4 = Major, 5 = Catastrophic)"),
+                           tags$li(tags$strong("Each Dot:"), " Represents ONE complete risk pathway: Activity → Pressure → Central Problem → Consequence. Multiple dots = multiple different risk scenarios being assessed.")
+                         ),
+                         tags$p(tags$strong("Why Multiple Dots?")),
+                         tags$p("Your bowtie diagram contains multiple pathways. For example: 'Shipping operations causing oil spills leading to marine ecosystem damage' is one dot, while 'Agricultural runoff causing nutrient pollution leading to eutrophication' is another dot. Each pathway is assessed separately for its likelihood and severity."),
+                         tags$p(tags$strong("Color-Coded Risk Levels:")),
+                         tags$ul(class = "mb-2",
+                           tags$li(tags$strong("🟢 Green dots:"), " Low risk (score 1-6) - minimal concern, routine monitoring"),
+                           tags$li(tags$strong("🟡 Yellow/Orange dots:"), " Medium risk (score 7-15) - moderate concern, targeted controls needed"),
+                           tags$li(tags$strong("🔴 Red dots:"), " High risk (score 16-25) - critical concern, urgent action required")
+                         ),
+                         tags$p(tags$strong("Risk Score:"), " Calculated as Likelihood × Severity. A dot at position (4, 5) has a risk score of 20 (High Risk)."),
+                         tags$p(class = "mb-0",
+                           tags$strong("How to use:"), " Hover over any dot to see the complete pathway details. Prioritize resources on high-risk (red) items first. The top-right corner (5,5) represents the most critical risks requiring immediate attention."
+                         )
+                       )
+                     )
+                   ),
                    conditionalPanel(
                      condition = "output.dataLoaded",
                      withSpinner(plotlyOutput("riskMatrix", height = "500px"))
@@ -671,6 +792,186 @@ ui <- fluidPage(
                    )
                  )
                )
+        )
+      )
+    ),
+
+    # Link Risk Assessment Tab - NEW
+    nav_panel(
+      title = uiOutput("tab_link_risk_title", inline = TRUE), value = "link_risk",
+
+      fluidRow(
+        column(12,
+          card(
+            card_header(uiOutput("link_risk_individual_header"), class = "bg-info text-white"),
+            card_body(
+              conditionalPanel(
+                condition = "output.dataLoaded",
+                
+                fluidRow(
+                  column(12,
+                    div(class = "alert alert-info",
+                      icon("info-circle"),
+                      strong(" Instructions: "),
+                      "Select a scenario pathway below to review and adjust the likelihood and severity of each connection in the bowtie structure."
+                    )
+                  )
+                ),
+                
+                fluidRow(
+                  column(4,
+                    card(
+                      card_header("Select Pathway", class = "bg-secondary text-white"),
+                      card_body(
+                        selectInput("link_risk_scenario", "Select Scenario:",
+                                  choices = NULL,
+                                  selected = NULL),
+                        hr(),
+                        div(id = "scenario_info",
+                          uiOutput("selected_scenario_info")
+                        )
+                      )
+                    )
+                  ),
+                  
+                  column(8,
+                    card(
+                      card_header("Connection Risk Assessments", class = "bg-primary text-white"),
+                      card_body(
+                        # Activity → Pressure
+                        h5(tagList(icon("arrow-right"), "Activity → Pressure")),
+                        fluidRow(
+                          column(6,
+                            sliderInput("activity_pressure_likelihood",
+                                      "Likelihood (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          ),
+                          column(6,
+                            sliderInput("activity_pressure_severity",
+                                      "Severity (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          )
+                        ),
+                        div(class = "small text-muted mb-3",
+                          uiOutput("activity_pressure_description")
+                        ),
+                        
+                        hr(),
+                        
+                        # Pressure → Preventive Control
+                        h5(tagList(icon("arrow-right"), "Pressure → Preventive Control")),
+                        fluidRow(
+                          column(6,
+                            sliderInput("pressure_control_likelihood",
+                                      "Likelihood (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          ),
+                          column(6,
+                            sliderInput("pressure_control_severity",
+                                      "Severity (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          )
+                        ),
+                        div(class = "small text-muted mb-3",
+                          uiOutput("pressure_control_description")
+                        ),
+                        
+                        hr(),
+                        
+                        # Escalation Factor → Control
+                        h5(tagList(icon("arrow-right"), "Escalation Factor → Control")),
+                        fluidRow(
+                          column(6,
+                            sliderInput("escalation_control_likelihood",
+                                      "Likelihood (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          ),
+                          column(6,
+                            sliderInput("escalation_control_severity",
+                                      "Severity (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          )
+                        ),
+                        div(class = "small text-muted mb-3",
+                          uiOutput("escalation_control_description")
+                        ),
+                        
+                        hr(),
+                        
+                        # Central Problem → Consequence
+                        h5(tagList(icon("arrow-right"), "Central Problem → Consequence")),
+                        fluidRow(
+                          column(6,
+                            sliderInput("central_consequence_likelihood",
+                                      "Likelihood (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          ),
+                          column(6,
+                            sliderInput("central_consequence_severity",
+                                      "Severity (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          )
+                        ),
+                        div(class = "small text-muted mb-3",
+                          uiOutput("central_consequence_description")
+                        ),
+                        
+                        hr(),
+                        
+                        # Protective Control → Consequence
+                        h5(tagList(icon("arrow-right"), "Protective Control → Consequence")),
+                        fluidRow(
+                          column(6,
+                            sliderInput("protection_consequence_likelihood",
+                                      "Likelihood (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          ),
+                          column(6,
+                            sliderInput("protection_consequence_severity",
+                                      "Severity (1-5):",
+                                      min = 1, max = 5, value = 3, step = 1)
+                          )
+                        ),
+                        div(class = "small text-muted mb-3",
+                          uiOutput("protection_consequence_description")
+                        ),
+                        
+                        hr(),
+                        
+                        div(class = "d-grid gap-2 mt-4",
+                          actionButton("save_link_risks",
+                                     tagList(icon("save"), "Save Risk Assessments"),
+                                     class = "btn-success btn-lg"),
+                          actionButton("reset_link_risks",
+                                     tagList(icon("undo"), "Reset to Current Values"),
+                                     class = "btn-outline-secondary")
+                        ),
+                        
+                        # Overall Risk Summary
+                        div(class = "mt-4",
+                          card(
+                            card_header("Overall Pathway Risk", class = "bg-dark text-white"),
+                            card_body(
+                              uiOutput("overall_pathway_risk")
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              
+              conditionalPanel(
+                condition = "!output.dataLoaded",
+                div(class = "text-center p-5",
+                  icon("exclamation-triangle", class = "fa-3x text-warning mb-3"),
+                  h4("No Data Loaded"),
+                  p("Please upload or generate bowtie data to use the Link Risk Assessment tool.", class = "text-muted")
+                )
+              )
+            )
+          )
         )
       )
     ),
@@ -941,6 +1242,90 @@ ui <- fluidPage(
                            class = "bg-info text-white"),
                  card_body(
                    uiOutput("vocab_info")
+                 )
+               )
+        )
+      )
+    ),
+
+    # Report Generation Tab
+    nav_panel(
+      title = tagList(icon("file-alt"), "Report"), value = "report",
+
+      fluidRow(
+        column(6,
+               card(
+                 card_header(uiOutput("report_header"), class = "bg-primary text-white"),
+                 card_body(
+                   uiOutput("report_intro"),
+                   
+                   hr(),
+                   
+                   h5(tagList(icon("cog"), uiOutput("report_options_title", inline = TRUE))),
+                   
+                   uiOutput("report_type_label"),
+                   selectInput("report_type", NULL,
+                             choices = c(
+                               "Summary Report" = "summary",
+                               "Detailed Analysis" = "detailed",
+                               "Risk Matrix Report" = "risk_matrix",
+                               "Bayesian Analysis Report" = "bayesian",
+                               "Complete Report (All Sections)" = "complete"
+                             ),
+                             selected = "summary"),
+                   
+                   uiOutput("report_format_label"),
+                   radioButtons("report_format", NULL,
+                              choices = c("PDF" = "pdf", "HTML" = "html", "Word" = "docx"),
+                              selected = "html", inline = TRUE),
+                   
+                   hr(),
+                   
+                   uiOutput("report_include_sections_label"),
+                   checkboxGroupInput("report_sections", NULL,
+                                    choices = c(
+                                      "Executive Summary" = "exec_summary",
+                                      "Data Overview" = "data_overview",
+                                      "Bowtie Diagrams" = "bowtie_diagrams",
+                                      "Risk Matrix" = "risk_matrix_section",
+                                      "Bayesian Network Analysis" = "bayesian_section",
+                                      "Recommendations" = "recommendations"
+                                    ),
+                                    selected = c("exec_summary", "data_overview", "bowtie_diagrams")),
+                   
+                   hr(),
+                   
+                   uiOutput("report_title_input_ui"),
+                   uiOutput("report_author_input_ui"),
+                   
+                   hr(),
+                   
+                   div(class = "d-grid gap-2",
+                       actionButton("generate_report",
+                                  tagList(icon("file-export"), uiOutput("report_generate_button", inline = TRUE)),
+                                  class = "btn-success btn-lg"),
+                       downloadButton("download_report",
+                                    tagList(icon("download"), uiOutput("report_download_button", inline = TRUE)),
+                                    class = "btn-primary")
+                   )
+                 )
+               )
+        ),
+        
+        column(6,
+               card(
+                 card_header(uiOutput("report_preview_header"), class = "bg-info text-white"),
+                 card_body(
+                   uiOutput("report_status"),
+                   hr(),
+                   uiOutput("report_preview_content")
+                 )
+               ),
+               
+               card(
+                 card_header(uiOutput("report_help_header"), class = "bg-secondary text-white"),
+                 card_body(
+                   uiOutput("report_help_content")
                  )
                )
         )
@@ -1655,6 +2040,109 @@ ui <- fluidPage(
               )
             )
           )
+        ),
+
+        # User Manual Tab
+        nav_panel(
+          title = tagList(icon("file-pdf"), "User Manual"), value = "user_manual_help",
+
+          fluidRow(
+            column(12,
+              card(
+                card_header(
+                  tagList(icon("file-pdf"), "Download User Manual"),
+                  class = "bg-primary text-white"
+                ),
+                card_body(
+                  div(class = "text-center p-4",
+                    icon("file-pdf", class = "fa-5x text-danger mb-3"),
+                    h4("Environmental Bowtie Risk Analysis User Manual"),
+                    p(class = "text-muted",
+                      "Comprehensive guide covering all features, workflows, and best practices"
+                    ),
+                    hr(),
+                    div(class = "row mb-3",
+                      div(class = "col-md-4",
+                        div(class = "card border-primary",
+                          div(class = "card-body text-center",
+                            icon("book-open", class = "fa-2x text-primary mb-2"),
+                            h6("Contents"),
+                            p(class = "small text-muted",
+                              "Step-by-step guides, screenshots, and examples"
+                            )
+                          )
+                        )
+                      ),
+                      div(class = "col-md-4",
+                        div(class = "card border-success",
+                          div(class = "card-body text-center",
+                            icon("lightbulb", class = "fa-2x text-success mb-2"),
+                            h6("Features"),
+                            p(class = "small text-muted",
+                              "Complete coverage of all application capabilities"
+                            )
+                          )
+                        )
+                      ),
+                      div(class = "col-md-4",
+                        div(class = "card border-info",
+                          div(class = "card-body text-center",
+                            icon("graduation-cap", class = "fa-2x text-info mb-2"),
+                            h6("Learning"),
+                            p(class = "small text-muted",
+                              "Best practices and troubleshooting tips"
+                            )
+                          )
+                        )
+                      )
+                    ),
+                    div(class = "alert alert-info",
+                      icon("info-circle"),
+                      strong(" Manual Details: "),
+                      paste("Version", APP_CONFIG$VERSION, "| Multiple Languages | Comprehensive Documentation")
+                    ),
+                    div(class = "d-flex gap-2 justify-content-center",
+                      downloadButton(
+                        "download_manual",
+                        "Download User Manual (PDF - English)",
+                        class = "btn-lg btn-primary",
+                        icon = icon("download")
+                      ),
+                      downloadButton(
+                        "download_manual_fr",
+                        "Télécharger le Manuel (HTML - Français)",
+                        class = "btn-lg btn-success",
+                        icon = icon("download")
+                      )
+                    ),
+                    hr(),
+                    p(class = "small text-muted mt-3",
+                      "The manual is regularly updated to reflect the latest features and improvements."
+                    )
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        # About Tab - Fully Translated
+        nav_panel(
+          title = tagList(icon("info-circle"), "About"), value = "about",
+
+          fluidRow(
+            column(12,
+              card(
+                card_header(
+                  uiOutput("about_header"),
+                  class = "bg-success text-white"
+                ),
+                card_body(
+                  uiOutput("about_content")
+                )
+              )
+            )
+          )
         )
       )
     )
@@ -1666,7 +2154,7 @@ ui <- fluidPage(
       p(tagList(
         strong("Environmental Bowtie Risk Analysis Tool"),
         " | ",
-        span(class = "badge bg-success", "v5.1.0"),
+        span(class = "badge bg-success", paste0("v", APP_CONFIG$VERSION)),
         " - Enhanced with Bayesian Network Analysis"
       )))
 )

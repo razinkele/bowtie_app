@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis - Application Configuration
-# Version: 5.2.0
+# Version: 5.3.0
 # Last Updated: November 2025
 # =============================================================================
 # This file contains all centralized configuration settings for the application.
@@ -10,7 +10,7 @@
 APP_CONFIG <- list(
   # Application Metadata
   APP_NAME = "bowtie_app",
-  VERSION = "5.2.0",
+  VERSION = "5.3.0",
   TITLE = "Environmental Bowtie Risk Analysis",
   SUBTITLE = "Marine Biodiversity and Ecosystem Services Assessment",
   AUTHOR = "Marbefes Team & AI Assistant",
@@ -30,7 +30,7 @@ APP_CONFIG <- list(
     "start_app.R",
     "config.R",
     "requirements.R",
-    
+
     # Module files
     "guided_workflow.R",
     "bowtie_bayesian_network.R",
@@ -39,11 +39,31 @@ APP_CONFIG <- list(
     "vocabulary_bowtie_generator.R",
     "translations_data.R",
     "environmental_scenarios.R",
-    
+
     # Data files
     "CAUSES.xlsx",
     "CONSEQUENCES.xlsx",
     "CONTROLS.xlsx"
+  ),
+
+  # Required Directories (for deployment validation)
+  REQUIRED_DIRS = c(
+    "deployment",
+    "tests",
+    "docs",
+    "data",
+    "www"
+  ),
+
+  # Optional Directories (for full deployment)
+  OPTIONAL_DIRS = c(
+    "utils",
+    "archive",
+    "archivedocs",
+    "archivelaunchers",
+    "archivelogs",
+    "archiveprogress",
+    "Bow-tie guidance"
   ),
   
   # Data File Paths (relative to app root)
@@ -52,6 +72,13 @@ APP_CONFIG <- list(
     CONSEQUENCES = "CONSEQUENCES.xlsx",
     CONTROLS = "CONTROLS.xlsx",
     SCENARIOS = "environmental_bowtie_data_2025-06-19.xlsx"
+  ),
+
+  # Documentation File Paths (relative to app root)
+  DOCS = list(
+    MANUAL_DIR = "docs",
+    MANUAL_BASENAME = "Environmental_Bowtie_Risk_Analysis_Manual",
+    README = "README.md"
   ),
   
   # UI Theme Configuration
@@ -219,6 +246,29 @@ get_data_file_path <- function(file_key) {
   return(NULL)
 }
 
+#' Get manual file path with version
+#' @param version Optional version string (defaults to current version)
+#' @return Character string with full manual path
+get_manual_path <- function(version = NULL) {
+  if (is.null(version)) {
+    version <- APP_CONFIG$VERSION
+  }
+  file.path(
+    APP_CONFIG$DOCS$MANUAL_DIR,
+    paste0(APP_CONFIG$DOCS$MANUAL_BASENAME, "_v", version, ".pdf")
+  )
+}
+
+#' Get manual filename for download
+#' @param version Optional version string (defaults to current version)
+#' @return Character string with manual filename
+get_manual_filename <- function(version = NULL) {
+  if (is.null(version)) {
+    version <- APP_CONFIG$VERSION
+  }
+  paste0(APP_CONFIG$DOCS$MANUAL_BASENAME, "_v", version, ".pdf")
+}
+
 # =============================================================================
 # Environment-Specific Configuration Override
 # =============================================================================
@@ -228,12 +278,16 @@ if (file.exists(".env.R")) {
   source(".env.R")
   if (exists("ENV_CONFIG")) {
     APP_CONFIG <- modifyList(APP_CONFIG, ENV_CONFIG)
-    cat("✅ Environment-specific configuration loaded from .env.R\n")
+    if (interactive()) {
+      cat("✅ Environment-specific configuration loaded from .env.R\n")
+    }
   }
 }
 
-# Print configuration summary
-cat("⚙️ Configuration loaded:", get_app_version(), "\n")
-cat("   • Required files:", length(APP_CONFIG$REQUIRED_FILES), "\n")
-cat("   • Supported languages:", paste(APP_CONFIG$LANGUAGES$SUPPORTED, collapse = ", "), "\n")
-cat("   • Debug mode:", APP_CONFIG$DEV$DEBUG_MODE, "\n")
+# Print configuration summary (only in interactive mode)
+if (interactive()) {
+  cat("⚙️ Configuration loaded:", get_app_version(), "\n")
+  cat("   • Required files:", length(APP_CONFIG$REQUIRED_FILES), "\n")
+  cat("   • Supported languages:", paste(APP_CONFIG$LANGUAGES$SUPPORTED, collapse = ", "), "\n")
+  cat("   • Debug mode:", APP_CONFIG$DEV$DEBUG_MODE, "\n")
+}

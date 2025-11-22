@@ -1,8 +1,8 @@
 # requirements.R
 # R Package Dependencies for Environmental Bowtie Risk Analysis Application
-# Version: 5.2.0 (Advanced Framework Edition)
+# Version: 5.3.0 (Production-Ready Edition)
 
-cat("📦 Installing R Package Dependencies for Bowtie App v5.2\n")
+cat("📦 Installing R Package Dependencies for Bowtie App v5.3\n")
 cat("======================================================\n")
 
 # Set CRAN mirror for faster downloads

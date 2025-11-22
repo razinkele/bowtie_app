@@ -45,6 +45,19 @@ desktop.ini
 # Backup files
 *_backup_*
 *.bak
+*-laguna-safeBackup-*
+*-Dell-PCn.*
+
+# Temporary files
+_ul
+*.tmp
+*.temp
 
 # Test output files
 test_results.*
+
+# Archive directories (historical files)
+archivedocs/
+archivelaunchers/
+archivelogs/
+archiveprogress/

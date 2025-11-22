@@ -8,22 +8,22 @@ library(stringr)
 context("Consistency Fixes Validation")
 
 test_that("Circular dependency is resolved", {
-  # Test that guided_workflow_steps.r doesn't source guided_workflow.r
-  steps_content <- readLines("guided_workflow_steps.r")
+  # Test that guided_workflow.r loads without circular dependencies
+  workflow_content <- readLines("guided_workflow.r")
 
-  # Should not contain the problematic source call
+  # Should not contain any problematic circular source calls
   circular_source_pattern <- 'source\\("guided_workflow\\.r"\\)'
-  has_circular_import <- any(grepl(circular_source_pattern, steps_content))
+  has_circular_import <- any(grepl(circular_source_pattern, workflow_content))
 
   expect_false(has_circular_import,
-               "guided_workflow_steps.r should not source guided_workflow.r directly")
+               "guided_workflow.r should not source itself")
 
-  # Should contain the corrected comment instead
-  comment_pattern <- "Configuration loaded by global.R"
-  has_correct_comment <- any(grepl(comment_pattern, steps_content))
+  # Should have proper dependency validation
+  dependency_pattern <- "validate_guided_workflow_dependencies"
+  has_dependency_check <- any(grepl(dependency_pattern, workflow_content))
 
-  expect_true(has_correct_comment,
-              "guided_workflow_steps.r should have explanatory comment about dependency loading")
+  expect_true(has_dependency_check,
+              "guided_workflow.r should have dependency validation")
 })
 
 test_that("Icon usage is standardized across files", {
@@ -100,18 +100,23 @@ test_that("Global.R has enhanced import logic", {
 test_that("Application starts without circular dependency warnings", {
   # This test would require actually running the app, so we'll check the structure instead
 
-  # Verify that global.R loads guided_workflow.r before guided_workflow_steps.r
+  # Verify that global.R loads guided_workflow.r properly
   global_content <- readLines("global.R")
 
   workflow_line <- which(grepl('source\\("guided_workflow\\.r"\\)', global_content))
-  steps_line <- which(grepl('source\\("guided_workflow_steps\\.r"\\)', global_content))
 
   expect_true(length(workflow_line) > 0, "global.R should source guided_workflow.r")
-  expect_true(length(steps_line) > 0, "global.R should source guided_workflow_steps.r")
 
-  if (length(workflow_line) > 0 && length(steps_line) > 0) {
-    expect_true(workflow_line[1] < steps_line[1],
-                "global.R should load guided_workflow.r before guided_workflow_steps.r")
+  # Verify guided_workflow.r has proper error handling
+  if (length(workflow_line) > 0) {
+    # Check that loading is wrapped in tryCatch
+    context_start <- max(1, workflow_line[1] - 5)
+    context_end <- min(length(global_content), workflow_line[1] + 5)
+    context <- global_content[context_start:context_end]
+
+    has_error_handling <- any(grepl("tryCatch|error", context, ignore.case = TRUE))
+    expect_true(has_error_handling,
+                "global.R should have error handling for guided_workflow.r loading")
   }
 })
 

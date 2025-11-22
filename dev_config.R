@@ -48,7 +48,7 @@ dev_config <- list(
 #' Enhanced Hot Reload Function
 #' Automatically reloads changed files during development
 setup_hot_reload <- function(watch_files = c("ui.R", "server.R", "global.R",
-                                             "guided_workflow.r", "utils.r")) {
+                                             "guided_workflow.R", "utils.R")) {
   if (!dev_config$hot_reload) return(invisible())
 
   cat("🔄 Hot reload enabled for files:", paste(watch_files, collapse = ", "), "\n")
@@ -148,7 +148,7 @@ validate_icon_usage <- function() {
 
   cat("🎨 Validating icon standardization...\n")
 
-  files_to_check <- c("ui.R", "server.R", "guided_workflow.r", "guided_workflow_steps.r")
+  files_to_check <- c("ui.R", "server.R", "guided_workflow.R")
   existing_files <- files_to_check[file.exists(files_to_check)]
 
   issues <- list()
@@ -188,15 +188,15 @@ validate_icon_usage <- function() {
 validate_dependencies <- function() {
   cat("🔗 Validating module dependencies...\n")
 
-  # Check for circular dependencies
-  steps_content <- if (file.exists("guided_workflow_steps.r")) {
-    readLines("guided_workflow_steps.r", warn = FALSE)
+  # Check guided_workflow.R for circular dependencies (self-references)
+  workflow_content <- if (file.exists("guided_workflow.R")) {
+    readLines("guided_workflow.R", warn = FALSE)
   } else { character(0) }
 
-  circular_imports <- grep('source\\("guided_workflow\\.r"\\)', steps_content)
+  circular_imports <- grep('source\\("guided_workflow\\.R"\\)', workflow_content)
 
   if (length(circular_imports) > 0) {
-    cat("❌ Circular dependency detected in guided_workflow_steps.r\n")
+    cat("❌ Circular dependency detected in guided_workflow.R\n")
     return(FALSE)
   }
 
@@ -205,13 +205,11 @@ validate_dependencies <- function() {
     readLines("global.R", warn = FALSE)
   } else { character(0) }
 
-  workflow_line <- grep('source\\("guided_workflow\\.r"\\)', global_content)
-  steps_line <- grep('source\\("guided_workflow_steps\\.r"\\)', global_content)
+  workflow_line <- grep('source\\("guided_workflow\\.R"\\)', global_content)
 
-  if (length(workflow_line) > 0 && length(steps_line) > 0) {
-    if (workflow_line[1] > steps_line[1]) {
-      cat("⚠️ Dependency loading order issue in global.R\n")
-      return(FALSE)
+  if (length(workflow_line) == 0) {
+    cat("⚠️ guided_workflow.R not loaded in global.R\n")
+    return(FALSE)
     }
   }
 

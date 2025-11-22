@@ -28,9 +28,8 @@ benchmark_consistency_fixes <- function() {
       # Clear environment to simulate fresh loading
       if (exists("WORKFLOW_CONFIG")) rm("WORKFLOW_CONFIG", envir = .GlobalEnv)
 
-      # Load workflow modules in correct order (as fixed)
-      source("guided_workflow.r")
-      source("guided_workflow_steps.r")
+      # Load workflow module
+      source("guided_workflow.R")
     },
     times = 10,
     unit = "ms"
@@ -128,8 +127,7 @@ detect_performance_regression <- function(baseline_file = "utils/performance_bas
 
   # 3. Guided Workflow Loading Time
   workflow_time <- system.time({
-    source("guided_workflow.r")
-    source("guided_workflow_steps.r")
+    source("guided_workflow.R")
   })[["elapsed"]]
   current_metrics$workflow_time <- workflow_time
 
@@ -168,7 +166,7 @@ detect_performance_regression <- function(baseline_file = "utils/performance_bas
     # Create baseline file
     baseline <- list(
       date = as.character(Sys.Date()),
-      version = "5.2.0",
+      version = "5.3.0",
       metrics = current_metrics
     )
 
@@ -217,7 +215,7 @@ generate_performance_report <- function(results, output_dir = "performance_repor
         <div class="header">
             <h1>🚀 Environmental Bowtie App Performance Report</h1>
             <p>Generated on: ', Sys.time(), '</p>
-            <p>Version: 5.2.0 (Advanced Framework Edition)</p>
+            <p>Version: 5.3.0 (Production-Ready Edition)</p>
         </div>
 
         <h2>📈 Performance Metrics Summary</h2>

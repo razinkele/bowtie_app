@@ -83,10 +83,10 @@ jobs:
       run: |
         Rscript -e "
         # Check for circular dependencies
-        if (file.exists('guided_workflow_steps.r')) {
-          content <- readLines('guided_workflow_steps.r')
+        if (file.exists('guided_workflow.r')) {
+          content <- readLines('guided_workflow.r')
           if (any(grepl('source\\\(\"guided_workflow\\\\.r\"\\\)', content))) {
-            stop('❌ Circular dependency detected in guided_workflow_steps.r')
+            stop('❌ Circular dependency detected in guided_workflow.r (self-reference)')
           }
         }
         cat('✅ No circular dependencies detected\n')
