@@ -44,7 +44,9 @@
       "Bash(move RELEASE_NOTES_v5.3.0.md docsrelease-notes )",
       "Bash(move VERSIONING.md docs )",
       "Bash(move VERSIONING_SYSTEM_IMPLEMENTATION.md docs )",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "Bash(test:*)",
+      "Bash(gh run list:*)"
     ],
     "deny": [],
     "ask": []
