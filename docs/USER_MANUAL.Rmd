@@ -1,0 +1,1237 @@
+---
+title: "Environmental Bowtie Risk Analysis"
+subtitle: "User Manual & Technical Documentation"
+author: "Marbefes Team"
+date: "November 2025"
+version: "5.3.0"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    df_print: kable
+    latex_engine: xelatex
+header-includes:
+  - \usepackage{fancyhdr}
+  - \usepackage{graphicx}
+  - \usepackage{hyperref}
+  - \pagestyle{fancy}
+  - \fancyhead[L]{Environmental Bowtie Risk Analysis}
+  - \fancyhead[R]{Version 5.3.0}
+  - \fancyfoot[C]{\thepage}
+---
+
+\newpage
+
+# Executive Summary
+
+The **Environmental Bowtie Risk Analysis** application (version 5.3.0) is a comprehensive R Shiny web application designed for environmental risk assessment using bowtie diagrams enhanced with Bayesian network integration. This production-ready edition provides a robust platform for analyzing marine biodiversity threats and ecosystem services impacts through probabilistic modeling.
+
+## Key Features
+
+- **Interactive Bowtie Diagram Creation**: Visual risk assessment with drag-and-drop functionality
+- **Guided 8-Step Workflow**: Step-by-step wizard for systematic risk analysis
+- **Bayesian Network Integration**: Probabilistic modeling of environmental risks
+- **Multi-Language Support**: English and French interfaces
+- **12 Environmental Scenarios**: Pre-configured templates for common risk scenarios
+- **Vocabulary Database**: 189 environmental elements (53 activities, 36 pressures, 74 controls, 26 consequences)
+- **Export Capabilities**: Excel, RDS, and visual export options
+- **Network Deployment Ready**: Configured for local network and production deployment
+
+## What's New in Version 5.3.0
+
+### UI/UX Improvements
+- ✅ Vertically aligned environmental scenario selectors
+- ✅ New Vocabulary Statistics card with real-time element counts
+- ✅ Enhanced 3-column layout for better information density
+- ✅ Improved responsive design
+
+### Bug Fixes
+- ✅ Fixed Option 2b scenario generation error
+- ✅ Resolved case-sensitivity issues for Linux deployment
+- ✅ Corrected file references in deployment scripts
+- ✅ Enhanced error handling with graceful fallbacks
+
+### Deployment Framework
+- ✅ Complete Linux compatibility
+- ✅ Windows PowerShell validation scripts
+- ✅ Comprehensive deployment documentation
+- ✅ Updated directory structure validation
+
+### Codebase Quality
+- ✅ Cleaned up backup and temporary files
+- ✅ Organized test files and utilities
+- ✅ Enhanced .gitignore configuration
+- ✅ Production-ready file structure
+
+\newpage
+
+# Getting Started
+
+## System Requirements
+
+### Minimum Requirements
+- **Operating System**: Windows 10+, macOS 10.14+, Ubuntu 18.04+, Debian 10+, CentOS 7+
+- **R Version**: 4.3.0 or higher
+- **Memory**: 4 GB RAM
+- **Disk Space**: 2 GB free space
+- **Display**: 1280x720 minimum resolution
+- **Browser**: Modern web browser (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
+
+### Recommended Requirements
+- **R Version**: 4.4.3 or higher
+- **Memory**: 8 GB RAM or more
+- **Disk Space**: 5 GB free space
+- **Display**: 1920x1080 or higher
+- **Network**: Required for deployment and collaboration features
+
+### Required R Packages
+
+**Core Packages (18)**:
+```r
+shiny, bslib, DT, readxl, openxlsx
+ggplot2, plotly, dplyr, visNetwork
+shinycssloaders, colourpicker, htmlwidgets, shinyjs
+bnlearn, gRain, igraph, DiagrammeR, Rgraphviz
+```
+
+All packages are automatically installed when the application starts for the first time.
+
+## Installation
+
+### Quick Start (Local Development)
+
+1. **Clone or download** the application files
+2. **Navigate** to the application directory
+3. **Run** the application:
+
+```r
+# Option 1: Using start_app.R (recommended)
+Rscript start_app.R
+
+# Option 2: Using app.R
+source("app.R")
+```
+
+4. **Access** the application at `http://localhost:3838`
+
+### Network Deployment
+
+For team collaboration and network access:
+
+```r
+# Start with network access
+Rscript start_app.R
+```
+
+Access from:
+- **Local machine**: `http://localhost:3838`
+- **Network**: `http://[YOUR_IP]:3838`
+
+### Production Deployment (Linux)
+
+For production deployment on Linux servers:
+
+```bash
+cd deployment
+chmod +x *.sh
+sudo ./check_deployment_readiness.sh
+sudo ./deploy_shiny_server.sh --install-deps --backup
+```
+
+Access at: `http://[server-ip]:3838/bowtie_app/`
+
+\newpage
+
+# User Interface Overview
+
+## Main Navigation
+
+The application features a modern Bootstrap 5 interface with the following main tabs:
+
+### 1. Data Upload Tab
+Upload or generate environmental risk data with three options:
+- **Option 1**: Upload Excel file (custom data)
+- **Option 2**: Generate from environmental scenarios (focused bowtie)
+- **Option 2b**: Generate with multiple controls (comprehensive bowtie)
+
+### 2. Guided Workflow Tab
+8-step wizard for creating bowtie diagrams:
+1. Project Setup
+2. Central Problem Definition
+3. Threats & Causes
+4. Preventive Controls
+5. Consequences
+6. Protective Controls
+7. Review & Validate
+8. Finalize & Export
+
+### 3. Bowtie Diagram Tab
+Interactive visualization of risk pathways with:
+- Zoomable and pannable network diagram
+- Color-coded risk elements
+- Interactive node selection
+- Export to PNG capability
+
+### 4. Bayesian Network Tab
+Probabilistic risk analysis with:
+- Network structure visualization
+- Conditional probability tables
+- Risk inference queries
+- Critical path identification
+
+### 5. Data Table Tab
+Editable data grid with:
+- Filtering and sorting
+- In-line editing
+- Bulk operations
+- Export capabilities
+
+### 6. Risk Matrix Tab
+Visual risk assessment showing:
+- Probability vs. Impact matrix
+- Risk categorization
+- Priority ranking
+- Mitigation recommendations
+
+### 7. Vocabulary Management Tab
+Manage environmental elements:
+- Activities (53 items)
+- Pressures (36 items)
+- Controls (74 items)
+- Consequences (26 items)
+
+### 8. Help Tab
+Comprehensive help and documentation
+
+\newpage
+
+# Working with Environmental Scenarios
+
+## Available Scenarios
+
+The application includes 12 pre-configured environmental scenarios:
+
+### Core Environmental Scenarios (5)
+
+1. **🌊 Marine Pollution from Shipping & Coastal Activities**
+   - Focus: Maritime pollution, port operations, shipping impacts
+   - Elements: Commercial shipping, ballast discharge, oil spills
+   - Consequences: Marine ecosystem degradation, water quality issues
+
+2. **🏭 Industrial Contamination through Chemical Discharge**
+   - Focus: Industrial processes, chemical waste, manufacturing
+   - Elements: Heavy metals, toxic waste, groundwater contamination
+   - Consequences: Human health impacts, soil degradation
+
+3. **🚢 Oil Spills from Maritime Transportation**
+   - Focus: Petroleum transportation, tanker operations
+   - Elements: Hydrocarbon pollution, surface contamination
+   - Consequences: Coastal habitat destruction, economic losses
+
+4. **🌾 Agricultural Runoff Causing Eutrophication**
+   - Focus: Fertilizer application, livestock farming
+   - Elements: Nutrient pollution, pesticide contamination
+   - Consequences: Algal blooms, oxygen depletion, fish kills
+
+5. **🐟 Overfishing and Commercial Stock Depletion**
+   - Focus: Commercial fishing, marine resource depletion
+   - Elements: Overharvesting, bycatch, habitat destruction
+   - Consequences: Ecosystem imbalance, species extinction
+
+### Martinique-Specific Scenarios (7)
+
+6. **🏖️ Coastal Erosion and Beach Degradation**
+7. **🌊 Sargassum Seaweed Influx Impacts**
+8. **🪸 Coral Reef Degradation and Bleaching**
+9. **💧 Watershed Pollution from Agriculture**
+10. **🌳 Mangrove Forest Degradation**
+11. **🌪️ Hurricane and Tropical Storm Impacts**
+12. **🚢 Marine Tourism Environmental Pressures**
+
+## Using Scenarios
+
+### Option 2: Focused Bowtie Generation
+
+Generates a clean, focused bowtie with:
+- **1 preventive control** per activity-pressure combination
+- **~20-30 data rows**
+- **Ideal for**: Initial assessments, presentations, training
+
+**Steps**:
+1. Go to **Data Upload** tab
+2. Scroll to **Option 2**
+3. Select an environmental scenario
+4. Click **"Generate Data"**
+5. View results in **Bowtie Diagram** tab
+
+### Option 2b: Comprehensive Bowtie
+
+Generates a detailed bowtie with:
+- **2-3 preventive controls** per activity-pressure combination
+- **~40-90 data rows**
+- **Ideal for**: Detailed planning, compliance, risk management
+
+**Steps**:
+1. Go to **Data Upload** tab
+2. Scroll to **Option 2b**
+3. Select an environmental scenario
+4. Click **"Multiple Controls"**
+5. Review comprehensive analysis
+
+\newpage
+
+# Guided Workflow System
+
+## Overview
+
+The Guided Workflow provides an 8-step wizard for systematic bowtie creation using the application's vocabulary database.
+
+## Step-by-Step Guide
+
+### Step 1: Project Setup
+
+**Purpose**: Define basic project information
+
+**Fields**:
+- Project Name
+- Description
+- Risk Assessor Name
+- Date
+- Environmental Scenario Template (optional)
+
+**Actions**:
+- Fill in all required fields
+- Select a scenario template if applicable
+- Click **"Next Step"** to proceed
+
+### Step 2: Central Problem Definition
+
+**Purpose**: Identify the core environmental problem
+
+**Fields**:
+- Problem Statement
+- Problem Category
+- Geographic Scope
+- Temporal Scope
+
+**Tips**:
+- Be specific and measurable
+- Focus on one central problem
+- Consider spatial and temporal boundaries
+
+### Step 3: Threats & Causes
+
+**Purpose**: Identify activities and pressures leading to the problem
+
+**Process**:
+1. **Select Activities** (from 53 options)
+   - Use search functionality
+   - Select relevant human activities
+   - Click "Add Activity"
+
+2. **Select Pressures** (from 36 options)
+   - Choose environmental pressures
+   - Link to activities
+   - View activity-pressure connections table
+
+**Vocabulary Integration**:
+- Real-time search through all activities
+- Empty search widgets for immediate typing
+- Duplicate prevention
+- Visual feedback with data tables
+
+### Step 4: Preventive Controls
+
+**Purpose**: Identify measures to prevent or reduce threats
+
+**Process**:
+1. Review selected threats from Step 3
+2. Search through 74 available controls
+3. Select appropriate preventive measures
+4. Assign controls to specific threats
+5. View controls table with assignments
+
+**Control Categories**:
+- Technical controls
+- Procedural controls
+- Policy-based controls
+- Monitoring systems
+
+### Step 5: Consequences
+
+**Purpose**: Identify potential environmental impacts
+
+**Process**:
+1. Search through 26 consequence categories
+2. Select relevant environmental impacts
+3. Assess severity levels
+4. Link consequences to central problem
+5. Review consequence hierarchy
+
+**Impact Types**:
+- Ecosystem impacts
+- Biodiversity impacts
+- Human health impacts
+- Economic impacts
+- Social impacts
+
+### Step 6: Protective Controls
+
+**Purpose**: Identify mitigation and recovery measures
+
+**Process**:
+1. Review selected consequences
+2. Select protective mitigations
+3. Assign recovery controls
+4. Define escalation factors (if applicable)
+5. Complete bowtie structure
+
+**Mitigation Types**:
+- Emergency response
+- Damage limitation
+- Recovery measures
+- Restoration activities
+
+### Step 7: Review & Validate
+
+**Purpose**: Verify completeness and consistency
+
+**Checks**:
+- ✓ All required elements present
+- ✓ Logical connections established
+- ✓ No orphaned elements
+- ✓ Severity levels assigned
+- ✓ Complete pathways defined
+
+**Actions**:
+- Review summary statistics
+- Validate connections
+- Make final adjustments
+- Confirm readiness to export
+
+### Step 8: Finalize & Export
+
+**Purpose**: Export completed analysis
+
+**Export Options**:
+1. **Export to Main App**
+   - Transfers data to main application
+   - Opens Bowtie Diagram tab
+   - Enables all analysis features
+
+2. **Download Excel File**
+   - Saves complete dataset
+   - Compatible with main app upload
+   - Includes all metadata
+
+3. **Generate Report**
+   - Creates summary document
+   - Includes visualizations
+   - Export as PDF/HTML
+
+**Completion**:
+- Workflow complete notification
+- Option to start new project
+- Return to any step for revisions
+
+\newpage
+
+# Data Upload and Management
+
+## Supported Data Formats
+
+### Excel Files (.xlsx, .xls)
+
+**Required Columns**:
+```
+Activity, Pressure, Preventive_Control, Central_Problem,
+Consequence, Protective_Mitigation
+```
+
+**Optional Columns**:
+```
+Escalation_Factor, Activity_Category, Pressure_Category,
+Control_Category, Consequence_Category, Risk_Level,
+Probability, Impact, Notes
+```
+
+**Example Structure**:
+```
+Activity                   | Pressure           | Preventive_Control
+Commercial shipping        | Oil spills         | Spill containment systems
+Port operations           | Chemical pollution | Waste treatment facility
+...
+```
+
+### CSV Files (.csv)
+
+Same structure as Excel, comma-separated values.
+
+### RDS Files (.rds)
+
+R data format for saving/loading complete analyses including:
+- Data
+- Settings
+- Workflow state
+- Analysis results
+
+## Data Validation
+
+The application performs automatic validation:
+
+- ✓ Required columns present
+- ✓ Data types correct
+- ✓ No empty required fields
+- ✓ Logical relationships valid
+- ✓ Duplicate check
+- ✓ Vocabulary compatibility
+
+**Validation Errors** are displayed with:
+- Error type
+- Row/column location
+- Suggested fix
+- Option to auto-correct
+
+## Data Export Options
+
+### 1. Excel Export
+- Full dataset with all columns
+- Formatted for readability
+- Compatible with re-upload
+- Includes metadata sheet
+
+### 2. RDS Export
+- Complete R data structure
+- Preserves all settings
+- Fastest load time
+- Recommended for large datasets
+
+### 3. CSV Export
+- Universal compatibility
+- Text-based format
+- Easy integration with other tools
+- No formatting preservation
+
+### 4. Visual Exports
+- PNG images of diagrams
+- PDF reports
+- HTML interactive views
+
+\newpage
+
+# Bayesian Network Analysis
+
+## Overview
+
+The Bayesian Network feature converts bowtie diagrams into probabilistic models for advanced risk analysis.
+
+## Key Concepts
+
+### Conditional Probability Tables (CPTs)
+
+Each node in the network has probabilities:
+- **Root nodes**: Prior probabilities
+- **Intermediate nodes**: Conditional probabilities given parents
+- **Consequence nodes**: Final outcome probabilities
+
+### Probabilistic Inference
+
+Calculate:
+- **Forward propagation**: Activity → Pressure → Problem → Consequence
+- **Backward reasoning**: Given consequence, what's the most likely cause?
+- **Risk scenarios**: "What if" analysis with control failures
+
+## Using Bayesian Analysis
+
+### Step 1: Convert Bowtie to Bayesian Network
+
+1. Load or create bowtie data
+2. Go to **Bayesian Network** tab
+3. Click **"Create Bayesian Network"**
+4. View network structure
+
+### Step 2: Set Probabilities
+
+**Default Probabilities** (can be customized):
+- Activities: 0.3 (30% likelihood)
+- Pressures: 0.5 (50% given activity)
+- Controls: 0.7 (70% effectiveness)
+- Consequences: 0.6 (60% given problem)
+
+**Custom Probabilities**:
+1. Select node in network
+2. Edit probability table
+3. Update values
+4. Recalculate network
+
+### Step 3: Run Inference Queries
+
+**Query Types**:
+
+1. **Marginal Probability**: What's the probability of a specific consequence?
+2. **Conditional Probability**: Given evidence, what's the updated probability?
+3. **Most Probable Explanation**: What's the most likely pathway?
+4. **Sensitivity Analysis**: Which factors have the most impact?
+
+**Example Queries**:
+```r
+# Probability of marine ecosystem degradation
+P(Consequence = "Marine ecosystem degradation")
+
+# Probability given oil spill occurred
+P(Consequence | Pressure = "Oil spills")
+
+# Most likely cause given consequence observed
+argmax P(Activity | Consequence = "Water quality deterioration")
+```
+
+### Step 4: Identify Critical Paths
+
+The application automatically identifies:
+- **Highest risk pathways**: Combinations with highest probability
+- **Critical control points**: Controls with most impact
+- **Vulnerable nodes**: Elements with cascading effects
+
+**Critical Path Visualization**:
+- Highlighted in red on network diagram
+- Probability values displayed
+- Recommended interventions shown
+
+### Step 5: Risk Propagation Analysis
+
+Analyze how risks spread through the system:
+1. Select starting point (activity or pressure)
+2. View propagation probabilities
+3. Identify amplification points
+4. Assess control effectiveness
+
+## Interpretation Guidelines
+
+### Risk Levels
+
+- **High Risk**: P > 0.7 (>70%)
+- **Medium Risk**: 0.4 ≤ P ≤ 0.7 (40-70%)
+- **Low Risk**: P < 0.4 (<40%)
+
+### Decision Making
+
+Use Bayesian analysis to:
+- ✓ Prioritize interventions
+- ✓ Allocate resources efficiently
+- ✓ Evaluate control strategies
+- ✓ Monitor risk trends
+- ✓ Communicate uncertainty
+
+\newpage
+
+# Risk Matrix and Visualization
+
+## Risk Matrix Overview
+
+The Risk Matrix provides a visual representation of risks based on two dimensions:
+- **Probability**: Likelihood of occurrence (Low, Medium, High)
+- **Impact**: Severity of consequences (Low, Medium, High)
+
+## Matrix Categories
+
+### Low Risk (Green Zone)
+- **Probability**: Low
+- **Impact**: Low to Medium
+- **Action**: Monitor, routine management
+
+### Medium Risk (Yellow Zone)
+- **Probability**: Medium
+- **Impact**: Low to High
+- **OR**
+- **Probability**: Low to High
+- **Impact**: Medium
+- **Action**: Develop mitigation plans, regular review
+
+### High Risk (Red Zone)
+- **Probability**: High
+- **Impact**: Medium to High
+- **OR**
+- **Probability**: Medium to High
+- **Impact**: High
+- **Action**: Immediate intervention required, priority management
+
+## Using the Risk Matrix
+
+1. **View Matrix**
+   - Go to Risk Matrix tab
+   - See all risks plotted
+   - Color-coded by severity
+
+2. **Filter Risks**
+   - By category
+   - By probability range
+   - By impact level
+   - By central problem
+
+3. **Detailed Analysis**
+   - Click on risk point
+   - View complete pathway
+   - See mitigation options
+   - Access recommendations
+
+4. **Export Matrix**
+   - Save as PNG image
+   - Include in reports
+   - Share with stakeholders
+
+## Visualization Features
+
+### Bowtie Diagram Customization
+
+**Color Schemes**:
+- Activities: Blue
+- Pressures: Red
+- Preventive Controls: Green
+- Central Problem: Purple
+- Protective Mitigations: Cyan
+- Consequences: Orange
+- Escalation Factors: Yellow
+
+**Layout Options**:
+- Hierarchical (default)
+- Circular
+- Force-directed
+- Custom positioning
+
+**Interaction**:
+- Zoom and pan
+- Node selection
+- Hover for details
+- Export view
+
+### Network Visualization
+
+**Bayesian Network Display**:
+- Directed acyclic graph (DAG)
+- Probability values on edges
+- Node size by importance
+- Interactive exploration
+
+### Data Table Visualization
+
+**Features**:
+- Sortable columns
+- Filterable rows
+- Editable cells
+- Bulk operations
+- Export selection
+
+\newpage
+
+# Advanced Features
+
+## Vocabulary Management
+
+### Understanding the Vocabulary Database
+
+The application includes a comprehensive vocabulary of 189 environmental elements:
+
+- **53 Activities**: Human actions causing environmental pressures
+- **36 Pressures**: Environmental stressors resulting from activities
+- **74 Controls**: Measures to prevent or mitigate risks
+- **26 Consequences**: Environmental impacts and outcomes
+
+### Viewing Vocabulary Statistics
+
+Located in the Data Upload tab:
+- Real-time element counts
+- Category breakdown
+- Total available elements
+- Last update timestamp
+
+### Adding Custom Vocabulary
+
+1. Go to **Vocabulary Management** tab
+2. Select category (Activities, Pressures, Controls, Consequences)
+3. Click **"Add New Element"**
+4. Fill in details:
+   - Name
+   - Description
+   - Category/hierarchy
+   - Synonyms
+   - Related elements
+5. Click **"Save"**
+6. Element available immediately
+
+### Editing Vocabulary
+
+1. Select element from list
+2. Click **"Edit"**
+3. Modify fields
+4. Click **"Update"**
+5. Changes reflected across application
+
+### Importing Vocabulary
+
+Import from Excel files:
+1. Prepare Excel file with columns:
+   - `hierarchy`, `id`, `name`, `description`
+2. Go to Vocabulary Management
+3. Click **"Import from Excel"**
+4. Select file
+5. Map columns
+6. Import and validate
+
+## Multi-Language Support
+
+### Switching Languages
+
+1. Look for language selector (top-right corner)
+2. Available languages:
+   - 🇬🇧 English
+   - 🇫🇷 Français
+3. Click to switch
+4. Interface updates immediately
+
+### Supported Elements
+
+**Translated**:
+- UI labels and buttons
+- Tab names
+- Help text
+- Error messages
+- Notifications
+- Field labels
+
+**Not Translated**:
+- User data (your inputs)
+- Vocabulary elements (environmental terms)
+- Custom notes
+
+### Adding Translations
+
+For developers:
+1. Edit `translations_data.R`
+2. Add new language code
+3. Translate all keys
+4. Update language selector
+5. Test thoroughly
+
+## Batch Processing
+
+### Processing Multiple Scenarios
+
+1. Prepare scenario list
+2. Use batch import feature
+3. Configure processing options
+4. Run batch analysis
+5. Export combined results
+
+### Automated Reporting
+
+1. Define report template
+2. Select scenarios
+3. Configure output format
+4. Generate batch reports
+5. Download ZIP file with all reports
+
+## API Integration (Advanced)
+
+### REST API Endpoints
+
+For programmatic access:
+
+```r
+# Start API mode
+shiny::runApp(port = 3838, host = "0.0.0.0", launch.browser = FALSE)
+
+# Endpoints
+GET  /api/scenarios          # List available scenarios
+POST /api/analyze            # Submit analysis
+GET  /api/results/{id}       # Retrieve results
+GET  /api/export/{id}/{fmt}  # Export data
+```
+
+### Python Integration Example
+
+```python
+import requests
+
+# Submit analysis
+response = requests.post('http://localhost:3838/api/analyze', json={
+    'scenario': 'marine_pollution',
+    'options': {'controls': 'multiple'}
+})
+
+# Get results
+results = requests.get(f"http://localhost:3838/api/results/{response.json()['id']}")
+```
+
+\newpage
+
+# Troubleshooting
+
+## Common Issues
+
+### Issue: Application Won't Start
+
+**Symptoms**:
+- Error loading packages
+- Port already in use
+- R version mismatch
+
+**Solutions**:
+
+1. **Check R Version**:
+   ```r
+   R.version.string  # Should be >= 4.3.0
+   ```
+
+2. **Install Missing Packages**:
+   ```r
+   source("requirements.R")
+   ```
+
+3. **Free Port 3838**:
+   ```bash
+   # Windows
+   netstat -ano | findstr :3838
+   taskkill //F //PID <PID>
+
+   # Linux/Mac
+   lsof -i :3838
+   kill -9 <PID>
+   ```
+
+### Issue: Data Upload Fails
+
+**Symptoms**:
+- File not recognized
+- Validation errors
+- Missing columns
+
+**Solutions**:
+
+1. **Check File Format**:
+   - Must be .xlsx, .xls, or .csv
+   - Use template provided in Help tab
+
+2. **Verify Required Columns**:
+   ```
+   Activity, Pressure, Preventive_Control,
+   Central_Problem, Consequence, Protective_Mitigation
+   ```
+
+3. **Check Data Quality**:
+   - No completely empty rows
+   - No special characters in headers
+   - Consistent data types
+
+### Issue: Bayesian Network Errors
+
+**Symptoms**:
+- Network creation fails
+- Inference errors
+- Circular dependencies
+
+**Solutions**:
+
+1. **Check Data Structure**:
+   - No circular relationships
+   - All nodes have valid connections
+   - Probability values between 0 and 1
+
+2. **Validate Bowtie**:
+   - Complete pathways
+   - No orphaned elements
+   - Logical flow maintained
+
+3. **Reset Network**:
+   - Clear cache
+   - Recreate network
+   - Reload data
+
+### Issue: Guided Workflow Stuck
+
+**Symptoms**:
+- Cannot proceed to next step
+- Data not saving
+- Export fails
+
+**Solutions**:
+
+1. **Complete Required Fields**:
+   - All mandatory fields filled
+   - At least one element in each category
+   - Validation passing
+
+2. **Clear Cache**:
+   ```r
+   source("utils/clean_workflow_cache.R")
+   ```
+
+3. **Restart Workflow**:
+   - Save progress to Excel
+   - Start new workflow
+   - Import saved data
+
+### Issue: Performance Slow
+
+**Symptoms**:
+- Slow loading
+- Laggy interactions
+- Timeout errors
+
+**Solutions**:
+
+1. **Check System Resources**:
+   - Close other applications
+   - Free memory (need 4GB+)
+   - Check CPU usage
+
+2. **Reduce Data Size**:
+   - Filter unnecessary rows
+   - Limit scenario scope
+   - Export and re-import
+
+3. **Clear Browser Cache**:
+   - Force refresh (Ctrl+F5)
+   - Clear browser data
+   - Try different browser
+
+### Issue: Export Not Working
+
+**Symptoms**:
+- Download fails
+- Corrupted files
+- Missing data
+
+**Solutions**:
+
+1. **Check File Permissions**:
+   - Write access to download folder
+   - Sufficient disk space
+
+2. **Try Different Format**:
+   - If Excel fails, try CSV
+   - If RDS fails, try Excel
+
+3. **Export Smaller Subset**:
+   - Filter data
+   - Export in batches
+   - Combine manually
+
+## Getting Help
+
+### Built-in Help
+
+1. **Help Tab**: Comprehensive in-app documentation
+2. **Tooltips**: Hover over ? icons for quick help
+3. **Examples**: Sample datasets provided
+
+### Community Support
+
+- **GitHub Issues**: Report bugs and request features
+- **Documentation**: Full docs at project repository
+- **Email Support**: Contact Marbefes team
+
+### Diagnostic Information
+
+When reporting issues, include:
+- Version number (5.3.0)
+- Operating system
+- R version
+- Error messages (full text)
+- Steps to reproduce
+- Screenshots if applicable
+
+\newpage
+
+# Appendices
+
+## Appendix A: Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl + S` | Save current data |
+| `Ctrl + E` | Export data |
+| `Ctrl + Z` | Undo last action |
+| `Ctrl + Y` | Redo action |
+| `Ctrl + F` | Find/Search |
+| `Ctrl + +` | Zoom in diagram |
+| `Ctrl + -` | Zoom out diagram |
+| `Ctrl + 0` | Reset zoom |
+| `Esc` | Close modal/dialog |
+| `Tab` | Next field |
+| `Shift + Tab` | Previous field |
+
+## Appendix B: File Locations
+
+### Application Structure
+
+```
+bowtie_app/
+├── app.R                           # Main launcher
+├── global.R                        # Configuration
+├── ui.R                            # User interface
+├── server.R                        # Server logic
+├── config.R                        # Settings
+├── CAUSES.xlsx                     # Activities & Pressures
+├── CONSEQUENCES.xlsx               # Consequences
+├── CONTROLS.xlsx                   # Controls
+├── deployment/                     # Deployment scripts
+├── tests/                          # Test suite
+├── docs/                           # Documentation
+├── data/                           # User data storage
+└── www/                            # Static assets
+```
+
+### Data Files Location
+
+- **Linux**: `/srv/shiny-server/bowtie_app/data/`
+- **Windows**: `[AppDir]/data/`
+- **Network**: Accessible via web interface
+
+### Log Files
+
+- **Application**: `[AppDir]/logs/app.log`
+- **Shiny Server**: `/var/log/shiny-server/bowtie_app/`
+- **Error Log**: `[AppDir]/logs/error.log`
+
+## Appendix C: Environmental Scenarios Reference
+
+### Scenario: Marine Pollution
+
+**Central Problem**: Marine pollution from shipping activities
+
+**Key Elements**:
+- Activities: Commercial shipping, port operations, oil transportation
+- Pressures: Chemical pollution, oil spills, ballast discharge
+- Controls: Spill containment, waste treatment, monitoring systems
+- Consequences: Ecosystem degradation, water quality deterioration
+
+**Use Cases**: Ports, shipping routes, coastal development
+
+### Scenario: Agricultural Runoff
+
+**Central Problem**: Agricultural runoff causing eutrophication
+
+**Key Elements**:
+- Activities: Fertilizer application, livestock farming, intensive agriculture
+- Pressures: Nutrient pollution, fertilizer runoff, pesticide contamination
+- Controls: Best management practices, buffer zones, treatment wetlands
+- Consequences: Eutrophication, algal blooms, oxygen depletion
+
+**Use Cases**: Agricultural watersheds, river basins, coastal zones
+
+### Scenario: Industrial Contamination
+
+**Central Problem**: Industrial contamination through chemical discharge
+
+**Key Elements**:
+- Activities: Manufacturing, chemical processing, mining operations
+- Pressures: Heavy metals, toxic waste, groundwater contamination
+- Controls: Waste treatment, containment systems, monitoring
+- Consequences: Human health impacts, soil degradation, water pollution
+
+**Use Cases**: Industrial areas, manufacturing sites, mining regions
+
+[Additional scenarios follow similar structure...]
+
+## Appendix D: Glossary
+
+**Activity**: Human action that generates environmental pressures
+
+**Bayesian Network**: Probabilistic graphical model representing causal relationships
+
+**Bowtie Diagram**: Risk visualization showing causes, controls, consequences
+
+**Central Problem**: Core environmental issue being analyzed
+
+**Consequence**: Environmental or social impact resulting from the problem
+
+**CPT (Conditional Probability Table)**: Probabilities defining Bayesian network relationships
+
+**Escalation Factor**: Event or condition that weakens controls
+
+**Mitigation**: Measure to reduce consequence severity
+
+**Pathway**: Sequence from activity through to consequence
+
+**Pressure**: Environmental stressor resulting from human activity
+
+**Preventive Control**: Measure to prevent problem occurrence
+
+**Protective Control**: Measure to limit consequences
+
+**Risk**: Combination of probability and impact
+
+**Scenario**: Pre-configured set of environmental risk elements
+
+**Vocabulary**: Database of standardized environmental terms
+
+## Appendix E: Version History
+
+### Version 5.3.0 (November 2025) - Current
+- Production-ready release
+- UI/UX improvements (vertical alignment, vocabulary statistics)
+- Bug fixes (Option 2b, case-sensitivity)
+- Linux deployment compatibility
+- Cleaned codebase structure
+- Comprehensive documentation
+
+### Version 5.2.0 (November 2025)
+- Modern framework edition
+- Enhanced testing infrastructure
+- Performance improvements
+- Advanced benchmarking
+
+### Version 5.1.0 (September 2025)
+- Network deployment ready
+- Enhanced scenarios
+- Improved guided workflow
+- Multi-language support
+
+### Version 5.0.0 (August 2025)
+- Complete redesign
+- Bayesian network integration
+- Guided workflow system
+- Vocabulary management
+
+[Earlier versions...]
+
+## Appendix F: References
+
+### Standards and Guidelines
+
+- ISO 31000:2018 - Risk Management
+- IEC 31010:2019 - Risk Assessment Techniques
+- ISO 14001:2015 - Environmental Management Systems
+
+### Scientific Literature
+
+- Bowtie methodology for risk assessment
+- Bayesian networks in environmental science
+- Marine biodiversity conservation
+- Ecosystem services valuation
+
+### Software and Tools
+
+- R Statistical Software: https://www.r-project.org/
+- Shiny Framework: https://shiny.rstudio.com/
+- bnlearn Package: https://www.bnlearn.com/
+- gRain Package: https://people.math.aau.dk/~sorenh/software/gR/
+
+---
+
+## Contact Information
+
+**Project**: Environmental Bowtie Risk Analysis
+**Version**: 5.3.0
+**Organization**: Marbefes Team
+**Website**: [Project Repository]
+**Support**: [Support Email]
+**License**: [License Type]
+
+---
+
+**End of User Manual**
+
+*This document is subject to updates. Please check for the latest version.*

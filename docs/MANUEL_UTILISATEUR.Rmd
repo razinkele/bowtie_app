@@ -1,0 +1,1277 @@
+---
+title: "Analyse des Risques Environnementaux par Nœud Papillon"
+subtitle: "Manuel Utilisateur & Documentation Technique"
+author: "Équipe Marbefes"
+date: "Novembre 2025"
+version: "5.3.0"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    df_print: kable
+    latex_engine: lualatex
+header-includes:
+  - \usepackage{fancyhdr}
+  - \usepackage{graphicx}
+  - \usepackage{hyperref}
+  - \pagestyle{fancy}
+  - \fancyhead[L]{Analyse des Risques Environnementaux par Nœud Papillon}
+  - \fancyhead[R]{Version 5.3.0}
+  - \fancyfoot[C]{\thepage}
+---
+
+\newpage
+
+# Résumé Exécutif
+
+L'application **Analyse des Risques Environnementaux par Nœud Papillon** (version 5.3.0) est une application web R Shiny complète conçue pour l'évaluation des risques environnementaux utilisant des diagrammes en nœud papillon enrichis avec l'intégration de réseaux bayésiens. Cette édition prête pour la production fournit une plateforme robuste pour analyser les menaces sur la biodiversité marine et les impacts sur les services écosystémiques grâce à la modélisation probabiliste.
+
+## Fonctionnalités Principales
+
+- **Création Interactive de Diagrammes en Nœud Papillon** : Évaluation visuelle des risques avec fonctionnalité glisser-déposer
+- **Flux de Travail Guidé en 8 Étapes** : Assistant pas à pas pour une analyse systématique des risques
+- **Intégration de Réseaux Bayésiens** : Modélisation probabiliste des risques environnementaux
+- **Support Multilingue** : Interfaces en anglais et français
+- **12 Scénarios Environnementaux** : Modèles pré-configurés pour les scénarios de risque courants
+- **Base de Données de Vocabulaire** : 189 éléments environnementaux (53 activités, 36 pressions, 74 contrôles, 26 conséquences)
+- **Capacités d'Export** : Options d'export Excel, RDS et visuelles
+- **Prêt pour Déploiement Réseau** : Configuré pour le réseau local et le déploiement en production
+
+## Nouveautés de la Version 5.3.0
+
+### Améliorations UI/UX
+- ✅ Sélecteurs de scénarios environnementaux alignés verticalement
+- ✅ Nouvelle carte de statistiques de vocabulaire avec comptage en temps réel
+- ✅ Mise en page améliorée à 3 colonnes pour une meilleure densité d'information
+- ✅ Design responsive amélioré
+
+### Corrections de Bugs
+- ✅ Correction de l'erreur de génération de scénario Option 2b
+- ✅ Résolution des problèmes de sensibilité à la casse pour le déploiement Linux
+- ✅ Correction des références de fichiers dans les scripts de déploiement
+- ✅ Gestion d'erreur améliorée avec replis gracieux
+
+### Cadre de Déploiement
+- ✅ Compatibilité Linux complète
+- ✅ Scripts de validation Windows PowerShell
+- ✅ Documentation de déploiement complète
+- ✅ Validation de la structure de répertoires mise à jour
+
+### Qualité de la Base de Code
+- ✅ Nettoyage des fichiers de sauvegarde et temporaires
+- ✅ Organisation des fichiers de test et utilitaires
+- ✅ Configuration .gitignore améliorée
+- ✅ Structure de fichiers prête pour la production
+
+\newpage
+
+# Démarrage
+
+## Configuration Système Requise
+
+### Configuration Minimale
+- **Système d'Exploitation** : Windows 10+, macOS 10.14+, Ubuntu 18.04+, Debian 10+, CentOS 7+
+- **Version R** : 4.3.0 ou supérieure
+- **Mémoire** : 4 Go RAM
+- **Espace Disque** : 2 Go d'espace libre
+- **Affichage** : Résolution minimale 1280x720
+- **Navigateur** : Navigateur web moderne (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
+
+### Configuration Recommandée
+- **Version R** : 4.4.3 ou supérieure
+- **Mémoire** : 8 Go RAM ou plus
+- **Espace Disque** : 5 Go d'espace libre
+- **Affichage** : 1920x1080 ou supérieur
+- **Réseau** : Requis pour le déploiement et les fonctionnalités de collaboration
+
+### Packages R Requis
+
+**Packages Principaux (18)** :
+```r
+shiny, bslib, DT, readxl, openxlsx
+ggplot2, plotly, dplyr, visNetwork
+shinycssloaders, colourpicker, htmlwidgets, shinyjs
+bnlearn, gRain, igraph, DiagrammeR, Rgraphviz
+```
+
+Tous les packages sont automatiquement installés lorsque l'application démarre pour la première fois.
+
+## Installation
+
+### Démarrage Rapide (Développement Local)
+
+```r
+# Option 1 : Utilisation de start_app.R (recommandé)
+source("start_app.R")
+
+# Option 2 : Utilisation de app.R
+shiny::runApp()
+```
+
+### Déploiement Réseau
+
+```r
+# Démarrage avec accès réseau
+shiny::runApp(host = "0.0.0.0", port = 3838)
+```
+
+Accessible via : `http://[ADRESSE-IP]:3838`
+
+### Déploiement en Production (Linux)
+
+```bash
+# Utiliser le script de déploiement automatisé
+cd deployment
+sudo bash deploy_shiny_server.sh
+```
+
+Consultez `deployment/DEPLOYMENT.md` pour des instructions détaillées.
+
+\newpage
+
+# Vue d'Ensemble de l'Interface Utilisateur
+
+## Navigation Principale
+
+L'application comprend 8 onglets principaux :
+
+### 1. Onglet Téléchargement de Données
+- **Option 1** : Télécharger un fichier Excel avec structure de nœud papillon
+- **Option 2** : Générer un nœud papillon focalisé à partir de scénarios pré-configurés
+- **Option 2b** : Générer un nœud papillon complet avec contrôles multiples
+
+### 2. Onglet Flux de Travail Guidé
+Assistant en 8 étapes pour la création systématique de nœuds papillon :
+- Étape 1 : Configuration du projet
+- Étape 2 : Définition du problème central
+- Étape 3 : Menaces et causes
+- Étape 4 : Contrôles préventifs
+- Étape 5 : Conséquences
+- Étape 6 : Contrôles de protection
+- Étape 7 : Révision et validation
+- Étape 8 : Finalisation et export
+
+### 3. Onglet Diagramme en Nœud Papillon
+Visualisation interactive avec :
+- Diagramme réseau personnalisable
+- Mise en évidence des éléments par couleur
+- Contrôles de zoom et panoramique
+- Info-bulles avec détails des éléments
+
+### 4. Onglet Réseau Bayésien
+Analyse probabiliste avec :
+- Conversion de nœud papillon en réseau bayésien
+- Tables de probabilité conditionnelle
+- Requêtes d'inférence
+- Analyse de propagation des risques
+
+### 5. Onglet Tableau de Données
+Table de données complète avec :
+- Recherche et filtrage
+- Tri sur toutes les colonnes
+- Export vers Excel/CSV
+- Modification en ligne
+
+### 6. Onglet Matrice des Risques
+Visualisation de la matrice de risques avec :
+- Zones de risque codées par couleur
+- Placement des scénarios sur la matrice
+- Statistiques de risque
+- Affichage de probabilité-gravité
+
+### 7. Onglet Évaluation des Risques des Liens
+Nouvelle fonctionnalité pour l'évaluation détaillée des connexions individuelles :
+- Sélection de parcours de scénario
+- Curseurs de probabilité et gravité pour chaque lien
+- Calcul du risque global en temps réel
+- Sauvegarde des évaluations
+
+### 8. Onglet Gestion du Vocabulaire
+Gestion de la base de données de vocabulaire avec :
+- Activités (53 éléments)
+- Pressions (36 éléments)
+- Contrôles (74 éléments)
+- Conséquences (26 éléments)
+
+### 9. Onglet Aide
+Documentation et aide complètes
+
+\newpage
+
+# Travail avec les Scénarios Environnementaux
+
+## Scénarios Disponibles
+
+L'application inclut 12 scénarios environnementaux pré-configurés :
+
+### Scénarios Environnementaux Principaux (5)
+
+1. **🌊 Pollution Marine des Activités Maritimes et Côtières**
+   - Focus : Pollution maritime, opérations portuaires, impacts du transport maritime
+   - Éléments : Transport commercial, décharge de ballast, déversements d'hydrocarbures
+   - Conséquences : Dégradation des écosystèmes marins, problèmes de qualité de l'eau
+
+2. **🏭 Contamination Industrielle par Rejet Chimique**
+   - Focus : Processus industriels, déchets chimiques, fabrication
+   - Éléments : Métaux lourds, déchets toxiques, contamination des eaux souterraines
+   - Conséquences : Impacts sur la santé humaine, dégradation des sols
+
+3. **🚢 Déversements d'Hydrocarbures du Transport Maritime**
+   - Focus : Transport pétrolier, opérations de pétroliers
+   - Éléments : Pollution aux hydrocarbures, contamination de surface
+   - Conséquences : Destruction de l'habitat côtier, pertes économiques
+
+4. **🌾 Ruissellement Agricole Causant l'Eutrophisation**
+   - Focus : Application d'engrais, élevage
+   - Éléments : Pollution par nutriments, contamination par pesticides
+   - Conséquences : Prolifération d'algues, appauvrissement en oxygène, mortalité des poissons
+
+5. **🐟 Surpêche et Épuisement des Stocks Commerciaux**
+   - Focus : Pêche commerciale, épuisement des ressources marines
+   - Éléments : Surexploitation, prises accessoires, destruction d'habitat
+   - Conséquences : Déséquilibre écosystémique, extinction d'espèces
+
+### Scénarios Spécifiques à la Martinique (7)
+
+6. **🏖️ Érosion Côtière et Dégradation des Plages**
+7. **🌊 Impacts des Afflux de Sargasses**
+8. **🪸 Dégradation et Blanchiment des Récifs Coralliens**
+9. **💧 Pollution des Bassins Versants par l'Agriculture**
+10. **🌳 Dégradation des Forêts de Mangrove**
+11. **🌪️ Impacts des Ouragans et Tempêtes Tropicales**
+12. **🚢 Pressions Environnementales du Tourisme Marin**
+
+## Utilisation des Scénarios
+
+### Option 2 : Génération de Nœud Papillon Focalisé
+
+Génère un nœud papillon propre et focalisé avec :
+- **1 contrôle préventif** par combinaison activité-pression
+- **~20-30 lignes de données**
+- **Idéal pour** : Évaluations initiales, présentations, formation
+
+**Étapes** :
+1. Aller à l'onglet **Téléchargement de Données**
+2. Descendre à **Option 2**
+3. Sélectionner un scénario environnemental
+4. Cliquer sur **"Générer des Données"**
+5. Voir les résultats dans l'onglet **Diagramme en Nœud Papillon**
+
+### Option 2b : Nœud Papillon Complet
+
+Génère un nœud papillon détaillé avec :
+- **2-3 contrôles préventifs** par combinaison activité-pression
+- **~40-90 lignes de données**
+- **Idéal pour** : Planification détaillée, conformité, gestion des risques
+
+**Étapes** :
+1. Aller à l'onglet **Téléchargement de Données**
+2. Descendre à **Option 2b**
+3. Sélectionner un scénario environnemental
+4. Cliquer sur **"Contrôles Multiples"**
+5. Examiner l'analyse complète
+
+\newpage
+
+# Système de Flux de Travail Guidé
+
+## Vue d'Ensemble
+
+Le Flux de Travail Guidé fournit un assistant en 8 étapes pour la création systématique de nœuds papillon utilisant la base de données de vocabulaire de l'application.
+
+## Guide Étape par Étape
+
+### Étape 1 : Configuration du Projet
+
+**Objectif** : Définir les informations de base du projet
+
+**Champs** :
+- Nom du Projet
+- Description
+- Nom de l'Évaluateur des Risques
+- Date
+- Modèle de Scénario Environnemental (optionnel)
+
+**Actions** :
+- Remplir tous les champs requis
+- Sélectionner un modèle de scénario si applicable
+- Cliquer sur **"Étape Suivante"** pour continuer
+
+### Étape 2 : Définition du Problème Central
+
+**Objectif** : Identifier le problème environnemental principal
+
+**Champs** :
+- Énoncé du Problème
+- Catégorie du Problème
+- Portée Géographique
+- Portée Temporelle
+
+**Conseils** :
+- Être spécifique et mesurable
+- Se concentrer sur un problème central
+- Considérer les limites spatiales et temporelles
+
+### Étape 3 : Menaces et Causes
+
+**Objectif** : Identifier les activités et pressions menant au problème
+
+**Processus** :
+1. **Sélectionner les Activités** (parmi 53 options)
+   - Utiliser la fonctionnalité de recherche
+   - Sélectionner les activités humaines pertinentes
+   - Cliquer sur "Ajouter une Activité"
+
+2. **Sélectionner les Pressions** (parmi 36 options)
+   - Choisir les pressions environnementales
+   - Lier aux activités
+   - Voir le tableau des connexions activité-pression
+
+**Intégration du Vocabulaire** :
+- Recherche en temps réel dans toutes les activités
+- Widgets de recherche vides pour saisie immédiate
+- Prévention des doublons
+- Retour visuel avec tableaux de données
+
+### Étape 4 : Contrôles Préventifs
+
+**Objectif** : Identifier les mesures pour prévenir ou réduire les menaces
+
+**Processus** :
+1. Examiner les menaces sélectionnées à l'Étape 3
+2. Rechercher parmi 74 contrôles disponibles
+3. Sélectionner les mesures préventives appropriées
+4. Assigner les contrôles à des menaces spécifiques
+5. Voir le tableau des contrôles avec assignations
+
+**Catégories de Contrôles** :
+- Contrôles techniques
+- Contrôles procéduraux
+- Contrôles basés sur les politiques
+- Systèmes de surveillance
+
+### Étape 5 : Conséquences
+
+**Objectif** : Identifier les impacts environnementaux potentiels
+
+**Processus** :
+1. Rechercher parmi 26 catégories de conséquences
+2. Sélectionner les impacts environnementaux pertinents
+3. Évaluer les niveaux de gravité
+4. Lier les conséquences au problème central
+5. Examiner la hiérarchie des conséquences
+
+**Types d'Impacts** :
+- Impacts sur l'écosystème
+- Impacts sur la biodiversité
+- Impacts sur la santé humaine
+- Impacts économiques
+- Impacts sociaux
+
+### Étape 6 : Contrôles de Protection
+
+**Objectif** : Identifier les mesures d'atténuation et de récupération
+
+**Processus** :
+1. Examiner les conséquences sélectionnées
+2. Sélectionner les atténuations protectrices
+3. Assigner les contrôles de récupération
+4. Définir les facteurs d'escalade (si applicable)
+5. Compléter la structure du nœud papillon
+
+**Types d'Atténuation** :
+- Réponse d'urgence
+- Limitation des dommages
+- Mesures de récupération
+- Activités de restauration
+
+### Étape 7 : Facteurs d'Escalade
+
+**Objectif** : Identifier les facteurs qui affaiblissent l'efficacité des contrôles
+
+**Processus** :
+1. Définir les facteurs d'escalade personnalisés
+2. Lier aux contrôles préventifs
+3. Lier aux contrôles de protection
+4. Voir les tables des contrôles à risque
+
+**Types de Facteurs** :
+- Contraintes budgétaires
+- Conditions météorologiques extrêmes
+- Erreur humaine
+- Lacunes réglementaires
+- Défaillance d'équipement
+
+### Étape 8 : Révision et Finalisation
+
+**Objectif** : Vérifier l'exhaustivité et la cohérence
+
+**Contenu de la Révision** :
+- Résumé complet de tous les éléments
+- Affichage côte à côte : prévention et atténuation
+- Statistiques d'évaluation
+- Options d'export
+
+**Actions** :
+- Examiner tous les composants
+- Vérifier les connexions
+- Exporter vers Excel/PDF (futur)
+- Charger dans l'application principale
+
+\newpage
+
+# Téléchargement et Gestion des Données
+
+## Formats de Données Supportés
+
+### Fichiers Excel (.xlsx, .xls)
+
+**Structure Requise** :
+
+| Colonne | Description | Requis |
+|---------|-------------|--------|
+| Activity | Activité humaine | Oui |
+| Pressure | Pression environnementale | Oui |
+| Preventive_Control | Mesure de contrôle préventif | Oui |
+| Escalation_Factor | Facteur d'escalade | Oui |
+| Central_Problem | Problème central | Oui |
+| Protective_Mitigation | Atténuation protectrice | Oui |
+| Consequence | Conséquence | Oui |
+| Likelihood | Probabilité (1-5) | Non |
+| Severity | Gravité (1-5) | Non |
+
+**Colonnes Optionnelles** :
+- Colonnes de risque granulaires (Activity_to_Pressure_Likelihood, etc.)
+- Métadonnées du projet
+- Notes d'évaluation
+
+### Fichiers RDS (.rds)
+
+Format R natif pour sauvegardes de flux de travail :
+- Préserve toute la structure des données
+- Inclut les métadonnées du flux de travail
+- Permet la reprise du travail
+
+### Fichiers CSV (.csv)
+
+Support de base pour l'importation de tableaux :
+- Mêmes colonnes que Excel
+- Encodage UTF-8 recommandé
+- Délimiteur virgule
+
+## Validation des Données
+
+Le système valide automatiquement :
+
+1. **Colonnes Requises** : Vérifie la présence de toutes les colonnes obligatoires
+2. **Types de Données** : Valide les valeurs numériques pour probabilité/gravité
+3. **Plages** : Assure que probabilité et gravité sont entre 1-5
+4. **Relations** : Vérifie les connexions logiques entre éléments
+5. **Complétude** : Identifie les valeurs manquantes
+
+## Options d'Export de Données
+
+### 1. Export Excel
+
+Fonctionnalités :
+- Structure complète de nœud papillon
+- Formatage préservé
+- Plusieurs feuilles de calcul supportées
+- Prêt pour partage et collaboration
+
+### 2. Export RDS
+
+Fonctionnalités :
+- Préserve toutes les métadonnées
+- Format spécifique R
+- Compression automatique
+- Idéal pour sauvegardes
+
+### 3. Export CSV
+
+Fonctionnalités :
+- Compatibilité universelle
+- Compatible Excel
+- Format texte brut
+- Bon pour l'intégration
+
+### 4. Exports Visuels
+
+Fonctionnalités :
+- Export PNG du diagramme
+- Export HTML interactif
+- Résolution personnalisable
+- Prêt pour présentations
+
+\newpage
+
+# Analyse par Réseau Bayésien
+
+## Vue d'Ensemble
+
+L'analyse par réseau bayésien fournit une modélisation probabiliste des parcours de risque, permettant l'inférence et l'analyse quantitative des risques.
+
+## Concepts Clés
+
+### Tables de Probabilité Conditionnelle (TPC)
+
+Les TPC définissent les relations probabilistes entre les nœuds :
+- Probabilités de nœuds parents
+- Probabilités conditionnelles
+- Effets d'interaction
+- Calculs de propagation
+
+### Inférence Probabiliste
+
+Types de requêtes supportées :
+- Probabilité marginale
+- Probabilité conditionnelle
+- Explication la plus probable
+- Valeur la plus probable
+
+## Utilisation de l'Analyse Bayésienne
+
+### Étape 1 : Convertir le Nœud Papillon en Réseau Bayésien
+
+1. Charger ou générer des données de nœud papillon
+2. Aller à l'onglet **Réseau Bayésien**
+3. Cliquer sur **"Générer le Réseau"**
+4. Examiner la structure du réseau
+
+### Étape 2 : Définir les Probabilités
+
+**Probabilités des Nœuds Racines** :
+- Probabilité d'occurrence des activités
+- Valeurs basées sur la fréquence
+- Exemples : 0.1 (rare), 0.5 (modéré), 0.9 (fréquent)
+
+**Probabilités Conditionnelles** :
+- Probabilité qu'une pression se produise étant donné une activité
+- Efficacité des contrôles
+- Probabilité de conséquences
+
+### Étape 3 : Exécuter des Requêtes d'Inférence
+
+Exemples de requêtes :
+
+```r
+# Probabilité de dégradation de l'écosystème marin
+querygrain(junction, nodes="Marine_Ecosystem_Degradation")
+
+# Probabilité étant donné qu'un déversement d'hydrocarbures s'est produit
+setEvidence(junction, nodes="Oil_Spill", states="yes")
+
+# Cause la plus probable étant donné la conséquence observée
+querygrain(junction, nodes="Activity", type="joint")
+```
+
+### Étape 4 : Identifier les Chemins Critiques
+
+Le système identifie automatiquement :
+- Chemins à haut risque
+- Nœuds goulots d'étranglement
+- Contrôles critiques
+- Conséquences dominantes
+
+### Étape 5 : Analyse de Propagation des Risques
+
+Analyse comment les risques se propagent à travers :
+- Connexions activité-pression
+- Efficacité des contrôles
+- Chemins de conséquences
+- Impact des facteurs d'escalade
+
+## Directives d'Interprétation
+
+### Niveaux de Risque
+
+- **Faible (< 0.3)** : Surveillance de routine
+- **Moyen (0.3-0.7)** : Surveillance active requise
+- **Élevé (> 0.7)** : Action immédiate requise
+
+### Prise de Décision
+
+Utiliser les résultats bayésiens pour :
+- Prioriser les interventions
+- Allouer les ressources
+- Concevoir des stratégies de surveillance
+- Planifier la réponse d'urgence
+
+\newpage
+
+# Matrice des Risques et Visualisation
+
+## Vue d'Ensemble de la Matrice des Risques
+
+La matrice des risques fournit une représentation visuelle de la probabilité vs gravité :
+- Axe X : Probabilité (1-5)
+- Axe Y : Gravité (1-5)
+- Zones codées par couleur : Faible, Moyen, Élevé
+
+## Catégories de la Matrice
+
+### Risque Faible (Zone Verte)
+- **Plage de Score** : 1-6
+- **Caractéristiques** : Peu probable et impact mineur
+- **Action** : Surveillance de routine
+
+### Risque Moyen (Zone Jaune)
+- **Plage de Score** : 7-15
+- **Caractéristiques** : Probabilité modérée ou gravité modérée
+- **Action** : Surveillance active et mesures préventives
+
+### Risque Élevé (Zone Rouge)
+- **Plage de Score** : 16-25
+- **Caractéristiques** : Probabilité élevée et/ou gravité élevée
+- **Action** : Action immédiate et gestion proactive
+
+## Utilisation de la Matrice des Risques
+
+**Étapes** :
+1. Aller à l'onglet **Matrice des Risques**
+2. Voir le placement des scénarios
+3. Identifier les risques à haute priorité
+4. Examiner les statistiques de risque
+5. Exporter la visualisation de la matrice
+
+**Fonctionnalités** :
+- Placement automatique des scénarios
+- Info-bulles interactives
+- Statistiques de comptage des risques
+- Capacités d'export
+
+## Fonctionnalités de Visualisation
+
+### Personnalisation du Diagramme en Nœud Papillon
+
+Options disponibles :
+- **Taille des Nœuds** : Ajuster pour visibilité
+- **Largeur des Bords** : Épaisseur basée sur le risque
+- **Schéma de Couleurs** : Choix de palette de couleurs
+- **Disposition** : Algorithme hiérarchique
+- **Étiquettes** : Afficher/masquer les noms
+- **Légende** : Afficher/masquer les codes de couleur
+
+**Personnalisation des Couleurs** :
+- Activités : Violet
+- Pressions : Rouge
+- Contrôles Préventifs : Vert
+- Facteurs d'Escalade : Orange
+- Problème Central : Rouge foncé
+- Atténuations Protectrices : Bleu
+- Conséquences : Orange foncé
+
+### Visualisation du Réseau
+
+Fonctionnalités :
+- Zoom et panoramique
+- Mode plein écran
+- Export d'images
+- Info-bulles avec détails
+- Mise en évidence des nœuds
+- Filtrage des bords
+
+### Visualisation du Tableau de Données
+
+Fonctionnalités :
+- Tri par colonne
+- Recherche et filtrage
+- Pagination
+- Sélection de lignes
+- Mise en évidence conditionnelle
+- Export vers Excel/CSV
+
+\newpage
+
+# Fonctionnalités Avancées
+
+## Gestion du Vocabulaire
+
+### Comprendre la Base de Données de Vocabulaire
+
+La base de données de vocabulaire contient 189 éléments catégorisés :
+- **Activités (53)** : Activités humaines causant des pressions
+- **Pressions (36)** : Pressions environnementales directes
+- **Contrôles (74)** : Mesures préventives et protectrices
+- **Conséquences (26)** : Impacts environnementaux
+
+### Voir les Statistiques du Vocabulaire
+
+1. Aller à l'onglet **Téléchargement de Données**
+2. Voir la carte **Statistiques du Vocabulaire**
+3. Examiner le comptage des éléments
+4. Vérifier la couverture de la base de données
+
+### Ajouter du Vocabulaire Personnalisé
+
+**Via Flux de Travail Guidé** :
+1. Dans n'importe quelle étape, saisir un nouvel élément
+2. Le système suggère des éléments existants
+3. Si non trouvé, ajouter comme nouveau
+4. Sauvegarder avec le projet
+
+**Via Gestion du Vocabulaire** :
+1. Aller à l'onglet **Gestion du Vocabulaire**
+2. Sélectionner le type (Activité/Pression/Contrôle/Conséquence)
+3. Cliquer sur **"Ajouter Nouvel Élément"**
+4. Remplir les détails
+5. Sauvegarder
+
+### Éditer le Vocabulaire
+
+1. Rechercher l'élément existant
+2. Sélectionner pour édition
+3. Modifier les champs
+4. Sauvegarder les changements
+5. Mettre à jour les projets liés
+
+### Importer du Vocabulaire
+
+Formats supportés :
+- Fichiers Excel avec structure prédéfinie
+- Fichiers CSV avec colonnes requises
+- Fichiers RDS avec objets de vocabulaire
+
+\newpage
+
+# Support Multilingue
+
+## Changer de Langue
+
+1. Localiser le sélecteur de langue dans l'en-tête
+2. Cliquer sur le drapeau ou menu déroulant
+3. Sélectionner **English** ou **Français**
+4. L'interface se met à jour instantanément
+
+## Éléments Supportés
+
+**Texte Traduit** :
+- Navigation des onglets
+- Étiquettes des boutons
+- Titres des formulaires
+- Messages d'erreur
+- Notifications
+- Texte d'aide
+
+**Non Traduit** :
+- Contenu des données utilisateur
+- Noms de vocabulaire personnalisés
+- Notes de projet
+- Commentaires
+
+## Ajouter des Traductions
+
+Pour contribuer des traductions :
+
+1. Ouvrir `translations_data.R`
+2. Ajouter de nouvelles clés à la liste `translations`
+3. Fournir des traductions en anglais et français
+4. Tester dans l'application
+5. Soumettre une pull request
+
+Exemple :
+```r
+translations <- list(
+  en = list(
+    new_key = "English text"
+  ),
+  fr = list(
+    new_key = "Texte français"
+  )
+)
+```
+
+\newpage
+
+# Évaluation des Risques des Liens
+
+## Vue d'Ensemble
+
+L'onglet Évaluation des Risques des Liens permet une évaluation détaillée de chaque connexion dans la structure du nœud papillon.
+
+## Utilisation de l'Outil
+
+### Étape 1 : Sélectionner un Parcours
+
+1. Aller à l'onglet **Évaluation des Risques des Liens**
+2. Sélectionner un scénario dans le menu déroulant
+3. Examiner les informations sur le parcours sélectionné
+
+### Étape 2 : Évaluer les Connexions
+
+Pour chaque connexion, définir :
+
+**1. Activité → Pression**
+- Probabilité (1-5) : Quelle est la probabilité que l'activité entraîne la pression ?
+- Gravité (1-5) : Quelle est la gravité de cette connexion ?
+
+**2. Pression → Contrôle Préventif**
+- Probabilité : Avec quelle probabilité la pression se produit-elle avec le contrôle en place ?
+- Gravité : Quelle est l'efficacité du contrôle ?
+
+**3. Facteur d'Escalade → Contrôle**
+- Probabilité : Avec quelle probabilité le facteur compromet-il le contrôle ?
+- Gravité : Quelle est la gravité de cette compromission ?
+
+**4. Problème Central → Conséquence**
+- Probabilité : Avec quelle probabilité le problème entraîne-t-il la conséquence ?
+- Gravité : Quelle est la gravité de la conséquence ?
+
+**5. Contrôle de Protection → Conséquence**
+- Probabilité : Quelle est l'efficacité du contrôle protecteur ?
+- Gravité : Quelle est la réduction d'impact ?
+
+### Étape 3 : Examiner le Risque Global
+
+Le système calcule automatiquement :
+- **Probabilité Globale** : Multiplication en chaîne de toutes les probabilités
+- **Gravité Globale** : Gravité maximale le long du parcours
+- **Niveau de Risque** : Faible/Moyen/Élevé
+- **Score de Risque** : Valeur numérique
+
+### Étape 4 : Sauvegarder les Évaluations
+
+1. Examiner tous les curseurs
+2. Cliquer sur **"Sauvegarder les Évaluations des Risques"**
+3. Les données sont mises à jour immédiatement
+4. Continuer avec le prochain scénario
+
+### Étape 5 : Réinitialiser si Nécessaire
+
+Pour annuler les changements :
+1. Cliquer sur **"Réinitialiser aux Valeurs Actuelles"**
+2. Les curseurs reviennent aux données sauvegardées
+
+\newpage
+
+# Traitement par Lots
+
+## Traitement de Plusieurs Scénarios
+
+Pour analyser plusieurs scénarios :
+
+```r
+# Définir les scénarios
+scenarios <- c("marine_pollution", "oil_spills", "agricultural_runoff")
+
+# Traiter par lots
+results <- lapply(scenarios, function(s) {
+  data <- generateScenarioSpecificBowtie(s)
+  # Effectuer l'analyse
+  analysis <- analyzeBowTie(data)
+  return(analysis)
+})
+```
+
+## Rapportage Automatisé
+
+Créer des rapports automatisés :
+
+```r
+# Générer un rapport
+library(rmarkdown)
+
+render("rapport_bowtie.Rmd",
+       params = list(
+         scenario = "marine_pollution",
+         date = Sys.Date()
+       ),
+       output_file = paste0("rapport_", Sys.Date(), ".pdf"))
+```
+
+\newpage
+
+# Dépannage
+
+## Problèmes Courants
+
+### 1. L'Application Ne Démarre Pas
+
+**Symptômes** : Erreur lors de l'exécution de `source("start_app.R")`
+
+**Solutions** :
+- Vérifier que R 4.3.0+ est installé
+- Installer les packages manquants : `install.packages(c("shiny", "bslib", "DT"))`
+- Vérifier les permissions des fichiers
+- Consulter les journaux d'erreurs dans la console R
+
+### 2. Erreur de Téléchargement de Données
+
+**Symptômes** : "Erreur lors du chargement des données"
+
+**Solutions** :
+- Vérifier le format du fichier (Excel, CSV, RDS)
+- Valider la structure des colonnes
+- Vérifier la plage des valeurs (probabilité/gravité 1-5)
+- Assurer l'encodage UTF-8 pour les fichiers CSV
+
+### 3. Diagramme en Nœud Papillon Vide
+
+**Symptômes** : Aucun nœud affiché
+
+**Solutions** :
+- Confirmer que les données sont chargées (vérifier l'onglet Tableau de Données)
+- Actualiser le navigateur (Ctrl+F5)
+- Vérifier les messages d'erreur dans la console
+- Régénérer les données
+
+### 4. Échec du Réseau Bayésien
+
+**Symptômes** : "Erreur lors de la création du réseau"
+
+**Solutions** :
+- Vérifier que toutes les colonnes requises sont présentes
+- Valider les relations entre les nœuds
+- Assurer des noms de colonnes uniques
+- Réduire la complexité (moins de nœuds)
+
+### 5. Problèmes de Performance
+
+**Symptômes** : Application lente ou non réactive
+
+**Solutions** :
+- Réduire la taille de l'ensemble de données (< 1000 lignes)
+- Fermer les onglets de navigateur non utilisés
+- Augmenter la mémoire allouée à R
+- Utiliser un navigateur plus récent
+
+### 6. Erreurs d'Export
+
+**Symptômes** : L'export échoue ou fichier corrompu
+
+**Solutions** :
+- Vérifier les permissions d'écriture
+- Assurer un espace disque suffisant
+- Essayer un format de fichier différent
+- Vérifier les caractères spéciaux dans les noms de fichiers
+
+## Obtenir de l'Aide
+
+### Documentation
+
+- Manuel Utilisateur (ce document)
+- Référence API : `docs/API_REFERENCE.md`
+- Guide de Développement : `docs/DEVELOPMENT_GUIDE.md`
+- Guide de Déploiement : `docs/DEPLOYMENT_GUIDE.md`
+
+### Support Communautaire
+
+- Dépôt GitHub : [Lien du Dépôt]
+- Problèmes : Soumettre des rapports de bugs via GitHub Issues
+- Discussions : Forum de la communauté
+
+### Support Professionnel
+
+- Email : [Email de Support]
+- Documentation : [URL de la Documentation]
+- Formation : Disponible sur demande
+
+\newpage
+
+# Meilleures Pratiques
+
+## Gestion de Projet
+
+1. **Commencer Simple**
+   - Utiliser des scénarios pré-configurés
+   - Construire progressivement la complexité
+   - Valider à chaque étape
+
+2. **Documentation**
+   - Documenter les hypothèses
+   - Enregistrer les justifications des décisions
+   - Maintenir l'historique des versions
+
+3. **Collaboration**
+   - Utiliser des formats de fichiers standardisés
+   - Partager via RDS ou Excel
+   - Maintenir une convention de nommage
+
+4. **Contrôle de Version**
+   - Sauvegarder régulièrement le travail
+   - Utiliser des noms de fichiers datés
+   - Maintenir des sauvegardes
+
+## Évaluation des Risques
+
+1. **Exhaustivité**
+   - Considérer tous les parcours pertinents
+   - Inclure les contrôles préventifs et protecteurs
+   - Documenter les hypothèses
+
+2. **Cohérence**
+   - Utiliser des critères de notation cohérents
+   - Appliquer des définitions standardisées
+   - Maintenir la méthodologie
+
+3. **Validation**
+   - Examiner avec les parties prenantes
+   - Vérifier la logique
+   - Tester la sensibilité
+
+4. **Mise à Jour**
+   - Réviser périodiquement
+   - Mettre à jour avec de nouvelles informations
+   - Suivre les changements au fil du temps
+
+## Qualité des Données
+
+1. **Exactitude**
+   - Vérifier les entrées de données
+   - Valider les sources
+   - Documenter les incertitudes
+
+2. **Complétude**
+   - Remplir tous les champs requis
+   - Fournir des métadonnées suffisantes
+   - Inclure des descriptions
+
+3. **Cohérence**
+   - Utiliser une terminologie standardisée
+   - Suivre les conventions de nommage
+   - Maintenir l'intégrité référentielle
+
+4. **Traçabilité**
+   - Enregistrer la provenance des données
+   - Documenter les transformations
+   - Maintenir les journaux d'audit
+
+\newpage
+
+# Référence Rapide
+
+## Raccourcis Clavier
+
+| Raccourci | Action |
+|-----------|--------|
+| Ctrl+S | Sauvegarder le travail en cours |
+| Ctrl+E | Exporter les données |
+| Ctrl+F | Rechercher dans le tableau |
+| Ctrl+H | Afficher/masquer l'aide |
+| Ctrl+L | Changer de langue |
+| F5 | Actualiser les données |
+| F11 | Mode plein écran |
+
+## Formules de Risque
+
+### Score de Risque de Base
+```
+Score de Risque = Probabilité × Gravité
+```
+
+### Probabilité Globale
+```
+P_globale = P_act×pres × P_pres×ctrl × P_esc×ctrl × P_cent×cons × P_prot×cons
+```
+
+### Gravité Globale
+```
+S_globale = max(S_act×pres, S_pres×ctrl, S_esc×ctrl, S_cent×cons, S_prot×cons)
+```
+
+### Classification des Risques
+- **Faible** : Score ≤ 6
+- **Moyen** : 7 ≤ Score ≤ 15
+- **Élevé** : Score ≥ 16
+
+## Échelles de Probabilité
+
+| Valeur | Descripteur | Fréquence |
+|--------|-------------|-----------|
+| 1 | Rare | < 5% de chance |
+| 2 | Peu Probable | 5-25% de chance |
+| 3 | Possible | 25-50% de chance |
+| 4 | Probable | 50-75% de chance |
+| 5 | Presque Certain | > 75% de chance |
+
+## Échelles de Gravité
+
+| Valeur | Descripteur | Impact |
+|--------|-------------|--------|
+| 1 | Négligeable | Impact minimal |
+| 2 | Mineur | Impact local limité |
+| 3 | Modéré | Impact régional |
+| 4 | Majeur | Impact étendu |
+| 5 | Catastrophique | Impact irréversible |
+
+\newpage
+
+# Annexes
+
+## Annexe A : Structure des Fichiers de Données
+
+### Format Excel Complet
+
+```
+| Activity | Pressure | Preventive_Control | Escalation_Factor | Central_Problem | Protective_Mitigation | Consequence | Likelihood | Severity | Risk_Level |
+|----------|----------|-------------------|-------------------|-----------------|---------------------|-------------|-----------|----------|------------|
+```
+
+### Colonnes Granulaires (Optionnel)
+
+```
+Activity_to_Pressure_Likelihood
+Activity_to_Pressure_Severity
+Pressure_to_Control_Likelihood
+Pressure_to_Control_Severity
+Control_to_Escalation_Likelihood
+Control_to_Escalation_Severity
+Escalation_to_Central_Likelihood
+Escalation_to_Central_Severity
+Central_to_Mitigation_Likelihood
+Central_to_Mitigation_Severity
+Mitigation_to_Consequence_Likelihood
+Mitigation_to_Consequence_Severity
+```
+
+## Annexe B : Schéma de Base de Données de Vocabulaire
+
+### Table des Activités
+- **Colonnes** : id, hierarchy, name, name_fr, category, description
+- **Enregistrements** : 53 activités humaines
+
+### Table des Pressions
+- **Colonnes** : id, hierarchy, name, name_fr, category, description
+- **Enregistrements** : 36 pressions environnementales
+
+### Table des Contrôles
+- **Colonnes** : id, hierarchy, name, name_fr, type, category, description
+- **Enregistrements** : 74 mesures de contrôle
+
+### Table des Conséquences
+- **Colonnes** : id, hierarchy, name, name_fr, category, severity_range, description
+- **Enregistrements** : 26 impacts environnementaux
+
+## Annexe C : Configuration des Scénarios
+
+### Structure de Configuration de Scénario
+
+```r
+scenario_config <- list(
+  id = "identifiant_unique",
+  icon = "icône_fontawesome",
+  label = "Nom d'Affichage",
+  description = "Description Détaillée",
+  central_problem = "Énoncé du Problème",
+  specific_activities = c("activité1", "activité2"),
+  specific_pressures = c("pression1", "pression2"),
+  specific_consequences = c("conséquence1", "conséquence2"),
+  preventive_controls = c("contrôle1", "contrôle2"),
+  protective_controls = c("protection1", "protection2"),
+  escalation_factors = c("facteur1", "facteur2")
+)
+```
+
+## Annexe D : Référence API
+
+### Fonctions Principales
+
+#### `generateScenarioSpecificBowtie(scenario_type)`
+Génère des données de nœud papillon pour un scénario spécifié.
+
+**Paramètres** :
+- `scenario_type` : Identifiant du scénario (chaîne)
+
+**Retourne** : data.frame avec structure de nœud papillon
+
+#### `convert_to_main_data_format(workflow_data)`
+Convertit les données de flux de travail en format principal.
+
+**Paramètres** :
+- `workflow_data` : Liste des composants de flux de travail
+
+**Retourne** : data.frame normalisé
+
+#### `load_vocabulary()`
+Charge la base de données de vocabulaire depuis les fichiers Excel.
+
+**Retourne** : Liste avec activités, pressions, contrôles, conséquences
+
+#### `create_bowtie_network(data)`
+Crée un réseau visNetwork depuis les données.
+
+**Paramètres** :
+- `data` : data.frame de nœud papillon
+
+**Retourne** : Objet visNetwork
+
+## Annexe E : Dépendances des Packages
+
+### Packages Principaux (18)
+
+1. **shiny** (≥1.7.0) - Framework d'application web
+2. **bslib** (≥0.5.0) - Thèmes Bootstrap
+3. **DT** (≥0.28) - Tables de données interactives
+4. **readxl** (≥1.4.0) - Lecture de fichiers Excel
+5. **openxlsx** (≥4.2.5) - Écriture de fichiers Excel
+6. **ggplot2** (≥3.4.0) - Graphiques
+7. **plotly** (≥4.10.0) - Graphiques interactifs
+8. **dplyr** (≥1.1.0) - Manipulation de données
+9. **visNetwork** (≥2.1.2) - Visualisation de réseaux
+10. **shinycssloaders** (≥1.0.0) - Indicateurs de chargement
+11. **colourpicker** (≥1.3.0) - Sélection de couleurs
+12. **htmlwidgets** (≥1.6.0) - Widgets HTML
+13. **shinyjs** (≥2.1.0) - Fonctionnalité JavaScript
+14. **bnlearn** (≥4.8) - Apprentissage de réseaux bayésiens
+15. **gRain** (≥1.3.13) - Inférence bayésienne
+16. **igraph** (≥1.5.0) - Analyse de réseaux
+17. **DiagrammeR** (≥1.0.10) - Création de diagrammes
+18. **Rgraphviz** (≥2.42.0) - Disposition de graphes
+
+### Installation
+
+```r
+# Installer tous les packages requis
+install.packages(c(
+  "shiny", "bslib", "DT", "readxl", "openxlsx",
+  "ggplot2", "plotly", "dplyr", "visNetwork",
+  "shinycssloaders", "colourpicker", "htmlwidgets", "shinyjs",
+  "bnlearn", "gRain", "igraph", "DiagrammeR"
+))
+
+# Bioconductor pour Rgraphviz
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("Rgraphviz")
+```
+
+## Annexe F : Références
+
+### Normes et Lignes Directrices
+
+- ISO 31000:2018 - Gestion des Risques
+- IEC 31010:2019 - Techniques d'Évaluation des Risques
+- ISO 14001:2015 - Systèmes de Management Environnemental
+
+### Littérature Scientifique
+
+- Méthodologie du nœud papillon pour l'évaluation des risques
+- Réseaux bayésiens en sciences environnementales
+- Conservation de la biodiversité marine
+- Valorisation des services écosystémiques
+
+### Logiciels et Outils
+
+- Logiciel Statistique R : https://www.r-project.org/
+- Framework Shiny : https://shiny.rstudio.com/
+- Package bnlearn : https://www.bnlearn.com/
+- Package gRain : https://people.math.aau.dk/~sorenh/software/gR/
+
+---
+
+## Informations de Contact
+
+**Projet** : Analyse des Risques Environnementaux par Nœud Papillon
+**Version** : 5.3.0
+**Organisation** : Équipe Marbefes
+**Site Web** : [Dépôt du Projet]
+**Support** : [Email de Support]
+**Licence** : [Type de Licence]
+
+---
+
+**Fin du Manuel Utilisateur**
+
+*Ce document est sujet à des mises à jour. Veuillez vérifier la dernière version.*

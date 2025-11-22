@@ -5,6 +5,10 @@
 # Archive folder (contains development history and old files)
 archive/
 
+# Environment-specific configuration (contains sensitive settings)
+.env.R
+.env.local.R
+
 # Temporary workflow files
 workflow_progress_*.rds
 

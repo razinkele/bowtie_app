@@ -1,0 +1,51 @@
+[Unit]
+Description=Shiny Server - Environmental Bowtie Risk Analysis
+Documentation=https://github.com/razinkele/bowtie_app
+After=network.target remote-fs.target nss-lookup.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shiny
+Group=shiny
+
+# Environment
+Environment="R_LIBS=/usr/local/lib/R/site-library:/usr/lib/R/site-library:/usr/lib/R/library"
+Environment="SHINY_LOG_LEVEL=INFO"
+Environment="SHINY_LOG_STDERR=1"
+
+# Start shiny-server
+ExecStart=/opt/shiny-server/bin/shiny-server --config-file /etc/shiny-server/shiny-server.conf
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=90s
+
+# Resource limits (adjust based on server capacity)
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Memory limit (optional - adjust based on available RAM)
+# MemoryLimit=6G
+# MemoryMax=8G
+
+# CPU quota (optional - limit CPU usage)
+# CPUQuota=200%
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/shiny-server /var/log/shiny-server /var/lib/shiny-server /tmp
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=shiny-server
+
+[Install]
+WantedBy=multi-user.target

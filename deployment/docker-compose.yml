@@ -1,0 +1,141 @@
+# =============================================================================
+# Docker Compose Configuration for Environmental Bowtie Risk Analysis App
+# Version: 5.1.0
+# Updated: November 2025
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PRODUCTION SERVICE
+  # =============================================================================
+  bowtie-app:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: production
+    container_name: bowtie-app-prod
+    ports:
+      - "3838:3838"
+    volumes:
+      # Mount data directory for persistence
+      - bowtie-data:/srv/shiny-server/bowtie_app/data
+      - bowtie-logs:/var/log/shiny-server
+    environment:
+      - SHINY_ENV=production
+      - TZ=Europe/Vilnius
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3838/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - bowtie-network
+    labels:
+      - "com.bowtie.version=5.1.0"
+      - "com.bowtie.description=Environmental Bowtie Risk Analysis"
+
+  # =============================================================================
+  # DEVELOPMENT SERVICE
+  # =============================================================================
+  bowtie-app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: bowtie-app-dev
+    ports:
+      - "3839:3838"
+    volumes:
+      # Mount entire app directory for hot reload
+      - .:/srv/shiny-server/bowtie_app
+      - ./dev_logs:/srv/shiny-server/bowtie_app/dev_logs
+    environment:
+      - SHINY_ENV=development
+      - SHINY_HOST=0.0.0.0
+      - SHINY_PORT=3838
+    restart: "no"
+    networks:
+      - bowtie-network
+    profiles:
+      - dev
+
+  # =============================================================================
+  # TESTING SERVICE
+  # =============================================================================
+  bowtie-app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    container_name: bowtie-app-test
+    volumes:
+      - ./test_results:/srv/shiny-server/bowtie_app/test_results
+      - ./performance_reports:/srv/shiny-server/bowtie_app/performance_reports
+    environment:
+      - SHINY_ENV=testing
+    command: >
+      sh -c "
+      echo '🧪 Running Comprehensive Test Suite' &&
+      Rscript tests/comprehensive_test_runner.R &&
+      echo '📊 Running Performance Benchmarks' &&
+      Rscript utils/advanced_benchmarks.R &&
+      echo '✅ All tests completed'
+      "
+    networks:
+      - bowtie-network
+    profiles:
+      - test
+
+  # =============================================================================
+  # MONITORING SERVICE
+  # =============================================================================
+  performance-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+  # =============================================================================
+  # DEVELOPMENT SERVICE (Optional - for testing)
+  # =============================================================================
+  bowtie-app-dev:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: build
+    container_name: bowtie-app-dev
+    ports:
+      - "3839:3838"
+    volumes:
+      # Mount entire app directory for development
+      - ..:/srv/shiny-server/bowtie_app
+    environment:
+      - SHINY_ENV=development
+      - TZ=Europe/Vilnius
+    restart: "no"
+    networks:
+      - bowtie-network
+    profiles:
+      - dev
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  bowtie-network:
+    driver: bridge
+    name: bowtie-network
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  bowtie-data:
+    driver: local
+    name: bowtie-app-data
+  bowtie-logs:
+    driver: local
+    name: bowtie-app-logs
