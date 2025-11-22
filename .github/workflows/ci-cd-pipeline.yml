@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie App - Advanced CI/CD Pipeline
-# Version: 5.2.0 (Modern Framework Edition)
+# Version: 5.3.0 (Production-Ready Edition)
 # Automated testing, performance monitoring, and deployment pipeline
 # =============================================================================
 
@@ -169,7 +169,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libssl-dev
-        Rscript -e "install.packages(c('microbenchmark', 'pryr', 'jsonlite', 'shiny', 'DT', 'readxl', 'openxlsx', 'ggplot2', 'dplyr'))"
+        Rscript -e "install.packages(c('microbenchmark', 'pryr', 'jsonlite', 'shiny', 'DT', 'readxl', 'openxlsx', 'ggplot2', 'dplyr', 'bslib', 'htmltools'))"
 
     - name: 📊 Run Performance Benchmarks
       run: |
@@ -286,7 +286,7 @@ jobs:
         cp README.md CLAUDE.md deployment_package/ 2>/dev/null || true
 
         # Create deployment info
-        echo "Deployment Package - Version 5.2.0" > deployment_package/DEPLOYMENT_INFO.txt
+        echo "Deployment Package - Version 5.3.0" > deployment_package/DEPLOYMENT_INFO.txt
         echo "Built on: $(date)" >> deployment_package/DEPLOYMENT_INFO.txt
         echo "Git commit: ${{ github.sha }}" >> deployment_package/DEPLOYMENT_INFO.txt
         echo "Branch: ${{ github.ref_name }}" >> deployment_package/DEPLOYMENT_INFO.txt
@@ -295,7 +295,7 @@ jobs:
         cat > deployment_package/deploy.sh << 'EOF'
         #!/bin/bash
         echo "🚀 Deploying Environmental Bowtie Risk Analysis Application"
-        echo "Version: 5.2.0 (Advanced Framework Edition)"
+        echo "Version: 5.3.0 (Production-Ready Edition)"
 
         # Install R dependencies
         Rscript -e "
@@ -322,7 +322,7 @@ jobs:
     - name: 📤 Upload Deployment Package
       uses: actions/upload-artifact@v3
       with:
-        name: deployment-package-v5.2
+        name: deployment-package-v5.3
         path: deployment_package/
 
     - name: 📋 Deployment Summary

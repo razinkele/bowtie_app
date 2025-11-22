@@ -1,11 +1,14 @@
 # =============================================================================
-# Advanced Benchmarking and Performance Analytics (Version 5.2)
+# Advanced Benchmarking and Performance Analytics (Version 5.3)
 # Comprehensive performance testing, regression detection, and optimization insights
 # =============================================================================
 
 library(microbenchmark)
 library(ggplot2)
 library(dplyr)
+library(shiny)        # For icon() function in icon rendering benchmarks
+library(pryr)         # For memory usage analysis
+library(jsonlite)     # For baseline comparison and JSON handling
 
 # =============================================================================
 # CONSISTENCY FIXES PERFORMANCE IMPACT ANALYSIS
@@ -114,13 +117,13 @@ detect_performance_regression <- function(baseline_file = "utils/performance_bas
 
   # 1. Application Startup Time
   startup_time <- system.time({
-    source("app.r")
+    source("app.R")
   })[["elapsed"]]
   current_metrics$startup_time <- startup_time
 
   # 2. Vocabulary Loading Time
   vocab_time <- system.time({
-    source("vocabulary.r")
+    source("vocabulary.R")
     vocabulary_data <- load_vocabulary()
   })[["elapsed"]]
   current_metrics$vocabulary_time <- vocab_time
