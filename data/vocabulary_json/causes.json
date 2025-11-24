@@ -1,0 +1,451 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2025-11-24",
+  "description": "Marine environmental causes (activities and pressures) for bowtie analysis",
+
+  "activities": [
+    {
+      "id": "A001",
+      "name": "Commercial fishing operations",
+      "category": "Extractive",
+      "subcategory": "Fisheries",
+      "description": "Industrial-scale fish and seafood harvesting",
+      "intensity": "high",
+      "frequency": "continuous",
+      "related_sectors": ["fisheries", "food production"],
+      "keywords": ["fishing", "trawling", "commercial", "harvest"]
+    },
+    {
+      "id": "A002",
+      "name": "Recreational fishing",
+      "category": "Extractive",
+      "subcategory": "Fisheries",
+      "description": "Sport and leisure fishing activities",
+      "intensity": "low-medium",
+      "frequency": "seasonal",
+      "related_sectors": ["tourism", "recreation"],
+      "keywords": ["recreational", "sport fishing", "angling"]
+    },
+    {
+      "id": "A003",
+      "name": "Aquaculture operations",
+      "category": "Production",
+      "subcategory": "Mariculture",
+      "description": "Farming of fish, shellfish, and aquatic plants",
+      "intensity": "medium-high",
+      "frequency": "continuous",
+      "related_sectors": ["food production", "agriculture"],
+      "keywords": ["fish farming", "aquaculture", "mariculture"]
+    },
+    {
+      "id": "A004",
+      "name": "Shipping and maritime transport",
+      "category": "Transport",
+      "subcategory": "Maritime",
+      "description": "Commercial vessel traffic and cargo transport",
+      "intensity": "high",
+      "frequency": "continuous",
+      "related_sectors": ["shipping", "trade", "logistics"],
+      "keywords": ["shipping", "vessels", "cargo", "transport"]
+    },
+    {
+      "id": "A005",
+      "name": "Offshore oil and gas extraction",
+      "category": "Extractive",
+      "subcategory": "Energy",
+      "description": "Drilling and production of offshore petroleum resources",
+      "intensity": "high",
+      "frequency": "continuous",
+      "related_sectors": ["energy", "petroleum"],
+      "keywords": ["oil", "gas", "drilling", "extraction"]
+    },
+    {
+      "id": "A006",
+      "name": "Coastal construction and development",
+      "category": "Infrastructure",
+      "subcategory": "Urban development",
+      "description": "Building ports, marinas, and coastal structures",
+      "intensity": "high",
+      "frequency": "episodic",
+      "related_sectors": ["construction", "urban development"],
+      "keywords": ["construction", "development", "infrastructure"]
+    },
+    {
+      "id": "A007",
+      "name": "Agricultural runoff",
+      "category": "Land-based",
+      "subcategory": "Agriculture",
+      "description": "Discharge of agricultural chemicals into waterways",
+      "intensity": "medium-high",
+      "frequency": "seasonal-continuous",
+      "related_sectors": ["agriculture", "farming"],
+      "keywords": ["agriculture", "runoff", "fertilizer", "pesticides"]
+    },
+    {
+      "id": "A008",
+      "name": "Urban wastewater discharge",
+      "category": "Land-based",
+      "subcategory": "Waste management",
+      "description": "Release of treated and untreated sewage",
+      "intensity": "medium-high",
+      "frequency": "continuous",
+      "related_sectors": ["urban", "waste management"],
+      "keywords": ["wastewater", "sewage", "urban", "discharge"]
+    },
+    {
+      "id": "A009",
+      "name": "Industrial effluent discharge",
+      "category": "Land-based",
+      "subcategory": "Industry",
+      "description": "Release of industrial wastewater and chemicals",
+      "intensity": "medium-high",
+      "frequency": "continuous",
+      "related_sectors": ["industry", "manufacturing"],
+      "keywords": ["industrial", "effluent", "chemicals", "discharge"]
+    },
+    {
+      "id": "A010",
+      "name": "Plastic waste disposal",
+      "category": "Land-based",
+      "subcategory": "Waste management",
+      "description": "Improper disposal and leakage of plastic materials",
+      "intensity": "high",
+      "frequency": "continuous",
+      "related_sectors": ["waste management", "consumer goods"],
+      "keywords": ["plastic", "waste", "litter", "disposal"]
+    },
+    {
+      "id": "A011",
+      "name": "Dredging operations",
+      "category": "Physical modification",
+      "subcategory": "Marine construction",
+      "description": "Removal of sediment from seabed for navigation or construction",
+      "intensity": "high",
+      "frequency": "episodic",
+      "related_sectors": ["construction", "navigation"],
+      "keywords": ["dredging", "sediment", "excavation"]
+    },
+    {
+      "id": "A012",
+      "name": "Coastal tourism and recreation",
+      "category": "Service",
+      "subcategory": "Tourism",
+      "description": "Beach use, water sports, and coastal recreation",
+      "intensity": "medium",
+      "frequency": "seasonal",
+      "related_sectors": ["tourism", "recreation"],
+      "keywords": ["tourism", "recreation", "beach", "coastal"]
+    },
+    {
+      "id": "A013",
+      "name": "Deep-sea mining",
+      "category": "Extractive",
+      "subcategory": "Mining",
+      "description": "Extraction of minerals from ocean floor",
+      "intensity": "high",
+      "frequency": "episodic",
+      "related_sectors": ["mining", "resources"],
+      "keywords": ["mining", "deep-sea", "minerals", "extraction"]
+    },
+    {
+      "id": "A014",
+      "name": "Offshore wind energy development",
+      "category": "Energy production",
+      "subcategory": "Renewable energy",
+      "description": "Installation and operation of offshore wind farms",
+      "intensity": "medium",
+      "frequency": "continuous",
+      "related_sectors": ["renewable energy", "energy production"],
+      "keywords": ["wind energy", "offshore", "renewable"]
+    },
+    {
+      "id": "A015",
+      "name": "Ballast water discharge",
+      "category": "Transport",
+      "subcategory": "Maritime",
+      "description": "Release of ballast water from ships",
+      "intensity": "medium",
+      "frequency": "continuous",
+      "related_sectors": ["shipping"],
+      "keywords": ["ballast", "shipping", "vessels"]
+    },
+    {
+      "id": "A016",
+      "name": "Military and naval activities",
+      "category": "Defense",
+      "subcategory": "Military",
+      "description": "Naval exercises, sonar use, and military operations",
+      "intensity": "medium-high",
+      "frequency": "episodic",
+      "related_sectors": ["defense", "military"],
+      "keywords": ["military", "naval", "sonar", "defense"]
+    },
+    {
+      "id": "A017",
+      "name": "Seismic surveying",
+      "category": "Exploration",
+      "subcategory": "Resource exploration",
+      "description": "Geological surveys using sound waves",
+      "intensity": "high",
+      "frequency": "episodic",
+      "related_sectors": ["oil and gas", "research"],
+      "keywords": ["seismic", "survey", "exploration"]
+    },
+    {
+      "id": "A018",
+      "name": "Climate change and global warming",
+      "category": "Global",
+      "subcategory": "Atmospheric",
+      "description": "Anthropogenic greenhouse gas emissions affecting oceans",
+      "intensity": "high",
+      "frequency": "continuous",
+      "related_sectors": ["all sectors"],
+      "keywords": ["climate change", "global warming", "greenhouse gases"]
+    },
+    {
+      "id": "A019",
+      "name": "Desalination plant operations",
+      "category": "Industrial",
+      "subcategory": "Water production",
+      "description": "Production of freshwater from seawater",
+      "intensity": "medium",
+      "frequency": "continuous",
+      "related_sectors": ["water supply", "industry"],
+      "keywords": ["desalination", "water production", "brine"]
+    },
+    {
+      "id": "A020",
+      "name": "River damming and flow modification",
+      "category": "Land-based",
+      "subcategory": "Water management",
+      "description": "Alteration of river flows affecting coastal zones",
+      "intensity": "medium-high",
+      "frequency": "continuous",
+      "related_sectors": ["water management", "energy"],
+      "keywords": ["dam", "river", "flow modification"]
+    }
+  ],
+
+  "pressures": [
+    {
+      "id": "P001",
+      "name": "Overfishing and stock depletion",
+      "category": "Biological",
+      "description": "Removal of fish beyond sustainable levels",
+      "mechanism": "Extraction exceeds natural replenishment",
+      "reversibility": "medium",
+      "lag_time": "years",
+      "linked_activities": ["A001", "A002"],
+      "keywords": ["overfishing", "stock depletion", "exploitation"]
+    },
+    {
+      "id": "P002",
+      "name": "Bycatch of non-target species",
+      "category": "Biological",
+      "description": "Incidental capture of non-target marine life",
+      "mechanism": "Non-selective fishing methods",
+      "reversibility": "irreversible",
+      "lag_time": "immediate",
+      "linked_activities": ["A001", "A002"],
+      "keywords": ["bycatch", "incidental capture", "non-target"]
+    },
+    {
+      "id": "P003",
+      "name": "Physical habitat destruction",
+      "category": "Physical",
+      "description": "Direct damage to seafloor and coastal habitats",
+      "mechanism": "Bottom trawling, construction, dredging",
+      "reversibility": "low",
+      "lag_time": "immediate",
+      "linked_activities": ["A001", "A006", "A011", "A013"],
+      "keywords": ["habitat destruction", "seafloor damage", "physical damage"]
+    },
+    {
+      "id": "P004",
+      "name": "Nutrient enrichment",
+      "category": "Chemical",
+      "description": "Excess nitrogen and phosphorus input",
+      "mechanism": "Agricultural and wastewater discharge",
+      "reversibility": "high",
+      "lag_time": "weeks-months",
+      "linked_activities": ["A007", "A008", "A003"],
+      "keywords": ["nutrients", "nitrogen", "phosphorus", "enrichment"]
+    },
+    {
+      "id": "P005",
+      "name": "Toxic chemical contamination",
+      "category": "Chemical",
+      "description": "Introduction of harmful chemicals and heavy metals",
+      "mechanism": "Industrial discharge, pesticides, antifoulants",
+      "reversibility": "low",
+      "lag_time": "varies",
+      "linked_activities": ["A007", "A009", "A004"],
+      "keywords": ["toxins", "chemicals", "heavy metals", "contamination"]
+    },
+    {
+      "id": "P006",
+      "name": "Oil and petroleum hydrocarbon pollution",
+      "category": "Chemical",
+      "description": "Release of crude oil and refined petroleum products",
+      "mechanism": "Spills, operational discharge, seepage",
+      "reversibility": "medium",
+      "lag_time": "immediate-years",
+      "linked_activities": ["A005", "A004"],
+      "keywords": ["oil", "petroleum", "hydrocarbons", "spill"]
+    },
+    {
+      "id": "P007",
+      "name": "Plastic and microplastic accumulation",
+      "category": "Physical",
+      "description": "Build-up of plastic debris of all sizes",
+      "mechanism": "Land-based sources, maritime activities",
+      "reversibility": "very low",
+      "lag_time": "continuous",
+      "linked_activities": ["A010", "A004", "A012"],
+      "keywords": ["plastic", "microplastic", "debris", "pollution"]
+    },
+    {
+      "id": "P008",
+      "name": "Marine noise pollution",
+      "category": "Physical",
+      "description": "Excessive underwater sound from human activities",
+      "mechanism": "Shipping, construction, seismic surveys, sonar",
+      "reversibility": "high",
+      "lag_time": "immediate",
+      "linked_activities": ["A004", "A016", "A017"],
+      "keywords": ["noise", "acoustic", "sound", "disturbance"]
+    },
+    {
+      "id": "P009",
+      "name": "Introduction of invasive species",
+      "category": "Biological",
+      "description": "Transport of non-native organisms to new areas",
+      "mechanism": "Ballast water, hull fouling, aquaculture escapees",
+      "reversibility": "very low",
+      "lag_time": "months-years",
+      "linked_activities": ["A015", "A004", "A003"],
+      "keywords": ["invasive", "alien species", "non-native", "introduction"]
+    },
+    {
+      "id": "P010",
+      "name": "Sedimentation and turbidity increase",
+      "category": "Physical",
+      "description": "Elevated suspended sediments and reduced water clarity",
+      "mechanism": "Dredging, runoff, coastal erosion",
+      "reversibility": "medium-high",
+      "lag_time": "immediate-weeks",
+      "linked_activities": ["A011", "A006", "A020"],
+      "keywords": ["sediment", "turbidity", "suspended solids"]
+    },
+    {
+      "id": "P011",
+      "name": "Ocean warming",
+      "category": "Physical",
+      "description": "Increase in seawater temperature",
+      "mechanism": "Anthropogenic climate change",
+      "reversibility": "low",
+      "lag_time": "decades",
+      "linked_activities": ["A018"],
+      "keywords": ["warming", "temperature", "climate", "heat"]
+    },
+    {
+      "id": "P012",
+      "name": "Ocean acidification",
+      "category": "Chemical",
+      "description": "Decrease in ocean pH from CO2 absorption",
+      "mechanism": "Atmospheric CO2 dissolution",
+      "reversibility": "low",
+      "lag_time": "decades",
+      "linked_activities": ["A018"],
+      "keywords": ["acidification", "pH", "carbonate", "CO2"]
+    },
+    {
+      "id": "P013",
+      "name": "Organic matter enrichment",
+      "category": "Chemical",
+      "description": "Excessive organic waste leading to oxygen depletion",
+      "mechanism": "Aquaculture waste, sewage, organic runoff",
+      "reversibility": "medium-high",
+      "lag_time": "weeks-months",
+      "linked_activities": ["A003", "A008"],
+      "keywords": ["organic", "waste", "enrichment", "oxygen"]
+    },
+    {
+      "id": "P014",
+      "name": "Pathogen introduction",
+      "category": "Biological",
+      "description": "Introduction of disease-causing organisms",
+      "mechanism": "Aquaculture, wastewater, ballast water",
+      "reversibility": "low",
+      "lag_time": "immediate-months",
+      "linked_activities": ["A003", "A008", "A015"],
+      "keywords": ["pathogen", "disease", "virus", "bacteria"]
+    },
+    {
+      "id": "P015",
+      "name": "Electromagnetic field generation",
+      "category": "Physical",
+      "description": "Creation of electromagnetic fields from cables and infrastructure",
+      "mechanism": "Offshore wind, underwater cables",
+      "reversibility": "high",
+      "lag_time": "immediate",
+      "linked_activities": ["A014"],
+      "keywords": ["electromagnetic", "EMF", "cables"]
+    },
+    {
+      "id": "P016",
+      "name": "Light pollution",
+      "category": "Physical",
+      "description": "Artificial light affecting marine environments",
+      "mechanism": "Coastal development, offshore platforms, vessels",
+      "reversibility": "high",
+      "lag_time": "immediate",
+      "linked_activities": ["A006", "A004", "A005"],
+      "keywords": ["light", "artificial", "illumination", "pollution"]
+    },
+    {
+      "id": "P017",
+      "name": "Hydrological regime alteration",
+      "category": "Physical",
+      "description": "Changes to water flow, salinity, and circulation patterns",
+      "mechanism": "Damming, water extraction, construction",
+      "reversibility": "low-medium",
+      "lag_time": "immediate-years",
+      "linked_activities": ["A020", "A006", "A019"],
+      "keywords": ["hydrology", "flow", "salinity", "circulation"]
+    },
+    {
+      "id": "P018",
+      "name": "Air emissions and atmospheric deposition",
+      "category": "Chemical",
+      "description": "Pollutants deposited from atmosphere to ocean",
+      "mechanism": "Shipping emissions, industrial pollution",
+      "reversibility": "medium",
+      "lag_time": "immediate-months",
+      "linked_activities": ["A004", "A009"],
+      "keywords": ["emissions", "atmospheric", "deposition", "air pollution"]
+    },
+    {
+      "id": "P019",
+      "name": "Entanglement and ghost fishing",
+      "category": "Physical",
+      "description": "Marine life caught in abandoned fishing gear",
+      "mechanism": "Lost or discarded fishing equipment",
+      "reversibility": "medium",
+      "lag_time": "immediate-years",
+      "linked_activities": ["A001"],
+      "keywords": ["entanglement", "ghost gear", "ALDFG", "fishing gear"]
+    },
+    {
+      "id": "P020",
+      "name": "Hypersaline brine discharge",
+      "category": "Chemical",
+      "description": "Release of concentrated salt solutions",
+      "mechanism": "Desalination plant operations",
+      "reversibility": "high",
+      "lag_time": "immediate-days",
+      "linked_activities": ["A019"],
+      "keywords": ["brine", "salinity", "hypersaline", "desalination"]
+    }
+  ]
+}

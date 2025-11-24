@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2025-11-24",
+  "description": "Central marine environmental problems for bowtie analysis",
+  "central_problems": [
+    {
+      "id": "CP001",
+      "name": "Marine biodiversity loss",
+      "category": "Ecosystem",
+      "description": "Reduction in variety and abundance of marine species and habitats",
+      "severity": "critical",
+      "spatial_scale": ["local", "regional", "global"],
+      "temporal_scale": "long-term",
+      "keywords": ["biodiversity", "species loss", "habitat degradation", "extinction"]
+    },
+    {
+      "id": "CP002",
+      "name": "Ocean pollution",
+      "category": "Chemical",
+      "description": "Introduction of harmful substances into marine environment",
+      "severity": "high",
+      "spatial_scale": ["local", "regional", "global"],
+      "temporal_scale": "medium-long-term",
+      "keywords": ["pollution", "contamination", "toxins", "chemicals"]
+    },
+    {
+      "id": "CP003",
+      "name": "Overfishing and stock depletion",
+      "category": "Resource",
+      "description": "Unsustainable extraction of fish stocks beyond recovery capacity",
+      "severity": "high",
+      "spatial_scale": ["regional", "global"],
+      "temporal_scale": "medium-long-term",
+      "keywords": ["overfishing", "stock collapse", "fisheries", "depletion"]
+    },
+    {
+      "id": "CP004",
+      "name": "Coastal habitat destruction",
+      "category": "Physical",
+      "description": "Loss or degradation of critical coastal ecosystems",
+      "severity": "high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "medium-long-term",
+      "keywords": ["habitat loss", "coastal", "wetlands", "mangroves", "seagrass"]
+    },
+    {
+      "id": "CP005",
+      "name": "Ocean acidification",
+      "category": "Chemical",
+      "description": "Decrease in ocean pH due to CO2 absorption",
+      "severity": "critical",
+      "spatial_scale": ["global"],
+      "temporal_scale": "long-term",
+      "keywords": ["acidification", "pH", "carbon", "climate change"]
+    },
+    {
+      "id": "CP006",
+      "name": "Marine plastic pollution",
+      "category": "Physical",
+      "description": "Accumulation of plastic debris in marine environments",
+      "severity": "high",
+      "spatial_scale": ["local", "regional", "global"],
+      "temporal_scale": "long-term",
+      "keywords": ["plastic", "microplastics", "debris", "waste"]
+    },
+    {
+      "id": "CP007",
+      "name": "Nutrient pollution and eutrophication",
+      "category": "Chemical",
+      "description": "Excessive nutrient loading causing algal blooms and oxygen depletion",
+      "severity": "high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "medium-term",
+      "keywords": ["nutrients", "eutrophication", "algal bloom", "hypoxia"]
+    },
+    {
+      "id": "CP008",
+      "name": "Oil spill contamination",
+      "category": "Chemical",
+      "description": "Release of petroleum hydrocarbons into marine environment",
+      "severity": "high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "short-medium-term",
+      "keywords": ["oil", "spill", "petroleum", "hydrocarbons"]
+    },
+    {
+      "id": "CP009",
+      "name": "Invasive species establishment",
+      "category": "Biological",
+      "description": "Introduction and spread of non-native species disrupting ecosystems",
+      "severity": "medium-high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "long-term",
+      "keywords": ["invasive", "alien species", "bioinvasion", "non-native"]
+    },
+    {
+      "id": "CP010",
+      "name": "Coral reef degradation",
+      "category": "Ecosystem",
+      "description": "Decline in coral health and reef structure",
+      "severity": "critical",
+      "spatial_scale": ["local", "regional", "global"],
+      "temporal_scale": "medium-long-term",
+      "keywords": ["coral", "reef", "bleaching", "degradation"]
+    },
+    {
+      "id": "CP011",
+      "name": "Marine noise pollution",
+      "category": "Physical",
+      "description": "Excessive anthropogenic underwater sound affecting marine life",
+      "severity": "medium",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "continuous",
+      "keywords": ["noise", "acoustic", "sonar", "shipping"]
+    },
+    {
+      "id": "CP012",
+      "name": "Deep-sea mining impacts",
+      "category": "Physical",
+      "description": "Disturbance to deep-sea ecosystems from mineral extraction",
+      "severity": "high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "long-term",
+      "keywords": ["mining", "deep-sea", "extraction", "seabed"]
+    },
+    {
+      "id": "CP013",
+      "name": "Harmful algal blooms",
+      "category": "Biological",
+      "description": "Proliferation of toxic phytoplankton affecting marine life and human health",
+      "severity": "medium-high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "seasonal-episodic",
+      "keywords": ["HAB", "algal bloom", "red tide", "toxins"]
+    },
+    {
+      "id": "CP014",
+      "name": "Ghost fishing gear impacts",
+      "category": "Physical",
+      "description": "Abandoned fishing gear continuing to catch and kill marine life",
+      "severity": "medium-high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "long-term",
+      "keywords": ["ghost gear", "ALDFG", "fishing nets", "bycatch"]
+    },
+    {
+      "id": "CP015",
+      "name": "Coastal erosion and sediment loss",
+      "category": "Physical",
+      "description": "Loss of coastal land and sediment due to natural and human factors",
+      "severity": "medium-high",
+      "spatial_scale": ["local", "regional"],
+      "temporal_scale": "long-term",
+      "keywords": ["erosion", "sediment", "coastal", "shoreline"]
+    }
+  ]
+}

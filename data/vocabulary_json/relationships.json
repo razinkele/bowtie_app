@@ -1,0 +1,226 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2025-11-24",
+  "description": "Logical relationships between bowtie components for intelligent suggestions",
+
+  "bowtie_relationships": [
+    {
+      "central_problem_id": "CP001",
+      "central_problem_name": "Marine biodiversity loss",
+      "relevant_activities": ["A001", "A002", "A003", "A004", "A005", "A006", "A007", "A011", "A013", "A018"],
+      "relevant_pressures": ["P001", "P002", "P003", "P004", "P005", "P006", "P008", "P009", "P011", "P012"],
+      "likely_consequences": ["CONS001", "CONS002", "CONS003", "CONS012", "CONS013", "CONS016", "CONS022", "CONS023", "CONS024", "CONS025"],
+      "recommended_preventive_controls": ["PREV001", "PREV002", "PREV003", "PREV004", "PREV006", "PREV009", "PREV011", "PREV014", "PREV015"],
+      "recommended_mitigation_controls": ["MIT001", "MIT002", "MIT005", "MIT010", "MIT011", "MIT015", "MIT019", "MIT020"],
+      "escalation_factors": ["ESC001", "ESC003", "ESC004", "ESC007", "ESC008", "ESC010", "ESC013", "ESC014", "ESC016", "ESC018"],
+      "pathway_strength": "high"
+    },
+    {
+      "central_problem_id": "CP002",
+      "central_problem_name": "Ocean pollution",
+      "relevant_activities": ["A004", "A005", "A007", "A008", "A009", "A010"],
+      "relevant_pressures": ["P004", "P005", "P006", "P007", "P018"],
+      "likely_consequences": ["CONS006", "CONS007", "CONS010", "CONS011", "CONS018"],
+      "recommended_preventive_controls": ["PREV004", "PREV005", "PREV006", "PREV007", "PREV010", "PREV012", "PREV013"],
+      "recommended_mitigation_controls": ["MIT003", "MIT004", "MIT006", "MIT007", "MIT016"],
+      "escalation_factors": ["ESC001", "ESC005", "ESC007", "ESC008", "ESC009", "ESC016"],
+      "pathway_strength": "high"
+    },
+    {
+      "central_problem_id": "CP003",
+      "central_problem_name": "Overfishing and stock depletion",
+      "relevant_activities": ["A001", "A002"],
+      "relevant_pressures": ["P001", "P002", "P019"],
+      "likely_consequences": ["CONS003", "CONS004", "CONS016", "CONS017", "CONS023"],
+      "recommended_preventive_controls": ["PREV001", "PREV002", "PREV003", "PREV016"],
+      "recommended_mitigation_controls": ["MIT002", "MIT008", "MIT012"],
+      "escalation_factors": ["ESC005", "ESC008", "ESC011", "ESC012", "ESC018", "ESC019"],
+      "pathway_strength": "very_high"
+    },
+    {
+      "central_problem_id": "CP004",
+      "central_problem_name": "Coastal habitat destruction",
+      "relevant_activities": ["A001", "A006", "A011", "A012", "A020"],
+      "relevant_pressures": ["P003", "P010", "P017"],
+      "likely_consequences": ["CONS002", "CONS005", "CONS012", "CONS014", "CONS019", "CONS021"],
+      "recommended_preventive_controls": ["PREV003", "PREV011", "PREV013", "PREV017", "PREV019"],
+      "recommended_mitigation_controls": ["MIT001", "MIT011", "MIT014", "MIT015"],
+      "escalation_factors": ["ESC001", "ESC002", "ESC007", "ESC013"],
+      "pathway_strength": "high"
+    },
+    {
+      "central_problem_id": "CP005",
+      "central_problem_name": "Ocean acidification",
+      "relevant_activities": ["A018"],
+      "relevant_pressures": ["P012"],
+      "likely_consequences": ["CONS001", "CONS009", "CONS022", "CONS023", "CONS025"],
+      "recommended_preventive_controls": ["PREV014"],
+      "recommended_mitigation_controls": ["MIT001", "MIT002", "MIT010", "MIT019", "MIT020"],
+      "escalation_factors": ["ESC003", "ESC004", "ESC010", "ESC014", "ESC019"],
+      "pathway_strength": "very_high"
+    },
+    {
+      "central_problem_id": "CP006",
+      "central_problem_name": "Marine plastic pollution",
+      "relevant_activities": ["A010", "A004", "A012"],
+      "relevant_pressures": ["P007"],
+      "likely_consequences": ["CONS006", "CONS018", "CONS020"],
+      "recommended_preventive_controls": ["PREV006", "PREV007", "PREV016"],
+      "recommended_mitigation_controls": ["MIT003", "MIT013"],
+      "escalation_factors": ["ESC001", "ESC007", "ESC008", "ESC016", "ESC020"],
+      "pathway_strength": "high"
+    },
+    {
+      "central_problem_id": "CP007",
+      "central_problem_name": "Nutrient pollution and eutrophication",
+      "relevant_activities": ["A007", "A008", "A003"],
+      "relevant_pressures": ["P004", "P013"],
+      "likely_consequences": ["CONS006", "CONS010", "CONS013", "CONS015"],
+      "recommended_preventive_controls": ["PREV004", "PREV012", "PREV013", "PREV015"],
+      "recommended_mitigation_controls": ["MIT007", "MIT016", "MIT017"],
+      "escalation_factors": ["ESC001", "ESC003", "ESC004", "ESC007", "ESC015"],
+      "pathway_strength": "high"
+    },
+    {
+      "central_problem_id": "CP008",
+      "central_problem_name": "Oil spill contamination",
+      "relevant_activities": ["A005", "A004"],
+      "relevant_pressures": ["P006"],
+      "likely_consequences": ["CONS006", "CONS007", "CONS008", "CONS013", "CONS018"],
+      "recommended_preventive_controls": ["PREV010"],
+      "recommended_mitigation_controls": ["MIT004", "MIT006", "MIT007", "MIT013", "MIT018"],
+      "escalation_factors": ["ESC001", "ESC009", "ESC016"],
+      "pathway_strength": "medium-high"
+    },
+    {
+      "central_problem_id": "CP009",
+      "central_problem_name": "Invasive species establishment",
+      "relevant_activities": ["A015", "A004", "A003"],
+      "relevant_pressures": ["P009", "P014"],
+      "likely_consequences": ["CONS024", "CONS003", "CONS015"],
+      "recommended_preventive_controls": ["PREV009", "PREV015"],
+      "recommended_mitigation_controls": ["MIT009", "MIT017"],
+      "escalation_factors": ["ESC003", "ESC004", "ESC010", "ESC012", "ESC014", "ESC016"],
+      "pathway_strength": "medium-high"
+    },
+    {
+      "central_problem_id": "CP010",
+      "central_problem_name": "Coral reef degradation",
+      "relevant_activities": ["A001", "A003", "A007", "A012", "A018"],
+      "relevant_pressures": ["P001", "P003", "P004", "P005", "P011", "P012"],
+      "likely_consequences": ["CONS001", "CONS009", "CONS012", "CONS022", "CONS025"],
+      "recommended_preventive_controls": ["PREV001", "PREV003", "PREV004", "PREV012", "PREV014", "PREV015"],
+      "recommended_mitigation_controls": ["MIT001", "MIT010", "MIT019", "MIT020"],
+      "escalation_factors": ["ESC003", "ESC004", "ESC010", "ESC014", "ESC017"],
+      "pathway_strength": "very_high"
+    },
+    {
+      "central_problem_id": "CP011",
+      "central_problem_name": "Marine noise pollution",
+      "relevant_activities": ["A004", "A016", "A017", "A006", "A014"],
+      "relevant_pressures": ["P008"],
+      "likely_consequences": ["CONS013", "CONS020", "CONS023"],
+      "recommended_preventive_controls": ["PREV008", "PREV018"],
+      "recommended_mitigation_controls": ["MIT013", "MIT019"],
+      "escalation_factors": ["ESC006", "ESC008", "ESC016"],
+      "pathway_strength": "medium"
+    },
+    {
+      "central_problem_id": "CP012",
+      "central_problem_name": "Deep-sea mining impacts",
+      "relevant_activities": ["A013"],
+      "relevant_pressures": ["P003", "P010"],
+      "likely_consequences": ["CONS001", "CONS002", "CONS012", "CONS025"],
+      "recommended_preventive_controls": ["PREV003", "PREV011"],
+      "recommended_mitigation_controls": ["MIT001", "MIT019", "MIT020"],
+      "escalation_factors": ["ESC005", "ESC008", "ESC014", "ESC019"],
+      "pathway_strength": "high"
+    },
+    {
+      "central_problem_id": "CP013",
+      "central_problem_name": "Harmful algal blooms",
+      "relevant_activities": ["A007", "A008", "A003", "A018"],
+      "relevant_pressures": ["P004", "P011", "P013"],
+      "likely_consequences": ["CONS006", "CONS007", "CONS008", "CONS010", "CONS015"],
+      "recommended_preventive_controls": ["PREV004", "PREV012", "PREV013", "PREV014", "PREV015"],
+      "recommended_mitigation_controls": ["MIT006", "MIT007", "MIT016", "MIT017"],
+      "escalation_factors": ["ESC001", "ESC003", "ESC004", "ESC007", "ESC010", "ESC015"],
+      "pathway_strength": "high"
+    },
+    {
+      "central_problem_id": "CP014",
+      "central_problem_name": "Ghost fishing gear impacts",
+      "relevant_activities": ["A001"],
+      "relevant_pressures": ["P019"],
+      "likely_consequences": ["CONS020", "CONS001"],
+      "recommended_preventive_controls": ["PREV016"],
+      "recommended_mitigation_controls": ["MIT003", "MIT013"],
+      "escalation_factors": ["ESC001", "ESC008", "ESC011"],
+      "pathway_strength": "medium"
+    },
+    {
+      "central_problem_id": "CP015",
+      "central_problem_name": "Coastal erosion and sediment loss",
+      "relevant_activities": ["A006", "A011", "A020"],
+      "relevant_pressures": ["P003", "P010", "P017"],
+      "likely_consequences": ["CONS005", "CONS012", "CONS021"],
+      "recommended_preventive_controls": ["PREV011", "PREV013", "PREV017", "PREV019"],
+      "recommended_mitigation_controls": ["MIT001", "MIT014", "MIT15"],
+      "escalation_factors": ["ESC001", "ESC002", "ESC007", "ESC013"],
+      "pathway_strength": "high"
+    }
+  ],
+
+  "pathway_templates": [
+    {
+      "template_id": "TEMP001",
+      "name": "Pollution pathway",
+      "description": "Generic pollution pathway from land-based sources",
+      "activity_categories": ["Land-based"],
+      "pressure_categories": ["Chemical"],
+      "consequence_categories": ["Environmental", "Social"],
+      "control_types": ["Regulatory", "Technical"],
+      "common_escalations": ["ESC001", "ESC005", "ESC007", "ESC008"]
+    },
+    {
+      "template_id": "TEMP002",
+      "name": "Overe exploitation pathway",
+      "description": "Resource extraction beyond sustainable levels",
+      "activity_categories": ["Extractive"],
+      "pressure_categories": ["Biological"],
+      "consequence_categories": ["Ecological", "Economic"],
+      "control_types": ["Regulatory", "Spatial management"],
+      "common_escalations": ["ESC005", "ESC008", "ESC011", "ESC012", "ESC18"]
+    },
+    {
+      "template_id": "TEMP003",
+      "name": "Climate change pathway",
+      "description": "Global climate impacts on marine systems",
+      "activity_categories": ["Global"],
+      "pressure_categories": ["Physical", "Chemical"],
+      "consequence_categories": ["Ecological", "Ecosystem services"],
+      "control_types": ["Mitigation", "Nature-based solutions"],
+      "common_escalations": ["ESC003", "ESC004", "ESC010", "ESC014"]
+    },
+    {
+      "template_id": "TEMP004",
+      "name": "Physical habitat alteration pathway",
+      "description": "Direct modification of marine habitats",
+      "activity_categories": ["Infrastructure", "Physical modification"],
+      "pressure_categories": ["Physical"],
+      "consequence_categories": ["Ecological"],
+      "control_types": ["Spatial management", "Technical"],
+      "common_escalations": ["ESC001", "ESC002", "ESC007", "ESC013"]
+    }
+  ],
+
+  "confidence_scores": {
+    "description": "Confidence levels for relationship strength",
+    "very_high": 0.9,
+    "high": 0.75,
+    "medium-high": 0.65,
+    "medium": 0.5,
+    "low-medium": 0.35,
+    "low": 0.2
+  }
+}
