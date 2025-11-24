@@ -278,8 +278,19 @@ For production deployment on shiny-server or Docker, see the **[deployment](./de
 ### Basic Usage
 
 1. **Start the application**:
+
+   **Option A: Standard Launcher (Local Development)**
    ```r
-   source("app.R")
+   Rscript app.R
+   # Local access only at http://localhost:3838
+   # Suitable for RStudio "Run App" button
+   ```
+
+   **Option B: Network-Ready Launcher (Recommended)**
+   ```r
+   Rscript start_app.R
+   # Network access enabled at http://0.0.0.0:3838
+   # Automatically displays local IP and access URLs
    ```
 
 2. **Load or generate data**:
@@ -428,11 +439,17 @@ The vocabulary system supports multi-level hierarchies:
 
 The application follows a **modular architecture** with separate files for different concerns:
 
-#### `app.R` - Application Launcher
-- **Lightweight Entry Point**: Main application launcher
+#### `app.R` - Standard Application Launcher
+- **Standard Shiny Launcher**: Main application launcher for local development
 - **Module Loading**: Sources global.R, ui.R, and server.R
-- **Startup Configuration**: Application initialization and messages
+- **RStudio Compatible**: Works with "Run App" button
 - **Shiny Entry Point**: `shinyApp(ui = ui, server = server)` (line 27)
+
+#### `start_app.R` - Network-Ready Launcher
+- **Production Launcher**: Network-enabled application launcher
+- **Configuration-Driven**: Reads host/port from config.R (default 0.0.0.0:3838)
+- **Network Access**: Enables deployment across local network
+- **Enhanced Logging**: Displays connection URLs and local IP address
 
 #### `global.R` - Global Configuration
 - **Package Management**: Automatic installation and loading of dependencies

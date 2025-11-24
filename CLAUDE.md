@@ -12,24 +12,28 @@ This is an R Shiny web application for Environmental Bowtie Risk Analysis with B
 
 ## Running the Application
 
-### Local Development
+The application supports two launcher methods:
+
+### Method 1: Standard Launcher (app.R)
 ```r
 # In R console or RStudio
-source("app.R")
-# The app will launch automatically via shinyApp() call at the end of app.R
+Rscript app.R
+# Local access only, suitable for development
+# Automatically sources global.R, ui.R, server.R
 ```
 
-### Network/Online Deployment (Recommended)
+### Method 2: Network-Ready Launcher (start_app.R) - Recommended
 ```r
 # Use the optimized start script for network access
 Rscript start_app.R
-# App will be accessible at http://0.0.0.0:3838 for network users
+# Reads configuration from config.R (port 3838, host 0.0.0.0)
+# App will be accessible across your network
 ```
 
 ### Access Links
 - **Local machine**: http://localhost:3838
 - **Network access**: http://[YOUR_IP]:3838 (replace [YOUR_IP] with actual IP address)
-- **Current deployment**: http://192.168.1.8:3838 (example network access)
+- Both launchers now use port 3838 by default (configured in config.R)
 
 The application requires these R packages to be installed:
 - shiny, bslib, DT, readxl, openxlsx
@@ -43,11 +47,17 @@ Missing packages are automatically installed when the application starts.
 
 The application follows a modular Shiny architecture with separate files for different concerns:
 
-### `app.r` (Application Launcher)
-- Lightweight launcher that loads all required modules
+### `app.R` (Standard Application Launcher)
+- Standard Shiny application launcher (local development)
 - Sources global.R, ui.R, and server.R files
 - Entry point: `shinyApp(ui = ui, server = server)` at line 27
-- Contains startup messages and module loading sequence
+- Suitable for RStudio "Run App" button and local development
+
+### `start_app.R` (Network-Ready Launcher)
+- Enhanced launcher for network deployment
+- Reads configuration from config.R for host/port settings
+- Default: port 3838, host 0.0.0.0 (network access enabled)
+- Displays connection URLs and current IP address
 
 ### `global.R` (Global Configuration)
 - Package loading and dependency management
@@ -78,7 +88,7 @@ The application follows a modular Shiny architecture with separate files for dif
 - Functions for loading activities, pressures, consequences, and controls
 - Data structure management for bowtie components
 
-### `bowtie_bayesian_network.r` (Bayesian Network Integration)
+### `bowtie_bayesian_network.R` (Bayesian Network Integration)
 - Converts bowtie diagrams to Bayesian network structures
 - Probabilistic risk modeling and inference
 - Network visualization and analysis functions

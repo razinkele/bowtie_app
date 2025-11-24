@@ -50,6 +50,7 @@ desktop.ini
 
 # Temporary files
 _ul
+nul
 *.tmp
 *.temp
 
