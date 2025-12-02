@@ -1,8 +1,9 @@
 # =============================================================================
 # Environmental Scenarios Configuration
-# Version: 5.1.0
-# Date: November 2025
+# Version: 5.3.4
+# Date: December 2025
 # Description: Centralized configuration for environmental risk scenarios
+# Updated: Added marine biodiversity loss scenario (13 total scenarios)
 # =============================================================================
 
 # Environmental scenario definitions
@@ -91,6 +92,13 @@ ENVIRONMENTAL_SCENARIOS <- list(
     icon = "ship",
     label = "Martinique: Marine tourism environmental pressures",
     description = "Analysis of environmental impacts from cruise ships, yacht anchoring, diving activities, beach recreation, and tourism infrastructure on coral reefs, seagrass beds, and coastal water quality"
+  ),
+
+  marine_biodiversity_loss = list(
+    id = "marine_biodiversity_loss",
+    icon = "fish",
+    label = "Marine biodiversity loss and ecosystem degradation",
+    description = "Comprehensive assessment of marine species decline, habitat destruction, ecosystem imbalance from multiple pressures including overfishing, pollution, climate change, invasive species, and coastal development affecting marine biodiversity and ecosystem services"
   )
 )
 

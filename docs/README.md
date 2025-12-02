@@ -1,7 +1,7 @@
 # Documentation Index
 
 **Environmental Bowtie Risk Analysis Application**
-**Version**: 5.2.0 (Advanced Framework Edition)
+**Version**: 5.3.2 (Stability & Workflow Edition)
 
 ## 📚 Documentation Overview
 
@@ -56,6 +56,13 @@ This directory contains comprehensive documentation for the Environmental Bowtie
 - **Docker Containerization**: Multi-stage builds for all environments
 - **Comprehensive Testing**: Performance regression and consistency testing
 - **Performance Monitoring**: Real-time tracking and optimization
+
+### Critical Fixes (Version 5.3.2)
+- **Workflow Navigation**: Resolved server disconnection and template issues
+- **Export Functionality**: Added Complete Workflow button and auto-completion
+- **Cross-Platform Support**: Fixed Windows IP detection crash
+- **Error Handling**: Enhanced validation and graceful error recovery
+- **Data Loading**: Fixed load progress errors with backward compatibility
 
 ### Consistency Improvements
 - **Resolved Circular Dependencies**: Clean module architecture

@@ -28,11 +28,37 @@ cat("📍 Access URLs:\n")
 cat("   Local:   http://localhost:", port, "/\n", sep = "")
 cat("   Network: http://[YOUR_IP]:", port, "/\n", sep = "")
 if (host == "0.0.0.0") {
-  # Try to get local IP
+  # Try to get local IP (cross-platform)
   ip <- tryCatch({
-    system("hostname -I 2>/dev/null | awk '{print $1}'", intern = TRUE)
-  }, error = function(e) NULL)
-  if (!is.null(ip) && length(ip) > 0 && nchar(ip) > 0) {
+    if (.Platform$OS.type == "windows") {
+      # Windows: Use ipconfig and parse output
+      ip_output <- system("ipconfig", intern = TRUE)
+      # Find IPv4 Address line
+      ip_lines <- ip_output[grepl("IPv4.*:", ip_output)]
+      if (length(ip_lines) > 0) {
+        # Extract IP from first match
+        ip_addr <- gsub(".*: ", "", ip_lines[1])
+        ip_addr <- trimws(ip_addr)
+        # Filter out loopback
+        if (!grepl("^127\\.", ip_addr)) {
+          return(ip_addr)
+        }
+      }
+      return(NULL)
+    } else {
+      # Linux/Mac: Use hostname -I
+      ip_result <- system("hostname -I 2>/dev/null | awk '{print $1}'", intern = TRUE)
+      if (length(ip_result) > 0 && nchar(ip_result[1]) > 0) {
+        return(ip_result[1])
+      }
+      return(NULL)
+    }
+  }, error = function(e) {
+    return(NULL)
+  })
+
+  # Display IP if found
+  if (!is.null(ip) && length(ip) == 1 && nchar(ip) > 0) {
     cat("   Current: http://", ip, ":", port, "/\n", sep = "")
   }
 }

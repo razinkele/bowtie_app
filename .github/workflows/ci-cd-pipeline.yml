@@ -1,10 +1,10 @@
 # =============================================================================
 # Environmental Bowtie App - Advanced CI/CD Pipeline
-# Version: 5.3.0 (Production-Ready Edition)
+# Version: 5.3.4 (Custom Entries & Manual Linking Edition)
 # Automated testing, performance monitoring, and deployment pipeline
 # =============================================================================
 
-name: 🚀 Advanced CI/CD Pipeline
+name: 🚀 Advanced CI/CD Pipeline v5.3.4
 
 on:
   push:
@@ -119,9 +119,35 @@ jobs:
         sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libssl-dev
         Rscript -e "install.packages(c('testthat', 'shiny', 'DT', 'readxl', 'openxlsx', 'ggplot2', 'plotly', 'dplyr', 'visNetwork', 'shinycssloaders', 'colourpicker', 'htmlwidgets', 'shinyjs', 'bslib', 'microbenchmark'))"
 
-    - name: 🧪 Run Test Suite
+    - name: 🧪 Run Test Suite (v5.3.4)
       run: |
         Rscript tests/comprehensive_test_runner.R
+
+    - name: ✏️ Test Custom Entries Feature
+      run: |
+        Rscript -e "
+        library(testthat)
+        # Test custom entries feature
+        test_results <- test_file('tests/testthat/test-custom-entries-v5.3.4.R',
+                                   reporter = 'summary')
+        if (any(test_results[['failed']] > 0)) {
+          stop('Custom entries tests failed')
+        }
+        cat('✅ Custom entries feature validated\n')
+        "
+
+    - name: 🔗 Test Manual Linking Feature
+      run: |
+        Rscript -e "
+        library(testthat)
+        # Test manual linking feature
+        test_results <- test_file('tests/testthat/test-manual-linking-v5.3.4.R',
+                                   reporter = 'summary')
+        if (any(test_results[['failed']] > 0)) {
+          stop('Manual linking tests failed')
+        }
+        cat('✅ Manual linking feature validated\n')
+        "
 
     - name: 📊 Generate Test Coverage Report
       run: |
@@ -286,16 +312,23 @@ jobs:
         cp README.md CLAUDE.md deployment_package/ 2>/dev/null || true
 
         # Create deployment info
-        echo "Deployment Package - Version 5.3.0" > deployment_package/DEPLOYMENT_INFO.txt
+        echo "Deployment Package - Version 5.3.4" > deployment_package/DEPLOYMENT_INFO.txt
         echo "Built on: $(date)" >> deployment_package/DEPLOYMENT_INFO.txt
         echo "Git commit: ${{ github.sha }}" >> deployment_package/DEPLOYMENT_INFO.txt
         echo "Branch: ${{ github.ref_name }}" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "=== New Features in v5.3.4 ===" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "✅ Custom Entries: Users can add custom activities, pressures, controls" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "✅ Manual Linking: Precise Activity → Pressure connection creation" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "✅ Category Filtering: Only selectable items shown in dropdowns" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "✅ Delete Functionality: All 6 data tables have delete buttons" >> deployment_package/DEPLOYMENT_INFO.txt
+        echo "✅ Data Persistence: Enhanced state management" >> deployment_package/DEPLOYMENT_INFO.txt
 
         # Create deployment script
         cat > deployment_package/deploy.sh << 'EOF'
         #!/bin/bash
         echo "🚀 Deploying Environmental Bowtie Risk Analysis Application"
-        echo "Version: 5.3.0 (Production-Ready Edition)"
+        echo "Version: 5.3.4 (Custom Entries & Manual Linking Edition)"
 
         # Install R dependencies
         Rscript -e "
@@ -322,8 +355,46 @@ jobs:
     - name: 📤 Upload Deployment Package
       uses: actions/upload-artifact@v3
       with:
-        name: deployment-package-v5.3
+        name: deployment-package-v5.3.4
         path: deployment_package/
+
+    - name: 🔍 Validate v5.3.4 Features
+      run: |
+        echo "🔍 Validating v5.3.4 features in deployment package..."
+
+        # Check custom entries feature
+        if grep -q "create = TRUE" guided_workflow.R; then
+          echo "✅ Custom entries feature present"
+        else
+          echo "❌ Custom entries feature not found"
+          exit 1
+        fi
+
+        # Check manual linking feature
+        if grep -q "link_activity" guided_workflow.R; then
+          echo "✅ Manual linking feature present"
+        else
+          echo "❌ Manual linking feature not found"
+          exit 1
+        fi
+
+        # Check delete functionality
+        if grep -q "delete_activity" guided_workflow.R; then
+          echo "✅ Delete functionality present"
+        else
+          echo "❌ Delete functionality not found"
+          exit 1
+        fi
+
+        # Check version
+        if grep -q 'VERSION = "5.3.4"' config.R; then
+          echo "✅ Version 5.3.4 verified"
+        else
+          echo "❌ Version mismatch"
+          exit 1
+        fi
+
+        echo "✅ All v5.3.4 features validated successfully"
 
     - name: 📋 Deployment Summary
       run: |

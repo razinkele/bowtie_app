@@ -46,7 +46,10 @@
       "Bash(move VERSIONING_SYSTEM_IMPLEMENTATION.md docs )",
       "Bash(move:*)",
       "Bash(test:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "WebSearch",
+      "WebFetch(domain:shiny.posit.co)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,6 @@
-# comprehensive_test_runner.R (Version 5.2 - Advanced Framework)
+# comprehensive_test_runner.R (Version 5.3.4 - Advanced Framework)
 # Enhanced test runner with parallel execution, performance monitoring, and advanced reporting
-# Version 5.2 Features: Parallel testing, memory monitoring, performance benchmarking, CI/CD integration, advanced analytics
+# Version 5.3.4 Features: Custom entries testing, manual linking testing, parallel testing, memory monitoring, performance benchmarking, CI/CD integration, advanced analytics
 
 suppressWarnings(suppressMessages({
   library(testthat)
@@ -22,8 +22,8 @@ if (basename(current_dir) == "tests") {
 }
 
 cat("========================================\n")
-cat("Environmental Bowtie App Test Runner v5.2\n")
-cat("Enhanced with parallel execution, monitoring & CI/CD integration\n")
+cat("Environmental Bowtie App Test Runner v5.3.4\n")
+cat("Enhanced with custom entries, manual linking, workflow fixes & CI/CD integration\n")
 cat("========================================\n\n")
 
 cat("Working directory:", getwd(), "\n")
@@ -38,6 +38,10 @@ test_config <- list(
   run_icon_standardization = TRUE,  # NEW: Test icon usage
   run_circular_dependency = TRUE,  # NEW: Test import logic
   run_performance_regression = TRUE,  # NEW: Performance monitoring
+  run_workflow_fixes = TRUE,  # NEW v5.3.2: Test workflow navigation & templates
+  run_export_fixes = TRUE,  # NEW v5.3.2: Test export & completion
+  run_custom_entries = TRUE,  # NEW v5.3.4: Test custom entries feature
+  run_manual_linking = TRUE,  # NEW v5.3.4: Test manual linking feature
   skip_problematic_tests = TRUE,  # Skip tests causing segfaults
   parallel_execution = TRUE,  # NEW: Enable parallel testing
   memory_profiling = TRUE,  # NEW: Memory usage monitoring
@@ -324,6 +328,57 @@ if (test_config$run_preventive_controls && file.exists("tests/testthat/test-prev
 
   if (!is.null(specific_result)) {
     all_results$specific_tests <- specific_result
+  }
+}
+
+# NEW v5.3.2: Run workflow fixes tests
+if (test_config$run_workflow_fixes && file.exists("tests/testthat/test-workflow-fixes.R")) {
+  cat("\n=== RUNNING WORKFLOW FIXES TESTS (v5.3.2) ===\n")
+  cat("Testing: Templates, Navigation, Validation, Export, Load Progress\n")
+  workflow_result <- tryCatch({
+    test_file("tests/testthat/test-workflow-fixes.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running workflow fixes tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(workflow_result)) {
+    all_results$workflow_fixes <- workflow_result
+    cat("✅ Workflow fixes tests completed\n")
+  }
+}
+
+# NEW v5.3.4: Run custom entries tests
+if (test_config$run_custom_entries && file.exists("tests/testthat/test-custom-entries-v5.3.4.R")) {
+  cat("\n=== RUNNING CUSTOM ENTRIES TESTS (v5.3.4) ===\n")
+  cat("Testing: Custom entry validation, labeling, detection, export, persistence\n")
+  custom_entries_result <- tryCatch({
+    test_file("tests/testthat/test-custom-entries-v5.3.4.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running custom entries tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(custom_entries_result)) {
+    all_results$custom_entries <- custom_entries_result
+    cat("✅ Custom entries tests completed\n")
+  }
+}
+
+# NEW v5.3.4: Run manual linking tests
+if (test_config$run_manual_linking && file.exists("tests/testthat/test-manual-linking-v5.3.4.R")) {
+  cat("\n=== RUNNING MANUAL LINKING TESTS (v5.3.4) ===\n")
+  cat("Testing: Link creation, duplicate prevention, validation, custom entries, persistence\n")
+  manual_linking_result <- tryCatch({
+    test_file("tests/testthat/test-manual-linking-v5.3.4.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running manual linking tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(manual_linking_result)) {
+    all_results$manual_linking <- manual_linking_result
+    cat("✅ Manual linking tests completed\n")
   }
 }
 

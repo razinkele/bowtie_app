@@ -220,36 +220,6 @@ WORKFLOW_CONFIG <- list(
       example_pressures = c("Stock depletion", "Bycatch mortality", "Habitat destruction"),
       category = "Fisheries Management"
     ),
-    climate_impact = list(
-      name = "Climate Change Impact",
-      project_name = "Climate Change Ecosystem Impact Assessment",
-      project_location = "Regional / Global",
-      project_type = "climate",
-      project_description = "Comprehensive assessment of ecosystem disruption from climate change including temperature rise, sea level changes, and extreme weather events.",
-      central_problem = "Ecosystem disruption from climate change",
-      problem_category = "climate_impacts",
-      problem_details = "Comprehensive analysis of temperature increases, sea level rise, extreme weather events, ocean acidification, and altered precipitation patterns from greenhouse gas emissions affecting ecosystems, biodiversity, and human communities globally.",
-      problem_scale = "global",
-      problem_urgency = "critical",
-      example_activities = c("Greenhouse gas emissions", "Land use change", "Energy production"),
-      example_pressures = c("Temperature increase", "Sea level rise", "Extreme weather"),
-      category = "Climate & Weather"
-    ),
-    biodiversity_loss = list(
-      name = "Biodiversity Loss Assessment",
-      project_name = "Biodiversity Decline Risk Assessment",
-      project_location = "Ecosystem / Protected Area",
-      project_type = "terrestrial",
-      project_description = "Assessment of species population decline and biodiversity loss from habitat destruction, invasive species, and overexploitation of natural resources.",
-      central_problem = "Species population decline and habitat loss",
-      problem_category = "habitat_loss",
-      problem_details = "Evaluation of habitat fragmentation, species competition from invasive species, overharvesting of wildlife, ecosystem degradation, and loss of genetic diversity from deforestation, urbanization, and unsustainable resource extraction threatening biodiversity.",
-      problem_scale = "national",
-      problem_urgency = "high",
-      example_activities = c("Habitat destruction", "Invasive species", "Overexploitation"),
-      example_pressures = c("Habitat fragmentation", "Species competition", "Overharvesting"),
-      category = "Biodiversity"
-    ),
     martinique_coastal_erosion = list(
       name = "Martinique Coastal Erosion",
       project_name = "Martinique Coastal Erosion and Beach Degradation Assessment",
@@ -354,6 +324,21 @@ WORKFLOW_CONFIG <- list(
       example_activities = c("Cruise ship operations", "Yacht anchoring", "Diving tourism"),
       example_pressures = c("Anchor damage", "Water pollution", "Reef trampling"),
       category = "Tourism Management"
+    ),
+    marine_biodiversity_loss = list(
+      name = "Marine Biodiversity Loss",
+      project_name = "Marine Biodiversity Loss and Ecosystem Degradation Assessment",
+      project_location = "Coastal and Marine Ecosystems",
+      project_type = "marine",
+      project_description = "Comprehensive assessment of marine species decline, habitat destruction, and ecosystem imbalance from multiple pressures including overfishing, pollution, climate change, invasive species, and coastal development.",
+      central_problem = "Marine biodiversity loss and ecosystem degradation",
+      problem_category = "habitat_loss",
+      problem_details = "Analysis of declining marine species populations, loss of critical habitats (coral reefs, seagrass beds, mangroves), ecosystem function deterioration from overfishing, pollution runoff, coastal development, climate change impacts (warming, acidification), invasive species introductions, and cumulative anthropogenic pressures threatening marine biodiversity and ecosystem services.",
+      problem_scale = "global",
+      problem_urgency = "critical",
+      example_activities = c("Overfishing", "Coastal development", "Pollution discharge"),
+      example_pressures = c("Habitat destruction", "Species decline", "Ecosystem imbalance"),
+      category = "Marine Conservation"
     )
   )
 )
@@ -756,21 +741,31 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              fluidRow(
                column(8, {
                  # Prepare activity choices from vocabulary data
+                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
                  activity_choices <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-                   activity_choices <- vocabulary_data$activities$name
+                   # Only include Level 2 and above (exclude category headers)
+                   if ("level" %in% names(vocabulary_data$activities)) {
+                     activity_choices <- vocabulary_data$activities %>%
+                       filter(level > 1) %>%
+                       pull(name)
+                   } else {
+                     # Fallback if level column doesn't exist
+                     activity_choices <- vocabulary_data$activities$name
+                   }
                  }
 
                  selectizeInput(ns("activity_search"), t("gw_search_activities", current_lang),
                               choices = activity_choices,  # Use vocabulary choices if available
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_activities_placeholder", current_lang),
+                                placeholder = "Search or type custom activity (min 3 chars)...",
                                 maxOptions = 100,
                                 openOnFocus = TRUE,
                                 selectOnTab = TRUE,
                                 hideSelected = FALSE,
-                                create = FALSE
+                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
+                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
                               ))
                }),
                column(4,
@@ -797,21 +792,31 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              fluidRow(
                column(8, {
                  # Prepare pressure choices from vocabulary data
+                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
                  pressure_choices <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-                   pressure_choices <- vocabulary_data$pressures$name
+                   # Only include Level 2 and above (exclude category headers)
+                   if ("level" %in% names(vocabulary_data$pressures)) {
+                     pressure_choices <- vocabulary_data$pressures %>%
+                       filter(level > 1) %>%
+                       pull(name)
+                   } else {
+                     # Fallback if level column doesn't exist
+                     pressure_choices <- vocabulary_data$pressures$name
+                   }
                  }
 
                  selectizeInput(ns("pressure_search"), t("gw_search_pressures", current_lang),
                               choices = pressure_choices,  # Use vocabulary choices if available
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_pressures_placeholder", current_lang),
+                                placeholder = "Search or type custom pressure (min 3 chars)...",
                                 maxOptions = 100,
                                 openOnFocus = TRUE,
                                 selectOnTab = TRUE,
                                 hideSelected = FALSE,
-                                create = FALSE
+                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
+                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
                               ))
                }),
                column(4,
@@ -835,6 +840,33 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
     br(),
     h4(t("gw_activity_pressure_connections_title", current_lang)),
     p(t("gw_link_activities", current_lang)),
+
+    # HIGH PRIORITY FIX (Issue #7): Manual linking interface
+    div(class = "card mb-3",
+      div(class = "card-body",
+        h5(class = "card-title", icon("link"), " Create Manual Links"),
+        p(class = "card-text", "Select an activity and pressure to create a connection:"),
+        fluidRow(
+          column(5,
+            selectInput(ns("link_activity"), "Select Activity:",
+                       choices = NULL,
+                       width = "100%")
+          ),
+          column(5,
+            selectInput(ns("link_pressure"), "Select Pressure:",
+                       choices = NULL,
+                       width = "100%")
+          ),
+          column(2,
+            br(),
+            actionButton(ns("create_link"), "Create Link",
+                        icon = icon("plus"),
+                        class = "btn-primary btn-sm w-100")
+          )
+        )
+      )
+    ),
+
     DTOutput(ns("activity_pressure_connections"))
   )
 }
@@ -857,21 +889,31 @@ generate_step4_ui <- function(session = NULL, current_lang = "en") {
              fluidRow(
                column(8, {
                  # Prepare control choices from vocabulary data
+                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
                  control_choices <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   control_choices <- vocabulary_data$controls$name
+                   # Only include Level 2 and above (exclude category headers)
+                   if ("level" %in% names(vocabulary_data$controls)) {
+                     control_choices <- vocabulary_data$controls %>%
+                       filter(level > 1) %>%
+                       pull(name)
+                   } else {
+                     # Fallback if level column doesn't exist
+                     control_choices <- vocabulary_data$controls$name
+                   }
                  }
 
                  selectizeInput(ns("preventive_control_search"), t("gw_search_preventive_controls_label", current_lang),
                               choices = control_choices,
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_preventive_controls_placeholder", current_lang),
+                                placeholder = "Search or type custom control (min 3 chars)...",
                                 maxOptions = 100,
                                 openOnFocus = TRUE,
                                 selectOnTab = TRUE,
                                 hideSelected = FALSE,
-                                create = FALSE
+                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
+                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
                               ))
                }),
                column(4,
@@ -924,21 +966,31 @@ generate_step5_ui <- function(session = NULL, current_lang = "en") {
              fluidRow(
                column(8, {
                  # Prepare consequence choices from vocabulary data
+                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
                  consequence_choices <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-                   consequence_choices <- vocabulary_data$consequences$name
+                   # Only include Level 2 and above (exclude category headers)
+                   if ("level" %in% names(vocabulary_data$consequences)) {
+                     consequence_choices <- vocabulary_data$consequences %>%
+                       filter(level > 1) %>%
+                       pull(name)
+                   } else {
+                     # Fallback if level column doesn't exist
+                     consequence_choices <- vocabulary_data$consequences$name
+                   }
                  }
 
                  selectizeInput(ns("consequence_search"), t("gw_search_consequences_label", current_lang),
                               choices = consequence_choices,
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_consequences_placeholder", current_lang),
+                                placeholder = "Search or type custom consequence (min 3 chars)...",
                                 maxOptions = 100,
                                 openOnFocus = TRUE,
                                 selectOnTab = TRUE,
                                 hideSelected = FALSE,
-                                create = FALSE
+                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
+                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
                               ))
                }),
                column(4,
@@ -991,21 +1043,31 @@ generate_step6_ui <- function(session = NULL, current_lang = "en") {
              fluidRow(
                column(8, {
                  # Prepare protective control choices from vocabulary data
+                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
                  protective_control_choices <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   protective_control_choices <- vocabulary_data$controls$name
+                   # Only include Level 2 and above (exclude category headers)
+                   if ("level" %in% names(vocabulary_data$controls)) {
+                     protective_control_choices <- vocabulary_data$controls %>%
+                       filter(level > 1) %>%
+                       pull(name)
+                   } else {
+                     # Fallback if level column doesn't exist
+                     protective_control_choices <- vocabulary_data$controls$name
+                   }
                  }
 
                  selectizeInput(ns("protective_control_search"), t("gw_search_protective_controls_label", current_lang),
                               choices = protective_control_choices,
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_protective_controls_placeholder", current_lang),
+                                placeholder = "Search or type custom protective control (min 3 chars)...",
                                 maxOptions = 100,
                                 openOnFocus = TRUE,
                                 selectOnTab = TRUE,
                                 hideSelected = FALSE,
-                                create = FALSE
+                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
+                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
                               ))
                }),
                column(4,
@@ -1183,25 +1245,35 @@ generate_step8_ui <- function(session = NULL, current_lang = "en") {
       
       column(6,
              h4(t("gw_export_options_title", current_lang)),
-             
-             div(class = "d-grid gap-2",
-                 actionButton(ns("export_excel"), 
-                            tagList(icon("file-excel"), t("gw_export_excel", current_lang)),
-                            class = "btn-success"),
-                 
-                 actionButton(ns("export_pdf"), 
-                            tagList(icon("file-pdf"), t("gw_export_pdf", current_lang)),
-                            class = "btn-danger"),
-                 
-                 actionButton(ns("load_to_main"), 
-                            tagList(icon("arrow-right"), t("gw_load_main", current_lang)),
-                            class = "btn-primary")
+
+             # Add Complete Workflow button first
+             div(class = "mb-3",
+                 actionButton(ns("complete_workflow_btn"),
+                            tagList(icon("check-circle"), "Complete Workflow"),
+                            class = "btn-success btn-lg w-100"),
+                 tags$small(class = "text-muted", "Click this button first to finalize your bowtie analysis")
              ),
-             
+
+             hr(),
+
+             div(class = "d-grid gap-2",
+                 actionButton(ns("export_excel"),
+                            tagList(icon("file-excel"), t("gw_export_excel", current_lang)),
+                            class = "btn-outline-success"),
+
+                 actionButton(ns("export_pdf"),
+                            tagList(icon("file-pdf"), t("gw_export_pdf", current_lang)),
+                            class = "btn-outline-danger"),
+
+                 actionButton(ns("load_to_main"),
+                            tagList(icon("arrow-right"), t("gw_load_main", current_lang)),
+                            class = "btn-outline-primary")
+             ),
+
              br(),
-             div(class = "alert alert-warning",
-                 h6(t("gw_note_title", current_lang)),
-                 p(t("gw_load_note", current_lang))
+             div(class = "alert alert-info",
+                 h6(icon("info-circle"), " Note"),
+                 p("After completing the workflow, use the buttons above to export your analysis or load it into the main visualization tab.")
              )
       )
     )
@@ -1359,30 +1431,42 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Handle "Next" button click
   observeEvent(input$next_step, {
     state <- workflow_state()
-    
+
     # Validate current step before proceeding
-    validation_result <- validate_current_step(state, input)
+    validation_result <- tryCatch({
+      validate_current_step(state, input, lang())
+    }, error = function(e) {
+      cat("❌ Validation error:", e$message, "\n")
+      list(is_valid = FALSE, message = paste("Validation error:", e$message))
+    })
+
     if (!validation_result$is_valid) {
       showNotification(validation_result$message, type = "error", duration = 5)
       return()
     }
-    
+
     # Save data from current step
-    state <- save_step_data(state, input)
-    
+    state <- tryCatch({
+      save_step_data(state, input)
+    }, error = function(e) {
+      cat("❌ Error saving step data:", e$message, "\n")
+      showNotification(paste("Error saving data:", e$message), type = "error", duration = 5)
+      return(state)
+    })
+
     # Mark step as complete
     if (!state$current_step %in% state$completed_steps) {
       state$completed_steps <- c(state$completed_steps, state$current_step)
     }
-    
+
     # Move to next step
     if (state$current_step < state$total_steps) {
       state$current_step <- state$current_step + 1
     }
-    
+
     # Update progress
     state$progress_percentage <- (length(state$completed_steps) / state$total_steps) * 100
-    
+
     workflow_state(state)
   })
   
@@ -1444,23 +1528,39 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Handle "Add Activity" button
   observeEvent(input$add_activity, {
     activity_name <- input$activity_search
-    
+
     if (!is.null(activity_name) && nchar(trimws(activity_name)) > 0) {
+      # HIGH PRIORITY FIX (Issue #2): Check if custom entry and add label
+      is_custom <- FALSE
+      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
+        # Check if activity is in vocabulary
+        if (!activity_name %in% vocabulary_data$activities$name) {
+          is_custom <- TRUE
+          activity_name <- paste0(activity_name, " (Custom)")
+          cat("✏️ Added custom activity:", activity_name, "\n")
+        }
+      }
+
       # Get current list
       current <- selected_activities()
-      
+
       # Check if already added
       if (!activity_name %in% current) {
         current <- c(current, activity_name)
         selected_activities(current)
-        
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$activities <- current
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_activity", lang()), activity_name), type = "message", duration = 2)
-        
+
+        notification_msg <- if (is_custom) {
+          paste("Added custom activity:", activity_name)
+        } else {
+          paste(t("gw_added_activity", lang()), activity_name)
+        }
+        showNotification(notification_msg, type = "message", duration = 2)
+
         # Clear the search input
         updateSelectizeInput(session, "activity_search", selected = character(0))
       } else {
@@ -1468,27 +1568,65 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # CRITICAL FIX (Issue #4): Handle "Delete Activity" button
+  observeEvent(input$delete_activity, {
+    activity_to_delete <- input$delete_activity
+
+    if (!is.null(activity_to_delete) && nchar(trimws(activity_to_delete)) > 0) {
+      # Get current list
+      current <- selected_activities()
+
+      # Remove the activity
+      current <- current[current != activity_to_delete]
+      selected_activities(current)
+
+      # Update workflow state
+      state <- workflow_state()
+      state$project_data$activities <- current
+      workflow_state(state)
+
+      cat("🗑️ Deleted activity:", activity_to_delete, "\n")
+      showNotification(paste("Removed:", activity_to_delete), type = "message", duration = 2)
+    }
+  })
+
   # Handle "Add Pressure" button
   observeEvent(input$add_pressure, {
     pressure_name <- input$pressure_search
-    
+
     if (!is.null(pressure_name) && nchar(trimws(pressure_name)) > 0) {
+      # HIGH PRIORITY FIX (Issue #2): Check if custom entry and add label
+      is_custom <- FALSE
+      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures)) {
+        # Check if pressure is in vocabulary
+        if (!pressure_name %in% vocabulary_data$pressures$name) {
+          is_custom <- TRUE
+          pressure_name <- paste0(pressure_name, " (Custom)")
+          cat("✏️ Added custom pressure:", pressure_name, "\n")
+        }
+      }
+
       # Get current list
       current <- selected_pressures()
-      
+
       # Check if already added
       if (!pressure_name %in% current) {
         current <- c(current, pressure_name)
         selected_pressures(current)
-        
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$pressures <- current
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_pressure", lang()), pressure_name), type = "message", duration = 2)
-        
+
+        notification_msg <- if (is_custom) {
+          paste("Added custom pressure:", pressure_name)
+        } else {
+          paste(t("gw_added_pressure", lang()), pressure_name)
+        }
+        showNotification(notification_msg, type = "message", duration = 2)
+
         # Clear the search input
         updateSelectizeInput(session, "pressure_search", selected = character(0))
       } else {
@@ -1496,59 +1634,183 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # CRITICAL FIX (Issue #4): Handle "Delete Pressure" button
+  observeEvent(input$delete_pressure, {
+    pressure_to_delete <- input$delete_pressure
+
+    if (!is.null(pressure_to_delete) && nchar(trimws(pressure_to_delete)) > 0) {
+      # Get current list
+      current <- selected_pressures()
+
+      # Remove the pressure
+      current <- current[current != pressure_to_delete]
+      selected_pressures(current)
+
+      # Update workflow state
+      state <- workflow_state()
+      state$project_data$pressures <- current
+      workflow_state(state)
+
+      cat("🗑️ Deleted pressure:", pressure_to_delete, "\n")
+      showNotification(paste("Removed:", pressure_to_delete), type = "message", duration = 2)
+    }
+  })
+
+  # HIGH PRIORITY FIX (Issue #7): Update manual linking dropdowns
+  observe({
+    state <- workflow_state()
+    if (!is.null(state) && state$current_step == 3) {
+      activities <- selected_activities()
+      pressures <- selected_pressures()
+
+      # Update activity dropdown
+      if (length(activities) > 0) {
+        updateSelectInput(session, "link_activity",
+                         choices = c("", activities),
+                         selected = "")
+      }
+
+      # Update pressure dropdown
+      if (length(pressures) > 0) {
+        updateSelectInput(session, "link_pressure",
+                         choices = c("", pressures),
+                         selected = "")
+      }
+    }
+  })
+
+  # HIGH PRIORITY FIX (Issue #7): Handle manual link creation
+  observeEvent(input$create_link, {
+    activity <- input$link_activity
+    pressure <- input$link_pressure
+
+    if (!is.null(activity) && !is.null(pressure) &&
+        nchar(trimws(activity)) > 0 && nchar(trimws(pressure)) > 0) {
+
+      # Get current connections
+      current_connections <- activity_pressure_connections()
+
+      # Check if link already exists
+      link_exists <- FALSE
+      if (nrow(current_connections) > 0) {
+        link_exists <- any(current_connections$Activity == activity &
+                          current_connections$Pressure == pressure)
+      }
+
+      if (!link_exists) {
+        # Create new link
+        new_link <- data.frame(
+          Activity = activity,
+          Pressure = pressure,
+          stringsAsFactors = FALSE
+        )
+
+        # Add to connections
+        updated_connections <- rbind(current_connections, new_link)
+        activity_pressure_connections(updated_connections)
+
+        cat("🔗 Created manual link:", activity, "→", pressure, "\n")
+        showNotification(paste("Created link:", activity, "→", pressure),
+                        type = "message", duration = 3)
+
+        # Clear selections
+        updateSelectInput(session, "link_activity", selected = "")
+        updateSelectInput(session, "link_pressure", selected = "")
+      } else {
+        showNotification("This link already exists!", type = "warning", duration = 2)
+      }
+    } else {
+      showNotification("Please select both an activity and a pressure.", type = "warning", duration = 2)
+    }
+  })
+
   # Render selected activities table
+  # CRITICAL FIX (Issue #4): Added delete functionality
   output$selected_activities_table <- renderDT({
     activities <- selected_activities()
-    
+
     if (length(activities) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Activity = character(0), stringsAsFactors = FALSE)
+      # Return empty data frame with proper column names
+      dt_data <- data.frame(Activity = character(0), Delete = character(0), stringsAsFactors = FALSE)
     } else {
-      # Create data frame with activities
-      dt_data <- data.frame(Activity = activities, stringsAsFactors = FALSE)
+      # Create data frame with activities and delete buttons
+      dt_data <- data.frame(
+        Activity = activities,
+        Delete = sprintf(
+          '<button class="btn btn-danger btn-sm delete-activity-btn" data-value="%s" onclick="Shiny.setInputValue(\'%s\', \'%s\', {priority: \'event\'})">
+            <i class="fa fa-trash"></i>
+          </button>',
+          activities,
+          session$ns("delete_activity"),
+          activities
+        ),
+        stringsAsFactors = FALSE
+      )
     }
-    
-    # Render with DT package - explicitly use DT::datatable
+
+    # Render with DT package - escape=FALSE to allow HTML buttons
     DT::datatable(
       dt_data,
       options = list(
-        pageLength = 5,
+        pageLength = 10,
         searching = FALSE,
         lengthChange = FALSE,
         info = FALSE,
-        dom = 't'
+        dom = 't',
+        columnDefs = list(
+          list(width = '80%', targets = 0),
+          list(width = '20%', targets = 1, className = 'dt-center')
+        )
       ),
       rownames = FALSE,
       selection = 'none',
+      escape = FALSE,
       class = 'cell-border stripe'
     )
   })
   
   # Render selected pressures table
+  # CRITICAL FIX (Issue #4): Added delete functionality
   output$selected_pressures_table <- renderDT({
     pressures <- selected_pressures()
-    
+
     if (length(pressures) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Pressure = character(0), stringsAsFactors = FALSE)
+      # Return empty data frame with proper column names
+      dt_data <- data.frame(Pressure = character(0), Delete = character(0), stringsAsFactors = FALSE)
     } else {
-      # Create data frame with pressures
-      dt_data <- data.frame(Pressure = pressures, stringsAsFactors = FALSE)
+      # Create data frame with pressures and delete buttons
+      dt_data <- data.frame(
+        Pressure = pressures,
+        Delete = sprintf(
+          '<button class="btn btn-danger btn-sm delete-pressure-btn" data-value="%s" onclick="Shiny.setInputValue(\'%s\', \'%s\', {priority: \'event\'})">
+            <i class="fa fa-trash"></i>
+          </button>',
+          pressures,
+          session$ns("delete_pressure"),
+          pressures
+        ),
+        stringsAsFactors = FALSE
+      )
     }
-    
-    # Render with DT package - explicitly use DT::datatable
+
+    # Render with DT package - escape=FALSE to allow HTML buttons
     DT::datatable(
       dt_data,
       options = list(
-        pageLength = 5,
+        pageLength = 10,
         searching = FALSE,
         lengthChange = FALSE,
         info = FALSE,
-        dom = 't'
+        dom = 't',
+        columnDefs = list(
+          list(width = '80%', targets = 0),
+          list(width = '20%', targets = 1, className = 'dt-center')
+        )
       ),
       rownames = FALSE,
       selection = 'none',
+      escape = FALSE,
       class = 'cell-border stripe'
     )
   })
@@ -1636,22 +1898,38 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Handle "Add Control" button
   observeEvent(input$add_preventive_control, {
     control_name <- input$preventive_control_search
-    
+
     if (!is.null(control_name) && nchar(trimws(control_name)) > 0) {
+      # HIGH PRIORITY FIX (Issue #2): Check if custom entry and add label
+      is_custom <- FALSE
+      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
+        # Check if control is in vocabulary
+        if (!control_name %in% vocabulary_data$controls$name) {
+          is_custom <- TRUE
+          control_name <- paste0(control_name, " (Custom)")
+          cat("✏️ Added custom preventive control:", control_name, "\n")
+        }
+      }
+
       # Get current list
       current <- selected_preventive_controls()
-      
+
       # Check if already added
       if (!control_name %in% current) {
         current <- c(current, control_name)
         selected_preventive_controls(current)
-        
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$preventive_controls <- current
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_control", lang()), control_name), type = "message", duration = 2)
+
+        notification_msg <- if (is_custom) {
+          paste("Added custom preventive control:", control_name)
+        } else {
+          paste(t("gw_added_control", lang()), control_name)
+        }
+        showNotification(notification_msg, type = "message", duration = 2)
 
         # Clear the search input
         updateSelectizeInput(session, "preventive_control_search", selected = character(0))
@@ -1660,20 +1938,54 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # CRITICAL FIX (Issue #4): Handle "Delete Preventive Control" button
+  observeEvent(input$delete_preventive_control, {
+    control_to_delete <- input$delete_preventive_control
+
+    if (!is.null(control_to_delete) && nchar(trimws(control_to_delete)) > 0) {
+      # Get current list
+      current <- selected_preventive_controls()
+
+      # Remove the control
+      current <- current[current != control_to_delete]
+      selected_preventive_controls(current)
+
+      # Update workflow state
+      state <- workflow_state()
+      state$project_data$preventive_controls <- current
+      workflow_state(state)
+
+      cat("🗑️ Deleted preventive control:", control_to_delete, "\n")
+      showNotification(paste("Removed:", control_to_delete), type = "message", duration = 2)
+    }
+  })
+
   # Render selected preventive controls table
+  # CRITICAL FIX (Issue #4): Added delete functionality
   output$selected_preventive_controls_table <- renderDT({
     controls <- selected_preventive_controls()
-    
+
     if (length(controls) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Control = character(0), stringsAsFactors = FALSE)
+      # Return empty data frame with proper column names
+      dt_data <- data.frame(Control = character(0), Delete = character(0), stringsAsFactors = FALSE)
     } else {
-      # Create data frame with controls
-      dt_data <- data.frame(Control = controls, stringsAsFactors = FALSE)
+      # Create data frame with controls and delete buttons
+      dt_data <- data.frame(
+        Control = controls,
+        Delete = sprintf(
+          '<button class="btn btn-danger btn-sm delete-preventive-control-btn" data-value="%s" onclick="Shiny.setInputValue(\'%s\', \'%s\', {priority: \'event\'})">
+            <i class="fa fa-trash"></i>
+          </button>',
+          controls,
+          session$ns("delete_preventive_control"),
+          controls
+        ),
+        stringsAsFactors = FALSE
+      )
     }
-    
-    # Render with DT package - explicitly use DT::datatable
+
+    # Render with DT package - escape=FALSE to allow HTML buttons
     DT::datatable(
       dt_data,
       options = list(
@@ -1681,14 +1993,19 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         searching = FALSE,
         lengthChange = FALSE,
         info = FALSE,
-        dom = 't'
+        dom = 't',
+        columnDefs = list(
+          list(width = '80%', targets = 0),
+          list(width = '20%', targets = 1, className = 'dt-center')
+        )
       ),
       rownames = FALSE,
       selection = 'none',
+      escape = FALSE,
       class = 'cell-border stripe'
     )
   })
-  
+
   # Render preventive control links table
   output$preventive_control_links <- renderDT({
     controls <- selected_preventive_controls()
@@ -1793,22 +2110,38 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Handle "Add Consequence" button
   observeEvent(input$add_consequence, {
     consequence_name <- input$consequence_search
-    
+
     if (!is.null(consequence_name) && nchar(trimws(consequence_name)) > 0) {
+      # HIGH PRIORITY FIX (Issue #2): Check if custom entry and add label
+      is_custom <- FALSE
+      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences)) {
+        # Check if consequence is in vocabulary
+        if (!consequence_name %in% vocabulary_data$consequences$name) {
+          is_custom <- TRUE
+          consequence_name <- paste0(consequence_name, " (Custom)")
+          cat("✏️ Added custom consequence:", consequence_name, "\n")
+        }
+      }
+
       # Get current list
       current <- selected_consequences()
-      
+
       # Check if already added
       if (!consequence_name %in% current) {
         current <- c(current, consequence_name)
         selected_consequences(current)
-        
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$consequences <- current
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_consequence", lang()), consequence_name), type = "message", duration = 2)
+
+        notification_msg <- if (is_custom) {
+          paste("Added custom consequence:", consequence_name)
+        } else {
+          paste(t("gw_added_consequence", lang()), consequence_name)
+        }
+        showNotification(notification_msg, type = "message", duration = 2)
 
         # Clear the search input
         updateSelectizeInput(session, "consequence_search", selected = character(0))
@@ -1817,20 +2150,54 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # CRITICAL FIX (Issue #4): Handle "Delete Consequence" button
+  observeEvent(input$delete_consequence, {
+    consequence_to_delete <- input$delete_consequence
+
+    if (!is.null(consequence_to_delete) && nchar(trimws(consequence_to_delete)) > 0) {
+      # Get current list
+      current <- selected_consequences()
+
+      # Remove the consequence
+      current <- current[current != consequence_to_delete]
+      selected_consequences(current)
+
+      # Update workflow state
+      state <- workflow_state()
+      state$project_data$consequences <- current
+      workflow_state(state)
+
+      cat("🗑️ Deleted consequence:", consequence_to_delete, "\n")
+      showNotification(paste("Removed:", consequence_to_delete), type = "message", duration = 2)
+    }
+  })
+
   # Render selected consequences table
+  # CRITICAL FIX (Issue #4): Added delete functionality
   output$selected_consequences_table <- renderDT({
     consequences <- selected_consequences()
-    
+
     if (length(consequences) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Consequence = character(0), stringsAsFactors = FALSE)
+      # Return empty data frame with proper column names
+      dt_data <- data.frame(Consequence = character(0), Delete = character(0), stringsAsFactors = FALSE)
     } else {
-      # Create data frame with consequences
-      dt_data <- data.frame(Consequence = consequences, stringsAsFactors = FALSE)
+      # Create data frame with consequences and delete buttons
+      dt_data <- data.frame(
+        Consequence = consequences,
+        Delete = sprintf(
+          '<button class="btn btn-danger btn-sm delete-consequence-btn" data-value="%s" onclick="Shiny.setInputValue(\'%s\', \'%s\', {priority: \'event\'})">
+            <i class="fa fa-trash"></i>
+          </button>',
+          consequences,
+          session$ns("delete_consequence"),
+          consequences
+        ),
+        stringsAsFactors = FALSE
+      )
     }
-    
-    # Render with DT package - explicitly use DT::datatable
+
+    # Render with DT package - escape=FALSE to allow HTML buttons
     DT::datatable(
       dt_data,
       options = list(
@@ -1838,10 +2205,15 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         searching = FALSE,
         lengthChange = FALSE,
         info = FALSE,
-        dom = 't'
+        dom = 't',
+        columnDefs = list(
+          list(width = '80%', targets = 0),
+          list(width = '20%', targets = 1, className = 'dt-center')
+        )
       ),
       rownames = FALSE,
       selection = 'none',
+      escape = FALSE,
       class = 'cell-border stripe'
     )
   })
@@ -1918,22 +2290,38 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Handle "Add Protective Control" button
   observeEvent(input$add_protective_control, {
     control_name <- input$protective_control_search
-    
+
     if (!is.null(control_name) && nchar(trimws(control_name)) > 0) {
+      # HIGH PRIORITY FIX (Issue #2): Check if custom entry and add label
+      is_custom <- FALSE
+      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
+        # Check if control is in vocabulary
+        if (!control_name %in% vocabulary_data$controls$name) {
+          is_custom <- TRUE
+          control_name <- paste0(control_name, " (Custom)")
+          cat("✏️ Added custom protective control:", control_name, "\n")
+        }
+      }
+
       # Get current list
       current <- selected_protective_controls()
-      
+
       # Check if already added
       if (!control_name %in% current) {
         current <- c(current, control_name)
         selected_protective_controls(current)
-        
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$protective_controls <- current
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_protective", lang()), control_name), type = "message", duration = 2)
+
+        notification_msg <- if (is_custom) {
+          paste("Added custom protective control:", control_name)
+        } else {
+          paste(t("gw_added_protective", lang()), control_name)
+        }
+        showNotification(notification_msg, type = "message", duration = 2)
 
         # Clear the search input
         updateSelectizeInput(session, "protective_control_search", selected = character(0))
@@ -1942,20 +2330,54 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # CRITICAL FIX (Issue #4): Handle "Delete Protective Control" button
+  observeEvent(input$delete_protective_control, {
+    control_to_delete <- input$delete_protective_control
+
+    if (!is.null(control_to_delete) && nchar(trimws(control_to_delete)) > 0) {
+      # Get current list
+      current <- selected_protective_controls()
+
+      # Remove the control
+      current <- current[current != control_to_delete]
+      selected_protective_controls(current)
+
+      # Update workflow state
+      state <- workflow_state()
+      state$project_data$protective_controls <- current
+      workflow_state(state)
+
+      cat("🗑️ Deleted protective control:", control_to_delete, "\n")
+      showNotification(paste("Removed:", control_to_delete), type = "message", duration = 2)
+    }
+  })
+
   # Render selected protective controls table
+  # CRITICAL FIX (Issue #4): Added delete functionality
   output$selected_protective_controls_table <- renderDT({
     controls <- selected_protective_controls()
-    
+
     if (length(controls) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Control = character(0), stringsAsFactors = FALSE)
+      # Return empty data frame with proper column names
+      dt_data <- data.frame(Control = character(0), Delete = character(0), stringsAsFactors = FALSE)
     } else {
-      # Create data frame with controls
-      dt_data <- data.frame(Control = controls, stringsAsFactors = FALSE)
+      # Create data frame with controls and delete buttons
+      dt_data <- data.frame(
+        Control = controls,
+        Delete = sprintf(
+          '<button class="btn btn-danger btn-sm delete-protective-control-btn" data-value="%s" onclick="Shiny.setInputValue(\'%s\', \'%s\', {priority: \'event\'})">
+            <i class="fa fa-trash"></i>
+          </button>',
+          controls,
+          session$ns("delete_protective_control"),
+          controls
+        ),
+        stringsAsFactors = FALSE
+      )
     }
-    
-    # Render with DT package - explicitly use DT::datatable
+
+    # Render with DT package - escape=FALSE to allow HTML buttons
     DT::datatable(
       dt_data,
       options = list(
@@ -1963,14 +2385,19 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         searching = FALSE,
         lengthChange = FALSE,
         info = FALSE,
-        dom = 't'
+        dom = 't',
+        columnDefs = list(
+          list(width = '80%', targets = 0),
+          list(width = '20%', targets = 1, className = 'dt-center')
+        )
       ),
       rownames = FALSE,
       selection = 'none',
+      escape = FALSE,
       class = 'cell-border stripe'
     )
   })
-  
+
   # Render protective control links table
   output$protective_control_links <- renderDT({
     consequences <- selected_consequences()
@@ -2071,20 +2498,55 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # CRITICAL FIX (Issue #4): Handle "Delete Escalation Factor" button
+  observeEvent(input$delete_escalation_factor, {
+    factor_to_delete <- input$delete_escalation_factor
+
+    if (!is.null(factor_to_delete) && nchar(trimws(factor_to_delete)) > 0) {
+      # Get current list
+      current <- selected_escalation_factors()
+
+      # Remove the factor
+      current <- current[current != factor_to_delete]
+      selected_escalation_factors(current)
+
+      # Update workflow state
+      state <- workflow_state()
+      state$project_data$escalation_factors <- current
+      workflow_state(state)
+
+      cat("🗑️ Deleted escalation factor:", factor_to_delete, "\n")
+      showNotification(paste("Removed:", factor_to_delete), type = "message", duration = 2)
+    }
+  })
+
   # Render selected escalation factors table
+  # CRITICAL FIX (Issue #4): Added delete functionality
   output$selected_escalation_factors_table <- renderDT({
     factors <- selected_escalation_factors()
-    
+
     if (length(factors) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(`Escalation Factor` = character(0), stringsAsFactors = FALSE, check.names = FALSE)
+      # Return empty data frame with proper column names
+      dt_data <- data.frame(`Escalation Factor` = character(0), Delete = character(0), stringsAsFactors = FALSE, check.names = FALSE)
     } else {
-      # Create data frame with factors
-      dt_data <- data.frame(`Escalation Factor` = factors, stringsAsFactors = FALSE, check.names = FALSE)
+      # Create data frame with factors and delete buttons
+      dt_data <- data.frame(
+        `Escalation Factor` = factors,
+        Delete = sprintf(
+          '<button class="btn btn-danger btn-sm delete-escalation-factor-btn" data-value="%s" onclick="Shiny.setInputValue(\'%s\', \'%s\', {priority: \'event\'})">
+            <i class="fa fa-trash"></i>
+          </button>',
+          factors,
+          session$ns("delete_escalation_factor"),
+          factors
+        ),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
     }
-    
-    # Render with DT package - explicitly use DT::datatable
+
+    # Render with DT package - escape=FALSE to allow HTML buttons
     DT::datatable(
       dt_data,
       options = list(
@@ -2092,10 +2554,15 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         searching = FALSE,
         lengthChange = FALSE,
         info = FALSE,
-        dom = 't'
+        dom = 't',
+        columnDefs = list(
+          list(width = '80%', targets = 0),
+          list(width = '20%', targets = 1, className = 'dt-center')
+        )
       ),
       rownames = FALSE,
       selection = 'none',
+      escape = FALSE,
       class = 'cell-border stripe'
     )
   })
@@ -2525,86 +2992,160 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observeEvent(input$problem_template, {
     req(input$problem_template)
     template_id <- input$problem_template
-    
+
+    cat("🎯 Template selected:", template_id, "\n")
+
     if (template_id != "") {
       template_data <- WORKFLOW_CONFIG$templates[[template_id]]
 
       if (!is.null(template_data)) {
-        # Update Step 1 (Project Setup) fields
-        updateTextInput(session, "project_name", value = template_data$project_name)
-        updateTextInput(session, "project_location", value = template_data$project_location)
-        updateSelectInput(session, "project_type", selected = template_data$project_type)
-        updateTextAreaInput(session, "project_description", value = template_data$project_description)
+        cat("✅ Template found:", template_data$name, "\n")
 
-        # Update Step 2 (Central Problem Definition) fields
-        updateTextInput(session, "problem_statement", value = template_data$central_problem)
-        if (!is.null(template_data$problem_category)) {
-          updateSelectInput(session, "problem_category", selected = template_data$problem_category)
-        }
-        if (!is.null(template_data$problem_details)) {
-          updateTextAreaInput(session, "problem_details", value = template_data$problem_details)
-        }
-        if (!is.null(template_data$problem_scale)) {
-          updateSelectInput(session, "problem_scale", selected = template_data$problem_scale)
-        }
-        if (!is.null(template_data$problem_urgency)) {
-          updateSelectInput(session, "problem_urgency", selected = template_data$problem_urgency)
-        }
+        tryCatch({
+          # Update Step 1 (Project Setup) fields
+          cat("📝 Updating Step 1 fields...\n")
+          updateTextInput(session, "project_name", value = template_data$project_name)
+          updateTextInput(session, "project_location", value = template_data$project_location)
+          updateSelectInput(session, "project_type", selected = template_data$project_type)
+          updateTextAreaInput(session, "project_description", value = template_data$project_description)
 
-        # Store template info in state
-        state <- workflow_state()
-        state$project_data$template_applied <- template_id
-        state$project_data$project_name <- template_data$project_name
-        state$project_data$project_location <- template_data$project_location
-        state$project_data$project_type <- template_data$project_type
-        state$project_data$project_description <- template_data$project_description
-        state$project_data$problem_statement <- template_data$central_problem
-        state$project_data$problem_category <- template_data$problem_category
-        state$project_data$problem_details <- template_data$problem_details
-        state$project_data$problem_scale <- template_data$problem_scale
-        state$project_data$problem_urgency <- template_data$problem_urgency
-        state$project_data$example_activities <- template_data$example_activities
-        state$project_data$example_pressures <- template_data$example_pressures
-        workflow_state(state)
+          # Update Step 2 (Central Problem Definition) fields
+          cat("📝 Updating Step 2 fields...\n")
+          updateTextInput(session, "problem_statement", value = template_data$central_problem)
+          if (!is.null(template_data$problem_category)) {
+            updateSelectInput(session, "problem_category", selected = template_data$problem_category)
+          }
+          if (!is.null(template_data$problem_details)) {
+            updateTextAreaInput(session, "problem_details", value = template_data$problem_details)
+          }
+          if (!is.null(template_data$problem_scale)) {
+            updateSelectInput(session, "problem_scale", selected = template_data$problem_scale)
+          }
+          if (!is.null(template_data$problem_urgency)) {
+            updateSelectInput(session, "problem_urgency", selected = template_data$problem_urgency)
+          }
 
+          # Store template info in state
+          cat("💾 Saving template data to workflow state...\n")
+          state <- workflow_state()
+          state$project_data$template_applied <- template_id
+          state$project_data$project_name <- template_data$project_name
+          state$project_data$project_location <- template_data$project_location
+          state$project_data$project_type <- template_data$project_type
+          state$project_data$project_description <- template_data$project_description
+          state$project_data$problem_statement <- template_data$central_problem
+          state$project_data$problem_category <- template_data$problem_category
+          state$project_data$problem_details <- template_data$problem_details
+          state$project_data$problem_scale <- template_data$problem_scale
+          state$project_data$problem_urgency <- template_data$problem_urgency
+          state$project_data$example_activities <- template_data$example_activities
+          state$project_data$example_pressures <- template_data$example_pressures
+          workflow_state(state)
+
+          cat("✅ Template applied successfully!\n")
+
+          showNotification(
+            paste0("✅ Applied template: ", template_data$name,
+                   " - Project Setup (Step 1) and Central Problem (Step 2) have been pre-filled!"),
+            type = "message",
+            duration = 5
+          )
+        }, error = function(e) {
+          cat("❌ Error applying template:", e$message, "\n")
+          showNotification(
+            paste("Error applying template:", e$message),
+            type = "error",
+            duration = 5
+          )
+        })
+      } else {
+        cat("❌ Template not found for ID:", template_id, "\n")
         showNotification(
-          paste0("✅ ", t("gw_applied_template", lang()), template_data$name,
-                 " - Project Setup and Central Problem have been pre-filled!"),
-          type = "message",
+          paste("Template not found for:", template_id),
+          type = "warning",
           duration = 5
         )
       }
+    } else {
+      cat("ℹ️ Blank template selected - using custom mode\n")
     }
   })
   
   # =============================================================================
   # FINALIZATION & EXPORT
   # =============================================================================
-  
-  # Handle workflow finalization
+
+  # Helper function to complete workflow (shared logic)
+  complete_workflow <- function() {
+    state <- workflow_state()
+
+    # Check if already complete
+    if (isTRUE(state$workflow_complete)) {
+      showNotification("Workflow is already completed.", type = "message", duration = 3)
+      return(state)
+    }
+
+    cat("🎯 Completing workflow...\n")
+
+    # Save final step data if on step 8
+    if (state$current_step == 8) {
+      state <- tryCatch({
+        save_step_data(state, input)
+      }, error = function(e) {
+        cat("❌ Error saving final step data:", e$message, "\n")
+        return(state)
+      })
+    }
+
+    # Mark workflow as complete
+    state$workflow_complete <- TRUE
+
+    # Convert workflow data to main application format
+    converted_data <- tryCatch({
+      convert_to_main_data_format(state$project_data)
+    }, error = function(e) {
+      cat("❌ Error converting data:", e$message, "\n")
+      showNotification(paste("Error converting data:", e$message), type = "error", duration = 5)
+      return(NULL)
+    })
+
+    if (!is.null(converted_data)) {
+      state$converted_main_data <- converted_data
+      workflow_state(state)
+      cat("✅ Workflow completed successfully!\n")
+      showNotification("🎉 Workflow complete! You can now export your analysis or load it to the main application.", type = "message", duration = 5)
+      return(state)
+    } else {
+      state$workflow_complete <- FALSE
+      workflow_state(state)
+      return(state)
+    }
+  }
+
+  # Handle "Complete Workflow" button in Step 8
+  observeEvent(input$complete_workflow_btn, {
+    complete_workflow()
+  })
+
+  # Handle workflow finalization from navigation button
   observeEvent(input$finalize_workflow, {
     state <- workflow_state()
-    
+
     # Final validation
-    validation_result <- validate_current_step(state, input)
+    validation_result <- tryCatch({
+      validate_current_step(state, input, lang())
+    }, error = function(e) {
+      cat("❌ Final validation error:", e$message, "\n")
+      list(is_valid = FALSE, message = paste("Validation error:", e$message))
+    })
+
     if (!validation_result$is_valid) {
       showNotification(validation_result$message, type = "error")
       return()
     }
-    
-    # Save final step data
-    state <- save_step_data(state, input)
-    
-    # Mark workflow as complete
-    state$workflow_complete <- TRUE
-    
-    # Convert workflow data to main application format
-    converted_data <- convert_to_main_data_format(state$project_data)
-    state$converted_main_data <- converted_data
-    
-    workflow_state(state)
-    
-    showNotification("🎉 Workflow complete! Data is ready for visualization.", type = "message")
+
+    # Complete the workflow
+    complete_workflow()
   })
 
   # =============================================================================
@@ -2615,14 +3156,18 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observeEvent(input$export_excel, {
     state <- workflow_state()
 
-    # Check if workflow is complete
+    # Check if workflow is complete, if not complete it now
     if (!isTRUE(state$workflow_complete)) {
-      showNotification(
-        "Please complete the workflow first by clicking 'Complete Workflow'.",
-        type = "warning",
-        duration = 4
-      )
-      return()
+      cat("ℹ️ Workflow not complete, completing now before export...\n")
+      state <- complete_workflow()
+      if (!isTRUE(state$workflow_complete)) {
+        showNotification(
+          "Could not complete workflow. Please ensure all required fields are filled.",
+          type = "error",
+          duration = 5
+        )
+        return()
+      }
     }
 
     tryCatch({
@@ -2710,14 +3255,18 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observeEvent(input$export_pdf, {
     state <- workflow_state()
 
-    # Check if workflow is complete
+    # Check if workflow is complete, if not complete it now
     if (!isTRUE(state$workflow_complete)) {
-      showNotification(
-        "Please complete the workflow first by clicking 'Complete Workflow'.",
-        type = "warning",
-        duration = 4
-      )
-      return()
+      cat("ℹ️ Workflow not complete, completing now before export...\n")
+      state <- complete_workflow()
+      if (!isTRUE(state$workflow_complete)) {
+        showNotification(
+          "Could not complete workflow. Please ensure all required fields are filled.",
+          type = "error",
+          duration = 5
+        )
+        return()
+      }
     }
 
     tryCatch({
@@ -2840,14 +3389,18 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observeEvent(input$load_to_main, {
     state <- workflow_state()
 
-    # Check if workflow is complete
+    # Check if workflow is complete, if not complete it now
     if (!isTRUE(state$workflow_complete)) {
-      showNotification(
-        "Please complete the workflow first by clicking 'Complete Workflow'.",
-        type = "warning",
-        duration = 4
-      )
-      return()
+      cat("ℹ️ Workflow not complete, completing now before loading to main...\n")
+      state <- complete_workflow()
+      if (!isTRUE(state$workflow_complete)) {
+        showNotification(
+          "Could not complete workflow. Please ensure all required fields are filled.",
+          type = "error",
+          duration = 5
+        )
+        return()
+      }
     }
 
     tryCatch({
@@ -2911,92 +3464,100 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observeEvent(input$workflow_load_file_hidden, {
     file <- input$workflow_load_file_hidden
     req(file)
-    
+
+    cat("📂 Loading workflow from file:", file$name, "\n")
+
     tryCatch({
       loaded_state <- readRDS(file$datapath)
-      
+
       # Basic validation of loaded state
       if (is.list(loaded_state) && "current_step" %in% names(loaded_state)) {
-        
+
+        cat("✅ Valid workflow file detected\n")
+
         # Migrate old data structures if needed
         if (!is.null(loaded_state$project_data)) {
-          # Ensure activities and pressures are character vectors, not data frames
+          # Ensure activities are character vectors, not data frames
           if (!is.null(loaded_state$project_data$activities)) {
             if (is.data.frame(loaded_state$project_data$activities)) {
-              # Extract from old data frame format
-              if (t("gw_col_activity", current_lang) %in% names(loaded_state$project_data$activities)) {
+              # Try multiple column names (Activity, Actvity - old typo)
+              if ("Activity" %in% names(loaded_state$project_data$activities)) {
                 loaded_state$project_data$activities <- loaded_state$project_data$activities$Activity
               } else if ("Actvity" %in% names(loaded_state$project_data$activities)) {
-                # Fix old typo
                 loaded_state$project_data$activities <- loaded_state$project_data$activities$Actvity
+              } else if (ncol(loaded_state$project_data$activities) > 0) {
+                # Take first column if column names don't match
+                loaded_state$project_data$activities <- loaded_state$project_data$activities[[1]]
               }
             }
-            # Convert to character vector
             loaded_state$project_data$activities <- as.character(loaded_state$project_data$activities)
           }
-          
+
+          # Ensure pressures are character vectors
           if (!is.null(loaded_state$project_data$pressures)) {
             if (is.data.frame(loaded_state$project_data$pressures)) {
-              # Extract from old data frame format
-              if (t("gw_col_pressure", current_lang) %in% names(loaded_state$project_data$pressures)) {
+              if ("Pressure" %in% names(loaded_state$project_data$pressures)) {
                 loaded_state$project_data$pressures <- loaded_state$project_data$pressures$Pressure
+              } else if (ncol(loaded_state$project_data$pressures) > 0) {
+                loaded_state$project_data$pressures <- loaded_state$project_data$pressures[[1]]
               }
             }
-            # Convert to character vector
             loaded_state$project_data$pressures <- as.character(loaded_state$project_data$pressures)
           }
-          
+
           # Ensure preventive controls are character vectors
           if (!is.null(loaded_state$project_data$preventive_controls)) {
             if (is.data.frame(loaded_state$project_data$preventive_controls)) {
-              # Extract from old data frame format
-              if (t("gw_col_control", current_lang) %in% names(loaded_state$project_data$preventive_controls)) {
+              if ("Control" %in% names(loaded_state$project_data$preventive_controls)) {
                 loaded_state$project_data$preventive_controls <- loaded_state$project_data$preventive_controls$Control
+              } else if (ncol(loaded_state$project_data$preventive_controls) > 0) {
+                loaded_state$project_data$preventive_controls <- loaded_state$project_data$preventive_controls[[1]]
               }
             }
-            # Convert to character vector
             loaded_state$project_data$preventive_controls <- as.character(loaded_state$project_data$preventive_controls)
           }
-          
+
           # Ensure consequences are character vectors
           if (!is.null(loaded_state$project_data$consequences)) {
             if (is.data.frame(loaded_state$project_data$consequences)) {
-              # Extract from old data frame format
-              if (t("gw_col_consequence", current_lang) %in% names(loaded_state$project_data$consequences)) {
+              if ("Consequence" %in% names(loaded_state$project_data$consequences)) {
                 loaded_state$project_data$consequences <- loaded_state$project_data$consequences$Consequence
+              } else if (ncol(loaded_state$project_data$consequences) > 0) {
+                loaded_state$project_data$consequences <- loaded_state$project_data$consequences[[1]]
               }
             }
-            # Convert to character vector
             loaded_state$project_data$consequences <- as.character(loaded_state$project_data$consequences)
           }
-          
+
           # Ensure protective controls are character vectors
           if (!is.null(loaded_state$project_data$protective_controls)) {
             if (is.data.frame(loaded_state$project_data$protective_controls)) {
-              # Extract from old data frame format
-              if (t("gw_col_control", current_lang) %in% names(loaded_state$project_data$protective_controls)) {
+              if ("Control" %in% names(loaded_state$project_data$protective_controls)) {
                 loaded_state$project_data$protective_controls <- loaded_state$project_data$protective_controls$Control
+              } else if (ncol(loaded_state$project_data$protective_controls) > 0) {
+                loaded_state$project_data$protective_controls <- loaded_state$project_data$protective_controls[[1]]
               }
             }
-            # Convert to character vector
             loaded_state$project_data$protective_controls <- as.character(loaded_state$project_data$protective_controls)
           }
-          
+
           # Ensure escalation factors are character vectors
           if (!is.null(loaded_state$project_data$escalation_factors)) {
             if (is.data.frame(loaded_state$project_data$escalation_factors)) {
-              # Extract from old data frame format
-              if (t("gw_col_escalation", current_lang) %in% names(loaded_state$project_data$escalation_factors)) {
+              # Try multiple possible column names
+              if ("Escalation Factor" %in% names(loaded_state$project_data$escalation_factors)) {
                 loaded_state$project_data$escalation_factors <- loaded_state$project_data$escalation_factors$`Escalation Factor`
               } else if ("escalation_factor" %in% names(loaded_state$project_data$escalation_factors)) {
                 loaded_state$project_data$escalation_factors <- loaded_state$project_data$escalation_factors$escalation_factor
+              } else if (ncol(loaded_state$project_data$escalation_factors) > 0) {
+                loaded_state$project_data$escalation_factors <- loaded_state$project_data$escalation_factors[[1]]
               }
             }
-            # Convert to character vector
             loaded_state$project_data$escalation_factors <- as.character(loaded_state$project_data$escalation_factors)
           }
         }
-        
+
+        cat("✅ Data migration complete\n")
         workflow_state(loaded_state)
         
         # Update the reactive values based on current step
@@ -3098,16 +3659,16 @@ validate_step <- function(step_number, data) {
 }
 
 # Validate current step before proceeding
-validate_current_step <- function(state, input) {
+validate_current_step <- function(state, input, current_lang = "en") {
   step <- state$current_step
-  
+
   # Basic validation based on step number
   validation <- switch(as.character(step),
     "1" = {
       # Step 1: Project Setup
       project_name <- input$project_name
       if (is.null(project_name) || nchar(trimws(project_name)) == 0) {
-        list(is_valid = FALSE, message = t("gw_enter_project_name", current_lang))
+        list(is_valid = FALSE, message = "Please enter a project name before continuing.")
       } else {
         list(is_valid = TRUE, message = "")
       }
@@ -3116,7 +3677,7 @@ validate_current_step <- function(state, input) {
       # Step 2: Central Problem
       problem <- input$problem_statement
       if (is.null(problem) || nchar(trimws(problem)) == 0) {
-        list(is_valid = FALSE, message = t("gw_define_central_problem", current_lang))
+        list(is_valid = FALSE, message = "Please define the central problem before continuing.")
       } else {
         list(is_valid = TRUE, message = "")
       }
@@ -3135,75 +3696,113 @@ validate_current_step <- function(state, input) {
     # Default
     list(is_valid = TRUE, message = "")
   )
-  
+
   return(validation)
 }
 
 # Save step data to workflow state
 save_step_data <- function(state, input) {
   step <- state$current_step
-  
+
   # Save data based on current step
   if (step == 1) {
-    # Save project setup data
-    state$project_data$project_name <- input$project_name
-    state$project_data$project_location <- input$project_location
-    state$project_data$project_type <- input$project_type
-    state$project_data$project_description <- input$project_description
-    state$project_name <- input$project_name  # Also save at top level
+    # Save project setup data - safely access inputs with fallbacks
+    state$project_data$project_name <- if (!is.null(input$project_name)) input$project_name else state$project_data$project_name
+    state$project_data$project_location <- if (!is.null(input$project_location)) input$project_location else state$project_data$project_location
+    state$project_data$project_type <- if (!is.null(input$project_type)) input$project_type else state$project_data$project_type
+    state$project_data$project_description <- if (!is.null(input$project_description)) input$project_description else state$project_data$project_description
+    state$project_name <- state$project_data$project_name  # Also save at top level
   } else if (step == 2) {
-    # Save central problem data
-    state$project_data$problem_statement <- input$problem_statement
-    state$project_data$problem_category <- input$problem_category
-    state$project_data$problem_details <- input$problem_details
-    state$project_data$problem_scale <- input$problem_scale
-    state$project_data$problem_urgency <- input$problem_urgency
-    state$central_problem <- input$problem_statement  # Also save at top level
+    # Save central problem data - safely access inputs with fallbacks
+    state$project_data$problem_statement <- if (!is.null(input$problem_statement)) input$problem_statement else state$project_data$problem_statement
+    state$project_data$problem_category <- if (!is.null(input$problem_category)) input$problem_category else state$project_data$problem_category
+    state$project_data$problem_details <- if (!is.null(input$problem_details)) input$problem_details else state$project_data$problem_details
+    state$project_data$problem_scale <- if (!is.null(input$problem_scale)) input$problem_scale else state$project_data$problem_scale
+    state$project_data$problem_urgency <- if (!is.null(input$problem_urgency)) input$problem_urgency else state$project_data$problem_urgency
+    state$central_problem <- state$project_data$problem_statement  # Also save at top level
   } else if (step == 3) {
-    # Save activities and pressures data
-    # Note: The data is already being saved in real-time by the Add Activity/Pressure handlers
-    # We just need to ensure it's preserved in the state
-    # Don't overwrite with empty values
+    # CRITICAL FIX (Issue #11): Save activities and pressures data
+    # Ensure data is preserved - don't overwrite with empty values
     if (is.null(state$project_data$activities)) {
       state$project_data$activities <- list()
     }
     if (is.null(state$project_data$pressures)) {
       state$project_data$pressures <- list()
     }
+
+    # Debugging: Log current data
+    cat("📊 Step 3 - Saving activities:", length(state$project_data$activities), "items\n")
+    cat("📊 Step 3 - Saving pressures:", length(state$project_data$pressures), "items\n")
+
   } else if (step == 4) {
-    # Save preventive controls data
-    # Note: The data is already being saved in real-time by the Add Control handler
-    # We just need to ensure it's preserved in the state
+    # CRITICAL FIX (Issue #11): Save preventive controls data
+    # Ensure data is preserved - don't overwrite with empty values
     if (is.null(state$project_data$preventive_controls)) {
       state$project_data$preventive_controls <- list()
     }
+
+    # Debugging: Log current data
+    cat("📊 Step 4 - Saving preventive controls:", length(state$project_data$preventive_controls), "items\n")
+
   } else if (step == 5) {
-    # Save consequences data
-    # Note: The data is already being saved in real-time by the Add Consequence handler
-    # We just need to ensure it's preserved in the state
+    # CRITICAL FIX (Issue #11): Save consequences data
+    # Ensure data is preserved - don't overwrite with empty values
     if (is.null(state$project_data$consequences)) {
       state$project_data$consequences <- list()
     }
+
+    # Debugging: Log current data
+    cat("📊 Step 5 - Saving consequences:", length(state$project_data$consequences), "items\n")
+
   } else if (step == 6) {
-    # Save protective controls data
-    # Note: The data is already being saved in real-time by the Add Protective Control handler
-    # We just need to ensure it's preserved in the state
+    # CRITICAL FIX (Issue #11): Save protective controls data
+    # Ensure data is preserved - don't overwrite with empty values
     if (is.null(state$project_data$protective_controls)) {
       state$project_data$protective_controls <- list()
     }
+
+    # Debugging: Log current data
+    cat("📊 Step 6 - Saving protective controls:", length(state$project_data$protective_controls), "items\n")
+
   } else if (step == 7) {
-    # Save escalation factors data
-    # Note: The data is already being saved in real-time by the Add Escalation Factor handler
-    # We just need to ensure it's preserved in the state
+    # CRITICAL FIX (Issue #11): Save escalation factors data
+    # Ensure data is preserved - don't overwrite with empty values
     if (is.null(state$project_data$escalation_factors)) {
       state$project_data$escalation_factors <- list()
     }
+
+    # Debugging: Log current data
+    cat("📊 Step 7 - Saving escalation factors:", length(state$project_data$escalation_factors), "items\n")
   }
   # Step 8 is review only - no data to save
-  
+
+  # CRITICAL FIX (Issue #11): Validate data integrity
+  # Ensure all data fields exist and are not accidentally set to NULL
+  if (is.null(state$project_data)) {
+    state$project_data <- list()
+  }
+
+  # Initialize all data fields if they don't exist (prevents data loss)
+  if (is.null(state$project_data$activities)) state$project_data$activities <- list()
+  if (is.null(state$project_data$pressures)) state$project_data$pressures <- list()
+  if (is.null(state$project_data$preventive_controls)) state$project_data$preventive_controls <- list()
+  if (is.null(state$project_data$consequences)) state$project_data$consequences <- list()
+  if (is.null(state$project_data$protective_controls)) state$project_data$protective_controls <- list()
+  if (is.null(state$project_data$escalation_factors)) state$project_data$escalation_factors <- list()
+
+  # Log total data in state for debugging
+  total_items <- length(state$project_data$activities) +
+                 length(state$project_data$pressures) +
+                 length(state$project_data$preventive_controls) +
+                 length(state$project_data$consequences) +
+                 length(state$project_data$protective_controls) +
+                 length(state$project_data$escalation_factors)
+
+  cat("💾 State saved - Total items:", total_items, "\n")
+
   # Record timestamp for this step
   state$step_times[[paste0("step_", step)]] <- Sys.time()
-  
+
   return(state)
 }
 

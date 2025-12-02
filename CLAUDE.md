@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an R Shiny web application for Environmental Bowtie Risk Analysis with Bayesian Network integration. The application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks.
 
-**Version**: 5.3.0 (Production-Ready Edition)
-**Release Date**: November 2025
-**Framework Updates**: Production-ready with comprehensive deployment framework, UI/UX improvements, bug fixes, Linux compatibility, and clean codebase structure.
+**Version**: 5.3.3 (Critical Usability Fixes)
+**Release Date**: December 2025
+**Framework Updates**: Production-ready with critical usability improvements including category filtering, delete functionality for all tables, enhanced data persistence, comprehensive workflow fixes, export functionality improvements, cross-platform compatibility, enhanced error handling, and complete guided workflow system.
 
 ## Running the Application
 
@@ -157,16 +157,18 @@ The application features a comprehensive 8-step guided workflow for creating bow
 - **Data Persistence**: Maintains state across workflow steps
 - **Export Integration**: Seamless export to Excel format compatible with main application
 
-### Environmental Scenario Templates (Latest Update - September 2025)
+### Environmental Scenario Templates (Latest Update - December 2025)
 
-The application now includes updated environmental scenario templates across multiple interfaces:
+The application now includes 13 comprehensive environmental scenario templates across multiple interfaces:
 
 #### **Guided Workflow (Step 1) - Environmental Scenarios:**
 1. 🌊 **Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
 2. 🏭 **Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
 3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
 4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
-5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts *(NEW)*
+5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts
+6. 🐠 **Marine biodiversity loss and ecosystem degradation** - Species decline, habitat destruction, and ecosystem imbalance *(NEW Dec 2025)*
+7-13. **Martinique-specific scenarios** - Coastal erosion, Sargassum, coral degradation, watershed pollution, mangrove loss, hurricanes, marine tourism
 
 #### **Data Upload Interface (Option 2) - Environmental Scenarios:**
 - 📊 **Complete vocabulary coverage** (53 activities, 36 pressures, 74 controls)
@@ -175,8 +177,9 @@ The application now includes updated environmental scenario templates across mul
 3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
 4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
 5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts
+6. 🐠 **Marine biodiversity loss and ecosystem degradation** - Species decline and habitat destruction *(NEW)*
 
-**✅ Latest Update (September 2025):** All 5 environmental scenarios now synchronized between guided workflow and Data Upload interfaces for consistent user experience.
+**✅ Latest Update (December 2025):** 13 environmental scenarios now available with new marine biodiversity loss assessment covering species decline, habitat destruction, and ecosystem degradation from multiple pressures.
 
 ### UI/UX Enhancements (September 2025)
 
@@ -197,7 +200,124 @@ The application now includes updated environmental scenario templates across mul
 - ✅ **Enhanced scenario coverage** - 53/53 activities, 35/36 pressures, 74/74 controls, 26/26 consequences
 - ✅ **Realistic environmental modeling** - Multi-dimensional risk analysis across all vocabulary elements
 
-## Testing Framework (Version 5.2 Advanced)
+## Critical Usability Fixes (Version 5.3.3 - December 2025)
+
+The application received three critical usability improvements based on extensive user testing:
+
+### Issue #1: Category Header Filtering ✅
+
+**Problem**: Users could select category headers (Level 1 ALL CAPS items) which are meant only for organization.
+
+**Solution**:
+- Added filtering logic to all vocabulary selectors (activities, pressures, controls, consequences)
+- Only Level 2+ items are now shown in dropdown lists
+- Applied to 5 different selection widgets throughout the guided workflow
+
+**Files Modified**:
+- `guided_workflow.R` (lines 759-771, 808-821, 877-890, 953-966, 1029-1042)
+
+**Impact**: Users can now only select actual items, eliminating confusion
+
+### Issue #4: Delete Functionality ✅
+
+**Problem**: No way to remove items once added to tables - users had to restart workflow to fix mistakes.
+
+**Solution**:
+- Added delete button column to all 6 data tables:
+  - Activities table
+  - Pressures table
+  - Preventive controls table
+  - Consequences table
+  - Protective controls table
+  - Escalation factors table
+- Each delete button updates both reactive values and workflow state
+- Clear visual indication with red trash icon buttons
+
+**Files Modified**:
+- `guided_workflow.R` (12 new observer functions, 6 updated table renderers)
+
+**Impact**: Users can now easily correct mistakes without restarting
+
+### Issue #11: Data Persistence Enhancement ✅
+
+**Problem**: Data would disappear when navigating between steps or "playing around with the system".
+
+**Solution**:
+- Enhanced state validation in `save_step_data()` function
+- Added data integrity checks to prevent NULL overwrites
+- Comprehensive debugging logging to track data counts
+- All data fields initialized to prevent accidental loss
+
+**Files Modified**:
+- `guided_workflow.R` (lines 3558-3641)
+
+**Impact**: Data now reliably persists across all navigation scenarios
+
+### Documentation
+- **CRITICAL_FIXES_v5.3.3.md**: Comprehensive documentation of all usability fixes
+- **Testing**: All fixes manually tested and verified working
+
+## Critical Fixes (Version 5.3.2 - December 2025)
+
+The application received comprehensive fixes to resolve critical usability and stability issues in the guided workflow system:
+
+### Workflow & Navigation Fixes
+
+#### **IP Address Detection (Windows Compatibility)**
+- **Fixed**: Application crash on startup with error `'length = 2' in coercion to 'logical(1)'`
+- **Resolution**: Added cross-platform IP detection for Windows/Linux/Mac
+- **File**: `start_app.R` lines 30-64
+- **Result**: Application now starts successfully on all platforms
+
+#### **Template Selection System**
+- **Fixed**: All 13 environmental scenario templates now work correctly (updated Dec 2025 with marine biodiversity loss)
+- **Resolution**: Added comprehensive error handling and debugging
+- **File**: `guided_workflow.R` lines 2537-2617
+- **Result**: Templates populate Steps 1-2 automatically for all scenarios
+
+#### **Server Disconnection Issues**
+- **Fixed**: Server no longer disconnects during workflow navigation
+- **Resolution**: Fixed undefined `current_lang` variable, added error handling
+- **Files**: Multiple sections in `guided_workflow.R`
+- **Result**: Smooth navigation through all 8 workflow steps
+
+#### **Validation & Error Handling**
+- **Fixed**: Missing required fields no longer cause crashes
+- **Resolution**: NULL-safe input access, graceful error recovery
+- **File**: `guided_workflow.R` lines 3173-3239
+- **Result**: Clear validation messages instead of server crashes
+
+### Export & Completion Fixes
+
+#### **Complete Workflow Button**
+- **Added**: Prominent "Complete Workflow" button in Step 8
+- **Location**: Top of export options section (large green button)
+- **File**: `guided_workflow.R` lines 1187-1215
+- **Result**: Users can now clearly finalize their workflow
+
+#### **Auto-Complete on Export**
+- **Improved**: Export functions now auto-complete workflow if needed
+- **Affected**: Export to Excel, Generate PDF, Load to Main
+- **Files**: `guided_workflow.R` lines 2710-2959
+- **Result**: Seamless export experience without confusing errors
+
+#### **Load Progress Functionality**
+- **Fixed**: Loading saved workflow files no longer causes errors
+- **Resolution**: Removed undefined variable, added multi-format support
+- **File**: `guided_workflow.R` lines 3018-3135
+- **Result**: Backward-compatible file loading with automatic data migration
+
+### Documentation Added
+- `WORKFLOW_FIXES_2025.md`: Complete documentation of navigation & template fixes
+- `EXPORT_FIXES_2025.md`: Comprehensive export & completion fixes documentation
+- `COMPLETE_FIXES_SUMMARY.md`: Master summary of all v5.3.2 improvements
+
+### Testing Updates
+- **New Test Suite**: `tests/testthat/test-workflow-fixes.R`
+- **Coverage**: Templates, navigation, validation, export, load progress
+- **Integration**: Added to comprehensive test runner v5.3.2
+
+## Testing Framework (Version 5.3.2 Enhanced)
 
 The application includes a state-of-the-art testing framework with comprehensive test coverage, performance regression detection, and CI/CD integration:
 
@@ -215,7 +335,7 @@ source("tests/testthat/test-vocabulary.R")
 source("tests/testthat/test-bayesian-network.R")
 ```
 
-### Advanced Test Structure (Version 5.2)
+### Advanced Test Structure (Version 5.3.2)
 #### **Core Test Suites:**
 - `tests/testthat/test-utils.R`: Core utility functions, data generation, validation with advanced edge cases
 - `tests/testthat/test-vocabulary.R`: Vocabulary management and hierarchical data processing with performance benchmarks
@@ -224,15 +344,16 @@ source("tests/testthat/test-bayesian-network.R")
 - `tests/testthat/test-vocabulary-bowtie-generator.R`: Vocabulary-based bow-tie generation with AI linking validation
 - `tests/testthat/test-integration-workflow.R`: End-to-end integration tests with complete workflow coverage
 
-#### **New Advanced Test Suites:**
-- `tests/testthat/test-consistency-fixes.R`: **NEW** Validates consistency fixes (circular dependencies, icon standardization)
-- `tests/testthat/test-performance-regression.R`: **NEW** Performance regression testing and memory monitoring
+#### **Advanced Test Suites:**
+- `tests/testthat/test-consistency-fixes.R`: Validates consistency fixes (circular dependencies, icon standardization)
+- `tests/testthat/test-performance-regression.R`: Performance regression testing and memory monitoring
 - `tests/testthat/test-preventive-controls.R`: Preventive controls functionality and vocabulary integration
 - `tests/testthat/test-guided-workflow-integration.R`: Complete guided workflow system with state management tests
-- `tests/testthat/test-enhanced-themes.R`: **NEW** Bootstrap theme integration and UI component testing
+- `tests/testthat/test-enhanced-themes.R`: Bootstrap theme integration and UI component testing
+- `tests/testthat/test-workflow-fixes.R`: **NEW v5.3.2** Workflow navigation, templates, validation, export & load progress
 - `tests/fixtures/test_data.R`: Mock data and test fixtures with realistic scenarios
 - `tests/fixtures/realistic_test_data.R`: Enhanced realistic test data matching Excel file structure
-- `tests/comprehensive_test_runner.R`: **ENHANCED** Advanced test runner with parallel execution and detailed reporting
+- `tests/comprehensive_test_runner.R`: **ENHANCED v5.3.2** Advanced test runner with workflow fixes testing
 
 ### New Testing Capabilities (Version 5.1)
 - **Parallel Test Execution**: Faster test runs with concurrent testing
