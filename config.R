@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis - Application Configuration
-# Version: 5.3.4
+# Version: 5.3.5
 # Last Updated: December 2025
 # =============================================================================
 # This file contains all centralized configuration settings for the application.
@@ -10,7 +10,7 @@
 APP_CONFIG <- list(
   # Application Metadata
   APP_NAME = "bowtie_app",
-  VERSION = "5.3.4",
+  VERSION = "5.3.5",
   TITLE = "Environmental Bowtie Risk Analysis",
   SUBTITLE = "Marine Biodiversity and Ecosystem Services Assessment",
   AUTHOR = "Marbefes Team & AI Assistant",

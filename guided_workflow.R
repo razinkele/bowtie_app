@@ -1474,8 +1474,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observeEvent(input$prev_step, {
     state <- workflow_state()
     if (state$current_step > 1) {
+      # CRITICAL FIX: Save current step data before navigating back (Issue #11 - State Preservation)
+      cat("💾 Previous button: Saving step", state$current_step, "data before navigation...\n")
+      state <- save_step_data(state, input)
+
       state$current_step <- state$current_step - 1
       workflow_state(state)
+
+      cat("⬅️ Navigated back to step", state$current_step, "\n")
     }
   })
   
@@ -1483,7 +1489,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observeEvent(input$goto_step, {
     state <- workflow_state()
     target_step <- as.numeric(input$goto_step)
-    
+
     # Allow navigation only to completed steps or current step
     if (target_step <= state$current_step || target_step - 1 %in% state$completed_steps) {
       state$current_step <- target_step
@@ -1492,7 +1498,56 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       showNotification(t("gw_complete_previous", lang()), type = "warning")
     }
   })
-  
+
+  # =============================================================================
+  # STEP 1 & 2: STATE RESTORATION
+  # =============================================================================
+
+  # Restore Step 1 fields from workflow state when navigating back
+  observe({
+    state <- workflow_state()
+    if (!is.null(state) && state$current_step == 1) {
+      # Restore project setup fields from state if available
+      if (!is.null(state$project_data$project_name) && nchar(state$project_data$project_name) > 0) {
+        updateTextInput(session, "project_name", value = state$project_data$project_name)
+      }
+      if (!is.null(state$project_data$project_location) && nchar(state$project_data$project_location) > 0) {
+        updateTextInput(session, "project_location", value = state$project_data$project_location)
+      }
+      if (!is.null(state$project_data$project_type)) {
+        updateSelectInput(session, "project_type", selected = state$project_data$project_type)
+      }
+      if (!is.null(state$project_data$project_description) && nchar(state$project_data$project_description) > 0) {
+        updateTextAreaInput(session, "project_description", value = state$project_data$project_description)
+      }
+      cat("🔄 Step 1: Restored fields from workflow state\n")
+    }
+  })
+
+  # Restore Step 2 fields from workflow state when navigating back
+  observe({
+    state <- workflow_state()
+    if (!is.null(state) && state$current_step == 2) {
+      # Restore central problem fields from state if available
+      if (!is.null(state$project_data$problem_statement) && nchar(state$project_data$problem_statement) > 0) {
+        updateTextInput(session, "problem_statement", value = state$project_data$problem_statement)
+      }
+      if (!is.null(state$project_data$problem_category)) {
+        updateSelectInput(session, "problem_category", selected = state$project_data$problem_category)
+      }
+      if (!is.null(state$project_data$problem_details) && nchar(state$project_data$problem_details) > 0) {
+        updateTextAreaInput(session, "problem_details", value = state$project_data$problem_details)
+      }
+      if (!is.null(state$project_data$problem_scale)) {
+        updateSelectInput(session, "problem_scale", selected = state$project_data$problem_scale)
+      }
+      if (!is.null(state$project_data$problem_urgency)) {
+        updateSelectInput(session, "problem_urgency", selected = state$project_data$problem_urgency)
+      }
+      cat("🔄 Step 2: Restored fields from workflow state\n")
+    }
+  })
+
   # =============================================================================
   # STEP 3: ACTIVITY & PRESSURE MANAGEMENT
   # =============================================================================
