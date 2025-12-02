@@ -159,27 +159,33 @@ The application features a comprehensive 8-step guided workflow for creating bow
 
 ### Environmental Scenario Templates (Latest Update - December 2025)
 
-The application now includes 13 comprehensive environmental scenario templates across multiple interfaces:
+The application now includes **16 comprehensive environmental scenario templates** organized by geographic region across multiple interfaces:
 
-#### **Guided Workflow (Step 1) - Environmental Scenarios:**
+#### **Guided Workflow (Step 1) - Environmental Scenarios (Ordered):**
+
+**General Marine Scenarios (6):**
 1. 🌊 **Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
 2. 🏭 **Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
 3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
 4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
 5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts
-6. 🐠 **Marine biodiversity loss and ecosystem degradation** - Species decline, habitat destruction, and ecosystem imbalance *(NEW Dec 2025)*
-7-13. **Martinique-specific scenarios** - Coastal erosion, Sargassum, coral degradation, watershed pollution, mangrove loss, hurricanes, marine tourism
+6. 🐠 **Marine biodiversity loss and ecosystem degradation** - Species decline, habitat destruction, and ecosystem imbalance
 
-#### **Data Upload Interface (Option 2) - Environmental Scenarios:**
-- 📊 **Complete vocabulary coverage** (53 activities, 36 pressures, 74 controls)
-1. 🌊 **Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
-2. 🏭 **Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
-3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
-4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
-5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts
-6. 🐠 **Marine biodiversity loss and ecosystem degradation** - Species decline and habitat destruction *(NEW)*
+**Macaronesian Islands Scenarios (3):** *(NEW Dec 2025)*
+7. ⛰️ **Macaronesia: Volcanic activity impacts on marine ecosystems** - Volcanic eruptions, lava flows, and hydrothermal vents (Azores, Madeira, Canary Islands, Cape Verde)
+8. 🦅 **Macaronesia: Endemic marine species conservation threats** - Monk seals, sea turtles, cetaceans, and endemic species protection
+9. 🌊 **Macaronesia: Deep-sea ecosystems and mining pressures** - Seamounts, hydrothermal vents, cold-water corals, and mining threats
 
-**✅ Latest Update (December 2025):** 13 environmental scenarios now available with new marine biodiversity loss assessment covering species decline, habitat destruction, and ecosystem degradation from multiple pressures.
+**Martinique-Specific Scenarios (7):**
+10. ⛰️ **Martinique: Coastal erosion and beach degradation** - Sea level rise and storm surge impacts
+11. 🌿 **Martinique: Sargassum seaweed influx impacts** - Massive seaweed arrivals and ecosystem disruption
+12. 🌊 **Martinique: Coral reef degradation and bleaching** - Caribbean reef ecosystem threats
+13. 💧 **Martinique: Watershed pollution from agriculture** - Chlordecone legacy and nutrient runoff
+14. 🌳 **Martinique: Mangrove forest degradation** - Coastal development and climate impacts
+15. 🌪️ **Martinique: Hurricane and tropical storm impacts** - Extreme weather and ecosystem disruption
+16. 🚢 **Martinique: Marine tourism environmental pressures** - Cruise ships and recreation impacts
+
+**✅ Latest Update (December 2025):** 16 environmental scenarios now available with 3 new Macaronesian island scenarios covering volcanic impacts, endemic species conservation, and deep-sea ecosystems. Scenarios are organized by region: General (6) → Macaronesian (3) → Martinique (7).
 
 ### UI/UX Enhancements (September 2025)
 
@@ -270,7 +276,7 @@ The application received comprehensive fixes to resolve critical usability and s
 - **Result**: Application now starts successfully on all platforms
 
 #### **Template Selection System**
-- **Fixed**: All 13 environmental scenario templates now work correctly (updated Dec 2025 with marine biodiversity loss)
+- **Fixed**: All 16 environmental scenario templates now work correctly (updated Dec 2025 with Macaronesian island scenarios)
 - **Resolution**: Added comprehensive error handling and debugging
 - **File**: `guided_workflow.R` lines 2537-2617
 - **Result**: Templates populate Steps 1-2 automatically for all scenarios

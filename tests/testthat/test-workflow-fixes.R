@@ -35,8 +35,8 @@ test_that("All environmental scenarios have corresponding templates", {
                  info = paste("Template missing for:", scenario_id))
   }
 
-  # Verify we have 13 templates (excluding blank) - Updated Dec 2025 with marine biodiversity loss
-  expect_equal(length(scenarios), 13)
+  # Verify we have 16 templates (excluding blank) - Updated Dec 2025 with Macaronesian scenarios
+  expect_equal(length(scenarios), 16)
 })
 
 test_that("All templates have required fields", {
@@ -325,7 +325,7 @@ cat("========================================\n")
 cat("Version: 5.3.2\n")
 cat("Date:", format(Sys.Date()), "\n")
 cat("Tests cover:\n")
-cat("  ✓ Template configuration (12 scenarios)\n")
+cat("  ✓ Template configuration (16 scenarios)\n")
 cat("  ✓ Workflow state management\n")
 cat("  ✓ Validation functions\n")
 cat("  ✓ Data conversion\n")

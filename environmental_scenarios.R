@@ -1,9 +1,10 @@
 # =============================================================================
 # Environmental Scenarios Configuration
-# Version: 5.3.4
+# Version: 5.3.6
 # Date: December 2025
 # Description: Centralized configuration for environmental risk scenarios
-# Updated: Added marine biodiversity loss scenario (13 total scenarios)
+# Updated: Added 3 Macaronesian island scenarios (16 total scenarios)
+#          Scenarios ordered: General (6) → Macaronesian (3) → Martinique (7)
 # =============================================================================
 
 # Environmental scenario definitions
@@ -42,6 +43,35 @@ ENVIRONMENTAL_SCENARIOS <- list(
     icon = "fish",
     label = "Overfishing and commercial stock depletion",
     description = "Marine resource depletion and ecosystem impacts from commercial fishing, bycatch, and habitat destruction"
+  ),
+
+  marine_biodiversity_loss = list(
+    id = "marine_biodiversity_loss",
+    icon = "fish",
+    label = "Marine biodiversity loss and ecosystem degradation",
+    description = "Comprehensive assessment of marine species decline, habitat destruction, ecosystem imbalance from multiple pressures including overfishing, pollution, climate change, invasive species, and coastal development affecting marine biodiversity and ecosystem services"
+  ),
+
+  # Macaronesian islands-specific scenarios (Azores, Madeira, Canary Islands, Cape Verde)
+  macaronesia_volcanic_impacts = list(
+    id = "macaronesia_volcanic_impacts",
+    icon = "mountain",
+    label = "Macaronesia: Volcanic activity impacts on marine ecosystems",
+    description = "Assessment of volcanic eruptions, lava flows, ash deposition, and hydrothermal vents affecting coastal waters, marine life, fisheries, and ecosystem recovery in oceanic volcanic islands of Azores, Canary Islands, and Cape Verde archipelagos"
+  ),
+
+  macaronesia_endemic_species = list(
+    id = "macaronesia_endemic_species",
+    icon = "crow",
+    label = "Macaronesia: Endemic marine species conservation threats",
+    description = "Risk analysis for unique Macaronesian endemic species including monk seals, sea turtles, cetaceans, endemic fish, and invertebrates facing threats from habitat loss, invasive species, climate change, and human activities across Atlantic island ecosystems"
+  ),
+
+  macaronesia_deep_sea = list(
+    id = "macaronesia_deep_sea",
+    icon = "water",
+    label = "Macaronesia: Deep-sea ecosystems and mining pressures",
+    description = "Assessment of deep-sea habitats including seamounts, hydrothermal vents, cold-water corals, and abyssal plains threatened by potential deep-sea mining, fishing impacts, climate change, and research activities in Macaronesian waters"
   ),
 
   # Martinique-specific scenarios
@@ -92,26 +122,55 @@ ENVIRONMENTAL_SCENARIOS <- list(
     icon = "ship",
     label = "Martinique: Marine tourism environmental pressures",
     description = "Analysis of environmental impacts from cruise ships, yacht anchoring, diving activities, beach recreation, and tourism infrastructure on coral reefs, seagrass beds, and coastal water quality"
-  ),
-
-  marine_biodiversity_loss = list(
-    id = "marine_biodiversity_loss",
-    icon = "fish",
-    label = "Marine biodiversity loss and ecosystem degradation",
-    description = "Comprehensive assessment of marine species decline, habitat destruction, ecosystem imbalance from multiple pressures including overfishing, pollution, climate change, invasive species, and coastal development affecting marine biodiversity and ecosystem services"
   )
 )
 
 #' Get Environmental Scenario Choices
 #'
 #' Returns a named vector of scenario choices suitable for selectInput
+#' Ordered by category: General scenarios, Macaronesian, Martinique
 #'
 #' @param include_blank Logical. Include blank/custom option? Default TRUE
 #' @return Named character vector with scenario IDs as values and labels as names
 #' @export
 getEnvironmentalScenarioChoices <- function(include_blank = TRUE) {
-  choices <- sapply(ENVIRONMENTAL_SCENARIOS, function(s) s$id)
-  names(choices) <- sapply(ENVIRONMENTAL_SCENARIOS, function(s) s$label)
+  # Define scenario order: General, Macaronesian, Martinique
+  general_scenarios <- c(
+    "marine_pollution",
+    "industrial_contamination",
+    "oil_spills",
+    "agricultural_runoff",
+    "overfishing",
+    "marine_biodiversity_loss"
+  )
+
+  macaronesia_scenarios <- c(
+    "macaronesia_volcanic_impacts",
+    "macaronesia_endemic_species",
+    "macaronesia_deep_sea"
+  )
+
+  martinique_scenarios <- c(
+    "martinique_coastal_erosion",
+    "martinique_sargassum",
+    "martinique_coral_degradation",
+    "martinique_watershed_pollution",
+    "martinique_mangrove_loss",
+    "martinique_hurricane_impacts",
+    "martinique_marine_tourism"
+  )
+
+  # Combine in desired order
+  ordered_ids <- c(general_scenarios, macaronesia_scenarios, martinique_scenarios)
+
+  # Build choices vector in order
+  choices <- character(0)
+  for (id in ordered_ids) {
+    if (id %in% names(ENVIRONMENTAL_SCENARIOS)) {
+      scenario <- ENVIRONMENTAL_SCENARIOS[[id]]
+      choices[scenario$label] <- scenario$id
+    }
+  }
 
   if (include_blank) {
     choices <- c("Custom scenario" = "", choices)

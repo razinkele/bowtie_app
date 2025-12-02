@@ -339,6 +339,55 @@ WORKFLOW_CONFIG <- list(
       example_activities = c("Overfishing", "Coastal development", "Pollution discharge"),
       example_pressures = c("Habitat destruction", "Species decline", "Ecosystem imbalance"),
       category = "Marine Conservation"
+    ),
+
+    # Macaronesian islands-specific scenarios
+    macaronesia_volcanic_impacts = list(
+      name = "Macaronesian Volcanic Impacts",
+      project_name = "Volcanic Activity Impacts on Marine Ecosystems - Macaronesia",
+      project_location = "Macaronesian Islands (Azores, Madeira, Canary Islands, Cape Verde)",
+      project_type = "marine",
+      project_description = "Assessment of volcanic eruptions, lava flows, ash deposition, and hydrothermal vents affecting coastal waters, marine life, fisheries, and ecosystem recovery in oceanic volcanic islands.",
+      central_problem = "Volcanic activity impacts on marine ecosystems",
+      problem_category = "climate_impacts",
+      problem_details = "Analysis of volcanic eruption effects including lava entry into the sea, ash fallout on water surfaces, changes in water temperature and chemistry near hydrothermal vents, impacts on fish populations and nursery areas, coral and benthic community responses, water quality degradation from volcanic particulates, disruption to fishing activities, and long-term ecosystem recovery patterns in volcanic island marine environments.",
+      problem_scale = "regional",
+      problem_urgency = "high",
+      example_activities = c("Volcanic eruptions", "Lava flows", "Hydrothermal activity"),
+      example_pressures = c("Water quality degradation", "Habitat destruction", "Temperature changes"),
+      category = "Geological Hazards"
+    ),
+
+    macaronesia_endemic_species = list(
+      name = "Macaronesian Endemic Species",
+      project_name = "Endemic Marine Species Conservation Threats - Macaronesia",
+      project_location = "Macaronesian Islands (Azores, Madeira, Canary Islands, Cape Verde)",
+      project_type = "marine",
+      project_description = "Risk analysis for unique Macaronesian endemic species including monk seals, sea turtles, cetaceans, endemic fish, and invertebrates facing threats from habitat loss, invasive species, climate change, and human activities.",
+      central_problem = "Endemic marine species conservation threats",
+      problem_category = "habitat_loss",
+      problem_details = "Assessment of pressures on endemic and endangered species unique to Macaronesian waters including Mediterranean monk seals, loggerhead and green sea turtles, endemic fish species, rare invertebrates, and resident cetacean populations. Threats include coastal development destroying critical habitats, invasive alien species competition, climate change affecting breeding and feeding areas, overfishing and bycatch, pollution impacts, ship strikes, noise pollution, and cumulative anthropogenic stressors on already vulnerable populations.",
+      problem_scale = "regional",
+      problem_urgency = "critical",
+      example_activities = c("Coastal development", "Invasive species introduction", "Fishing operations"),
+      example_pressures = c("Habitat loss", "Species competition", "Bycatch mortality"),
+      category = "Biodiversity Conservation"
+    ),
+
+    macaronesia_deep_sea = list(
+      name = "Macaronesian Deep-Sea Ecosystems",
+      project_name = "Deep-Sea Ecosystems and Mining Pressures - Macaronesia",
+      project_location = "Macaronesian Deep-Sea Waters (Azores, Madeira, Canary Islands, Cape Verde)",
+      project_type = "marine",
+      project_description = "Assessment of deep-sea habitats including seamounts, hydrothermal vents, cold-water corals, and abyssal plains threatened by potential deep-sea mining, fishing impacts, climate change, and research activities.",
+      central_problem = "Deep-sea ecosystems and mining pressures",
+      problem_category = "resource_depletion",
+      problem_details = "Analysis of threats to unique Macaronesian deep-sea ecosystems including seamount communities, hydrothermal vent fauna, cold-water coral gardens, sponge aggregations, and abyssal plain biodiversity. Pressures include potential polymetallic nodule and sulfide mining, deep-sea bottom trawling impacts, cable laying activities, oceanographic research disturbance, climate change affecting deep circulation patterns and oxygen levels, ocean acidification, and lack of comprehensive data on ecosystem structure and function limiting conservation efforts.",
+      problem_scale = "regional",
+      problem_urgency = "high",
+      example_activities = c("Deep-sea mining exploration", "Bottom trawling", "Cable installation"),
+      example_pressures = c("Habitat destruction", "Sediment plumes", "Biodiversity loss"),
+      category = "Deep-Sea Conservation"
     )
   )
 )
