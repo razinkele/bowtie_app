@@ -14,6 +14,13 @@ if (is.null(repo_root)) {
   repo_root <- normalizePath('..', mustWork = FALSE)
 }
 tryCatch({
+  # Ensure core utilities are available (e.g., bowtie_log)
+  tryCatch({
+    source(file.path(repo_root, "utils.R"), local = TRUE)
+  }, error = function(e) {
+    message("helper-load-vocabulary: failed to source utils.R (", e$message, ")")
+  })
+
   source(file.path(repo_root, "vocabulary.R"), local = TRUE)
 }, error = function(e) {
   message("helper-load-vocabulary: failed to source vocabulary.R (", e$message, ")")
