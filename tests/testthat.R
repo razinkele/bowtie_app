@@ -1,17 +1,12 @@
 # Test runner for Environmental Bowtie Risk Analysis Application
-# This file runs all tests in the tests/testthat directory
+# This file runs all tests in the tests/testthat directory (non-package mode)
 
 library(testthat)
 
-# Set the working directory to the app root
-if (!file.exists("app.r")) {
-  stop("Tests must be run from the app root directory containing app.r")
-}
+# Ensure app code is sourced from the project root (tests are executed from tests/)
+source(file.path("..", "utils.R"))
+source(file.path("..", "vocabulary.R"))
+source(file.path("..", "bowtie_bayesian_network.R"))
 
-# Load the app's dependencies and source files
-source("utils.R")
-source("vocabulary.r") 
-source("bowtie_bayesian_network.r")
-
-# Run all tests
-test_check("bowtie_app", reporter = "summary")
+# Run all tests in this directory
+test_dir(".", reporter = "summary")
