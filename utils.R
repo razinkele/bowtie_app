@@ -14,7 +14,12 @@
 clear_cache <- function() {
   rm(list = ls(.cache), envir = .cache)
   .cache$current_size <- 0
-  cat("🧹 Cache cleared successfully\n")
+  bowtie_log("🧹 Cache cleared successfully", .verbose = TRUE)
+}
+
+# Backward-compatibility wrapper
+clearCache <- function() {
+  clear_cache()
 }
 
 # Memory-aware cache setter
@@ -37,6 +42,18 @@ get_cache <- function(key, default = NULL) {
 # Performance monitoring utilities
 .perf <- new.env()
 
+# Centralized, controllable logging helper
+# Use options(bowtie.verbose = TRUE) to enable logs in development. Tests/CI will be quiet by default.
+bowtie_log <- function(..., level = c("info", "warn", "error"), .verbose = getOption("bowtie.verbose", FALSE)) {
+  level <- match.arg(level)
+  if (!.verbose) return(invisible(NULL))
+  msg <- paste(..., collapse = " ")
+  # Use message() so logs are visible but can be captured separately
+  if (level == "info") message(msg)
+  else if (level == "warn") warning(msg, call. = FALSE)
+  else message(msg)
+}
+
 # Performance timer
 start_timer <- function(operation = "task") {
   .perf[[paste0(operation, "_start")]] <- Sys.time()
@@ -47,7 +64,7 @@ end_timer <- function(operation = "task", silent = FALSE) {
   if (exists(start_key, envir = .perf)) {
     duration <- as.numeric(difftime(Sys.time(), .perf[[start_key]], units = "secs"))
     if (!silent) {
-      cat("⏱️", operation, "completed in", round(duration, 2), "seconds\n")
+      bowtie_log("⏱️", operation, "completed in", round(duration, 2), "seconds", .verbose = TRUE)
     }
     return(duration)
   }
@@ -57,15 +74,15 @@ end_timer <- function(operation = "task", silent = FALSE) {
 # Memory usage check
 check_memory <- function() {
   if (requireNamespace("pryr", quietly = TRUE)) {
-    cat("💾 Memory usage:", pryr::mem_used(), "\n")
+    bowtie_log(paste0("💾 Memory usage: ", pryr::mem_used()), .verbose = TRUE)
   } else {
-    cat("💾 Memory monitoring requires 'pryr' package\n")
+    bowtie_log("💾 Memory monitoring requires 'pryr' package", .verbose = TRUE)
   }
 }
 
 # Function to generate environmental management sample data with connections and granular risk values
 generateEnvironmentalDataFixed <- function() {
-  cat("🔄 Generating environmental management data with granular connection risks\n")
+  bowtie_log("🔄 Generating environmental management data with granular connection risks", .verbose = TRUE)
   
   # Create comprehensive data with PROPERLY MAPPED protective mitigations
   sample_data <- data.frame(
@@ -263,21 +280,60 @@ generateEnvironmentalDataFixed <- function() {
   sample_data$Likelihood <- sample_data$Overall_Likelihood
   sample_data$Severity <- sample_data$Overall_Severity
   
-  cat("✅ Generated", nrow(sample_data), "rows of environmental data with granular connection risks\n")
-  cat("🔗 Each protective mitigation is properly mapped to its corresponding consequence\n")
-  cat("📊 Added granular likelihood/severity for 6 bowtie connections per scenario\n")
-  cat("🎯 Overall risk calculated from pathway chain analysis\n")
+  bowtie_log(paste("✅ Generated", nrow(sample_data), "rows of environmental data with granular connection risks"), .verbose = TRUE)
+  bowtie_log("🔗 Each protective mitigation is properly mapped to its corresponding consequence", .verbose = TRUE)
+  bowtie_log("📊 Added granular likelihood/severity for 6 bowtie connections per scenario", .verbose = TRUE)
+  bowtie_log("🎯 Overall risk calculated from pathway chain analysis", .verbose = TRUE)
+
+  # Backwards-compatibility: provide columns expected by older tests and callers
+  if (!"Problem" %in% names(sample_data)) sample_data$Problem <- as.character(sample_data$Central_Problem)
+  if (!"Threat_Likelihood" %in% names(sample_data)) {
+    if ("Activity_to_Pressure_Likelihood" %in% names(sample_data)) {
+      sample_data$Threat_Likelihood <- sample_data$Activity_to_Pressure_Likelihood
+    } else if ("Likelihood" %in% names(sample_data)) {
+      sample_data$Threat_Likelihood <- sample_data$Likelihood
+    } else {
+      sample_data$Threat_Likelihood <- sample_data$Overall_Likelihood
+    }
+  }
+  if (!"Consequence_Severity" %in% names(sample_data)) {
+    if ("Central_to_Mitigation_Severity" %in% names(sample_data)) {
+      sample_data$Consequence_Severity <- sample_data$Central_to_Mitigation_Severity
+    } else {
+      sample_data$Consequence_Severity <- sample_data$Overall_Severity
+    }
+  }
+
+  # Ensure character types for key columns expected by tests
+  sample_data$Activity <- as.character(sample_data$Activity)
+  sample_data$Pressure <- as.character(sample_data$Pressure)
+  sample_data$Problem <- as.character(sample_data$Problem)
+  sample_data$Consequence <- as.character(sample_data$Consequence)
+
   return(sample_data)
 }
 
 # Backward compatibility alias removed - use generateEnvironmentalDataFixed() directly
 
-# Function to validate required columns in uploaded data
-validateDataColumns <- function(data) {
-  required_cols <- c("Activity", "Pressure", "Central_Problem", "Consequence")
+# Detailed validation (returns list with missing columns) - used by server
+validateDataColumnsDetailed <- function(data) {
+  # Accept either 'Central_Problem' or legacy 'Problem' as the central problem column
+  required_cols <- c("Activity", "Pressure", "Consequence")
   missing_cols <- setdiff(required_cols, names(data))
+
+  # Check for central problem presence
+  if (!("Central_Problem" %in% names(data) || "Problem" %in% names(data))) {
+    missing_cols <- c(missing_cols, "Central_Problem or Problem")
+  }
+
   list(valid = length(missing_cols) == 0, missing = missing_cols)
 }
+
+# Backwards-compatible boolean validator (used by tests)
+validateDataColumns <- function(data) {
+  res <- validateDataColumnsDetailed(data)
+  res$valid
+} 
 
 # Function to add default columns if missing (improved structure with granular risks)
 addDefaultColumns <- function(data, scenario_type = "") {
@@ -398,16 +454,23 @@ addDefaultColumns <- function(data, scenario_type = "") {
     data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
                              ifelse(risk_scores <= 15, "Medium", "High"))
   }
-  
+
+  # Compatibility columns expected by older callers/tests
+  if (!"Threat_Likelihood" %in% names(data)) {
+    if ("Activity_to_Pressure_Likelihood" %in% names(data)) data$Threat_Likelihood <- data$Activity_to_Pressure_Likelihood else data$Threat_Likelihood <- data$Likelihood
+  }
+  if (!"Consequence_Severity" %in% names(data)) {
+    if ("Central_to_Mitigation_Severity" %in% names(data)) data$Consequence_Severity <- data$Central_to_Mitigation_Severity else data$Consequence_Severity <- data$Overall_Severity
+  }
+  if (!"Risk_Rating" %in% names(data)) data$Risk_Rating <- data$Overall_Likelihood * data$Overall_Severity
+
   data
 }
 
-# Vectorized risk level calculation
+# Vectorized risk score calculation (numeric product). Tests expect numeric rating (likelihood * severity)
 calculateRiskLevel <- function(likelihood, severity) {
-  risk_scores <- likelihood * severity
-  ifelse(risk_scores <= 6, "Low",
-         ifelse(risk_scores <= 15, "Medium", "High"))
-}
+  as.numeric(likelihood) * as.numeric(severity)
+} 
 
 # Improved color mappings for comprehensive structure
 RISK_COLORS <- c("Low" = "#90EE90", "Medium" = "#FFD700", "High" = "#FF6B6B")
@@ -419,17 +482,30 @@ CENTRAL_PROBLEM_COLOR <- "#C0392B"   # Dark red for central problem
 PROTECTIVE_COLOR <- "#3498DB"        # Blue for protective mitigation
 CONSEQUENCE_COLOR <- "#E67E22"       # Dark orange for consequences
 
-# Optimized risk color function
+# Optimized risk color function - accepts numeric scores or categorical levels
 getRiskColor <- function(risk_level, show_risk_levels = TRUE) {
   if (!show_risk_levels) return("#CCCCCC")
-  RISK_COLORS[risk_level]
-}
+  if (is.numeric(risk_level)) {
+    catg <- ifelse(risk_level <= 6, "Low", ifelse(risk_level <= 15, "Medium", "High"))
+    return(RISK_COLORS[catg])
+  }
+  RISK_COLORS[as.character(risk_level)]
+} 
 
 # Clear cache when data changes
 # Duplicate clearCache function removed - use clear_cache() instead
 
 # Updated node creation for comprehensive bowtie structure
 createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
+  # Validate input data
+  if (missing(hazard_data) || !is.data.frame(hazard_data) || nrow(hazard_data) == 0) {
+    stop("Invalid hazard data: 'hazard_data' must be a non-empty data.frame with required columns")
+  }
+  required_cols <- c("Activity", "Pressure", "Problem", "Consequence")
+  if (!all(required_cols %in% names(hazard_data))) {
+    stop(sprintf("Invalid hazard data: missing required columns: %s", paste(setdiff(required_cols, names(hazard_data)), collapse = ", ")))
+  }
+
   # Check cache first (removed aggressive cache clearing for better performance)
   cache_key <- paste0("nodes_updated_v432_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
   if (exists(cache_key, envir = .cache)) {
@@ -1165,9 +1241,10 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
     Preventive_Control = "New Improved Preventive Control",
     Escalation_Factor = "New Improved Escalation Factor",
     Central_Problem = selected_problem,
+    Problem = selected_problem,
     Protective_Mitigation = "New Updated Protective Mitigation with improved mapping",
     Consequence = "New Improved Consequence",
-    
+
     # Granular connection risks
     Activity_to_Pressure_Likelihood = 3L,
     Activity_to_Pressure_Severity = 3L,
@@ -1183,14 +1260,17 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
     Escalation_to_Mitigation_Severity = 3L,
     Mitigation_to_Consequence_Likelihood = 2L,
     Mitigation_to_Consequence_Severity = 3L,
-    
+
     # Calculated overall values
     Overall_Likelihood = 3L,
     Overall_Severity = 4L,
-    
+
     # Legacy columns for backward compatibility
     Likelihood = 3L,
     Severity = 4L,
+    Threat_Likelihood = 3L,
+    Consequence_Severity = 4L,
+    Risk_Rating = 12,
     Risk_Level = "Medium",
     stringsAsFactors = FALSE
   )
@@ -1201,48 +1281,44 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
 # Backward compatibility function
 # Backward compatibility alias removed - use createDefaultRowFixed() directly
 
-# Optimized numeric validation
-validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
+# Detailed numeric validation (returns list) used by server
+validateNumericInputDetailed <- function(value, min_val = 1L, max_val = 5L) {
   num_value <- suppressWarnings(as.integer(value))
   if (is.na(num_value) || num_value < min_val || num_value > max_val) {
-    list(valid = FALSE, value = NULL, 
+    list(valid = FALSE, value = NULL,
          message = paste("❌ Value must be between", min_val, "and", max_val))
   } else {
     list(valid = TRUE, value = num_value, message = NULL)
   }
 }
 
+# Backwards-compatible simple numeric validator (used by tests)
+validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
+  num_value <- suppressWarnings(as.integer(value))
+  if (is.na(num_value)) return(min_val)
+  if (num_value < min_val) return(min_val)
+  if (num_value > max_val) return(max_val)
+  num_value
+} 
+
 # Improved data summary function with granular connection analysis
 getDataSummaryFixed <- function(data) {
   if (is.null(data) || nrow(data) == 0) return(NULL)
-  
-  # Check if granular data is available
-  has_granular_data <- all(c("Activity_to_Pressure_Likelihood", "Overall_Likelihood") %in% names(data))
-  
-  if (has_granular_data) {
-    paste(
-      "📊 GRANULAR ENHANCED Summary:",
-      "Rows:", nrow(data),
-      "| Activities:", length(unique(data$Activity)),
-      "| Central Problems:", length(unique(data$Central_Problem)),
-      "| 🛡️ Updated Protective Mitigations:", length(unique(data$Protective_Mitigation[data$Protective_Mitigation != ""])),
-      "| Consequences:", length(unique(data$Consequence)),
-      "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", "),
-      "| 🔗 GRANULAR: 6 connection risks per scenario",
-      "| ✅ PATHWAY ANALYSIS with improved mapping"
-    )
-  } else {
-    paste(
-      "📊 Improved Summary:",
-      "Rows:", nrow(data),
-      "| Activities:", length(unique(data$Activity)),
-      "| Central Problems:", length(unique(data$Central_Problem)),
-      "| 🛡️ Updated Protective Mitigations:", length(unique(data$Protective_Mitigation[data$Protective_Mitigation != ""])),
-      "| Consequences:", length(unique(data$Consequence)),
-      "| Risk Levels:", paste(names(table(data$Risk_Level)), collapse = ", "),
-      "| ✅ Updated connections with improved mapping"
-    )
-  }
+
+  # Prefer Problem if present, otherwise Central_Problem
+  problem_col <- ifelse("Problem" %in% names(data), "Problem", "Central_Problem")
+  if (!(problem_col %in% names(data))) return(NULL)
+
+  # Ensure Risk_Rating is available; compute if necessary
+  if (!"Risk_Rating" %in% names(data)) data$Risk_Rating <- ifelse(!is.na(data$Overall_Likelihood & data$Overall_Severity), data$Overall_Likelihood * data$Overall_Severity, ifelse(!is.na(data$Likelihood & data$Severity), data$Likelihood * data$Severity, NA))
+
+  summary_df <- data %>%
+    dplyr::group_by(!!rlang::sym(problem_col)) %>%
+    dplyr::summarise(Total_Entries = dplyr::n(), Avg_Risk_Rating = mean(Risk_Rating, na.rm = TRUE)) %>%
+    dplyr::rename(Problem = !!rlang::sym(problem_col)) %>%
+    as.data.frame()
+
+  return(summary_df)
 }
 
 # Backward compatibility function
@@ -1948,6 +2024,35 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   cat("🛡️ Controls:", length(unique(c(bowtie_data$Preventive_Control, bowtie_data$Protective_Control))), "\n")
 
   return(bowtie_data)
+}
+
+# Generate a comprehensive synthetic environmental dataset for performance tests
+generate_comprehensive_environmental_data <- function(num_scenarios = 100,
+                                                      activities_per_scenario = 5,
+                                                      pressures_per_scenario = 4,
+                                                      consequences_per_scenario = 3,
+                                                      controls_per_scenario = 6) {
+  total_rows <- num_scenarios * activities_per_scenario
+  activities <- paste("Activity", seq_len(total_rows))
+  pressures <- paste("Pressure", rep(seq_len(pressures_per_scenario), length.out = total_rows))
+  central <- paste("Problem", rep(seq_len(num_scenarios), each = activities_per_scenario))
+  consequences <- paste("Consequence", rep(seq_len(consequences_per_scenario), length.out = total_rows))
+  preventive <- paste("Preventive", seq_len(total_rows))
+  protective <- paste("Protective", seq_len(total_rows))
+
+  df <- data.frame(
+    Activity = activities,
+    Pressure = pressures,
+    Central_Problem = central,
+    Consequence = consequences,
+    Preventive_Control = preventive,
+    Protective_Control = protective,
+    Threat_Likelihood = sample(1:5, total_rows, replace = TRUE),
+    Consequence_Severity = sample(1:5, total_rows, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  return(df)
 }
 
 cat("🎉 v5.1.0 Environmental Bowtie Risk Analysis Utilities Loaded\n")

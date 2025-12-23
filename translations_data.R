@@ -1174,7 +1174,10 @@ TRANSLATIONS <- list(
 )
 
 # Translation helper function
-t <- function(key, lang = "en") {
+t <- function(key, lang = "en", ...) {
+  # Accepts additional named args (e.g., current_lang) for compatibility with callers
+  extra <- list(...)
+  if (!is.null(extra$current_lang)) lang <- extra$current_lang
   if (!lang %in% c("en", "fr")) lang <- "en"
   translation <- TRANSLATIONS[[lang]][[key]]
   if (is.null(translation)) return(key)

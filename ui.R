@@ -2,7 +2,7 @@
 # =============================================================================
 
 ui <- fluidPage(
-  useShinyjs(),
+  shinyjs::useShinyjs(),
   theme = bs_theme(version = 5, bootswatch = "zephyr"),
 
   # Add custom CSS for PNG image styling and enhanced layout
@@ -57,6 +57,12 @@ ui <- fluidPage(
         padding: 10px;
         margin: 10px 0;
       }
+    ")),
+    # JavaScript for opening manual in new window
+    tags$script(HTML("
+      Shiny.addCustomMessageHandler('openManual', function(url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      });
     "))
   ),
 
@@ -321,7 +327,7 @@ ui <- fluidPage(
         card(
           card_header(tagList(icon("eye"), "Data Preview"), class = "bg-success text-white"),
           card_body(
-            withSpinner(DT::dataTableOutput("preview")),
+            shinycssloaders::withSpinner(DT::dataTableOutput("preview")),
             br(),
             div(class = "alert alert-info mb-0", tagList(icon("info-circle"), " "),
                 textOutput("debugInfo", inline = TRUE))
@@ -477,7 +483,7 @@ ui <- fluidPage(
                  conditionalPanel(
                    condition = "output.dataLoaded",
                    div(class = "network-container",
-                       withSpinner(visNetworkOutput("bowtieNetwork", height = "650px"))
+                       shinycssloaders::withSpinner(visNetwork::visNetworkOutput("bowtieNetwork", height = "650px"))
                    )
                  ),
                  conditionalPanel(
@@ -578,7 +584,7 @@ ui <- fluidPage(
                             conditionalPanel(
                               condition = "output.bayesianNetworkCreated",
                               div(class = "network-container",
-                                  withSpinner(visNetworkOutput("bayesianNetworkVis", height = "400px"))
+                                  shinycssloaders::withSpinner(visNetwork::visNetworkOutput("bayesianNetworkVis", height = "400px"))
                               )
                             ),
                             conditionalPanel(
@@ -604,7 +610,7 @@ ui <- fluidPage(
                               condition = "output.inferenceCompleted",
                               div(class = "inference-result",
                                   h6("Probabilistic Predictions:"),
-                                  withSpinner(verbatimTextOutput("inferenceResults"))
+                                  shinycssloaders::withSpinner(verbatimTextOutput("inferenceResults"))
                               )
                             ),
                             conditionalPanel(
@@ -626,7 +632,7 @@ ui <- fluidPage(
                               condition = "output.inferenceCompleted",
                               div(class = "inference-result",
                                   h6("Risk Interpretation:"),
-                                  withSpinner(htmlOutput("riskInterpretation"))
+                                  shinycssloaders::withSpinner(htmlOutput("riskInterpretation"))
                               )
                             ),
                             conditionalPanel(
@@ -698,7 +704,7 @@ ui <- fluidPage(
                      div(class = "alert alert-success",
                          tagList(icon("check-circle"), " "),
                          "✓ ENHANCED: Click on any cell to edit. Data ready for Bayesian network conversion."),
-                     withSpinner(DT::dataTableOutput("editableTable"))
+                     shinycssloaders::withSpinner(DT::dataTableOutput("editableTable"))
                    ),
                    conditionalPanel(
                      condition = "!output.dataLoaded",
@@ -763,7 +769,7 @@ ui <- fluidPage(
                    ),
                    conditionalPanel(
                      condition = "output.dataLoaded",
-                     withSpinner(plotlyOutput("riskMatrix", height = "500px"))
+                     shinycssloaders::withSpinner(plotly::plotlyOutput("riskMatrix", height = "500px"))
                    ),
                    conditionalPanel(
                      condition = "!output.dataLoaded",
@@ -782,7 +788,7 @@ ui <- fluidPage(
                  card_body(
                    conditionalPanel(
                      condition = "output.dataLoaded",
-                     withSpinner(tableOutput("riskStats"))
+                     shinycssloaders::withSpinner(tableOutput("riskStats"))
                    ),
                    conditionalPanel(
                      condition = "!output.dataLoaded",
@@ -1049,14 +1055,14 @@ ui <- fluidPage(
 
                      tabPanel("Data Table",
                               br(),
-                              withSpinner(DT::dataTableOutput("vocab_table"))
+                              shinycssloaders::withSpinner(DT::dataTableOutput("vocab_table"))
                      ),
 
                      tabPanel("Search Results",
                               br(),
                               conditionalPanel(
                                 condition = "output.hasSearchResults",
-                                withSpinner(DT::dataTableOutput("vocab_search_results"))
+                                shinycssloaders::withSpinner(DT::dataTableOutput("vocab_search_results"))
                               ),
                               conditionalPanel(
                                 condition = "!output.hasSearchResults",
@@ -1149,11 +1155,11 @@ ui <- fluidPage(
                                              tabsetPanel(
                                                tabPanel("Connection Table",
                                                         br(),
-                                                        withSpinner(DT::dataTableOutput("ai_connections_table"))
+                                                        shinycssloaders::withSpinner(DT::dataTableOutput("ai_connections_table"))
                                                ),
                                                tabPanel("Network Visualization",
                                                         br(),
-                                                        withSpinner(visNetworkOutput("ai_network", height = "500px"))
+                                                        shinycssloaders::withSpinner(visNetwork::visNetworkOutput("ai_network", height = "500px"))
                                                ),
                                                tabPanel("Connection Summary",
                                                         br(),
@@ -2035,7 +2041,17 @@ ui <- fluidPage(
                   class = "bg-info text-white"
                 ),
                 card_body(
-                  includeMarkdown("README.md")
+                  {
+                    # Include README if available; use repo-root helper when running tests
+                    readme_path <- NULL
+                    if (file.exists("README.md")) {
+                      readme_path <- "README.md"
+                    } else if (exists("find_repo_root", mode = "function")) {
+                      rr <- find_repo_root()
+                      if (!is.null(rr) && file.exists(file.path(rr, "README.md"))) readme_path <- file.path(rr, "README.md")
+                    }
+                    if (!is.null(readme_path)) includeMarkdown(readme_path)
+                  }
                 )
               )
             )
@@ -2101,23 +2117,42 @@ ui <- fluidPage(
                       strong(" Manual Details: "),
                       paste("Version", APP_CONFIG$VERSION, "| Multiple Languages | Comprehensive Documentation")
                     ),
+                    h5(class = "text-center mb-3", "📖 View Manual Online"),
+                    div(class = "d-flex gap-2 justify-content-center mb-4",
+                      actionButton(
+                        "open_manual",
+                        "Open User Manual (HTML)",
+                        class = "btn-lg btn-success",
+                        icon = icon("book-open"),
+                        onclick = "Shiny.setInputValue('open_manual', Math.random());"
+                      ),
+                      actionButton(
+                        "open_manual_fr",
+                        "Ouvrir le Manuel (HTML - Français)",
+                        class = "btn-lg btn-info",
+                        icon = icon("book-open"),
+                        onclick = "Shiny.setInputValue('open_manual_fr', Math.random());"
+                      )
+                    ),
+                    h5(class = "text-center mb-3 mt-4", "💾 Download Manual"),
                     div(class = "d-flex gap-2 justify-content-center",
                       downloadButton(
                         "download_manual",
-                        "Download User Manual (PDF - English)",
+                        "Download PDF (English)",
                         class = "btn-lg btn-primary",
                         icon = icon("download")
                       ),
                       downloadButton(
                         "download_manual_fr",
-                        "Télécharger le Manuel (HTML - Français)",
-                        class = "btn-lg btn-success",
+                        "Télécharger HTML (Français)",
+                        class = "btn-lg btn-secondary",
                         icon = icon("download")
                       )
                     ),
                     hr(),
                     p(class = "small text-muted mt-3",
-                      "The manual is regularly updated to reflect the latest features and improvements."
+                      icon("info-circle"), " ",
+                      strong("Tip:"), " Click 'Open' to view the manual in your browser, or 'Download' to save a copy."
                     )
                   )
                 )

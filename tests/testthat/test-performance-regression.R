@@ -6,6 +6,29 @@ library(testthat)
 
 context("Performance Regression Testing")
 
+# Robust file reader for tests
+safe_read <- function(filename) {
+  # Prefer parent dir first (so shims in tests/testthat don't mask real files)
+  parent <- file.path("..", filename)
+  if (file.exists(parent)) return(readLines(parent))
+  if (file.exists(filename)) return(readLines(filename))
+
+  # Search common parent paths (supports temp/test copies where parent may differ)
+  search_dirs <- c("..", "../..", "../../..", "../../../..")
+  for (d in search_dirs) {
+    if (!dir.exists(d)) next
+    files <- list.files(d, pattern = paste0("^", gsub("\\.", "\\\\.", filename), "$"), ignore.case = TRUE, full.names = TRUE)
+    if (length(files) > 0) return(readLines(files[1]))
+  }
+
+  # Finally, try a recursive search from current dir
+  rec_files <- list.files(".", pattern = basename(filename), ignore.case = TRUE, recursive = TRUE, full.names = TRUE)
+  if (length(rec_files) > 0) return(readLines(rec_files[1]))
+
+  # Return empty content if not found (performance tests tolerate missing docs)
+  return(character(0))
+}
+
 # Helper function to measure memory usage
 get_memory_usage <- function() {
   if (requireNamespace("pryr", quietly = TRUE)) {
@@ -29,7 +52,7 @@ test_that("Application startup time is within acceptable limits", {
       gc()
 
       # Source main components
-      source("global.R")
+      source("global.R", chdir = TRUE)
     },
     times = 3,
     unit = "s"
@@ -53,7 +76,7 @@ test_that("Vocabulary loading performance is acceptable", {
   # Measure vocabulary loading time
   vocab_benchmark <- microbenchmark(
     {
-      source("vocabulary.r")
+      source("vocabulary.r", chdir = TRUE)
       vocabulary_data <- load_vocabulary()
     },
     times = 5,
@@ -98,7 +121,7 @@ test_that("Guided workflow initialization performance", {
   # Measure guided workflow loading time
   workflow_benchmark <- microbenchmark(
     {
-      source("guided_workflow.R")
+      source("guided_workflow.R", chdir = TRUE)
     },
     times = 3,
     unit = "ms"
@@ -160,8 +183,8 @@ test_that("Icon rendering performance after standardization", {
   }
 
   # Test that guided workflow icons are efficiently implemented
-  if (file.exists("guided_workflow.r")) {
-    workflow_content <- readLines("guided_workflow.r")
+  workflow_content <- safe_read("guided_workflow.r")
+  if (length(workflow_content) > 0) {
     workflow_icons <- length(grep('icon\\(', workflow_content))
 
     expect_true(workflow_icons < 50,

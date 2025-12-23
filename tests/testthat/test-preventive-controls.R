@@ -24,9 +24,9 @@ test_that("vocabulary data loads controls correctly", {
 
   # Load the vocabulary (this uses real Excel files)
   vocab_data <- NULL
-  expect_silent({
+  expect_silent(invisible(capture.output(suppressWarnings(suppressMessages({
     vocab_data <- load_vocabulary()
-  })
+  })))) )
 
   # Test that controls data is loaded
   expect_true("controls" %in% names(vocab_data))
@@ -54,11 +54,11 @@ test_that("generate_step4_ui creates controls selectizeInput", {
   if (exists("generate_step4_ui")) {
     # Test UI generation with vocabulary data
     ui_result <- NULL
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- test_vocab
       ui_result <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
 
     # Test that UI is created (should be a tagList or similar)
     expect_true(!is.null(ui_result))
@@ -78,11 +78,11 @@ test_that("generate_step4_ui handles NULL vocabulary data gracefully", {
   # Test with NULL vocabulary data (if function exists)
   if (exists("generate_step4_ui")) {
     ui_result <- NULL
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- NULL
       ui_result <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
 
     # Should still create UI, just with empty choices
     expect_true(!is.null(ui_result))
@@ -109,11 +109,11 @@ test_that("generate_step4_ui handles empty controls data", {
   # Test with empty vocabulary data (if function exists)
   if (exists("generate_step4_ui")) {
     ui_result <- NULL
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- empty_vocab
       ui_result <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
 
     expect_true(!is.null(ui_result))
   }

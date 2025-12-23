@@ -14,7 +14,7 @@ suppressPackageStartupMessages({
 })
 
 # Source application files for testing
-cat("🔧 Loading application components for benchmarking...\n")
+bowtie_log("🔧 Loading application components for benchmarking...", .verbose = TRUE)
 source("global.R")
 source("utils.R")
 source("vocabulary.R")

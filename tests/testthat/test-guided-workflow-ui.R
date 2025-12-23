@@ -20,7 +20,7 @@ test_that("Main workflow UI generates correctly", {
   
   ui <- guided_workflow_ui("test")
   
-  expect_s3_class(ui, "shiny.tag")
+  expect_s3_class(ui, "shiny.tag.list")
   expect_true(length(ui) > 0)
 })
 

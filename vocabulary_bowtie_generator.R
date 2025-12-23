@@ -5,10 +5,10 @@
 # and AI-powered linking, then exports to Excel format suitable for main app
 # =============================================================================
 
-# Load required libraries
-if (!require("openxlsx")) install.packages("openxlsx")
-if (!require("dplyr")) install.packages("dplyr")
-if (!require("readxl")) install.packages("readxl")
+# Load required libraries (do not auto-install at load time)
+if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Package 'openxlsx' is required")
+if (!requireNamespace("dplyr", quietly = TRUE)) stop("Package 'dplyr' is required")
+if (!requireNamespace("readxl", quietly = TRUE)) stop("Package 'readxl' is required")
 
 library(openxlsx)
 library(dplyr)
@@ -40,11 +40,11 @@ generate_vocabulary_bowtie <- function(
   use_ai_linking = TRUE
 ) {
   
-  cat("🚀 Starting vocabulary-based bow-tie network generation...\n")
-  cat("Central problems:", paste(central_problems, collapse = ", "), "\n")
+  bowtie_log("🚀 Starting vocabulary-based bow-tie network generation...")
+  bowtie_log("Central problems:", paste(central_problems, collapse = ", "))
   
   # Step 1: Load vocabulary data
-  cat("\n📚 Loading vocabulary data...\n")
+  bowtie_log("\n📚 Loading vocabulary data...", .verbose = TRUE)
   vocabulary_data <- tryCatch({
     load_vocabulary()
   }, error = function(e) {
@@ -96,6 +96,11 @@ generate_vocabulary_bowtie <- function(
   
   # Step 5: Export to Excel file
   cat("\n💾 Exporting to Excel file:", output_file, "\n")
+  # Validate output path: require directory to already exist (avoid creating arbitrary folders)
+  output_dir <- dirname(output_file)
+  if (nzchar(output_dir) && !dir.exists(output_dir)) {
+    stop(sprintf("Output directory does not exist for output file '%s'", output_file))
+  }
   export_bowtie_to_excel(enhanced_bowtie_data, output_file)
   
   cat("\n✅ Vocabulary-based bow-tie generation completed successfully!\n")
@@ -115,30 +120,134 @@ generate_vocabulary_bowtie <- function(
 # =============================================================================
 
 create_problem_specific_bowtie <- function(central_problem, vocabulary_data, links, max_connections = 3) {
-  
-  # Extract relevant connections for this problem
+
+  bowtie_entries <- data.frame()
+
+  # ============================================================================
+  # BOWTIE STRUCTURE: Follow proper causal chain
+  # Activities → Pressures → Central Problem → Consequences
+  # + Preventive Controls (between Activities/Pressures and Problem)
+  # + Protective Controls (between Problem and Consequences)
+  # ============================================================================
+
+  # Step 1: Find Activities that are relevant to this problem
   problem_activities <- find_connected_items(central_problem, "Activity", vocabulary_data, links, max_connections)
-  problem_pressures <- find_connected_items(central_problem, "Pressure", vocabulary_data, links, max_connections)
-  problem_consequences <- find_connected_items(central_problem, "Consequence", vocabulary_data, links, max_connections)
-  problem_controls <- find_connected_items(central_problem, "Control", vocabulary_data, links, max_connections)
-  
-  # Create bow-tie combinations
-  bowtie_entries <- expand.grid(
-    Activity = problem_activities$name[1:min(length(problem_activities$name), max_connections)],
-    Pressure = problem_pressures$name[1:min(length(problem_pressures$name), max_connections)],
-    Consequence = problem_consequences$name[1:min(length(problem_consequences$name), max_connections)],
-    stringsAsFactors = FALSE
-  )
-  
-  # Add problem and controls
-  bowtie_entries$Problem <- central_problem
-  bowtie_entries$Preventive_Control <- sample(problem_controls$name, 
-                                              nrow(bowtie_entries), 
-                                              replace = TRUE)
-  bowtie_entries$Protective_Mitigation <- sample(problem_controls$name, 
-                                                 nrow(bowtie_entries), 
-                                                 replace = TRUE)
-  
+
+  if (nrow(problem_activities) == 0) {
+    cat("    ⚠️ No activities found for", central_problem, "\n")
+    return(data.frame())
+  }
+
+  # Step 2: For each Activity, find connected Pressures via links
+  for (i in 1:nrow(problem_activities)) {
+    activity <- problem_activities[i, ]
+
+    # Find pressures caused by this activity (using links if available)
+    if (!is.null(links) && nrow(links) > 0 && "from_id" %in% names(links)) {
+      # Use AI-generated links to find connected pressures
+      connected_pressures <- links %>%
+        filter(from_type == "Activity" & from_id == activity$id & to_type == "Pressure") %>%
+        slice_max(similarity, n = max_connections)
+
+      if (nrow(connected_pressures) > 0) {
+        # Get full pressure details
+        pressures_for_activity <- vocabulary_data$pressures %>%
+          filter(id %in% connected_pressures$to_id)
+      } else {
+        # Fallback: find pressures relevant to the problem
+        pressures_for_activity <- find_connected_items(central_problem, "Pressure", vocabulary_data, links, max_connections)
+      }
+    } else {
+      # Fallback if no links available
+      pressures_for_activity <- find_connected_items(central_problem, "Pressure", vocabulary_data, links, max_connections)
+    }
+
+    if (nrow(pressures_for_activity) == 0) next
+
+    # Step 3: For each Pressure, find connected Consequences via links
+    for (j in 1:nrow(pressures_for_activity)) {
+      pressure <- pressures_for_activity[j, ]
+
+      # Find consequences caused by this pressure (using links if available)
+      if (!is.null(links) && nrow(links) > 0 && "from_id" %in% names(links)) {
+        connected_consequences <- links %>%
+          filter(from_type == "Pressure" & from_id == pressure$id & to_type == "Consequence") %>%
+          slice_max(similarity, n = max_connections)
+
+        if (nrow(connected_consequences) > 0) {
+          # Get full consequence details
+          consequences_for_pressure <- vocabulary_data$consequences %>%
+            filter(id %in% connected_consequences$to_id)
+        } else {
+          # Fallback: find consequences relevant to the problem
+          consequences_for_pressure <- find_connected_items(central_problem, "Consequence", vocabulary_data, links, max_connections)
+        }
+      } else {
+        # Fallback if no links available
+        consequences_for_pressure <- find_connected_items(central_problem, "Consequence", vocabulary_data, links, max_connections)
+      }
+
+      if (nrow(consequences_for_pressure) == 0) next
+
+      # Step 4: Find appropriate controls
+      # Preventive controls: prevent activity/pressure from occurring
+      # Protective controls: mitigate consequences
+
+      preventive_controls <- data.frame()
+      protective_controls <- data.frame()
+
+      if (!is.null(links) && nrow(links) > 0 && "control_category" %in% names(links)) {
+        # Use AI-generated control links
+        preventive_controls <- links %>%
+          filter(control_category == "preventive" &
+                 (to_id == activity$id | to_id == pressure$id)) %>%
+          slice_max(similarity, n = 2)
+
+        protective_controls <- links %>%
+          filter(control_category == "protective" &
+                 to_id %in% consequences_for_pressure$id) %>%
+          slice_max(similarity, n = 2)
+      }
+
+      # Fallback to general controls if specific links not found
+      all_controls <- vocabulary_data$controls %>%
+        filter(!grepl("^[A-Z\\s]+$", name))  # Exclude category headers
+
+      if (nrow(preventive_controls) == 0 && nrow(all_controls) > 0) {
+        preventive_control_name <- sample(all_controls$name, 1)
+      } else if (nrow(preventive_controls) > 0) {
+        preventive_control_name <- preventive_controls$from_name[1]
+      } else {
+        preventive_control_name <- "General preventive control"
+      }
+
+      if (nrow(protective_controls) == 0 && nrow(all_controls) > 0) {
+        protective_control_name <- sample(all_controls$name, 1)
+      } else if (nrow(protective_controls) > 0) {
+        protective_control_name <- protective_controls$from_name[1]
+      } else {
+        protective_control_name <- "General protective control"
+      }
+
+      # Step 5: Create bowtie entries for each consequence
+      for (k in 1:nrow(consequences_for_pressure)) {
+        consequence <- consequences_for_pressure[k, ]
+
+        # Create a single bowtie entry following the causal chain:
+        # Activity → Pressure → Problem → Consequence
+        bowtie_entries <- rbind(bowtie_entries, data.frame(
+          Activity = activity$name,
+          Pressure = pressure$name,
+          Problem = central_problem,
+          Consequence = consequence$name,
+          Preventive_Control = preventive_control_name,
+          Protective_Mitigation = protective_control_name,
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+  }
+
   return(bowtie_entries)
 }
 
@@ -247,54 +356,66 @@ enhance_with_risk_data <- function(bowtie_data) {
   
   cat("  Adding likelihood and severity assessments...\n")
   
+  # Handle empty datasets gracefully
+  if (nrow(bowtie_data) == 0) {
+    # Return an empty dataset with expected columns and types
+    bowtie_data$Threat_Likelihood <- numeric(0)
+    bowtie_data$Consequence_Severity <- numeric(0)
+    bowtie_data$Risk_Level <- numeric(0)
+    bowtie_data$Risk_Rating <- character(0)
+    bowtie_data$Entry_ID <- character(0)
+    bowtie_data$Generation_Method <- character(0)
+    bowtie_data$Generation_Date <- as.Date(character(0))
+    return(bowtie_data)
+  }
+  
   # Add realistic risk assessments based on content analysis
   enhanced_data <- bowtie_data %>%
     mutate(
       # Threat likelihood (1-5 scale)
-      Threat_Likelihood = sapply(paste(Activity, Pressure), function(x) {
+      Threat_Likelihood = unname(vapply(paste(Activity, Pressure), function(x) {
         # Higher likelihood for common environmental issues
         keywords_high <- c("agriculture", "urban", "industrial", "runoff", "discharge", "emission")
         keywords_medium <- c("transport", "construction", "mining", "waste", "chemical")
         
         text_lower <- tolower(x)
-        if (any(sapply(keywords_high, function(k) grepl(k, text_lower)))) {
+        if (any(sapply(keywords_high, function(k) grepl(k, text_lower)), na.rm = TRUE)) {
           sample(4:5, 1)  # High likelihood
-        } else if (any(sapply(keywords_medium, function(k) grepl(k, text_lower)))) {
+        } else if (any(sapply(keywords_medium, function(k) grepl(k, text_lower)), na.rm = TRUE)) {
           sample(3:4, 1)  # Medium-high likelihood
         } else {
           sample(2:4, 1)  # Variable likelihood
         }
-      }),
+      }, FUN.VALUE = integer(1))),
       
       # Consequence severity (1-5 scale)
-      Consequence_Severity = sapply(paste(Problem, Consequence), function(x) {
+      Consequence_Severity = unname(vapply(paste(Problem, Consequence), function(x) {
         # Higher severity for serious environmental consequences
         keywords_severe <- c("ecosystem", "health", "biodiversity", "climate", "toxic", "cancer")
         keywords_moderate <- c("economic", "aesthetic", "recreational", "minor")
         
         text_lower <- tolower(x)
-        if (any(sapply(keywords_severe, function(k) grepl(k, text_lower)))) {
+        if (any(sapply(keywords_severe, function(k) grepl(k, text_lower)), na.rm = TRUE)) {
           sample(4:5, 1)  # High severity
-        } else if (any(sapply(keywords_moderate, function(k) grepl(k, text_lower)))) {
+        } else if (any(sapply(keywords_moderate, function(k) grepl(k, text_lower)), na.rm = TRUE)) {
           sample(2:3, 1)  # Lower severity
         } else {
           sample(3:4, 1)  # Medium severity
         }
-      }),
+      }, FUN.VALUE = integer(1))),
       
-      # Calculate risk score (likelihood × severity)
-      Risk_Score = Threat_Likelihood * Consequence_Severity,
+      # Calculate risk level (numeric: likelihood × severity)
+      Risk_Level = Threat_Likelihood * Consequence_Severity,
 
-      # Risk level categories (categorical)
-      Risk_Level = case_when(
-        Risk_Score <= 4 ~ "Low",
-        Risk_Score <= 9 ~ "Medium",
-        Risk_Score <= 16 ~ "High",
-        Risk_Score > 16 ~ "Very High"
-      ),
-
-      # Keep Risk_Rating for backward compatibility
-      Risk_Rating = Risk_Level,
+      # Risk rating categories derived from Risk_Level
+      Risk_Rating = unname(case_when(
+        Risk_Level <= 4 ~ "Low",
+        Risk_Level <= 9 ~ "Medium",
+        Risk_Level <= 16 ~ "High",
+        Risk_Level > 16 ~ "Very High",
+        TRUE ~ NA_character_
+      )),
+      
       
       # Add unique identifiers
       Entry_ID = paste0("VocabGen_", sprintf("%04d", row_number())),
@@ -331,7 +452,7 @@ export_bowtie_to_excel <- function(bowtie_data, output_file) {
       length(unique(bowtie_data$Problem)),
       length(unique(bowtie_data$Activity)),
       length(unique(bowtie_data$Consequence)),
-      round(mean(bowtie_data$Risk_Score, na.rm = TRUE), 2),
+      round(mean(bowtie_data$Risk_Level, na.rm = TRUE), 2),
       sum(bowtie_data$Risk_Rating %in% c("High", "Very High"), na.rm = TRUE),
       as.character(Sys.Date())
     ),

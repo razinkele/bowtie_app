@@ -14,8 +14,8 @@ if (file.exists("tests/fixtures/realistic_test_data.R")) {
 }
 
 test_that("guided workflow modules load correctly", {
-  expect_silent(source("guided_workflow.R"))
-  expect_silent(source("vocabulary.R"))
+  expect_silent(suppressWarnings(suppressMessages(source("guided_workflow.R"))))
+  expect_silent(suppressWarnings(suppressMessages(source("vocabulary.R"))))
 })
 
 test_that("vocabulary data is properly integrated into guided workflow", {
@@ -56,19 +56,19 @@ test_that("step UI functions accept vocabulary parameter correctly", {
   # Test Step 4 UI generation with vocabulary data
   if (exists("generate_step4_ui")) {
     ui_step4 <- NULL
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- test_vocab
       ui_step4 <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
     expect_true(!is.null(ui_step4))
 
     # Test that it handles NULL/empty gracefully
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- NULL
       ui_step4_null <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
   }
 })
 
@@ -144,26 +144,26 @@ test_that("error handling works correctly", {
 
   # Test with completely invalid data (if function exists)
   if (exists("generate_step4_ui")) {
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- list()
       ui_result <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
 
     # Test with NULL
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- NULL
-      ui_result <- generate_step4_ui(session = NULL, current_lang = "en")
+      ui_step4_null <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
 
     # Test with missing controls key
     incomplete_vocab <- list(activities = data.frame())
-    expect_silent({
+    expect_silent(suppressWarnings(suppressMessages({
       vocabulary_data <<- incomplete_vocab
       ui_result <- generate_step4_ui(session = NULL, current_lang = "en")
       rm(vocabulary_data, envir = .GlobalEnv)
-    })
+    })))
   }
 })
 

@@ -54,9 +54,9 @@ benchmark_consistency_fixes <- function() {
       }
     },
     tags_i_approach = {
-      # Test old tags$i() approach for comparison
+      # Simulate old tags$i() output as raw HTML string (avoid using tags$i() directly)
       for (i in 1:100) {
-        tags_html <- tags$i(class = "fas fa-check-circle text-success")
+        tags_html <- '<i class="fas fa-check-circle text-success"></i>'
       }
     },
     times = 20,

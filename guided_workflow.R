@@ -522,7 +522,7 @@ guided_workflow_ui <- function(id, current_lang = "en") {
     div(class = "workflow-header",
         fluidRow(
           column(8,
-                 h2(tagList(icon("magic"), t("gw_title", current_lang)), style = "margin: 0;"),
+                 h2(tagList(icon("magic"), span(class = "icon gw-icon", "✨"), t("gw_title", current_lang)), style = "margin: 0;"),
                  p(t("gw_subtitle", current_lang), style = "margin: 5px 0 0 0;")
           ),
           column(4,
@@ -663,7 +663,7 @@ generate_step1_ui <- function(session = NULL, current_lang = "en") {
   tagList(
     fluidRow(
       column(6,
-             h4(t("gw_project_info", current_lang)),
+             h4(tagList(span(class = "icon gw-icon", "📋"), t("gw_project_info", current_lang))),
              textInput(ns("project_name"), t("gw_project_name", current_lang), 
                       placeholder = t("gw_project_name_placeholder", current_lang)),
              textInput(ns("project_location"), t("gw_location", current_lang), 
@@ -921,7 +921,7 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
 }
 
 # Step 4: Preventive Controls
-generate_step4_ui <- function(session = NULL, current_lang = "en") {
+generate_step4_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(
@@ -998,7 +998,7 @@ generate_step4_ui <- function(session = NULL, current_lang = "en") {
 }
 
 # Step 5: Consequences
-generate_step5_ui <- function(session = NULL, current_lang = "en") {
+generate_step5_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(
@@ -1075,7 +1075,7 @@ generate_step5_ui <- function(session = NULL, current_lang = "en") {
 }
 
 # Step 6: Protective Controls
-generate_step6_ui <- function(session = NULL, current_lang = "en") {
+generate_step6_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(
@@ -1152,7 +1152,7 @@ generate_step6_ui <- function(session = NULL, current_lang = "en") {
 }
 
 # Step 7: Escalation Factors
-generate_step7_ui <- function(session = NULL, current_lang = "en") {
+generate_step7_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(
@@ -1219,7 +1219,7 @@ generate_step7_ui <- function(session = NULL, current_lang = "en") {
 }
 
 # Step 8: Review & Finalize
-generate_step8_ui <- function(session = NULL, current_lang = "en") {
+generate_step8_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(

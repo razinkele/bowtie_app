@@ -65,8 +65,10 @@ jobs:
     - name: 🎨 Validate Icon Standardization
       run: |
         Rscript -e "
-        # Check for mixed icon usage
-        files <- c('ui.R', 'server.R', 'guided_workflow.r')
+        # Check for mixed icon usage (case-insensitive guided_workflow lookup)
+        files <- c('ui.R', 'server.R')
+        gw <- list.files('.', pattern = 'guided_workflow\\.(r|R|Rmd)$', recursive = TRUE, full.names = FALSE)
+        if (length(gw) > 0) files <- c(files, gw[1])
         issues <- 0
         for (file in files[file.exists(files)]) {
           content <- readLines(file)
@@ -82,11 +84,12 @@ jobs:
     - name: 🔗 Validate Dependency Structure
       run: |
         Rscript -e "
-        # Check for circular dependencies
-        if (file.exists('guided_workflow.r')) {
-          content <- readLines('guided_workflow.r')
-          if (any(grepl('source\\\(\"guided_workflow\\\\.r\"\\\)', content))) {
-            stop('❌ Circular dependency detected in guided_workflow.r (self-reference)')
+        # Check for circular dependencies (robust guided_workflow lookup)
+        gw_files <- list.files('.', pattern = 'guided_workflow\\.(r|R|Rmd)$', recursive = TRUE, full.names = TRUE)
+        if (length(gw_files) > 0) {
+          content <- readLines(gw_files[1])
+          if (any(grepl('source\\(("|')guided_workflow\\.r("|')\\)', content, ignore.case = TRUE))) {
+            stop('❌ Circular dependency detected in guided_workflow (self-reference)')
           }
         }
         cat('✅ No circular dependencies detected\n')
@@ -232,7 +235,12 @@ jobs:
     - name: 📥 Checkout Repository
       uses: actions/checkout@v4
 
-    - name: 🔍 R Package Security Scan
+    - name: � Setup R Environment
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.4.3'
+
+    - name: �🔍 R Package Security Scan
       run: |
         Rscript -e "
         # Check for known vulnerabilities in dependencies

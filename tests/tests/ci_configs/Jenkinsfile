@@ -1,0 +1,74 @@
+
+pipeline {
+    agent {
+        docker {
+            image "rocker/r-ver:4.5"
+        }
+    }
+    
+    triggers {
+        cron("H 2 * * *")  // Run daily at 2 AM
+        pollSCM("H/15 * * * *")  // Check for changes every 15 minutes
+    }
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: "30"))
+        timeout(time: 30, unit: "MINUTES")
+    }
+    
+    stages {
+        stage("Setup") {
+            steps {
+                sh """
+                    R -e "install.packages(c("shiny", "bslib", "DT", "dplyr", "testthat", "htmltools", "microbenchmark"))"
+                """
+            }
+        }
+        
+        stage("Unit Tests") {
+            steps {
+                sh "Rscript tests/run_guided_workflow_tests.R"
+            }
+        }
+        
+        stage("Integration Tests") {
+            steps {
+                sh "Rscript -e "testthat::test_file("tests/testthat/test-guided-workflow-integration.R")""
+            }
+        }
+        
+        stage("Performance Tests") {
+            steps {
+                sh "Rscript -e "testthat::test_file("tests/testthat/test-guided-workflow-performance.R")""
+            }
+        }
+        
+        stage("Generate Report") {
+            steps {
+                sh "Rscript tests/generate_test_report.R"
+            }
+        }
+    }
+    
+    post {
+        always {
+            publishHTML([
+                reportDir: "tests/reports",
+                reportFiles: "test_report_*.html",
+                reportName: "Test Report"
+            ])
+        }
+        success {
+            echo "✅ All tests passed!"
+        }
+        failure {
+            echo "❌ Tests failed!"
+            emailext (
+                subject: "Guided Workflow Tests Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Check console output at ${env.BUILD_URL}",
+                to: "dev-team@example.com"
+            )
+        }
+    }
+}
+

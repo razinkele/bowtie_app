@@ -2,6 +2,8 @@
 # Tests Bayesian network creation, inference, and analysis
 
 library(testthat)
+source('../../bowtie_bayesian_network.R')
+source('../../utils.R')
 
 # Mock bowtie data for testing
 create_mock_bowtie_data <- function() {

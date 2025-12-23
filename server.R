@@ -3,6 +3,9 @@
 
 server <- function(input, output, session) {
 
+  # Add resource path for serving manual files
+  addResourcePath("manuals", "docs")
+
   # Optimized reactive values using reactiveVal for single values
   currentData <- reactiveVal(NULL)
   editedData <- reactiveVal(NULL)
@@ -220,7 +223,7 @@ server <- function(input, output, session) {
 
     tryCatch({
       data <- read_excel(input$file$datapath, sheet = input$sheet)
-      validation <- validateDataColumns(data)
+      validation <- validateDataColumnsDetailed(data)
 
       if (!validation$valid) {
         showNotification(paste("Missing required columns:",
@@ -676,13 +679,16 @@ server <- function(input, output, session) {
     numeric_columns <- c("Likelihood", "Severity", "Overall_Likelihood", "Overall_Severity")
 
     if (col_name %in% numeric_columns) {
-      validation <- validateNumericInput(info$value)
+      validation <- validateNumericInputDetailed(info$value)
       if (!validation$valid) {
         showNotification(validation$message, type = "error", duration = 3)
         return()
       }
       data[info$row, info$col] <- validation$value
-      data[info$row, "Risk_Level"] <- calculateRiskLevel(data[info$row, "Likelihood"], data[info$row, "Severity"])
+      # Update numeric rating and categorical level consistently
+      rating <- calculateRiskLevel(data[info$row, "Likelihood"], data[info$row, "Severity"])
+      data[info$row, "Risk_Rating"] <- rating
+      data[info$row, "Risk_Level"] <- ifelse(rating <= 6, "Low", ifelse(rating <= 15, "Medium", "High"))
     } else {
       data[info$row, info$col] <- as.character(info$value)
     }
@@ -1747,15 +1753,29 @@ server <- function(input, output, session) {
   output$ai_summary <- renderPrint({
     results <- ai_analysis_results()
     if (!is.null(results)) {
-      cat("Total connections found:", nrow(results$links), "\n")
-      cat("Analysis methods used:", paste(unique(results$links$method), collapse = ", "), "\n")
-      cat("Average similarity score:", round(mean(results$links$similarity), 3), "\n")
+      # Handle case where results is a dataframe (direct links) vs list structure
+      links_data <- if (is.data.frame(results)) results else results$links
 
-      if (length(results$keyword_connections) > 0) {
+      if (!is.null(links_data) && nrow(links_data) > 0) {
+        cat("Total connections found:", nrow(links_data), "\n")
+        cat("Analysis methods used:", paste(unique(links_data$method), collapse = ", "), "\n")
+
+        # Safely calculate mean similarity (handle non-numeric values)
+        if ("similarity" %in% names(links_data)) {
+          sim_values <- as.numeric(links_data$similarity)
+          if (any(!is.na(sim_values))) {
+            cat("Average similarity score:", round(mean(sim_values, na.rm = TRUE), 3), "\n")
+          }
+        }
+      }
+
+      # Only check keyword_connections if results is a list (not a dataframe)
+      if (!is.data.frame(results) && !is.null(results$keyword_connections) && length(results$keyword_connections) > 0) {
         cat("\nKeyword themes identified:", paste(names(results$keyword_connections), collapse = ", "))
       }
 
-      if (!is.null(results$causal_summary) && nrow(results$causal_summary) > 0) {
+      # Only check causal_summary if results is a list (not a dataframe)
+      if (!is.data.frame(results) && !is.null(results$causal_summary) && nrow(results$causal_summary) > 0) {
         cat("\n\nCausal relationships found:\n")
         causal_count <- sum(results$causal_summary$count)
         cat("  Total causal links:", causal_count, "\n")
@@ -1774,8 +1794,12 @@ server <- function(input, output, session) {
   # AI connections table
   output$ai_connections_table <- DT::renderDataTable({
     results <- ai_analysis_results()
-    if (!is.null(results) && nrow(results$links) > 0) {
-      display_data <- results$links %>%
+
+    # Handle case where results is a dataframe (direct links) vs list structure
+    links_data <- if (is.data.frame(results)) results else if (!is.null(results)) results$links else NULL
+
+    if (!is.null(links_data) && nrow(links_data) > 0) {
+      display_data <- links_data %>%
         select(
           `From Type` = from_type,
           `From` = from_name,
@@ -1808,11 +1832,15 @@ server <- function(input, output, session) {
   # AI network visualization
   output$ai_network <- renderVisNetwork({
     results <- ai_analysis_results()
-    if (!is.null(results) && nrow(results$links) > 0) {
+
+    # Handle case where results is a dataframe (direct links) vs list structure
+    links_data <- if (is.data.frame(results)) results else if (!is.null(results)) results$links else NULL
+
+    if (!is.null(links_data) && nrow(links_data) > 0) {
       tryCatch({
         all_nodes <- unique(c(
-          paste(results$links$from_type, results$links$from_id, results$links$from_name, sep = "|"),
-          paste(results$links$to_type, results$links$to_id, results$links$to_name, sep = "|")
+          paste(links_data$from_type, links_data$from_id, links_data$from_name, sep = "|"),
+          paste(links_data$to_type, links_data$to_id, links_data$to_name, sep = "|")
         ))
 
         nodes_df <- data.frame(
@@ -1839,12 +1867,12 @@ server <- function(input, output, session) {
 
       nodes_df$color <- sapply(nodes_df$group, function(g) type_colors[[g]])
 
-      edges_df <- results$links %>%
+      edges_df <- links_data %>%
         mutate(
           from = paste(from_type, from_id, sep = "_"),
           to = paste(to_type, to_id, sep = "_"),
-          width = similarity * 5,
-          title = paste("Similarity:", round(similarity, 3))
+          width = as.numeric(similarity) * 5,
+          title = paste("Similarity:", round(as.numeric(similarity), 3))
         ) %>%
         select(from, to, width, title)
 
@@ -1920,8 +1948,12 @@ server <- function(input, output, session) {
   # Connection plot
   output$ai_connection_plot <- renderPlot({
     results <- ai_analysis_results()
-    if (!is.null(results) && nrow(results$links) > 0) {
-      connection_summary <- results$links %>%
+
+    # Handle case where results is a dataframe (direct links) vs list structure
+    links_data <- if (is.data.frame(results)) results else if (!is.null(results)) results$links else NULL
+
+    if (!is.null(links_data) && nrow(links_data) > 0) {
+      connection_summary <- links_data %>%
         mutate(connection_type = paste(from_type, "→", to_type)) %>%
         group_by(connection_type) %>%
         summarise(count = n(), .groups = 'drop') %>%
@@ -1978,8 +2010,12 @@ server <- function(input, output, session) {
   # Causal pathways output
   output$causal_paths <- renderPrint({
     results <- ai_analysis_results()
-    if (!is.null(results) && exists("find_causal_paths")) {
-      causal_links <- results$links %>% filter(grepl("causal", method))
+
+    # Handle case where results is a dataframe (direct links) vs list structure
+    links_data <- if (is.data.frame(results)) results else if (!is.null(results)) results$links else NULL
+
+    if (!is.null(links_data) && exists("find_causal_paths")) {
+      causal_links <- links_data %>% filter(grepl("causal", method, ignore.case = TRUE))
 
       if (nrow(causal_links) > 0) {
         paths <- find_causal_paths(causal_links, max_length = 5)
@@ -2002,8 +2038,12 @@ server <- function(input, output, session) {
   # Causal structure analysis
   output$causal_structure <- renderTable({
     results <- ai_analysis_results()
-    if (!is.null(results) && exists("analyze_causal_structure")) {
-      causal_analysis <- analyze_causal_structure(results$links)
+
+    # Handle case where results is a dataframe (direct links) vs list structure
+    links_data <- if (is.data.frame(results)) results else if (!is.null(results)) results$links else NULL
+
+    if (!is.null(links_data) && exists("analyze_causal_structure")) {
+      causal_analysis <- analyze_causal_structure(links_data)
 
       if (!is.null(causal_analysis$link_types)) {
         causal_analysis$link_types %>%
@@ -2021,8 +2061,12 @@ server <- function(input, output, session) {
   # Key drivers table
   output$key_drivers <- renderTable({
     results <- ai_analysis_results()
-    if (!is.null(results) && exists("analyze_causal_structure")) {
-      causal_analysis <- analyze_causal_structure(results$links)
+
+    # Handle case where results is a dataframe (direct links) vs list structure
+    links_data <- if (is.data.frame(results)) results else if (!is.null(results)) results$links else NULL
+
+    if (!is.null(links_data) && exists("analyze_causal_structure")) {
+      causal_analysis <- analyze_causal_structure(links_data)
 
       if (!is.null(causal_analysis$key_drivers)) {
         causal_analysis$key_drivers %>%
@@ -2046,8 +2090,12 @@ server <- function(input, output, session) {
   # Key outcomes table
   output$key_outcomes <- renderTable({
     results <- ai_analysis_results()
-    if (!is.null(results) && exists("analyze_causal_structure")) {
-      causal_analysis <- analyze_causal_structure(results$links)
+
+    # Handle case where results is a dataframe (direct links) vs list structure
+    links_data <- if (is.data.frame(results)) results else if (!is.null(results)) results$links else NULL
+
+    if (!is.null(links_data) && exists("analyze_causal_structure")) {
+      causal_analysis <- analyze_causal_structure(links_data)
 
       if (!is.null(causal_analysis$key_outcomes)) {
         causal_analysis$key_outcomes %>%
@@ -3479,6 +3527,72 @@ server <- function(input, output, session) {
       }
     }
   )
+
+  # Open User Manual in browser (HTML version)
+  observeEvent(input$open_manual, {
+    # Try to find HTML version of manual
+    manual_html_path <- file.path("docs", paste0("Environmental_Bowtie_Risk_Analysis_Manual_v", APP_CONFIG$VERSION, ".html"))
+
+    # Fallback to French HTML if English HTML doesn't exist
+    if (!file.exists(manual_html_path)) {
+      manual_html_path <- file.path("docs", paste0("Environmental_Bowtie_Risk_Analysis_Manual_v", APP_CONFIG$VERSION, "_FR.html"))
+    }
+
+    # Fallback to older naming convention
+    if (!file.exists(manual_html_path)) {
+      manual_html_path <- file.path("docs", paste0("Environmental_Bowtie_Manual_FR_v", APP_CONFIG$VERSION, ".html"))
+    }
+
+    if (file.exists(manual_html_path)) {
+      # Get filename for URL
+      manual_filename <- basename(manual_html_path)
+      manual_url <- paste0("manuals/", manual_filename)
+
+      # Open in new window using JavaScript
+      session$sendCustomMessage("openManual", manual_url)
+
+      showNotification(
+        paste("Opening User Manual v", APP_CONFIG$VERSION),
+        type = "message",
+        duration = 2
+      )
+    } else {
+      showNotification(
+        paste0("User manual HTML version not found. Available file: ", get_manual_path()),
+        type = "warning",
+        duration = 5
+      )
+    }
+  })
+
+  # Open French User Manual in browser
+  observeEvent(input$open_manual_fr, {
+    manual_html_path <- file.path("docs", paste0("Environmental_Bowtie_Risk_Analysis_Manual_v", APP_CONFIG$VERSION, "_FR.html"))
+
+    # Fallback to older naming convention
+    if (!file.exists(manual_html_path)) {
+      manual_html_path <- file.path("docs", paste0("Environmental_Bowtie_Manual_FR_v", APP_CONFIG$VERSION, ".html"))
+    }
+
+    if (file.exists(manual_html_path)) {
+      manual_filename <- basename(manual_html_path)
+      manual_url <- paste0("manuals/", manual_filename)
+
+      session$sendCustomMessage("openManual", manual_url)
+
+      showNotification(
+        "Ouverture du Manuel Utilisateur...",
+        type = "message",
+        duration = 2
+      )
+    } else {
+      showNotification(
+        "Manuel HTML non trouvé.",
+        type = "warning",
+        duration = 5
+      )
+    }
+  })
 
   # Download French User Manual handler
   output$download_manual_fr <- downloadHandler(

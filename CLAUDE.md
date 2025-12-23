@@ -198,6 +198,7 @@ The application now includes **16 comprehensive environmental scenario templates
 #### **Environmental Scenario Updates:**
 - ✅ **New overfishing scenario** - Added comprehensive marine resource depletion template
 - ✅ **Fish emoji integration** - Used 🐟 emoji for visual consistency
+
 - ✅ **Streamlined data interface** - Removed redundant scenarios from data upload page
 - ✅ **Template positioning** - Optimized scenario selector placement in Step 1
 

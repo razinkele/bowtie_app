@@ -7,10 +7,27 @@ library(bslib)
 
 # Test theme choices availability
 test_that("Enhanced theme choices are properly defined", {
-  # Source the app to get theme choices
-  source("app.r", local = TRUE)
+  # Ensure required UI packages are available for sourcing
+  skip_if_not_installed("shinyjs")
+  skip_if_not_installed("colourpicker")
+  skip_if_not_installed("shinycssloaders")
+  skip_if_not_installed("visNetwork")
+  skip_if_not_installed("DT")
+  skip_if_not_installed("plotly")
+
+  # Source only the UI (and minimal config) directly to avoid heavy side-effects during tests
+  repo_root <- find_repo_root()
+  stopifnot(!is.null(repo_root))
+  source(file.path(repo_root, "config.R"), local = TRUE)
+  # Load lightweight helpers the UI depends on
+  source(file.path(repo_root, "environmental_scenarios.R"), local = TRUE)
+  # Load translations so `t()` is available for guided workflow and UI
+  source(file.path(repo_root, "translations_data.R"), local = TRUE)
+  # Guided workflow provides `guided_workflow_ui()` used by the main UI
+  source(file.path(repo_root, "guided_workflow.R"), local = TRUE)
+  source(file.path(repo_root, "ui.R"), local = TRUE, chdir = TRUE)
   
-  # Check that theme choices include all new themes
+  # Check that theme UI object is defined
   expect_true(exists("ui"))
   
   # Test that all expected themes are available

@@ -3,16 +3,20 @@
 
 library(testthat)
 
-# Source required files
-source("tests/fixtures/test_data.R")
+# Source required files (use repo-root-aware helper)
+repo_root <- find_repo_root()
+if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+source(file.path(repo_root, "tests", "fixtures", "test_data.R"), local = TRUE)
 
 # Test complete workflow integration
 test_that("complete vocabulary bowtie workflow works end-to-end", {
   skip_if_not_installed("openxlsx")
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   
-  # Source the generator
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  # Source the generator (repo-root aware)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   
   # Create temporary file
   temp_file <- get_test_temp_file(".xlsx")
@@ -55,7 +59,10 @@ test_that("workflow handles different generation scenarios", {
   skip_if_not_installed("openxlsx")
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  # If tests provide a local shim, prefer the real generator in repo root
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   scenarios <- get_bowtie_test_scenarios()
   
   for (scenario_name in c("minimal", "standard")) {  # Test subset for performance
@@ -81,7 +88,9 @@ test_that("workflow handles different generation scenarios", {
 test_that("workflow integrates correctly with vocabulary system", {
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   
   # Test with mock vocabulary data
   mock_vocab <- create_test_vocabulary_for_bowtie()
@@ -106,7 +115,11 @@ test_that("workflow integrates with AI linking when available", {
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   temp_file <- get_test_temp_file(".xlsx")
   
   expect_no_error({
@@ -133,10 +146,14 @@ test_that("workflow handles errors gracefully", {
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   
-  # Test with invalid output path
-  invalid_path <- "/invalid/path/test.xlsx"
+  # Test with invalid output path (simulate un-writable parent by using a file as the parent directory)
+  tmp_parent_file <- tempfile()
+  file.create(tmp_parent_file)
+  invalid_path <- file.path(tmp_parent_file, "test.xlsx")
   
   expect_error({
     result <- generate_vocabulary_bowtie(
@@ -166,7 +183,9 @@ test_that("workflow performs adequately with larger vocabularies", {
   skip_if_not_installed("openxlsx")
   skip("Performance test - run manually if needed")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   
   # Create larger vocabulary dataset
   large_vocab <- create_large_vocabulary_dataset(size_multiplier = 5)
@@ -198,7 +217,9 @@ test_that("generated data maintains quality and consistency", {
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   temp_file <- get_test_temp_file(".xlsx")
   
   result <- generate_vocabulary_bowtie(
@@ -238,7 +259,9 @@ test_that("Excel output has correct structure for main app", {
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   temp_file <- get_test_temp_file(".xlsx")
   
   result <- generate_vocabulary_bowtie(
@@ -270,7 +293,9 @@ test_that("Excel output has correct structure for main app", {
 test_that("workflow uses fallback mechanisms when needed", {
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   
   # Test fallback vocabulary creation
   fallback_vocab <- create_sample_vocabulary_data()
@@ -291,7 +316,9 @@ test_that("workflow produces consistent results", {
   skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  repo_root <- find_repo_root()
+  if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+  source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
   
   # Set seed for reproducibility
   set.seed(12345)

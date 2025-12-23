@@ -3,9 +3,11 @@
 
 library(testthat)
 
-# Source the generator file only if it exists
-skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
-source("vocabulary_bowtie_generator.r", local = TRUE)
+# Source the generator file from the repository root
+repo_root <- find_repo_root()
+if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
+skip_if_not(file.exists(file.path(repo_root, "vocabulary_bowtie_generator.R")), "vocabulary_bowtie_generator.R not available")
+source(file.path(repo_root, "vocabulary_bowtie_generator.R"), local = TRUE)
 
 # Test main generation function
 test_that("generate_vocabulary_bowtie creates valid output", {

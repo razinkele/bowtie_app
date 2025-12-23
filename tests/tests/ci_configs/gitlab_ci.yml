@@ -1,0 +1,50 @@
+
+image: rocker/r-ver:4.5
+
+stages:
+  - test
+  - report
+  - deploy
+
+variables:
+  R_LIBS_USER: "$CI_PROJECT_DIR/rlib"
+
+before_script:
+  - mkdir -p $R_LIBS_USER
+  - R -e "install.packages(c("shiny", "bslib", "DT", "dplyr", "testthat", "htmltools", "microbenchmark"), repos="https://cloud.r-project.org")"
+
+test:unit:
+  stage: test
+  script:
+    - Rscript tests/run_guided_workflow_tests.R
+  artifacts:
+    when: always
+    paths:
+      - tests/reports/
+    expire_in: 30 days
+
+test:integration:
+  stage: test
+  script:
+    - Rscript -e "testthat::test_file("tests/testthat/test-guided-workflow-integration.R")"
+  allow_failure: false
+
+test:performance:
+  stage: test
+  script:
+    - Rscript -e "testthat::test_file("tests/testthat/test-guided-workflow-performance.R")"
+  allow_failure: true  # Performance tests may fail on slower CI runners
+
+generate_report:
+  stage: report
+  script:
+    - Rscript tests/generate_test_report.R
+  artifacts:
+    paths:
+      - tests/reports/*.html
+    expire_in: 90 days
+  dependencies:
+    - test:unit
+    - test:integration
+    - test:performance
+

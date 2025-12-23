@@ -17,16 +17,18 @@ if (file.exists("config.R")) {
   port <- 3838
 }
 
-cat("=============================================================================\n")
-cat("Starting Environmental Bowtie Risk Analysis Application...\n")
-cat("Version:", ifelse(exists("APP_CONFIG"), APP_CONFIG$VERSION, "5.3.0"), "\n")
-cat("=============================================================================\n\n")
-cat("🌐 Server Configuration:\n")
-cat("   Host:", host, ifelse(host == "0.0.0.0", "(network access enabled)", "(local only)"), "\n")
-cat("   Port:", port, "\n\n")
-cat("📍 Access URLs:\n")
-cat("   Local:   http://localhost:", port, "/\n", sep = "")
-cat("   Network: http://[YOUR_IP]:", port, "/\n", sep = "")
+bowtie_log("=============================================================================")
+bowtie_log("Starting Environmental Bowtie Risk Analysis Application...", .verbose = TRUE)
+bowtie_log("Version:", ifelse(exists("APP_CONFIG"), APP_CONFIG$VERSION, "5.3.0"), .verbose = TRUE)
+bowtie_log("=============================================================================\n", .verbose = TRUE)
+
+bowtie_log("🌐 Server Configuration:", .verbose = TRUE)
+bowtie_log("   Host:", host, ifelse(host == "0.0.0.0", "(network access enabled)", "(local only)"), .verbose = TRUE)
+bowtie_log("   Port:", port, .verbose = TRUE)
+
+bowtie_log("📍 Access URLs:", .verbose = TRUE)
+bowtie_log(paste0("   Local:   http://localhost:", port, "/"), .verbose = TRUE)
+bowtie_log(paste0("   Network: http://[YOUR_IP]:", port, "/"), .verbose = TRUE)
 if (host == "0.0.0.0") {
   # Try to get local IP (cross-platform)
   ip <- tryCatch({

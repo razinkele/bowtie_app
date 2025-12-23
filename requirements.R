@@ -47,7 +47,8 @@ dev_packages <- c(
   "microbenchmark",
   "pryr",
   "profvis",
-  "devtools"
+  "devtools",
+  "lintr"
 )
 
 # Advanced packages (BioConductor)

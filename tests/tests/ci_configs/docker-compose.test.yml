@@ -1,0 +1,18 @@
+
+version: "3.8"
+
+services:
+  test-runner:
+    image: rocker/r-ver:4.5
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: >
+      sh -c "
+        R -e "install.packages(c('shiny', 'bslib', 'DT', 'dplyr', 'testthat', 'htmltools', 'microbenchmark'))" &&
+        Rscript tests/run_guided_workflow_tests.R &&
+        Rscript tests/generate_test_report.R
+      "
+    environment:
+      - R_LIBS_USER=/app/rlib
+
