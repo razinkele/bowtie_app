@@ -17,8 +17,10 @@ create_test_session <- function() {
 
 # Test UI component creation
 test_that("UI components are created without errors", {
-  # Source the main app file to get UI definition
-  source("app.r", local = TRUE)
+  # Source the main app file to get UI definition (use repo root path)
+  repo_root <- find_repo_root()
+  stopifnot(!is.null(repo_root))
+  source(file.path(repo_root, "app.R"), local = TRUE)
   
   expect_no_error({
     ui_object <- ui
@@ -29,8 +31,10 @@ test_that("UI components are created without errors", {
 
 # Test server function creation
 test_that("Server function is created without errors", {
-  # Source the main app file to get server definition
-  source("app.r", local = TRUE)
+  # Source the main app file to get server definition (use repo root path)
+  repo_root <- find_repo_root()
+  stopifnot(!is.null(repo_root))
+  source(file.path(repo_root, "app.R"), local = TRUE)
   
   expect_type(server, "closure")
   expect_true(is.function(server))
@@ -38,13 +42,15 @@ test_that("Server function is created without errors", {
 
 # Test app initialization
 test_that("Shiny app can be initialized", {
-  # Source the main app components
-  source("utils.r", local = TRUE)
-  source("vocabulary.r", local = TRUE)
-  source("bowtie_bayesian_network.r", local = TRUE)
+  # Source the main app components (repo-root aware)
+  repo_root <- find_repo_root()
+  stopifnot(!is.null(repo_root))
+  source(file.path(repo_root, "utils.R"), local = TRUE)
+  source(file.path(repo_root, "vocabulary.R"), local = TRUE)
+  source(file.path(repo_root, "bowtie_bayesian_network.R"), local = TRUE)
   
   expect_no_error({
-    source("app.r", local = TRUE)
+    source(file.path(repo_root, "app.R"), local = TRUE)
   })
 })
 
