@@ -1,0 +1,21 @@
+Test summary: full test suite run (local)
+Date: 2025-12-23
+Command: Rscript -e "testthat::test_dir('tests/testthat', reporter = 'summary')"
+
+Overall status: ✅ All tests passed locally (0 failing tests)
+Skipped tests: ✅ Multiple performance/CRAN-only tests skipped (expected)
+Warnings: ℹ️ Informational warnings about packages built under a different R version; expected AI-linker messages when optional AI helper not present.
+
+Notes:
+- The vocabulary-based generator exported Excel files successfully to temporary locations.
+- createBowtieNodesFixed() now validates its input and errors on invalid data as expected.
+- Tests that previously emitted benign messages/warnings were updated to suppress expected noise (suppressWarnings()/suppressMessages()).
+
+Important messages from the run (selected):
+- "✅ Vocabulary-based bow-tie generation completed successfully!" (multiple occurrences)
+- "ℹ️ AI vocabulary linker not found - basic functionality only" (expected when optional helper missing)
+- Skipped list: many performance tests skipped on CRAN (test-guided-workflow-performance.R)
+
+Full terminal output is saved in the project CI artifacts and in developer machine logs. If you want the complete raw output pasted here, I can add it to this file or a companion file.
+
+Recorded by: GitHub Copilot (Raptor mini (Preview))
