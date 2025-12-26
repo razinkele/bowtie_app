@@ -749,26 +749,45 @@ generate_step1_ui <- function(session = NULL, current_lang = "en") {
     fluidRow(
       column(6,
              h4(t("gw_project_info", current_lang)),
-             textInput(ns("project_name"), t("gw_project_name", current_lang), 
-                      placeholder = t("gw_project_name_placeholder", current_lang)),
-             textInput(ns("project_location"), t("gw_location", current_lang), 
-                      placeholder = t("gw_location_placeholder", current_lang)),
-             selectInput(ns("project_type"), t("gw_assessment_type", current_lang),
-                        choices = if (current_lang == "fr") {
-                          c("Marin" = "marine",
-                            "Terrestre" = "terrestrial",
-                            "Eau douce" = "freshwater",
-                            "Urbain" = "urban",
-                            "Climat" = "climate",
-                            "Personnalisé" = "custom")
-                        } else {
-                          c("Marine" = "marine",
-                            "Terrestrial" = "terrestrial",
-                            "Freshwater" = "freshwater",
-                            "Urban" = "urban",
-                            "Climate" = "climate",
-                            "Custom" = "custom")
-                        }),
+             validated_text_input(
+               id = ns("project_name"),
+               label = t("gw_project_name", current_lang),
+               placeholder = t("gw_project_name_placeholder", current_lang),
+               required = TRUE,
+               min_length = 3,
+               max_length = 100,
+               help_text = "Enter a descriptive name for your environmental risk analysis project (3-100 characters)"
+             ),
+             validated_text_input(
+               id = ns("project_location"),
+               label = t("gw_location", current_lang),
+               placeholder = t("gw_location_placeholder", current_lang),
+               required = TRUE,
+               min_length = 2,
+               max_length = 100,
+               help_text = "Specify the geographic location or region for this assessment"
+             ),
+             validated_select_input(
+               id = ns("project_type"),
+               label = t("gw_assessment_type", current_lang),
+               choices = if (current_lang == "fr") {
+                 c("Marin" = "marine",
+                   "Terrestre" = "terrestrial",
+                   "Eau douce" = "freshwater",
+                   "Urbain" = "urban",
+                   "Climat" = "climate",
+                   "Personnalisé" = "custom")
+               } else {
+                 c("Marine" = "marine",
+                   "Terrestrial" = "terrestrial",
+                   "Freshwater" = "freshwater",
+                   "Urban" = "urban",
+                   "Climate" = "climate",
+                   "Custom" = "custom")
+               },
+               required = TRUE,
+               help_text = "Select the primary environmental domain for this assessment"
+             ),
              textAreaInput(ns("project_description"), t("gw_project_description", current_lang),
                           placeholder = t("gw_project_desc_placeholder", current_lang),
                           rows = 3)
@@ -808,30 +827,52 @@ generate_step2_ui <- function(session = NULL, current_lang = "en") {
     fluidRow(
       column(8,
              h4(t("gw_central_problem", current_lang)),
-             textInput(ns("problem_statement"), t("gw_problem_statement", current_lang),
-                      placeholder = t("gw_problem_statement_placeholder", current_lang)),
-             
-             selectInput(ns("problem_category"), t("gw_problem_category", current_lang),
-                        choices = setNames(
-                          c("pollution", "habitat_loss", "climate_impacts", "resource_depletion", "ecosystem_services", "other"),
-                          c(t("gw_problem_category_pollution", current_lang), t("gw_problem_category_habitat", current_lang), t("gw_problem_category_climate", current_lang), t("gw_problem_category_resource", current_lang), t("gw_problem_category_ecosystem", current_lang), t("gw_problem_category_other", current_lang))
-                        )),
-             
+             validated_text_input(
+               id = ns("problem_statement"),
+               label = t("gw_problem_statement", current_lang),
+               placeholder = t("gw_problem_statement_placeholder", current_lang),
+               required = TRUE,
+               min_length = 5,
+               max_length = 200,
+               help_text = "Clearly define the central environmental problem or hazard (5-200 characters)"
+             ),
+
+             validated_select_input(
+               id = ns("problem_category"),
+               label = t("gw_problem_category", current_lang),
+               choices = setNames(
+                 c("pollution", "habitat_loss", "climate_impacts", "resource_depletion", "ecosystem_services", "other"),
+                 c(t("gw_problem_category_pollution", current_lang), t("gw_problem_category_habitat", current_lang), t("gw_problem_category_climate", current_lang), t("gw_problem_category_resource", current_lang), t("gw_problem_category_ecosystem", current_lang), t("gw_problem_category_other", current_lang))
+               ),
+               required = TRUE,
+               help_text = "Select the primary category that best describes this environmental problem"
+             ),
+
              textAreaInput(ns("problem_details"), t("gw_detailed_description", current_lang),
                           placeholder = t("gw_detailed_description_placeholder", current_lang),
                           rows = 4),
-             
-             selectInput(ns("problem_scale"), t("gw_spatial_scale", current_lang),
-                        choices = setNames(
-                          c("local", "regional", "national", "international", "global"),
-                          c(t("gw_scale_local", current_lang), t("gw_scale_regional", current_lang), t("gw_scale_national", current_lang), t("gw_scale_international", current_lang), t("gw_scale_global", current_lang))
-                        )),
-             
-             selectInput(ns("problem_urgency"), t("gw_urgency_level", current_lang),
-                        choices = setNames(
-                          c("critical", "high", "medium", "low"),
-                          c(t("gw_urgency_critical", current_lang), t("gw_urgency_high", current_lang), t("gw_urgency_medium", current_lang), t("gw_urgency_low", current_lang))
-                        ))
+
+             validated_select_input(
+               id = ns("problem_scale"),
+               label = t("gw_spatial_scale", current_lang),
+               choices = setNames(
+                 c("local", "regional", "national", "international", "global"),
+                 c(t("gw_scale_local", current_lang), t("gw_scale_regional", current_lang), t("gw_scale_national", current_lang), t("gw_scale_international", current_lang), t("gw_scale_global", current_lang))
+               ),
+               required = TRUE,
+               help_text = "Specify the geographic scale or extent of the environmental problem"
+             ),
+
+             validated_select_input(
+               id = ns("problem_urgency"),
+               label = t("gw_urgency_level", current_lang),
+               choices = setNames(
+                 c("critical", "high", "medium", "low"),
+                 c(t("gw_urgency_critical", current_lang), t("gw_urgency_high", current_lang), t("gw_urgency_medium", current_lang), t("gw_urgency_low", current_lang))
+               ),
+               required = TRUE,
+               help_text = "Indicate the urgency level for addressing this environmental issue"
+             )
       ),
       column(4,
              h4(t("gw_problem_examples_title", current_lang)),
@@ -919,8 +960,15 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                ns = ns,
                fluidRow(
                  column(12,
-                   textInput(ns("activity_custom_text"), "Custom Activity Name:",
-                           placeholder = "Enter new activity name...")
+                   validated_text_input(
+                     id = ns("activity_custom_text"),
+                     label = "Custom Activity Name:",
+                     placeholder = "Enter new activity name...",
+                     required = TRUE,
+                     min_length = 3,
+                     max_length = 100,
+                     help_text = "Enter a custom human activity not found in the vocabulary (3-100 characters)"
+                   )
                  )
                )
              ),
@@ -993,8 +1041,15 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                ns = ns,
                fluidRow(
                  column(12,
-                   textInput(ns("pressure_custom_text"), "Custom Pressure Name:",
-                           placeholder = "Enter new pressure name...")
+                   validated_text_input(
+                     id = ns("pressure_custom_text"),
+                     label = "Custom Pressure Name:",
+                     placeholder = "Enter new pressure name...",
+                     required = TRUE,
+                     min_length = 3,
+                     max_length = 100,
+                     help_text = "Enter a custom environmental pressure not found in the vocabulary (3-100 characters)"
+                   )
                  )
                )
              ),
@@ -1086,8 +1141,15 @@ generate_step4_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                ns = ns,
                fluidRow(
                  column(12,
-                   textInput(ns("preventive_control_custom_text"), "Custom Control Name:",
-                           placeholder = "Enter new control name...")
+                   validated_text_input(
+                     id = ns("preventive_control_custom_text"),
+                     label = "Custom Control Name:",
+                     placeholder = "Enter new control name...",
+                     required = TRUE,
+                     min_length = 3,
+                     max_length = 100,
+                     help_text = "Enter a custom preventive control measure not found in the vocabulary (3-100 characters)"
+                   )
                  )
                )
              ),
@@ -1186,8 +1248,15 @@ generate_step5_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                ns = ns,
                fluidRow(
                  column(12,
-                   textInput(ns("consequence_custom_text"), "Custom Consequence Name:",
-                           placeholder = "Enter new consequence name...")
+                   validated_text_input(
+                     id = ns("consequence_custom_text"),
+                     label = "Custom Consequence Name:",
+                     placeholder = "Enter new consequence name...",
+                     required = TRUE,
+                     min_length = 3,
+                     max_length = 100,
+                     help_text = "Enter a custom environmental consequence not found in the vocabulary (3-100 characters)"
+                   )
                  )
                )
              ),
@@ -1286,8 +1355,15 @@ generate_step6_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                ns = ns,
                fluidRow(
                  column(12,
-                   textInput(ns("protective_control_custom_text"), "Custom Control Name:",
-                           placeholder = "Enter new control name...")
+                   validated_text_input(
+                     id = ns("protective_control_custom_text"),
+                     label = "Custom Control Name:",
+                     placeholder = "Enter new control name...",
+                     required = TRUE,
+                     min_length = 3,
+                     max_length = 100,
+                     help_text = "Enter a custom protective control measure not found in the vocabulary (3-100 characters)"
+                   )
                  )
                )
              ),
