@@ -38,6 +38,9 @@ test_config <- list(
   run_icon_standardization = TRUE,  # NEW: Test icon usage
   run_circular_dependency = TRUE,  # NEW: Test import logic
   run_performance_regression = TRUE,  # NEW: Performance monitoring
+  run_hierarchical_selection = TRUE,  # NEW: Hierarchical selection tests
+  run_hierarchical_integration = TRUE,  # NEW: Hierarchical integration tests
+  run_hierarchical_performance = TRUE,  # NEW: Hierarchical performance tests
   skip_problematic_tests = TRUE,  # Skip tests causing segfaults
   parallel_execution = TRUE,  # NEW: Enable parallel testing
   memory_profiling = TRUE,  # NEW: Memory usage monitoring
@@ -324,6 +327,51 @@ if (test_config$run_preventive_controls && file.exists("tests/testthat/test-prev
 
   if (!is.null(specific_result)) {
     all_results$specific_tests <- specific_result
+  }
+}
+
+# Run hierarchical selection tests
+if (test_config$run_hierarchical_selection && file.exists("tests/testthat/test-hierarchical-selection.R")) {
+  cat("\n=== RUNNING HIERARCHICAL SELECTION TESTS ===\n")
+  hierarchical_result <- tryCatch({
+    test_file("tests/testthat/test-hierarchical-selection.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running hierarchical selection tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(hierarchical_result)) {
+    all_results$hierarchical_selection <- hierarchical_result
+  }
+}
+
+# Run hierarchical integration tests
+if (test_config$run_hierarchical_integration && file.exists("tests/testthat/test-hierarchical-integration.R")) {
+  cat("\n=== RUNNING HIERARCHICAL INTEGRATION TESTS ===\n")
+  hierarchical_integration_result <- tryCatch({
+    test_file("tests/testthat/test-hierarchical-integration.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running hierarchical integration tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(hierarchical_integration_result)) {
+    all_results$hierarchical_integration <- hierarchical_integration_result
+  }
+}
+
+# Run hierarchical performance tests
+if (test_config$run_hierarchical_performance && file.exists("tests/testthat/test-hierarchical-performance.R")) {
+  cat("\n=== RUNNING HIERARCHICAL PERFORMANCE TESTS ===\n")
+  hierarchical_performance_result <- tryCatch({
+    test_file("tests/testthat/test-hierarchical-performance.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running hierarchical performance tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(hierarchical_performance_result)) {
+    all_results$hierarchical_performance <- hierarchical_performance_result
   }
 }
 
