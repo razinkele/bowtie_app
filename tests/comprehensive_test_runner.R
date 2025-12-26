@@ -41,6 +41,9 @@ test_config <- list(
   run_hierarchical_selection = TRUE,  # NEW: Hierarchical selection tests
   run_hierarchical_integration = TRUE,  # NEW: Hierarchical integration tests
   run_hierarchical_performance = TRUE,  # NEW: Hierarchical performance tests
+  run_autosave_unit = TRUE,  # NEW: Autosave unit tests
+  run_autosave_integration = TRUE,  # NEW: Autosave integration tests
+  run_autosave_performance = TRUE,  # NEW: Autosave performance tests
   skip_problematic_tests = TRUE,  # Skip tests causing segfaults
   parallel_execution = TRUE,  # NEW: Enable parallel testing
   memory_profiling = TRUE,  # NEW: Memory usage monitoring
@@ -372,6 +375,51 @@ if (test_config$run_hierarchical_performance && file.exists("tests/testthat/test
 
   if (!is.null(hierarchical_performance_result)) {
     all_results$hierarchical_performance <- hierarchical_performance_result
+  }
+}
+
+# Run autosave unit tests
+if (test_config$run_autosave_unit && file.exists("tests/testthat/test-autosave-unit.R")) {
+  cat("\n=== RUNNING AUTOSAVE UNIT TESTS ===\n")
+  autosave_unit_result <- tryCatch({
+    test_file("tests/testthat/test-autosave-unit.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running autosave unit tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(autosave_unit_result)) {
+    all_results$autosave_unit <- autosave_unit_result
+  }
+}
+
+# Run autosave integration tests
+if (test_config$run_autosave_integration && file.exists("tests/testthat/test-autosave-integration.R")) {
+  cat("\n=== RUNNING AUTOSAVE INTEGRATION TESTS ===\n")
+  autosave_integration_result <- tryCatch({
+    test_file("tests/testthat/test-autosave-integration.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running autosave integration tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(autosave_integration_result)) {
+    all_results$autosave_integration <- autosave_integration_result
+  }
+}
+
+# Run autosave performance tests
+if (test_config$run_autosave_performance && file.exists("tests/testthat/test-autosave-performance.R")) {
+  cat("\n=== RUNNING AUTOSAVE PERFORMANCE TESTS ===\n")
+  autosave_performance_result <- tryCatch({
+    test_file("tests/testthat/test-autosave-performance.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running autosave performance tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(autosave_performance_result)) {
+    all_results$autosave_performance <- autosave_performance_result
   }
 }
 
