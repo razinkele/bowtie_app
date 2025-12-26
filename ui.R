@@ -5,6 +5,16 @@ ui <- fluidPage(
   useShinyjs(),
   theme = bs_theme(version = 5, bootswatch = "zephyr"),
 
+  # Skip navigation links for accessibility
+  skip_links(),
+
+  # ARIA live region for accessibility announcements
+  div(id = "main-content",
+      `aria-live` = "polite",
+      `aria-atomic` = "true",
+      class = "visually-hidden",
+      uiOutput("notification_announcer")),
+
   # Add custom CSS for PNG image styling and enhanced layout
   tags$head(
     tags$style(HTML("
@@ -60,6 +70,10 @@ ui <- fluidPage(
     "))
   ),
 
+  # UI Components CSS and JS
+  ui_components_css(),
+  ui_components_js(),
+
   # Enhanced header with PNG image support
   fluidRow(
     column(12,
@@ -81,7 +95,9 @@ ui <- fluidPage(
                 # Language selector
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
-                           class = "btn-sm btn-outline-secondary", title = "Settings")
+                           class = "btn-sm btn-outline-secondary",
+                           title = "Settings",
+                           `aria-label` = "Open settings panel")
              ),
              card_body(
                id = "themePanel", class = "collapse",
@@ -315,6 +331,26 @@ ui <- fluidPage(
         )
       ),
 
+      # Empty state when no data is loaded
+      conditionalPanel(
+        condition = "!output.dataLoaded",
+        br(),
+        empty_state_table(
+          message = "No data loaded yet. Upload an Excel file or generate sample data to get started.",
+          action_buttons = div(class = "d-flex gap-2 justify-content-center mt-3",
+            actionButton("empty_upload", "Upload Data",
+                        icon = icon("upload"),
+                        class = "btn-primary",
+                        onclick = "$('a[data-value=\"upload\"]').tab('show'); $('#loadData').focus();"),
+            actionButton("empty_generate", "Generate Sample",
+                        icon = icon("seedling"),
+                        class = "btn-secondary",
+                        onclick = "$('a[data-value=\"upload\"]').tab('show'); $('#generateSample').focus();")
+          )
+        )
+      ),
+
+      # Data preview when data is loaded
       conditionalPanel(
         condition = "output.dataLoaded",
         br(),
@@ -447,7 +483,8 @@ ui <- fluidPage(
                      actionButton("bowtie_help", "", icon = icon("question-circle"),
                                 class = "btn-sm btn-link text-white",
                                 style = "padding: 0; text-decoration: none;",
-                                title = "Click for diagram legend and help")
+                                title = "Click for diagram legend and help",
+                                `aria-label` = "Show bowtie diagram legend and help")
                    )
                  ),
                  class = "bg-success text-white"
@@ -482,11 +519,19 @@ ui <- fluidPage(
                  ),
                  conditionalPanel(
                    condition = "!output.dataLoaded",
-                   div(class = "text-center p-5",
-                       icon("upload", class = "fa-3x text-muted mb-3"),
-                       h4("Upload Data or Generate Sample Data", class = "text-muted"),
-                       p("Please upload environmental data or generate sample data to view the bowtie diagram",
-                         class = "text-muted"))
+                   empty_state_network(
+                     message = "Upload environmental data or generate sample data to view the bowtie diagram.",
+                     action_buttons = div(class = "d-flex gap-2 justify-content-center mt-3",
+                       actionButton("bowtie_upload", "Upload Data",
+                                   icon = icon("upload"),
+                                   class = "btn-primary",
+                                   onclick = "$('a[data-value=\"upload\"]').tab('show'); $('#loadData').focus();"),
+                       actionButton("bowtie_generate", "Generate Sample",
+                                   icon = icon("seedling"),
+                                   class = "btn-secondary",
+                                   onclick = "$('a[data-value=\"upload\"]').tab('show'); $('#generateSample').focus();")
+                     )
+                   )
                  )
                )
              )
@@ -559,10 +604,15 @@ ui <- fluidPage(
 
                    conditionalPanel(
                      condition = "!output.dataLoaded",
-                     div(class = "text-center p-3",
-                         icon("brain", class = "fa-3x text-muted mb-3"),
-                         h5("Load Data First", class = "text-muted"),
-                         p("Upload or generate environmental data to access Bayesian network analysis", class = "text-muted"))
+                     empty_state(
+                       icon_name = "brain",
+                       title = "Load Data First",
+                       message = "Upload or generate environmental data to access Bayesian network analysis.",
+                       primary_action = actionButton("bayesian_upload", "Upload Data",
+                                                    icon = icon("upload"),
+                                                    class = "btn-primary",
+                                                    onclick = "$('a[data-value=\"upload\"]').tab('show'); $('#loadData').focus();")
+                     )
                    )
                  )
                )
@@ -583,11 +633,10 @@ ui <- fluidPage(
                             ),
                             conditionalPanel(
                               condition = "!output.bayesianNetworkCreated",
-                              div(class = "text-center p-5",
-                                  icon("brain", class = "fa-3x text-muted mb-3"),
-                                  h4("Create Bayesian Network", class = "text-muted"),
-                                  p("Click 'Create Bayesian Network' to convert your bowtie data into a probabilistic model",
-                                    class = "text-muted"))
+                              empty_state_network(
+                                icon_name = "brain",
+                                message = "Click 'Create Bayesian Network' above to convert your bowtie data into a probabilistic model for advanced risk analysis."
+                              )
                             )
                           )
                         )
@@ -767,10 +816,19 @@ ui <- fluidPage(
                    ),
                    conditionalPanel(
                      condition = "!output.dataLoaded",
-                     div(class = "text-center p-5",
-                         icon("chart-line", class = "fa-3x text-muted mb-3"),
-                         h4("No Data Available", class = "text-muted"),
-                         p("Please upload data or generate sample data to view the risk matrix", class = "text-muted"))
+                     empty_state(
+                       icon_name = "chart-line",
+                       title = "No Risk Matrix Data",
+                       message = "Upload environmental data or generate sample data to view the risk matrix visualization.",
+                       primary_action = actionButton("matrix_upload", "Upload Data",
+                                                    icon = icon("upload"),
+                                                    class = "btn-primary",
+                                                    onclick = "$('a[data-value=\"upload\"]').tab('show'); $('#loadData').focus();"),
+                       secondary_action = actionButton("matrix_generate", "Generate Sample",
+                                                      icon = icon("seedling"),
+                                                      class = "btn-secondary",
+                                                      onclick = "$('a[data-value=\"upload\"]').tab('show'); $('#generateSample').focus();")
+                     )
                    )
                  )
                )
@@ -1060,10 +1118,9 @@ ui <- fluidPage(
                               ),
                               conditionalPanel(
                                 condition = "!output.hasSearchResults",
-                                div(class = "text-center p-5 text-muted",
-                                    icon("search", class = "fa-3x mb-3"),
-                                    h5("No search performed yet"),
-                                    p("Use the search controls to find vocabulary items"))
+                                empty_state_search(
+                                  message = "Use the search controls above to find vocabulary items by keyword, category, or type."
+                                )
                               )
                      ),
 
