@@ -3738,4 +3738,204 @@ server <- function(input, output, session) {
   return(results)
   }
 
+  # =============================================================================
+  # HELP SYSTEM (Phase 3 - Component 4)
+  # =============================================================================
+
+  # Show help modal when help button is clicked
+  observeEvent(input$show_help_modal, {
+    showModal(
+      help_modal(
+        id = "main_help_modal",
+        title = "Help & Documentation",
+        tabs = list(
+          "Getting Started" = tagList(
+            h5("Welcome to Environmental Bowtie Risk Analysis"),
+            p("This application helps you create and analyze environmental risk assessments using bowtie diagrams and Bayesian networks."),
+            h6("Quick Start:"),
+            tags$ol(
+              tags$li("Upload your data or generate sample data in the ", strong("Data Upload"), " tab"),
+              tags$li("Use the ", strong("Guided Workflow"), " to create a complete bowtie diagram"),
+              tags$li("Visualize your bowtie in the ", strong("Bowtie Diagram"), " tab"),
+              tags$li("Create a Bayesian network for probabilistic analysis"),
+              tags$li("Export your results for further analysis")
+            ),
+            hr(),
+            section_help(
+              "New to bowtie diagrams? Start with the Guided Workflow for step-by-step assistance.",
+              type = "tip",
+              title = "Tip for Beginners"
+            )
+          ),
+          "Keyboard Shortcuts" = tagList(
+            h5("Keyboard Navigation"),
+            p("Use these keyboard shortcuts to navigate the application more efficiently:"),
+            tags$dl(
+              tags$dt(tags$kbd("Alt"), " + ", tags$kbd("G")),
+              tags$dd("Navigate to Guided Workflow tab"),
+              tags$dt(tags$kbd("Alt"), " + ", tags$kbd("D")),
+              tags$dd("Navigate to Data Upload tab"),
+              tags$dt(tags$kbd("Alt"), " + ", tags$kbd("V")),
+              tags$dd("Navigate to Visualization/Bowtie tab"),
+              tags$dt(tags$kbd("Tab")),
+              tags$dd("Move to next interactive element"),
+              tags$dt(tags$kbd("Shift"), " + ", tags$kbd("Tab")),
+              tags$dd("Move to previous interactive element"),
+              tags$dt(tags$kbd("Escape")),
+              tags$dd("Close open modals or dialogs"),
+              tags$dt(tags$kbd("Enter") / tags$kbd("Space")),
+              tags$dd("Activate focused button or link")
+            ),
+            hr(),
+            section_help(
+              "All features are fully accessible via keyboard. Press Tab after page load to access the skip links.",
+              type = "info"
+            )
+          ),
+          "Accessibility" = tagList(
+            h5("Accessibility Features"),
+            p("This application is designed to be accessible to all users:"),
+            tags$ul(
+              tags$li(strong("Screen Reader Support:"), " All components have appropriate ARIA labels and announcements"),
+              tags$li(strong("Keyboard Navigation:"), " Full keyboard support with visible focus indicators"),
+              tags$li(strong("Skip Links:"), " Press Tab after page load to skip to main content"),
+              tags$li(strong("High Contrast:"), " Works with high contrast modes and themes"),
+              tags$li(strong("Text Scaling:"), " All text remains readable when zoomed up to 200%"),
+              tags$li(strong("Form Validation:"), " Clear error messages with visual and text feedback"),
+              tags$li(strong("Color Independence:"), " Information is conveyed through multiple means, not just color")
+            ),
+            hr(),
+            h6("For Screen Reader Users:"),
+            tags$ul(
+              tags$li("Navigate by headings to quickly jump between sections"),
+              tags$li("Form fields are properly labeled and grouped"),
+              tags$li("Error messages and notifications are announced automatically"),
+              tags$li("Interactive diagrams have text alternatives")
+            )
+          ),
+          "Data Format" = tagList(
+            h5("Expected Data Format"),
+            p("The application accepts Excel files (.xlsx, .xls) with the following structure:"),
+            div(class = "table-responsive",
+              tags$table(class = "table table-sm table-bordered",
+                tags$thead(
+                  tags$tr(
+                    tags$th("Column Type"),
+                    tags$th("Description"),
+                    tags$th("Example")
+                  )
+                ),
+                tags$tbody(
+                  tags$tr(
+                    tags$td(strong("Activities")),
+                    tags$td("Human activities causing environmental pressures"),
+                    tags$td("Industrial discharge, Shipping traffic")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Pressures")),
+                    tags$td("Environmental stressors from activities"),
+                    tags$td("Chemical pollution, Noise pollution")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Preventive Controls")),
+                    tags$td("Measures to prevent pressures"),
+                    tags$td("Waste treatment, Speed restrictions")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Consequences")),
+                    tags$td("Environmental impacts from pressures"),
+                    tags$td("Habitat degradation, Species decline")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Protective Controls")),
+                    tags$td("Measures to mitigate consequences"),
+                    tags$td("Habitat restoration, Protected areas")
+                  )
+                )
+              )
+            ),
+            hr(),
+            section_help(
+              tagList(
+                "Don't have data yet? Use ",
+                strong("Option 2: Generate from Vocabulary"),
+                " in the Data Upload tab to create sample data based on environmental scenarios."
+              ),
+              type = "tip",
+              title = "No Data?"
+            )
+          ),
+          "Bowtie Diagrams" = tagList(
+            h5("Understanding Bowtie Diagrams"),
+            p("A bowtie diagram is a visual risk assessment tool that connects:"),
+            div(class = "row my-3",
+              div(class = "col-md-6",
+                div(class = "card",
+                  div(class = "card-header bg-warning text-dark",
+                      icon("arrow-left"), " Left Side: Prevention"),
+                  div(class = "card-body",
+                    tags$ul(
+                      tags$li(strong("Activities:"), " Sources of risk"),
+                      tags$li(strong("Pressures:"), " Threats or hazards"),
+                      tags$li(strong("Preventive Controls:"), " Barriers to prevent the central problem")
+                    )
+                  )
+                )
+              ),
+              div(class = "col-md-6",
+                div(class = "card",
+                  div(class = "card-header bg-danger text-white",
+                      "Right Side: Mitigation ", icon("arrow-right")),
+                  div(class = "card-body",
+                    tags$ul(
+                      tags$li(strong("Consequences:"), " Potential impacts"),
+                      tags$li(strong("Protective Controls:"), " Barriers to mitigate consequences")
+                    )
+                  )
+                )
+              )
+            ),
+            div(class = "text-center my-3",
+              div(class = "badge bg-danger fs-6", "Central Problem")
+            ),
+            p("The central problem sits in the middle, with prevention measures on the left and mitigation measures on the right.")
+          ),
+          "About" = tagList(
+            h5("About This Application"),
+            div(class = "row",
+              div(class = "col-md-6",
+                tags$dl(
+                  tags$dt("Version:"), tags$dd(paste0("v", APP_CONFIG$VERSION, " (Production-Ready Edition)")),
+                  tags$dt("Framework:"), tags$dd("R Shiny with Bootstrap 5"),
+                  tags$dt("Theme:"), tags$dd("Zephyr (Customizable)"),
+                  tags$dt("Release Date:"), tags$dd("November 2025")
+                )
+              ),
+              div(class = "col-md-6",
+                tags$dl(
+                  tags$dt("Key Features:"),
+                  tags$dd(
+                    tags$ul(class = "list-unstyled",
+                      tags$li(icon("check"), " Interactive Bowtie Diagrams"),
+                      tags$li(icon("check"), " Bayesian Network Analysis"),
+                      tags$li(icon("check"), " Guided Workflow System"),
+                      tags$li(icon("check"), " Risk Matrix Visualization"),
+                      tags$li(icon("check"), " Excel Import/Export")
+                    )
+                  )
+                )
+              )
+            ),
+            hr(),
+            p("This application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks."),
+            section_help(
+              "For technical support or to report issues, contact your system administrator.",
+              type = "info"
+            )
+          )
+        )
+      )
+    )
+  })
+
 }

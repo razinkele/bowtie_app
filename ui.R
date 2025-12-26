@@ -72,7 +72,11 @@ ui <- fluidPage(
 
   # UI Components CSS and JS
   ui_components_css(),
+  responsive_css(),  # Phase 3: Responsive design styles
+  dark_mode_css(),  # Phase 3: Dark mode optimization
+  micro_interactions_css(),  # Phase 3: Micro-interactions and animations
   ui_components_js(),
+  help_system_js(),  # Phase 3: Help system and tooltips initialization
 
   # Enhanced header with PNG image support
   fluidRow(
@@ -94,10 +98,20 @@ ui <- fluidPage(
                  ),
                 # Language selector
                ),
-               actionButton("toggleTheme", label = NULL, icon = icon("gear"),
-                           class = "btn-sm btn-outline-secondary",
-                           title = "Settings",
-                           `aria-label` = "Open settings panel")
+               div(class = "d-flex gap-2",
+                 actionButton("show_help_modal", label = NULL, icon = icon("circle-question"),
+                             class = "btn-sm btn-outline-info",
+                             `data-bs-toggle` = "tooltip",
+                             `data-bs-placement` = "bottom",
+                             title = "Open help and documentation",
+                             `aria-label` = "Open help and documentation"),
+                 actionButton("toggleTheme", label = NULL, icon = icon("gear"),
+                             class = "btn-sm btn-outline-secondary",
+                             `data-bs-toggle` = "tooltip",
+                             `data-bs-placement` = "bottom",
+                             title = "Open settings panel",
+                             `aria-label` = "Open settings panel")
+               )
              ),
              card_body(
                id = "themePanel", class = "collapse",
@@ -253,6 +267,21 @@ ui <- fluidPage(
         column(12,
           uiOutput("dataLoadErrorDisplay"),
           uiOutput("dataGenerateErrorDisplay")
+        )
+      ),
+
+      # Contextual help for data upload
+      fluidRow(
+        column(12,
+          section_help(
+            tagList(
+              strong("New to the application?"), " Try ",
+              strong("Option 2: Generate from Vocabulary"), " to create sample data and explore features. ",
+              "You can also upload your own Excel file using ", strong("Option 1"), "."
+            ),
+            type = "tip",
+            dismissible = TRUE
+          )
         )
       ),
 
