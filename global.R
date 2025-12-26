@@ -59,6 +59,7 @@ suppressMessages(load_packages())
 cat("🔧 Loading application modules...\n")
 cat("   • Loading utility functions and data management...\n")
 source("utils.R")
+source("ui_components.R")  # UI component library for enhanced UX
 source("vocabulary.R")
 source("environmental_scenarios.R")
 

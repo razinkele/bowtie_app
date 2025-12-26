@@ -5,6 +5,9 @@ ui <- fluidPage(
   useShinyjs(),
   theme = bs_theme(version = 5, bootswatch = "zephyr"),
 
+  # Skip navigation links for accessibility
+  skip_links(),
+
   # Add custom CSS for PNG image styling and enhanced layout
   tags$head(
     tags$style(HTML("
@@ -60,6 +63,10 @@ ui <- fluidPage(
     "))
   ),
 
+  # UI Components CSS and JS
+  ui_components_css(),
+  ui_components_js(),
+
   # Enhanced header with PNG image support
   fluidRow(
     column(12,
@@ -81,7 +88,9 @@ ui <- fluidPage(
                 # Language selector
                ),
                actionButton("toggleTheme", label = NULL, icon = icon("gear"),
-                           class = "btn-sm btn-outline-secondary", title = "Settings")
+                           class = "btn-sm btn-outline-secondary",
+                           title = "Settings",
+                           `aria-label` = "Open settings panel")
              ),
              card_body(
                id = "themePanel", class = "collapse",
@@ -447,7 +456,8 @@ ui <- fluidPage(
                      actionButton("bowtie_help", "", icon = icon("question-circle"),
                                 class = "btn-sm btn-link text-white",
                                 style = "padding: 0; text-decoration: none;",
-                                title = "Click for diagram legend and help")
+                                title = "Click for diagram legend and help",
+                                `aria-label` = "Show bowtie diagram legend and help")
                    )
                  ),
                  class = "bg-success text-white"
