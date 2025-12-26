@@ -752,31 +752,64 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
       column(6,
              h4(t("gw_human_activities_title", current_lang)),
              p(t("gw_human_activities_desc", current_lang)),
-             
+
+             # Hierarchical selection: Group first, then items
              fluidRow(
-               column(8, {
-                 # Prepare activity choices from vocabulary data
-                 activity_choices <- character(0)
+               column(12, {
+                 # Prepare Level 1 (group) choices from vocabulary data
+                 activity_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-                   activity_choices <- vocabulary_data$activities$name
+                   level1_activities <- vocabulary_data$activities[vocabulary_data$activities$level == 1, ]
+                   if (nrow(level1_activities) > 0) {
+                     activity_groups <- setNames(level1_activities$id, level1_activities$name)
+                   }
                  }
 
-                 selectizeInput(ns("activity_search"), t("gw_search_activities", current_lang),
-                              choices = activity_choices,  # Use vocabulary choices if available
+                 selectizeInput(ns("activity_group"), "Step 1: Select Activity Group",
+                              choices = c("Choose a group..." = "", activity_groups),
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_activities_placeholder", current_lang),
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = FALSE
+                                placeholder = "Select an activity category...",
+                                maxOptions = 50
                               ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_activity"), tagList(icon("plus"), t("gw_add_activity", current_lang)),
-                                 class = "btn-success btn-sm")
+               })
+             ),
+
+             fluidRow(
+               column(12, {
+                 # Items from selected group (populated dynamically)
+                 selectizeInput(ns("activity_item"), "Step 2: Select Specific Activity",
+                              choices = c("First select a group above..." = ""),
+                              selected = NULL,
+                              options = list(
+                                placeholder = "Select an activity from the group...",
+                                maxOptions = 100
+                              ))
+               })
+             ),
+
+             # Custom entry option
+             fluidRow(
+               column(12,
+                 checkboxInput(ns("activity_custom_toggle"), "Or enter a custom activity not in vocabulary", value = FALSE)
+               )
+             ),
+
+             conditionalPanel(
+               condition = "input.activity_custom_toggle",
+               ns = ns,
+               fluidRow(
+                 column(12,
+                   textInput(ns("activity_custom_text"), "Custom Activity Name:",
+                           placeholder = "Enter new activity name...")
+                 )
+               )
+             ),
+
+             fluidRow(
+               column(12,
+                 actionButton(ns("add_activity"), tagList(icon("plus"), t("gw_add_activity", current_lang)),
+                            class = "btn-success btn-block")
                )
              ),
              
@@ -793,31 +826,64 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
       column(6,
              h4(t("gw_env_pressures_title", current_lang)),
              p(t("gw_env_pressures_desc", current_lang)),
-             
+
+             # Hierarchical selection: Group first, then items
              fluidRow(
-               column(8, {
-                 # Prepare pressure choices from vocabulary data
-                 pressure_choices <- character(0)
+               column(12, {
+                 # Prepare Level 1 (group) choices from vocabulary data
+                 pressure_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-                   pressure_choices <- vocabulary_data$pressures$name
+                   level1_pressures <- vocabulary_data$pressures[vocabulary_data$pressures$level == 1, ]
+                   if (nrow(level1_pressures) > 0) {
+                     pressure_groups <- setNames(level1_pressures$id, level1_pressures$name)
+                   }
                  }
 
-                 selectizeInput(ns("pressure_search"), t("gw_search_pressures", current_lang),
-                              choices = pressure_choices,  # Use vocabulary choices if available
+                 selectizeInput(ns("pressure_group"), "Step 1: Select Pressure Group",
+                              choices = c("Choose a group..." = "", pressure_groups),
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_pressures_placeholder", current_lang),
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = FALSE
+                                placeholder = "Select a pressure category...",
+                                maxOptions = 50
                               ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_pressure"), tagList(icon("plus"), t("gw_add_pressure", current_lang)),
-                                 class = "btn-warning btn-sm")
+               })
+             ),
+
+             fluidRow(
+               column(12, {
+                 # Items from selected group (populated dynamically)
+                 selectizeInput(ns("pressure_item"), "Step 2: Select Specific Pressure",
+                              choices = c("First select a group above..." = ""),
+                              selected = NULL,
+                              options = list(
+                                placeholder = "Select a pressure from the group...",
+                                maxOptions = 100
+                              ))
+               })
+             ),
+
+             # Custom entry option
+             fluidRow(
+               column(12,
+                 checkboxInput(ns("pressure_custom_toggle"), "Or enter a custom pressure not in vocabulary", value = FALSE)
+               )
+             ),
+
+             conditionalPanel(
+               condition = "input.pressure_custom_toggle",
+               ns = ns,
+               fluidRow(
+                 column(12,
+                   textInput(ns("pressure_custom_text"), "Custom Pressure Name:",
+                           placeholder = "Enter new pressure name...")
+                 )
+               )
+             ),
+
+             fluidRow(
+               column(12,
+                 actionButton(ns("add_pressure"), tagList(icon("plus"), t("gw_add_pressure", current_lang)),
+                            class = "btn-warning btn-block")
                )
              ),
              
@@ -840,7 +906,7 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
 }
 
 # Step 4: Preventive Controls
-generate_step4_ui <- function(session = NULL, current_lang = "en") {
+generate_step4_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(
@@ -854,30 +920,63 @@ generate_step4_ui <- function(session = NULL, current_lang = "en") {
              h4(t("gw_search_add_preventive_controls_title", current_lang)),
              p(t("gw_search_add_preventive_controls_desc", current_lang)),
              
+             # Hierarchical selection: Group first, then items
              fluidRow(
-               column(8, {
-                 # Prepare control choices from vocabulary data
-                 control_choices <- character(0)
+               column(12, {
+                 # Prepare Level 1 (group) choices from vocabulary data
+                 control_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   control_choices <- vocabulary_data$controls$name
+                   level1_controls <- vocabulary_data$controls[vocabulary_data$controls$level == 1, ]
+                   if (nrow(level1_controls) > 0) {
+                     control_groups <- setNames(level1_controls$id, level1_controls$name)
+                   }
                  }
 
-                 selectizeInput(ns("preventive_control_search"), t("gw_search_preventive_controls_label", current_lang),
-                              choices = control_choices,
+                 selectizeInput(ns("preventive_control_group"), "Step 1: Select Control Group",
+                              choices = c("Choose a group..." = "", control_groups),
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_preventive_controls_placeholder", current_lang),
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = FALSE
+                                placeholder = "Select a control category...",
+                                maxOptions = 50
                               ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_preventive_control"), tagList(icon("shield-alt"), t("gw_add_control", current_lang)),
-                                 class = "btn-success btn-sm")
+               })
+             ),
+
+             fluidRow(
+               column(12, {
+                 # Items from selected group (populated dynamically)
+                 selectizeInput(ns("preventive_control_item"), "Step 2: Select Specific Control",
+                              choices = c("First select a group above..." = ""),
+                              selected = NULL,
+                              options = list(
+                                placeholder = "Select a control from the group...",
+                                maxOptions = 100
+                              ))
+               })
+             ),
+
+             # Custom entry option
+             fluidRow(
+               column(12,
+                 checkboxInput(ns("preventive_control_custom_toggle"), "Or enter a custom control not in vocabulary", value = FALSE)
+               )
+             ),
+
+             conditionalPanel(
+               condition = "input.preventive_control_custom_toggle",
+               ns = ns,
+               fluidRow(
+                 column(12,
+                   textInput(ns("preventive_control_custom_text"), "Custom Control Name:",
+                           placeholder = "Enter new control name...")
+                 )
+               )
+             ),
+
+             fluidRow(
+               column(12,
+                 actionButton(ns("add_preventive_control"), tagList(icon("shield-alt"), t("gw_add_control", current_lang)),
+                            class = "btn-success btn-block")
                )
              ),
              
@@ -907,7 +1006,7 @@ generate_step4_ui <- function(session = NULL, current_lang = "en") {
 }
 
 # Step 5: Consequences
-generate_step5_ui <- function(session = NULL, current_lang = "en") {
+generate_step5_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(
@@ -921,30 +1020,63 @@ generate_step5_ui <- function(session = NULL, current_lang = "en") {
              h4(t("gw_search_add_consequences_title", current_lang)),
              p(t("gw_consequences_desc2", current_lang)),
              
+             # Hierarchical selection: Group first, then items
              fluidRow(
-               column(8, {
-                 # Prepare consequence choices from vocabulary data
-                 consequence_choices <- character(0)
+               column(12, {
+                 # Prepare Level 1 (group) choices from vocabulary data
+                 consequence_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-                   consequence_choices <- vocabulary_data$consequences$name
+                   level1_consequences <- vocabulary_data$consequences[vocabulary_data$consequences$level == 1, ]
+                   if (nrow(level1_consequences) > 0) {
+                     consequence_groups <- setNames(level1_consequences$id, level1_consequences$name)
+                   }
                  }
 
-                 selectizeInput(ns("consequence_search"), t("gw_search_consequences_label", current_lang),
-                              choices = consequence_choices,
+                 selectizeInput(ns("consequence_group"), "Step 1: Select Consequence Group",
+                              choices = c("Choose a group..." = "", consequence_groups),
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_consequences_placeholder", current_lang),
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = FALSE
+                                placeholder = "Select a consequence category...",
+                                maxOptions = 50
                               ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_consequence"), tagList(icon("exclamation-triangle"), t("gw_add_consequence", current_lang)),
-                                 class = "btn-warning btn-sm")
+               })
+             ),
+
+             fluidRow(
+               column(12, {
+                 # Items from selected group (populated dynamically)
+                 selectizeInput(ns("consequence_item"), "Step 2: Select Specific Consequence",
+                              choices = c("First select a group above..." = ""),
+                              selected = NULL,
+                              options = list(
+                                placeholder = "Select a consequence from the group...",
+                                maxOptions = 100
+                              ))
+               })
+             ),
+
+             # Custom entry option
+             fluidRow(
+               column(12,
+                 checkboxInput(ns("consequence_custom_toggle"), "Or enter a custom consequence not in vocabulary", value = FALSE)
+               )
+             ),
+
+             conditionalPanel(
+               condition = "input.consequence_custom_toggle",
+               ns = ns,
+               fluidRow(
+                 column(12,
+                   textInput(ns("consequence_custom_text"), "Custom Consequence Name:",
+                           placeholder = "Enter new consequence name...")
+                 )
+               )
+             ),
+
+             fluidRow(
+               column(12,
+                 actionButton(ns("add_consequence"), tagList(icon("exclamation-triangle"), t("gw_add_consequence", current_lang)),
+                            class = "btn-warning btn-block")
                )
              ),
              
@@ -974,7 +1106,7 @@ generate_step5_ui <- function(session = NULL, current_lang = "en") {
 }
 
 # Step 6: Protective Controls
-generate_step6_ui <- function(session = NULL, current_lang = "en") {
+generate_step6_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
   
   tagList(
@@ -988,30 +1120,63 @@ generate_step6_ui <- function(session = NULL, current_lang = "en") {
              h4("🔍 Search and Add Protective/Mitigation Controls"),
              p(t("gw_protective_controls_desc", current_lang)),
              
+             # Hierarchical selection: Group first, then items
              fluidRow(
-               column(8, {
-                 # Prepare protective control choices from vocabulary data
-                 protective_control_choices <- character(0)
+               column(12, {
+                 # Prepare Level 1 (group) choices from vocabulary data
+                 protective_control_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   protective_control_choices <- vocabulary_data$controls$name
+                   level1_controls <- vocabulary_data$controls[vocabulary_data$controls$level == 1, ]
+                   if (nrow(level1_controls) > 0) {
+                     protective_control_groups <- setNames(level1_controls$id, level1_controls$name)
+                   }
                  }
 
-                 selectizeInput(ns("protective_control_search"), t("gw_search_protective_controls_label", current_lang),
-                              choices = protective_control_choices,
+                 selectizeInput(ns("protective_control_group"), "Step 1: Select Control Group",
+                              choices = c("Choose a group..." = "", protective_control_groups),
                               selected = NULL,
                               options = list(
-                                placeholder = t("gw_search_protective_controls_placeholder", current_lang),
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = FALSE
+                                placeholder = "Select a control category...",
+                                maxOptions = 50
                               ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_protective_control"), tagList(icon("medkit"), t("gw_add_control", current_lang)),
-                                 class = "btn-primary btn-sm")
+               })
+             ),
+
+             fluidRow(
+               column(12, {
+                 # Items from selected group (populated dynamically)
+                 selectizeInput(ns("protective_control_item"), "Step 2: Select Specific Control",
+                              choices = c("First select a group above..." = ""),
+                              selected = NULL,
+                              options = list(
+                                placeholder = "Select a control from the group...",
+                                maxOptions = 100
+                              ))
+               })
+             ),
+
+             # Custom entry option
+             fluidRow(
+               column(12,
+                 checkboxInput(ns("protective_control_custom_toggle"), "Or enter a custom control not in vocabulary", value = FALSE)
+               )
+             ),
+
+             conditionalPanel(
+               condition = "input.protective_control_custom_toggle",
+               ns = ns,
+               fluidRow(
+                 column(12,
+                   textInput(ns("protective_control_custom_text"), "Custom Control Name:",
+                           placeholder = "Enter new control name...")
+                 )
+               )
+             ),
+
+             fluidRow(
+               column(12,
+                 actionButton(ns("add_protective_control"), tagList(icon("medkit"), t("gw_add_control", current_lang)),
+                            class = "btn-primary btn-block")
                )
              ),
              
@@ -1043,8 +1208,30 @@ generate_step6_ui <- function(session = NULL, current_lang = "en") {
 # Step 7: Escalation Factors
 generate_step7_ui <- function(session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
-  
+
   tagList(
+    # Custom Entries Review Section
+    div(class = "alert alert-info",
+        h5(icon("star"), " Custom Entries Review"),
+        p("The following custom entries were added during the workflow. Please review them to ensure they are correct.")
+    ),
+
+    fluidRow(
+      column(12,
+             h5("📋 Custom Entries Summary"),
+             DTOutput(ns("custom_entries_review_table")),
+             br(),
+             div(class = "alert alert-warning",
+                 h6(icon("info-circle"), " Note"),
+                 p("Custom entries are items you added that were not in the predefined vocabulary. Please verify they are accurate and relevant to your analysis.")
+             )
+      )
+    ),
+
+    br(),
+    hr(),
+    br(),
+
     div(class = "alert alert-danger",
         h5(t("gw_step7_escalation_factors_title", current_lang)),
         p(t("gw_step7_escalation_factors_desc", current_lang))
@@ -1288,14 +1475,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
     
     if (exists(ui_function_name, mode = "function")) {
       ui_function <- get(ui_function_name)
-      # Call with session parameter and vocabulary_data for step 3
-      if (state$current_step == 3) {
+      # Call with session parameter and vocabulary_data for steps that need it
+      if (state$current_step %in% c(3, 4, 5, 6)) {
         ui_function(vocabulary_data = vocabulary_data, session = session, current_lang = lang())
       } else {
         ui_function(session = session, current_lang = lang())
       }
     } else {
-      div(class = "alert alert-danger", 
+      div(class = "alert alert-danger",
           paste("UI for step", state$current_step, "not found."))
     }
   })
@@ -1416,7 +1603,105 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Reactive values to store selected activities and pressures
   selected_activities <- reactiveVal(list())
   selected_pressures <- reactiveVal(list())
-  
+
+  # Reactive values to track custom entries (not in vocabulary)
+  custom_entries <- reactiveVal(list(
+    activities = character(0),
+    pressures = character(0),
+    preventive_controls = character(0),
+    consequences = character(0),
+    protective_controls = character(0)
+  ))
+
+  # =============================================================================
+  # HIERARCHICAL SELECTION: Update item choices when group is selected
+  # =============================================================================
+
+  # Update activity items when group is selected
+  observeEvent(input$activity_group, {
+    req(input$activity_group)
+    if (nchar(input$activity_group) > 0 && !is.null(vocabulary_data$activities)) {
+      # Get children of selected group
+      children <- vocabulary_data$activities[
+        grepl(paste0("^", gsub("\\.", "\\\\.", input$activity_group), "\\."), vocabulary_data$activities$id),
+      ]
+      if (nrow(children) > 0) {
+        item_choices <- setNames(children$name, children$name)
+        updateSelectizeInput(session, "activity_item",
+                           choices = c("Choose an item..." = "", item_choices),
+                           selected = NULL)
+      }
+    }
+  })
+
+  # Update pressure items when group is selected
+  observeEvent(input$pressure_group, {
+    req(input$pressure_group)
+    if (nchar(input$pressure_group) > 0 && !is.null(vocabulary_data$pressures)) {
+      # Get children of selected group
+      children <- vocabulary_data$pressures[
+        grepl(paste0("^", gsub("\\.", "\\\\.", input$pressure_group), "\\."), vocabulary_data$pressures$id),
+      ]
+      if (nrow(children) > 0) {
+        item_choices <- setNames(children$name, children$name)
+        updateSelectizeInput(session, "pressure_item",
+                           choices = c("Choose an item..." = "", item_choices),
+                           selected = NULL)
+      }
+    }
+  })
+
+  # Update preventive control items when group is selected
+  observeEvent(input$preventive_control_group, {
+    req(input$preventive_control_group)
+    if (nchar(input$preventive_control_group) > 0 && !is.null(vocabulary_data$controls)) {
+      # Get children of selected group
+      children <- vocabulary_data$controls[
+        grepl(paste0("^", gsub("\\.", "\\\\.", input$preventive_control_group), "\\."), vocabulary_data$controls$id),
+      ]
+      if (nrow(children) > 0) {
+        item_choices <- setNames(children$name, children$name)
+        updateSelectizeInput(session, "preventive_control_item",
+                           choices = c("Choose an item..." = "", item_choices),
+                           selected = NULL)
+      }
+    }
+  })
+
+  # Update consequence items when group is selected
+  observeEvent(input$consequence_group, {
+    req(input$consequence_group)
+    if (nchar(input$consequence_group) > 0 && !is.null(vocabulary_data$consequences)) {
+      # Get children of selected group
+      children <- vocabulary_data$consequences[
+        grepl(paste0("^", gsub("\\.", "\\\\.", input$consequence_group), "\\."), vocabulary_data$consequences$id),
+      ]
+      if (nrow(children) > 0) {
+        item_choices <- setNames(children$name, children$name)
+        updateSelectizeInput(session, "consequence_item",
+                           choices = c("Choose an item..." = "", item_choices),
+                           selected = NULL)
+      }
+    }
+  })
+
+  # Update protective control items when group is selected
+  observeEvent(input$protective_control_group, {
+    req(input$protective_control_group)
+    if (nchar(input$protective_control_group) > 0 && !is.null(vocabulary_data$controls)) {
+      # Get children of selected group
+      children <- vocabulary_data$controls[
+        grepl(paste0("^", gsub("\\.", "\\\\.", input$protective_control_group), "\\."), vocabulary_data$controls$id),
+      ]
+      if (nrow(children) > 0) {
+        item_choices <- setNames(children$name, children$name)
+        updateSelectizeInput(session, "protective_control_item",
+                           choices = c("Choose an item..." = "", item_choices),
+                           selected = NULL)
+      }
+    }
+  })
+
   # Sync reactive values with workflow state when entering Step 3
   observe({
     state <- workflow_state()
@@ -1443,57 +1728,107 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   
   # Handle "Add Activity" button
   observeEvent(input$add_activity, {
-    activity_name <- input$activity_search
-    
+    # Determine if using custom entry or hierarchical selection
+    activity_name <- NULL
+    is_custom <- FALSE
+
+    if (!is.null(input$activity_custom_toggle) && input$activity_custom_toggle) {
+      # Custom entry mode
+      activity_name <- input$activity_custom_text
+      is_custom <- TRUE
+    } else {
+      # Hierarchical selection mode
+      activity_name <- input$activity_item
+    }
+
     if (!is.null(activity_name) && nchar(trimws(activity_name)) > 0) {
       # Get current list
       current <- selected_activities()
-      
+
       # Check if already added
       if (!activity_name %in% current) {
         current <- c(current, activity_name)
         selected_activities(current)
-        
+
+        # Track custom entries
+        if (is_custom) {
+          custom_list <- custom_entries()
+          custom_list$activities <- c(custom_list$activities, activity_name)
+          custom_entries(custom_list)
+          showNotification(paste("✅ Added custom activity:", activity_name, "(marked for review)"), type = "message", duration = 3)
+        } else {
+          showNotification(paste(t("gw_added_activity", lang()), activity_name), type = "message", duration = 2)
+        }
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$activities <- current
+        state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_activity", lang()), activity_name), type = "message", duration = 2)
-        
-        # Clear the search input
-        updateSelectizeInput(session, "activity_search", selected = character(0))
+
+        # Clear inputs
+        updateSelectizeInput(session, "activity_item", selected = character(0))
+        if (is_custom) {
+          updateTextInput(session, "activity_custom_text", value = "")
+        }
       } else {
         showNotification(t("gw_activity_exists", lang()), type = "warning", duration = 2)
       }
+    } else {
+      showNotification("Please select an activity or enter a custom name", type = "warning", duration = 2)
     }
   })
   
   # Handle "Add Pressure" button
   observeEvent(input$add_pressure, {
-    pressure_name <- input$pressure_search
-    
+    # Determine if using custom entry or hierarchical selection
+    pressure_name <- NULL
+    is_custom <- FALSE
+
+    if (!is.null(input$pressure_custom_toggle) && input$pressure_custom_toggle) {
+      # Custom entry mode
+      pressure_name <- input$pressure_custom_text
+      is_custom <- TRUE
+    } else {
+      # Hierarchical selection mode
+      pressure_name <- input$pressure_item
+    }
+
     if (!is.null(pressure_name) && nchar(trimws(pressure_name)) > 0) {
       # Get current list
       current <- selected_pressures()
-      
+
       # Check if already added
       if (!pressure_name %in% current) {
         current <- c(current, pressure_name)
         selected_pressures(current)
-        
+
+        # Track custom entries
+        if (is_custom) {
+          custom_list <- custom_entries()
+          custom_list$pressures <- c(custom_list$pressures, pressure_name)
+          custom_entries(custom_list)
+          showNotification(paste("✅ Added custom pressure:", pressure_name, "(marked for review)"), type = "message", duration = 3)
+        } else {
+          showNotification(paste(t("gw_added_pressure", lang()), pressure_name), type = "message", duration = 2)
+        }
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$pressures <- current
+        state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_pressure", lang()), pressure_name), type = "message", duration = 2)
-        
-        # Clear the search input
-        updateSelectizeInput(session, "pressure_search", selected = character(0))
+
+        # Clear inputs
+        updateSelectizeInput(session, "pressure_item", selected = character(0))
+        if (is_custom) {
+          updateTextInput(session, "pressure_custom_text", value = "")
+        }
       } else {
         showNotification(t("gw_pressure_exists", lang()), type = "warning", duration = 2)
       }
+    } else {
+      showNotification("Please select a pressure or enter a custom name", type = "warning", duration = 2)
     }
   })
   
@@ -1635,29 +1970,54 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   
   # Handle "Add Control" button
   observeEvent(input$add_preventive_control, {
-    control_name <- input$preventive_control_search
-    
+    # Determine if using custom entry or hierarchical selection
+    control_name <- NULL
+    is_custom <- FALSE
+
+    if (!is.null(input$preventive_control_custom_toggle) && input$preventive_control_custom_toggle) {
+      # Custom entry mode
+      control_name <- input$preventive_control_custom_text
+      is_custom <- TRUE
+    } else {
+      # Hierarchical selection mode
+      control_name <- input$preventive_control_item
+    }
+
     if (!is.null(control_name) && nchar(trimws(control_name)) > 0) {
       # Get current list
       current <- selected_preventive_controls()
-      
+
       # Check if already added
       if (!control_name %in% current) {
         current <- c(current, control_name)
         selected_preventive_controls(current)
-        
+
+        # Track custom entries
+        if (is_custom) {
+          custom_list <- custom_entries()
+          custom_list$preventive_controls <- c(custom_list$preventive_controls, control_name)
+          custom_entries(custom_list)
+          showNotification(paste("✅ Added custom preventive control:", control_name, "(marked for review)"), type = "message", duration = 3)
+        } else {
+          showNotification(paste(t("gw_added_control", lang()), control_name), type = "message", duration = 2)
+        }
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$preventive_controls <- current
+        state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_control", lang()), control_name), type = "message", duration = 2)
 
-        # Clear the search input
-        updateSelectizeInput(session, "preventive_control_search", selected = character(0))
+        # Clear inputs
+        updateSelectizeInput(session, "preventive_control_item", selected = character(0))
+        if (is_custom) {
+          updateTextInput(session, "preventive_control_custom_text", value = "")
+        }
       } else {
         showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
       }
+    } else {
+      showNotification("Please select a control or enter a custom name", type = "warning", duration = 2)
     }
   })
   
@@ -1792,29 +2152,54 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   
   # Handle "Add Consequence" button
   observeEvent(input$add_consequence, {
-    consequence_name <- input$consequence_search
-    
+    # Determine if using custom entry or hierarchical selection
+    consequence_name <- NULL
+    is_custom <- FALSE
+
+    if (!is.null(input$consequence_custom_toggle) && input$consequence_custom_toggle) {
+      # Custom entry mode
+      consequence_name <- input$consequence_custom_text
+      is_custom <- TRUE
+    } else {
+      # Hierarchical selection mode
+      consequence_name <- input$consequence_item
+    }
+
     if (!is.null(consequence_name) && nchar(trimws(consequence_name)) > 0) {
       # Get current list
       current <- selected_consequences()
-      
+
       # Check if already added
       if (!consequence_name %in% current) {
         current <- c(current, consequence_name)
         selected_consequences(current)
-        
+
+        # Track custom entries
+        if (is_custom) {
+          custom_list <- custom_entries()
+          custom_list$consequences <- c(custom_list$consequences, consequence_name)
+          custom_entries(custom_list)
+          showNotification(paste("✅ Added custom consequence:", consequence_name, "(marked for review)"), type = "message", duration = 3)
+        } else {
+          showNotification(paste(t("gw_added_consequence", lang()), consequence_name), type = "message", duration = 2)
+        }
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$consequences <- current
+        state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_consequence", lang()), consequence_name), type = "message", duration = 2)
 
-        # Clear the search input
-        updateSelectizeInput(session, "consequence_search", selected = character(0))
+        # Clear inputs
+        updateSelectizeInput(session, "consequence_item", selected = character(0))
+        if (is_custom) {
+          updateTextInput(session, "consequence_custom_text", value = "")
+        }
       } else {
         showNotification(t("gw_consequence_exists", lang()), type = "warning", duration = 2)
       }
+    } else {
+      showNotification("Please select a consequence or enter a custom name", type = "warning", duration = 2)
     }
   })
   
@@ -1917,29 +2302,54 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   
   # Handle "Add Protective Control" button
   observeEvent(input$add_protective_control, {
-    control_name <- input$protective_control_search
-    
+    # Determine if using custom entry or hierarchical selection
+    control_name <- NULL
+    is_custom <- FALSE
+
+    if (!is.null(input$protective_control_custom_toggle) && input$protective_control_custom_toggle) {
+      # Custom entry mode
+      control_name <- input$protective_control_custom_text
+      is_custom <- TRUE
+    } else {
+      # Hierarchical selection mode
+      control_name <- input$protective_control_item
+    }
+
     if (!is.null(control_name) && nchar(trimws(control_name)) > 0) {
       # Get current list
       current <- selected_protective_controls()
-      
+
       # Check if already added
       if (!control_name %in% current) {
         current <- c(current, control_name)
         selected_protective_controls(current)
-        
+
+        # Track custom entries
+        if (is_custom) {
+          custom_list <- custom_entries()
+          custom_list$protective_controls <- c(custom_list$protective_controls, control_name)
+          custom_entries(custom_list)
+          showNotification(paste("✅ Added custom protective control:", control_name, "(marked for review)"), type = "message", duration = 3)
+        } else {
+          showNotification(paste(t("gw_added_protective", lang()), control_name), type = "message", duration = 2)
+        }
+
         # Update workflow state
         state <- workflow_state()
         state$project_data$protective_controls <- current
+        state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
-        
-        showNotification(paste(t("gw_added_protective", lang()), control_name), type = "message", duration = 2)
 
-        # Clear the search input
-        updateSelectizeInput(session, "protective_control_search", selected = character(0))
+        # Clear inputs
+        updateSelectizeInput(session, "protective_control_item", selected = character(0))
+        if (is_custom) {
+          updateTextInput(session, "protective_control_custom_text", value = "")
+        }
       } else {
         showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
       }
+    } else {
+      showNotification("Please select a control or enter a custom name", type = "warning", duration = 2)
     }
   })
   
@@ -2041,9 +2451,89 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       } else {
         selected_escalation_factors(list())
       }
+
+      # Load custom entries from state if available
+      if (!is.null(state$project_data$custom_entries)) {
+        custom_entries(state$project_data$custom_entries)
+      }
     }
   })
-  
+
+  # Render custom entries review table
+  output$custom_entries_review_table <- renderDT({
+    custom_list <- custom_entries()
+
+    # Create a data frame with all custom entries
+    entries_data <- data.frame(
+      Category = character(0),
+      Item = character(0),
+      stringsAsFactors = FALSE
+    )
+
+    if (length(custom_list$activities) > 0) {
+      entries_data <- rbind(entries_data, data.frame(
+        Category = rep("Activity", length(custom_list$activities)),
+        Item = custom_list$activities,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    if (length(custom_list$pressures) > 0) {
+      entries_data <- rbind(entries_data, data.frame(
+        Category = rep("Pressure", length(custom_list$pressures)),
+        Item = custom_list$pressures,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    if (length(custom_list$preventive_controls) > 0) {
+      entries_data <- rbind(entries_data, data.frame(
+        Category = rep("Preventive Control", length(custom_list$preventive_controls)),
+        Item = custom_list$preventive_controls,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    if (length(custom_list$consequences) > 0) {
+      entries_data <- rbind(entries_data, data.frame(
+        Category = rep("Consequence", length(custom_list$consequences)),
+        Item = custom_list$consequences,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    if (length(custom_list$protective_controls) > 0) {
+      entries_data <- rbind(entries_data, data.frame(
+        Category = rep("Protective Control", length(custom_list$protective_controls)),
+        Item = custom_list$protective_controls,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    if (nrow(entries_data) == 0) {
+      entries_data <- data.frame(
+        Category = "No custom entries",
+        Item = "All items were selected from the vocabulary",
+        stringsAsFactors = FALSE
+      )
+    }
+
+    # Render with DT package
+    DT::datatable(
+      entries_data,
+      options = list(
+        pageLength = 10,
+        searching = TRUE,
+        lengthChange = FALSE,
+        info = TRUE,
+        dom = 't'
+      ),
+      rownames = FALSE,
+      selection = 'none',
+      class = 'cell-border stripe'
+    )
+  })
+
   # Handle "Add Escalation Factor" button
   observeEvent(input$add_escalation_factor, {
     factor_name <- input$escalation_factor_input
