@@ -15,6 +15,13 @@ server <- function(input, output, session) {
   hasData <- reactiveVal(FALSE)
   lastNotification <- reactiveVal(NULL)  # For aria-live regions
 
+  # Error tracking for enhanced error displays
+  dataLoadError <- reactiveVal(NULL)
+  dataGenerateError <- reactiveVal(NULL)
+  bayesianNetworkError <- reactiveVal(NULL)
+  bayesianInferenceError <- reactiveVal(NULL)
+  vocabularyError <- reactiveVal(NULL)
+
   # Translation reactive value (triggered by button click)
   currentLanguage <- reactiveVal("en")
 
@@ -97,6 +104,102 @@ server <- function(input, output, session) {
     msg <- lastNotification()
     if (!is.null(msg)) {
       tags$span(msg)
+    }
+  })
+
+  # Enhanced error displays
+  output$dataLoadErrorDisplay <- renderUI({
+    err <- dataLoadError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Data Loading Error",
+        message = "We encountered an error while loading your data file.",
+        details = err$message,
+        suggestions = c(
+          "Verify the file format is correct (Excel .xlsx or .xls)",
+          "Check that the file is not corrupted or password-protected",
+          "Ensure all required columns are present in the file",
+          "Try uploading a different file or generating sample data"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_load_data"
+      )
+    }
+  })
+
+  output$dataGenerateErrorDisplay <- renderUI({
+    err <- dataGenerateError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Data Generation Error",
+        message = "We encountered an error while generating sample data.",
+        details = err$message,
+        suggestions = c(
+          "Try selecting a different environmental scenario",
+          "Refresh the page and try again",
+          "Check that all required packages are installed",
+          "If the error persists, upload your own data file instead"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_generate_data"
+      )
+    }
+  })
+
+  output$bayesianNetworkErrorDisplay <- renderUI({
+    err <- bayesianNetworkError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Bayesian Network Creation Error",
+        message = "We encountered an error while creating the Bayesian network.",
+        details = err$message,
+        suggestions = c(
+          "Ensure your data has valid bowtie structure (activities, pressures, consequences)",
+          "Check that there are no circular dependencies in the network",
+          "Verify that all required columns are present",
+          "Try simplifying your network by reducing the number of connections"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_create_bayesian"
+      )
+    }
+  })
+
+  output$bayesianInferenceErrorDisplay <- renderUI({
+    err <- bayesianInferenceError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Bayesian Inference Error",
+        message = "We encountered an error during probabilistic inference.",
+        details = err$message,
+        suggestions = c(
+          "Ensure the Bayesian network has been created successfully",
+          "Check that probability values are valid (between 0 and 1)",
+          "Verify evidence values are correctly specified",
+          "Try recreating the Bayesian network from your bowtie data"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_inference"
+      )
+    }
+  })
+
+  output$vocabularyErrorDisplay <- renderUI({
+    err <- vocabularyError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Vocabulary Loading Error",
+        message = "We encountered an error while loading the vocabulary data.",
+        details = err$message,
+        suggestions = c(
+          "Check that vocabulary files (CAUSES.xlsx, CONSEQUENCES.xlsx, CONTROLS.xlsx) are present",
+          "Verify the vocabulary files are not corrupted",
+          "Ensure the files have the correct Excel structure",
+          "Try refreshing the vocabulary using the refresh button"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_refresh_vocab"
+      )
     }
   })
 
@@ -239,8 +342,12 @@ server <- function(input, output, session) {
       validation <- validateDataColumns(data)
 
       if (!validation$valid) {
-        showNotification(paste("Missing required columns:",
-                              paste(validation$missing, collapse = ", ")), type = "error")
+        dataLoadError(list(
+          message = paste("Missing required columns:", paste(validation$missing, collapse = ", ")),
+          type = "validation"
+        ))
+        hasData(FALSE)
+        lastNotification(paste("❌ Missing required columns:", paste(validation$missing, collapse = ", ")))
         return()
       }
 
@@ -249,6 +356,7 @@ server <- function(input, output, session) {
       editedData(data)
       dataVersion(dataVersion() + 1)
       hasData(TRUE)  # Track that data is loaded
+      dataLoadError(NULL)  # Clear any previous errors
       clear_cache()  # Clear cache when new data is loaded
 
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
@@ -260,8 +368,8 @@ server <- function(input, output, session) {
 
     }, error = function(e) {
       hasData(FALSE)
+      dataLoadError(list(message = e$message, type = "exception"))
       lastNotification(paste("❌ Error loading data:", e$message))
-      showNotification(paste("❌ Error loading data:", e$message), type = "error", duration = 8)
     })
   })
 
@@ -312,9 +420,9 @@ server <- function(input, output, session) {
 
     }, error = function(e) {
       hasData(FALSE)
+      dataGenerateError(list(message = e$message, type = "exception"))
       error_msg <- paste("❌ Error generating scenario-specific data:", e$message)
       lastNotification(error_msg)
-      showNotification(error_msg, type = "error", duration = 8)
     })
   })
 
@@ -421,11 +529,13 @@ server <- function(input, output, session) {
 
       bayesianNetwork(bn_result)
       bayesianNetworkCreated(TRUE)
+      bayesianNetworkError(NULL)  # Clear any previous errors
 
       showNotification(paste("✅", t("notify_bayesian_success", lang())), type = "message", duration = 3)
 
     }, error = function(e) {
-      showNotification(paste("❌", t("notify_bayesian_error", lang()), e$message), type = "error")
+      bayesianNetworkError(list(message = e$message, type = "exception"))
+      lastNotification(paste("❌", t("notify_bayesian_error", lang()), e$message))
       cat("Bayesian network error:", e$message, "\n")
     })
   })
@@ -495,11 +605,13 @@ server <- function(input, output, session) {
 
       inferenceResults(results)
       inferenceCompleted(TRUE)
+      bayesianInferenceError(NULL)  # Clear any previous errors
 
       showNotification("✅ Inference completed!", type = "message", duration = 2)
 
     }, error = function(e) {
-      showNotification(paste("❌ Error in inference:", e$message), type = "error")
+      bayesianInferenceError(list(message = e$message, type = "exception"))
+      lastNotification(paste("❌ Error in inference:", e$message))
       cat("Inference error:", e$message, "\n")
     })
   })
@@ -1704,6 +1816,32 @@ server <- function(input, output, session) {
     }
   )
 
+  # Retry handlers for error displays
+  observeEvent(input$retry_load_data, {
+    dataLoadError(NULL)
+    click("loadData")  # Trigger the load data button
+  })
+
+  observeEvent(input$retry_generate_data, {
+    dataGenerateError(NULL)
+    click("generateSample")  # Trigger the generate sample button
+  })
+
+  observeEvent(input$retry_create_bayesian, {
+    bayesianNetworkError(NULL)
+    click("createBayesianNetwork")  # Trigger the create network button
+  })
+
+  observeEvent(input$retry_inference, {
+    bayesianInferenceError(NULL)
+    click("runInference")  # Trigger the run inference button
+  })
+
+  observeEvent(input$retry_refresh_vocab, {
+    vocabularyError(NULL)
+    click("refresh_vocab")  # Trigger the refresh vocabulary button
+  })
+
   # Refresh vocabulary
   observeEvent(input$refresh_vocab, {
     showNotification("Refreshing vocabulary data...", type = "default", duration = 2)
@@ -1711,9 +1849,11 @@ server <- function(input, output, session) {
       vocabulary_data <<- load_vocabulary()
       vocab_search_results(data.frame())
       selected_vocab_item(NULL)
+      vocabularyError(NULL)  # Clear any previous errors
       showNotification("✅ Vocabulary refreshed successfully!", type = "message", duration = 3)
     }, error = function(e) {
-      showNotification(paste("❌ Error refreshing vocabulary:", e$message), type = "error")
+      vocabularyError(list(message = e$message, type = "exception"))
+      lastNotification(paste("❌ Error refreshing vocabulary:", e$message))
     })
   })
 

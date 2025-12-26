@@ -247,7 +247,15 @@ ui <- fluidPage(
                )
         )
       ),
-      
+
+      # Error displays for data loading and generation
+      fluidRow(
+        column(12,
+          uiOutput("dataLoadErrorDisplay"),
+          uiOutput("dataGenerateErrorDisplay")
+        )
+      ),
+
       br(),
 
       fluidRow(
@@ -559,6 +567,8 @@ ui <- fluidPage(
                                      tagList(icon("brain"), "Create Bayesian Network"),
                                      class = "btn-success")),
 
+                     uiOutput("bayesianNetworkErrorDisplay"),
+
                      conditionalPanel(
                        condition = "output.bayesianNetworkCreated",
 
@@ -584,6 +594,8 @@ ui <- fluidPage(
                            actionButton("runInference",
                                        tagList(icon("play"), "Run Inference"),
                                        class = "btn-primary")),
+
+                       uiOutput("bayesianInferenceErrorDisplay"),
 
                        hr(),
                        h6(tagList(icon("chart-line"), "Risk Scenarios:")),
@@ -1096,6 +1108,7 @@ ui <- fluidPage(
                    class = "bg-primary text-white"
                  ),
                  card_body(
+                   uiOutput("vocabularyErrorDisplay"),
                    tabsetPanel(
                      tabPanel("Tree View",
                               br(),
