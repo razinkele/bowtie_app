@@ -1,9 +1,9 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application Launcher
-# Version: 5.3.0 (Production-Ready Edition)
-# Date: November 2025
+# Version: 5.4.0 (Stability & Infrastructure Edition)
+# Date: December 2025
 # Author: Marbefes Team & AI Assistant
-# Description: Production-ready with comprehensive deployment framework, UI improvements, and bug fixes
+# Description: Production-ready with comprehensive bug fixes and filename normalization
 # =============================================================================
 
 # Determine application directory robustly and source files relative to it

@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis - Network-Ready Launcher
-# Version: 5.3.0
+# Version: 5.4.0
 # Description: Launches app with network access using centralized configuration
 # =============================================================================
 
@@ -19,7 +19,7 @@ if (file.exists("config.R")) {
 
 bowtie_log("=============================================================================")
 bowtie_log("Starting Environmental Bowtie Risk Analysis Application...", .verbose = TRUE)
-bowtie_log("Version:", ifelse(exists("APP_CONFIG"), APP_CONFIG$VERSION, "5.3.0"), .verbose = TRUE)
+bowtie_log("Version:", ifelse(exists("APP_CONFIG"), APP_CONFIG$VERSION, "5.4.0"), .verbose = TRUE)
 bowtie_log("=============================================================================\n", .verbose = TRUE)
 
 bowtie_log("🌐 Server Configuration:", .verbose = TRUE)

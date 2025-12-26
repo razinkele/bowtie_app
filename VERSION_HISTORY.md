@@ -3,6 +3,35 @@
 
 ---
 
+## Version 5.4.0 (Stability & Infrastructure Edition)
+**Release Date:** 2025-12-26
+
+### Infrastructure Improvements
+- **Filename Normalization**: Standardized all `.r` files to `.R` extension for cross-platform compatibility
+- **Enhanced Linux Support**: Eliminated case-sensitivity issues across all R source files
+- **Test Suite Updates**: Fixed test file loading order and dependencies (utils.R sourced before vocabulary helpers)
+
+### Comprehensive Bug Fixes (v5.3.7 - v5.3.10.1)
+- **v5.3.7**: Fixed bowtie logic issues in diagram generation
+- **v5.3.8**: Resolved manual opening functionality errors
+- **v5.3.9**: Fixed NA value handling in data processing
+- **v5.3.10**: Corrected AI display and linking functionality
+- **v5.3.10.1**: Fixed critical syntax error in server.R preventing application startup
+
+### Additional Enhancements
+- **Macaronesian Scenarios**: Added 3 new environmental scenario templates (v5.3.6)
+- **Navigation State Preservation**: Resolved guided workflow state management issues (v5.3.5)
+- **Testing Framework**: Enhanced comprehensive test runner with better dependency management
+- **Documentation**: Updated all version references and documentation to v5.4.0
+
+### Development Status
+- ✅ All critical bugs resolved
+- ✅ Cross-platform filename compatibility
+- ✅ Enhanced test suite stability
+- ✅ Production-ready deployment
+
+---
+
 ## Version 5.3.1 (Patch)
 **Release Date:** 2025-12-23
 
@@ -115,7 +144,7 @@
 ## Version Information
 
 ### Current Version
-- **Version:** 5.3.0 (Production-Ready Edition)
+- **Version:** 5.4.0 (Stability & Infrastructure Edition)
 - **R Required:** >= 4.3.0
 - **Shiny Server:** 1.5.21+ recommended
 - **Documentation:** Complete PDF manual included
