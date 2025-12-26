@@ -11,6 +11,10 @@ server <- function(input, output, session) {
   selectedRows <- reactiveVal(NULL)
   dataVersion <- reactiveVal(0)  # For cache invalidation
 
+  # UI state tracking for empty states and accessibility
+  hasData <- reactiveVal(FALSE)
+  lastNotification <- reactiveVal(NULL)  # For aria-live regions
+
   # Translation reactive value (triggered by button click)
   currentLanguage <- reactiveVal("en")
 
@@ -82,6 +86,18 @@ server <- function(input, output, session) {
 
   lang <- reactive({
     currentLanguage()
+  })
+
+  # Output for conditional rendering based on data availability
+  output$hasData <- reactive({ hasData() })
+  outputOptions(output, "hasData", suspendWhenHidden = FALSE)
+
+  # ARIA live region announcer for accessibility
+  output$notification_announcer <- renderUI({
+    msg <- lastNotification()
+    if (!is.null(msg)) {
+      tags$span(msg)
+    }
   })
 
   # NEW: Bayesian network reactive values
@@ -232,14 +248,20 @@ server <- function(input, output, session) {
       currentData(data)
       editedData(data)
       dataVersion(dataVersion() + 1)
+      hasData(TRUE)  # Track that data is loaded
       clear_cache()  # Clear cache when new data is loaded
 
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
       updateSelectInput(session, "bayesianProblem", choices = unique(data$Central_Problem))
-      showNotification(paste("✅", t("notify_data_loaded", lang())), type = "default", duration = 3)
+
+      # Improved success notification
+      lastNotification(paste("✅", t("notify_data_loaded", lang())))
+      showNotification(paste("✅", t("notify_data_loaded", lang())), type = "message", duration = 3)
 
     }, error = function(e) {
-      showNotification(paste("❌ Error loading data:", e$message), type = "error")
+      hasData(FALSE)
+      lastNotification(paste("❌ Error loading data:", e$message))
+      showNotification(paste("❌ Error loading data:", e$message), type = "error", duration = 8)
     })
   })
 
@@ -269,6 +291,7 @@ server <- function(input, output, session) {
       currentData(sample_data)
       editedData(sample_data)
       envDataGenerated(TRUE)
+      hasData(TRUE)  # Track that data is generated
       dataVersion(dataVersion() + 1)
       clear_cache()
 
@@ -281,15 +304,17 @@ server <- function(input, output, session) {
       n_activities <- length(unique(sample_data$Activity))
       n_consequences <- length(unique(sample_data$Consequence))
 
-      showNotification(
-        paste("✅", t("notify_data_generated", lang()), "|",
+      notification_msg <- paste("✅", t("notify_data_generated", lang()), "|",
               nrow(sample_data), "scenarios |", central_problem,
-              "| Activities:", n_activities, "| Consequences:", n_consequences),
-        type = "message", duration = 5)
+              "| Activities:", n_activities, "| Consequences:", n_consequences)
+      lastNotification(notification_msg)
+      showNotification(notification_msg, type = "message", duration = 5)
 
     }, error = function(e) {
-      showNotification(paste("❌ Error generating scenario-specific data:", e$message),
-                      type = "error", duration = 5)
+      hasData(FALSE)
+      error_msg <- paste("❌ Error generating scenario-specific data:", e$message)
+      lastNotification(error_msg)
+      showNotification(error_msg, type = "error", duration = 8)
     })
   })
 
