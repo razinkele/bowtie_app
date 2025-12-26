@@ -201,6 +201,17 @@ find_control_links <- function(controls, target_lists, control_type,
       any(sapply(control_keywords, function(kw) isTRUE(grepl(kw, name_lower))))
     }))
 
+  # Ensure the target type label is singular and matches validation expectations
+  # Convert keys like 'activities' -> 'Activity', 'pressures' -> 'Pressure', 'consequences' -> 'Consequence'
+  singular_target_mapping <- function(key) {
+    key_lower <- tolower(key)
+    if (key_lower == "activities") return("Activity")
+    if (key_lower == "pressures") return("Pressure")
+    if (key_lower == "consequences") return("Consequence")
+    # Fallback: Title case the key
+    return(tools::toTitleCase(key))
+  }
+
   # If no specific controls found, use all controls
   if (nrow(relevant_controls) == 0) {
     relevant_controls <- controls
@@ -240,7 +251,7 @@ find_control_links <- function(controls, target_lists, control_type,
             from_type = "Control",
             to_id = target_items$id[match_idx],
             to_name = target_items$name[match_idx],
-            to_type = tools::toTitleCase(target_name),
+            to_type = singular_target_mapping(target_name),
             relationship = ifelse(control_type == "preventive", "prevents", "mitigates"),
             similarity = similarity_scores[match_idx],
             method = paste(methods, collapse = "+"),
@@ -447,14 +458,16 @@ validate_bowtie_structure <- function(links) {
     stringsAsFactors = FALSE
   )
 
-  # Check each link
-  invalid_links <- links %>%
-    left_join(valid_relationships, by = c("from_type", "to_type", "relationship")) %>%
-    filter(is.na(relationship))
+  # Check each link by anti-joining with the canonical set of valid relationships
+  invalid_links <- dplyr::anti_join(
+    links %>% dplyr::select(from_type, to_type, relationship),
+    valid_relationships,
+    by = c("from_type", "to_type", "relationship")
+  )
 
   if (nrow(invalid_links) > 0) {
     cat(sprintf("  ⚠️ Found %d invalid links that violate bowtie structure:\n", nrow(invalid_links)))
-    print(invalid_links %>% select(from_type, to_type, relationship))
+    print(invalid_links %>% dplyr::select(from_type, to_type, relationship))
     return(FALSE)
   } else {
     cat("  ✅ All links respect proper bowtie structure\n")
