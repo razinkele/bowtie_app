@@ -15,7 +15,7 @@ validate_guided_workflow_dependencies <- function() {
   cat("🔍 Validating guided workflow dependencies...\n")
 
   required_packages <- c("shiny", "bslib", "dplyr", "DT")
-  optional_packages <- c("ggplot2", "plotly", "openxlsx", "jsonlite")
+  optional_packages <- c("ggplot2", "plotly", "openxlsx", "jsonlite", "digest")
   missing_required <- c()
   missing_optional <- c()
 
@@ -481,6 +481,120 @@ guided_workflow_ui <- function(id, current_lang = "en") {
           border-color: #28a745;
           background: #f8fff8;
         }
+        /* Autosave status indicator */
+        .autosave-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          transition: all 0.3s ease;
+          opacity: 0;
+          background: rgba(255, 255, 255, 0.95);
+          color: #6c757d;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .autosave-status.saving {
+          opacity: 1;
+          color: #0d6efd;
+          background: #e7f1ff;
+        }
+        .autosave-status.saved {
+          opacity: 1;
+          color: #198754;
+          background: #d1f4e0;
+        }
+        .autosave-status.error {
+          opacity: 1;
+          color: #dc3545;
+          background: #ffe5e5;
+        }
+        .autosave-status i {
+          font-size: 1rem;
+        }
+        .autosave-status.saving i {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      ")),
+      # JavaScript for autosave functionality
+      tags$script(HTML("
+        // Autosave localStorage handlers
+        Shiny.addCustomMessageHandler('smartAutosave', function(data) {
+          try {
+            localStorage.setItem('bowtie_workflow_autosave', data.state);
+            localStorage.setItem('bowtie_workflow_autosave_timestamp', data.timestamp);
+            localStorage.setItem('bowtie_workflow_autosave_hash', data.hash);
+
+            updateAutosaveStatus('saved', 'Saved ' + data.timestamp);
+          } catch (e) {
+            console.error('Autosave failed:', e);
+            updateAutosaveStatus('error', 'Save failed');
+          }
+        });
+
+        Shiny.addCustomMessageHandler('loadFromLocalStorage', function(data) {
+          try {
+            var value = localStorage.getItem(data.key);
+            if (value) {
+              Shiny.setInputValue(data.inputId, value);
+            }
+          } catch (e) {
+            console.error('Failed to load from localStorage:', e);
+          }
+        });
+
+        Shiny.addCustomMessageHandler('clearAutosave', function(data) {
+          try {
+            localStorage.removeItem('bowtie_workflow_autosave');
+            localStorage.removeItem('bowtie_workflow_autosave_timestamp');
+            localStorage.removeItem('bowtie_workflow_autosave_hash');
+          } catch (e) {
+            console.error('Failed to clear autosave:', e);
+          }
+        });
+
+        function updateAutosaveStatus(status, text) {
+          var statusDiv = $('#guided_workflow-autosave_status');
+          if (statusDiv.length === 0) return;
+
+          var iconSpan = statusDiv.find('.autosave-icon');
+          var textSpan = statusDiv.find('.autosave-text');
+
+          statusDiv.removeClass('saving saved error');
+
+          if (status === 'saving') {
+            statusDiv.addClass('saving');
+            iconSpan.html('<i class=\"fas fa-spinner\"></i>');
+            textSpan.text(text || 'Saving...');
+            statusDiv.css('opacity', '1');
+          } else if (status === 'saved') {
+            statusDiv.addClass('saved');
+            iconSpan.html('<i class=\"fas fa-check-circle\"></i>');
+            textSpan.text(text || 'Saved');
+            statusDiv.css('opacity', '1');
+
+            // Fade out after 3 seconds
+            setTimeout(function() {
+              statusDiv.css('opacity', '0');
+            }, 3000);
+          } else if (status === 'error') {
+            statusDiv.addClass('error');
+            iconSpan.html('<i class=\"fas fa-exclamation-circle\"></i>');
+            textSpan.text(text || 'Error');
+            statusDiv.css('opacity', '1');
+
+            // Fade out after 5 seconds
+            setTimeout(function() {
+              statusDiv.css('opacity', '0');
+            }, 5000);
+          }
+        }
       "))
     ),
     
@@ -493,6 +607,11 @@ guided_workflow_ui <- function(id, current_lang = "en") {
           ),
           column(4,
                  div(class = "text-end d-flex align-items-center justify-content-end gap-2",
+                     # Autosave status indicator
+                     tags$div(id = ns("autosave_status"), class = "autosave-status",
+                              tags$span(class = "autosave-icon"),
+                              tags$span(class = "autosave-text")
+                     ),
                      actionButton(ns("workflow_help"), tagList(icon("question-circle"), t("gw_help", current_lang)), class = "btn-light btn-sm"),
                     actionButton(ns("workflow_load_btn"), tagList(icon("folder-open"), t("gw_load_progress", current_lang)), class = "btn-light btn-sm"),
                     # Hidden file input for load functionality
@@ -1435,6 +1554,225 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
     Control = character(0),
     stringsAsFactors = FALSE
   ))
+
+  # =============================================================================
+  # SMART AUTOSAVE SYSTEM
+  # =============================================================================
+
+  # Reactive values for autosave
+  last_saved_hash <- reactiveVal(NULL)
+  debounce_timer <- reactiveVal(NULL)
+  autosave_enabled <- reactiveVal(TRUE)
+
+  # Helper: Compute state hash for change detection
+  compute_state_hash <- function(state) {
+    tryCatch({
+      if (!requireNamespace("digest", quietly = TRUE)) {
+        return(NULL)
+      }
+      if (!requireNamespace("jsonlite", quietly = TRUE)) {
+        return(NULL)
+      }
+
+      # Extract only the parts that matter for autosave
+      hashable_state <- list(
+        current_step = state$current_step,
+        completed_steps = state$completed_steps,
+        project_data = state$project_data,
+        validation_status = state$validation_status,
+        workflow_complete = state$workflow_complete
+      )
+
+      json_state <- jsonlite::toJSON(hashable_state, auto_unbox = TRUE)
+      hash_value <- digest::digest(json_state, algo = "md5")
+
+      return(hash_value)
+    }, error = function(e) {
+      cat("⚠️ Hash computation failed:", e$message, "\n")
+      return(NULL)
+    })
+  }
+
+  # Helper: Perform smart autosave
+  perform_smart_autosave <- function() {
+    isolate({
+      state <- workflow_state()
+      req(state)
+      req(autosave_enabled())
+
+      # Only autosave if we're past step 1
+      if (state$current_step <= 1) {
+        return(NULL)
+      }
+
+      current_hash <- compute_state_hash(state)
+
+      # Only save if state actually changed
+      if (!is.null(current_hash) &&
+          (is.null(last_saved_hash()) || current_hash != last_saved_hash())) {
+
+        tryCatch({
+          if (requireNamespace("jsonlite", quietly = TRUE)) {
+            state_json <- jsonlite::toJSON(state, auto_unbox = TRUE)
+            timestamp <- format(Sys.time(), "%H:%M:%S")
+
+            session$sendCustomMessage("smartAutosave", list(
+              state = as.character(state_json),
+              timestamp = timestamp,
+              hash = current_hash
+            ))
+
+            last_saved_hash(current_hash)
+            cat("✅ Autosaved at", timestamp, "(hash:", substr(current_hash, 1, 8), ")\n")
+          }
+        }, error = function(e) {
+          cat("❌ Autosave failed:", e$message, "\n")
+        })
+      }
+    })
+  }
+
+  # Helper: Trigger autosave with debouncing
+  trigger_autosave_debounced <- function(delay_ms = 3000) {
+    # Update debounce timer
+    debounce_timer(Sys.time())
+
+    # Schedule the autosave check
+    invalidateLater(delay_ms, session)
+
+    observe({
+      timer_value <- debounce_timer()
+      req(timer_value)
+
+      time_diff <- difftime(Sys.time(), timer_value, units = "secs")
+
+      # If enough time has passed since last change, perform autosave
+      if (as.numeric(time_diff) >= (delay_ms / 1000)) {
+        perform_smart_autosave()
+        debounce_timer(NULL)  # Clear timer
+      }
+    }, priority = -1)  # Low priority to run after other observers
+  }
+
+  # Watch for workflow state changes and trigger autosave
+  observe({
+    state <- workflow_state()
+    req(state)
+    req(autosave_enabled())
+
+    # Trigger debounced autosave on any state change
+    trigger_autosave_debounced(delay_ms = 3000)
+  }, priority = -1)  # Low priority to run after other state updates
+
+  # =============================================================================
+  # SESSION RESTORE
+  # =============================================================================
+
+  # On session start, check for autosaved state
+  observeEvent(session$clientData$url_search, {
+    if (requireNamespace("jsonlite", quietly = TRUE)) {
+      session$sendCustomMessage("loadFromLocalStorage", list(
+        key = "bowtie_workflow_autosave",
+        inputId = "restored_workflow_state"
+      ))
+    }
+  }, once = TRUE, priority = 100)  # High priority to run early
+
+  # Handle restored state
+  observeEvent(input$restored_workflow_state, {
+    req(input$restored_workflow_state)
+
+    tryCatch({
+      if (requireNamespace("jsonlite", quietly = TRUE)) {
+        restored <- jsonlite::fromJSON(input$restored_workflow_state, simplifyVector = FALSE)
+
+        # Validate restored state
+        if (is.list(restored) && "current_step" %in% names(restored)) {
+          # Show restore dialog
+          showModal(modalDialog(
+            title = tagList(icon("history"), " Restore Previous Session?"),
+            tagList(
+              p(HTML(paste0(
+                "A previous workflow session was found.<br>",
+                "<strong>Step ", restored$current_step, " of ", restored$total_steps, "</strong>",
+                if (!is.null(restored$project_data$project_name) && nchar(restored$project_data$project_name) > 0) {
+                  paste0("<br>Project: <em>", restored$project_data$project_name, "</em>")
+                } else { "" }
+              ))),
+              hr(),
+              p("Would you like to restore this session or start fresh?")
+            ),
+            footer = tagList(
+              actionButton("restore_yes", "Restore Session", class = "btn-primary", icon = icon("undo")),
+              actionButton("restore_no", "Start Fresh", class = "btn-secondary", icon = icon("file"))
+            ),
+            size = "m",
+            easyClose = FALSE
+          ))
+        }
+      }
+    }, error = function(e) {
+      cat("⚠️ Error processing restored state:", e$message, "\n")
+    })
+  }, once = TRUE, ignoreNULL = TRUE)
+
+  # Handle restore confirmation
+  observeEvent(input$restore_yes, {
+    req(input$restored_workflow_state)
+
+    tryCatch({
+      if (requireNamespace("jsonlite", quietly = TRUE)) {
+        restored <- jsonlite::fromJSON(input$restored_workflow_state, simplifyVector = FALSE)
+
+        # Convert list back to proper structure
+        restored_state <- init_workflow_state()  # Start with default
+
+        # Merge restored data
+        for (name in names(restored)) {
+          if (name %in% names(restored_state)) {
+            restored_state[[name]] <- restored[[name]]
+          }
+        }
+
+        # Update workflow state
+        workflow_state(restored_state)
+
+        # Update hash to current state
+        last_saved_hash(compute_state_hash(restored_state))
+
+        showNotification(
+          paste("✅ Session restored successfully! Resuming at Step", restored_state$current_step),
+          type = "message",
+          duration = 5
+        )
+
+        cat("✅ Workflow session restored from autosave\n")
+      }
+    }, error = function(e) {
+      showNotification(
+        paste("❌ Error restoring session:", e$message),
+        type = "error",
+        duration = 10
+      )
+      cat("❌ Error restoring session:", e$message, "\n")
+    })
+
+    removeModal()
+  })
+
+  # Handle start fresh
+  observeEvent(input$restore_no, {
+    # Clear autosave from localStorage
+    session$sendCustomMessage("clearAutosave", list())
+
+    showNotification(
+      "Starting fresh workflow session",
+      type = "message",
+      duration = 3
+    )
+
+    removeModal()
+  })
 
   # =============================================================================
   # UI RENDERING
@@ -3074,26 +3412,29 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Handle workflow finalization
   observeEvent(input$finalize_workflow, {
     state <- workflow_state()
-    
+
     # Final validation
     validation_result <- validate_current_step(state, input)
     if (!validation_result$is_valid) {
       showNotification(validation_result$message, type = "error")
       return()
     }
-    
+
     # Save final step data
     state <- save_step_data(state, input)
-    
+
     # Mark workflow as complete
     state$workflow_complete <- TRUE
-    
+
     # Convert workflow data to main application format
     converted_data <- convert_to_main_data_format(state$project_data)
     state$converted_main_data <- converted_data
-    
+
     workflow_state(state)
-    
+
+    # Clear autosave - workflow is complete, no need to keep autosave
+    session$sendCustomMessage("clearAutosave", list())
+
     showNotification("🎉 Workflow complete! Data is ready for visualization.", type = "message")
   })
 
@@ -3543,6 +3884,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       state_to_save <- workflow_state()
       state_to_save$last_saved <- Sys.time()
       saveRDS(state_to_save, file)
+
+      # Optionally clear autosave after successful manual save
+      # (User has a manual copy now, so autosave is less critical)
+      # session$sendCustomMessage("clearAutosave", list())
+
+      showNotification(
+        "✅ Workflow saved successfully! Autosave will continue protecting your work.",
+        type = "message",
+        duration = 3
+      )
     },
     contentType = "application/octet-stream"  # Proper MIME type to avoid browser warnings
   )
