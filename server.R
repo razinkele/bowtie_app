@@ -15,6 +15,13 @@ server <- function(input, output, session) {
   hasData <- reactiveVal(FALSE)
   lastNotification <- reactiveVal(NULL)  # For aria-live regions
 
+  # Error tracking for enhanced error displays
+  dataLoadError <- reactiveVal(NULL)
+  dataGenerateError <- reactiveVal(NULL)
+  bayesianNetworkError <- reactiveVal(NULL)
+  bayesianInferenceError <- reactiveVal(NULL)
+  vocabularyError <- reactiveVal(NULL)
+
   # Translation reactive value (triggered by button click)
   currentLanguage <- reactiveVal("en")
 
@@ -97,6 +104,102 @@ server <- function(input, output, session) {
     msg <- lastNotification()
     if (!is.null(msg)) {
       tags$span(msg)
+    }
+  })
+
+  # Enhanced error displays
+  output$dataLoadErrorDisplay <- renderUI({
+    err <- dataLoadError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Data Loading Error",
+        message = "We encountered an error while loading your data file.",
+        details = err$message,
+        suggestions = c(
+          "Verify the file format is correct (Excel .xlsx or .xls)",
+          "Check that the file is not corrupted or password-protected",
+          "Ensure all required columns are present in the file",
+          "Try uploading a different file or generating sample data"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_load_data"
+      )
+    }
+  })
+
+  output$dataGenerateErrorDisplay <- renderUI({
+    err <- dataGenerateError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Data Generation Error",
+        message = "We encountered an error while generating sample data.",
+        details = err$message,
+        suggestions = c(
+          "Try selecting a different environmental scenario",
+          "Refresh the page and try again",
+          "Check that all required packages are installed",
+          "If the error persists, upload your own data file instead"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_generate_data"
+      )
+    }
+  })
+
+  output$bayesianNetworkErrorDisplay <- renderUI({
+    err <- bayesianNetworkError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Bayesian Network Creation Error",
+        message = "We encountered an error while creating the Bayesian network.",
+        details = err$message,
+        suggestions = c(
+          "Ensure your data has valid bowtie structure (activities, pressures, consequences)",
+          "Check that there are no circular dependencies in the network",
+          "Verify that all required columns are present",
+          "Try simplifying your network by reducing the number of connections"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_create_bayesian"
+      )
+    }
+  })
+
+  output$bayesianInferenceErrorDisplay <- renderUI({
+    err <- bayesianInferenceError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Bayesian Inference Error",
+        message = "We encountered an error during probabilistic inference.",
+        details = err$message,
+        suggestions = c(
+          "Ensure the Bayesian network has been created successfully",
+          "Check that probability values are valid (between 0 and 1)",
+          "Verify evidence values are correctly specified",
+          "Try recreating the Bayesian network from your bowtie data"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_inference"
+      )
+    }
+  })
+
+  output$vocabularyErrorDisplay <- renderUI({
+    err <- vocabularyError()
+    if (!is.null(err)) {
+      error_display(
+        title = "Vocabulary Loading Error",
+        message = "We encountered an error while loading the vocabulary data.",
+        details = err$message,
+        suggestions = c(
+          "Check that vocabulary files (CAUSES.xlsx, CONSEQUENCES.xlsx, CONTROLS.xlsx) are present",
+          "Verify the vocabulary files are not corrupted",
+          "Ensure the files have the correct Excel structure",
+          "Try refreshing the vocabulary using the refresh button"
+        ),
+        retry_button = TRUE,
+        retry_id = "retry_refresh_vocab"
+      )
     }
   })
 
@@ -239,8 +342,12 @@ server <- function(input, output, session) {
       validation <- validateDataColumns(data)
 
       if (!validation$valid) {
-        showNotification(paste("Missing required columns:",
-                              paste(validation$missing, collapse = ", ")), type = "error")
+        dataLoadError(list(
+          message = paste("Missing required columns:", paste(validation$missing, collapse = ", ")),
+          type = "validation"
+        ))
+        hasData(FALSE)
+        lastNotification(paste("❌ Missing required columns:", paste(validation$missing, collapse = ", ")))
         return()
       }
 
@@ -249,6 +356,7 @@ server <- function(input, output, session) {
       editedData(data)
       dataVersion(dataVersion() + 1)
       hasData(TRUE)  # Track that data is loaded
+      dataLoadError(NULL)  # Clear any previous errors
       clear_cache()  # Clear cache when new data is loaded
 
       updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
@@ -260,8 +368,8 @@ server <- function(input, output, session) {
 
     }, error = function(e) {
       hasData(FALSE)
+      dataLoadError(list(message = e$message, type = "exception"))
       lastNotification(paste("❌ Error loading data:", e$message))
-      showNotification(paste("❌ Error loading data:", e$message), type = "error", duration = 8)
     })
   })
 
@@ -312,9 +420,9 @@ server <- function(input, output, session) {
 
     }, error = function(e) {
       hasData(FALSE)
+      dataGenerateError(list(message = e$message, type = "exception"))
       error_msg <- paste("❌ Error generating scenario-specific data:", e$message)
       lastNotification(error_msg)
-      showNotification(error_msg, type = "error", duration = 8)
     })
   })
 
@@ -421,11 +529,13 @@ server <- function(input, output, session) {
 
       bayesianNetwork(bn_result)
       bayesianNetworkCreated(TRUE)
+      bayesianNetworkError(NULL)  # Clear any previous errors
 
       showNotification(paste("✅", t("notify_bayesian_success", lang())), type = "message", duration = 3)
 
     }, error = function(e) {
-      showNotification(paste("❌", t("notify_bayesian_error", lang()), e$message), type = "error")
+      bayesianNetworkError(list(message = e$message, type = "exception"))
+      lastNotification(paste("❌", t("notify_bayesian_error", lang()), e$message))
       cat("Bayesian network error:", e$message, "\n")
     })
   })
@@ -495,11 +605,13 @@ server <- function(input, output, session) {
 
       inferenceResults(results)
       inferenceCompleted(TRUE)
+      bayesianInferenceError(NULL)  # Clear any previous errors
 
       showNotification("✅ Inference completed!", type = "message", duration = 2)
 
     }, error = function(e) {
-      showNotification(paste("❌ Error in inference:", e$message), type = "error")
+      bayesianInferenceError(list(message = e$message, type = "exception"))
+      lastNotification(paste("❌ Error in inference:", e$message))
       cat("Inference error:", e$message, "\n")
     })
   })
@@ -1704,6 +1816,32 @@ server <- function(input, output, session) {
     }
   )
 
+  # Retry handlers for error displays
+  observeEvent(input$retry_load_data, {
+    dataLoadError(NULL)
+    click("loadData")  # Trigger the load data button
+  })
+
+  observeEvent(input$retry_generate_data, {
+    dataGenerateError(NULL)
+    click("generateSample")  # Trigger the generate sample button
+  })
+
+  observeEvent(input$retry_create_bayesian, {
+    bayesianNetworkError(NULL)
+    click("createBayesianNetwork")  # Trigger the create network button
+  })
+
+  observeEvent(input$retry_inference, {
+    bayesianInferenceError(NULL)
+    click("runInference")  # Trigger the run inference button
+  })
+
+  observeEvent(input$retry_refresh_vocab, {
+    vocabularyError(NULL)
+    click("refresh_vocab")  # Trigger the refresh vocabulary button
+  })
+
   # Refresh vocabulary
   observeEvent(input$refresh_vocab, {
     showNotification("Refreshing vocabulary data...", type = "default", duration = 2)
@@ -1711,9 +1849,11 @@ server <- function(input, output, session) {
       vocabulary_data <<- load_vocabulary()
       vocab_search_results(data.frame())
       selected_vocab_item(NULL)
+      vocabularyError(NULL)  # Clear any previous errors
       showNotification("✅ Vocabulary refreshed successfully!", type = "message", duration = 3)
     }, error = function(e) {
-      showNotification(paste("❌ Error refreshing vocabulary:", e$message), type = "error")
+      vocabularyError(list(message = e$message, type = "exception"))
+      lastNotification(paste("❌ Error refreshing vocabulary:", e$message))
     })
   })
 
@@ -3597,5 +3737,205 @@ server <- function(input, output, session) {
 
   return(results)
   }
+
+  # =============================================================================
+  # HELP SYSTEM (Phase 3 - Component 4)
+  # =============================================================================
+
+  # Show help modal when help button is clicked
+  observeEvent(input$show_help_modal, {
+    showModal(
+      help_modal(
+        id = "main_help_modal",
+        title = "Help & Documentation",
+        tabs = list(
+          "Getting Started" = tagList(
+            h5("Welcome to Environmental Bowtie Risk Analysis"),
+            p("This application helps you create and analyze environmental risk assessments using bowtie diagrams and Bayesian networks."),
+            h6("Quick Start:"),
+            tags$ol(
+              tags$li("Upload your data or generate sample data in the ", strong("Data Upload"), " tab"),
+              tags$li("Use the ", strong("Guided Workflow"), " to create a complete bowtie diagram"),
+              tags$li("Visualize your bowtie in the ", strong("Bowtie Diagram"), " tab"),
+              tags$li("Create a Bayesian network for probabilistic analysis"),
+              tags$li("Export your results for further analysis")
+            ),
+            hr(),
+            section_help(
+              "New to bowtie diagrams? Start with the Guided Workflow for step-by-step assistance.",
+              type = "tip",
+              title = "Tip for Beginners"
+            )
+          ),
+          "Keyboard Shortcuts" = tagList(
+            h5("Keyboard Navigation"),
+            p("Use these keyboard shortcuts to navigate the application more efficiently:"),
+            tags$dl(
+              tags$dt(tags$kbd("Alt"), " + ", tags$kbd("G")),
+              tags$dd("Navigate to Guided Workflow tab"),
+              tags$dt(tags$kbd("Alt"), " + ", tags$kbd("D")),
+              tags$dd("Navigate to Data Upload tab"),
+              tags$dt(tags$kbd("Alt"), " + ", tags$kbd("V")),
+              tags$dd("Navigate to Visualization/Bowtie tab"),
+              tags$dt(tags$kbd("Tab")),
+              tags$dd("Move to next interactive element"),
+              tags$dt(tags$kbd("Shift"), " + ", tags$kbd("Tab")),
+              tags$dd("Move to previous interactive element"),
+              tags$dt(tags$kbd("Escape")),
+              tags$dd("Close open modals or dialogs"),
+              tags$dt(tags$kbd("Enter") / tags$kbd("Space")),
+              tags$dd("Activate focused button or link")
+            ),
+            hr(),
+            section_help(
+              "All features are fully accessible via keyboard. Press Tab after page load to access the skip links.",
+              type = "info"
+            )
+          ),
+          "Accessibility" = tagList(
+            h5("Accessibility Features"),
+            p("This application is designed to be accessible to all users:"),
+            tags$ul(
+              tags$li(strong("Screen Reader Support:"), " All components have appropriate ARIA labels and announcements"),
+              tags$li(strong("Keyboard Navigation:"), " Full keyboard support with visible focus indicators"),
+              tags$li(strong("Skip Links:"), " Press Tab after page load to skip to main content"),
+              tags$li(strong("High Contrast:"), " Works with high contrast modes and themes"),
+              tags$li(strong("Text Scaling:"), " All text remains readable when zoomed up to 200%"),
+              tags$li(strong("Form Validation:"), " Clear error messages with visual and text feedback"),
+              tags$li(strong("Color Independence:"), " Information is conveyed through multiple means, not just color")
+            ),
+            hr(),
+            h6("For Screen Reader Users:"),
+            tags$ul(
+              tags$li("Navigate by headings to quickly jump between sections"),
+              tags$li("Form fields are properly labeled and grouped"),
+              tags$li("Error messages and notifications are announced automatically"),
+              tags$li("Interactive diagrams have text alternatives")
+            )
+          ),
+          "Data Format" = tagList(
+            h5("Expected Data Format"),
+            p("The application accepts Excel files (.xlsx, .xls) with the following structure:"),
+            div(class = "table-responsive",
+              tags$table(class = "table table-sm table-bordered",
+                tags$thead(
+                  tags$tr(
+                    tags$th("Column Type"),
+                    tags$th("Description"),
+                    tags$th("Example")
+                  )
+                ),
+                tags$tbody(
+                  tags$tr(
+                    tags$td(strong("Activities")),
+                    tags$td("Human activities causing environmental pressures"),
+                    tags$td("Industrial discharge, Shipping traffic")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Pressures")),
+                    tags$td("Environmental stressors from activities"),
+                    tags$td("Chemical pollution, Noise pollution")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Preventive Controls")),
+                    tags$td("Measures to prevent pressures"),
+                    tags$td("Waste treatment, Speed restrictions")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Consequences")),
+                    tags$td("Environmental impacts from pressures"),
+                    tags$td("Habitat degradation, Species decline")
+                  ),
+                  tags$tr(
+                    tags$td(strong("Protective Controls")),
+                    tags$td("Measures to mitigate consequences"),
+                    tags$td("Habitat restoration, Protected areas")
+                  )
+                )
+              )
+            ),
+            hr(),
+            section_help(
+              tagList(
+                "Don't have data yet? Use ",
+                strong("Option 2: Generate from Vocabulary"),
+                " in the Data Upload tab to create sample data based on environmental scenarios."
+              ),
+              type = "tip",
+              title = "No Data?"
+            )
+          ),
+          "Bowtie Diagrams" = tagList(
+            h5("Understanding Bowtie Diagrams"),
+            p("A bowtie diagram is a visual risk assessment tool that connects:"),
+            div(class = "row my-3",
+              div(class = "col-md-6",
+                div(class = "card",
+                  div(class = "card-header bg-warning text-dark",
+                      icon("arrow-left"), " Left Side: Prevention"),
+                  div(class = "card-body",
+                    tags$ul(
+                      tags$li(strong("Activities:"), " Sources of risk"),
+                      tags$li(strong("Pressures:"), " Threats or hazards"),
+                      tags$li(strong("Preventive Controls:"), " Barriers to prevent the central problem")
+                    )
+                  )
+                )
+              ),
+              div(class = "col-md-6",
+                div(class = "card",
+                  div(class = "card-header bg-danger text-white",
+                      "Right Side: Mitigation ", icon("arrow-right")),
+                  div(class = "card-body",
+                    tags$ul(
+                      tags$li(strong("Consequences:"), " Potential impacts"),
+                      tags$li(strong("Protective Controls:"), " Barriers to mitigate consequences")
+                    )
+                  )
+                )
+              )
+            ),
+            div(class = "text-center my-3",
+              div(class = "badge bg-danger fs-6", "Central Problem")
+            ),
+            p("The central problem sits in the middle, with prevention measures on the left and mitigation measures on the right.")
+          ),
+          "About" = tagList(
+            h5("About This Application"),
+            div(class = "row",
+              div(class = "col-md-6",
+                tags$dl(
+                  tags$dt("Version:"), tags$dd(paste0("v", APP_CONFIG$VERSION, " (Production-Ready Edition)")),
+                  tags$dt("Framework:"), tags$dd("R Shiny with Bootstrap 5"),
+                  tags$dt("Theme:"), tags$dd("Zephyr (Customizable)"),
+                  tags$dt("Release Date:"), tags$dd("November 2025")
+                )
+              ),
+              div(class = "col-md-6",
+                tags$dl(
+                  tags$dt("Key Features:"),
+                  tags$dd(
+                    tags$ul(class = "list-unstyled",
+                      tags$li(icon("check"), " Interactive Bowtie Diagrams"),
+                      tags$li(icon("check"), " Bayesian Network Analysis"),
+                      tags$li(icon("check"), " Guided Workflow System"),
+                      tags$li(icon("check"), " Risk Matrix Visualization"),
+                      tags$li(icon("check"), " Excel Import/Export")
+                    )
+                  )
+                )
+              )
+            ),
+            hr(),
+            p("This application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks."),
+            section_help(
+              "For technical support or to report issues, contact your system administrator.",
+              type = "info"
+            )
+          )
+        )
+      )
+    )
+  })
 
 }
