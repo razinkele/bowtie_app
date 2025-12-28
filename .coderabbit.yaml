@@ -1,0 +1,298 @@
+# =============================================================================
+# CodeRabbit AI Code Review Configuration
+# Environmental Bowtie Risk Analysis Application
+# Version: 5.5.3
+# =============================================================================
+
+# Language: R (Shiny application)
+language: r
+
+# Review settings
+reviews:
+  # Enable automatic reviews on pull requests
+  auto_review: true
+
+  # Review level: "essential" | "comprehensive" | "deep"
+  level: comprehensive
+
+  # Request changes for critical issues
+  request_changes_workflow: true
+
+  # Enable inline comments
+  inline_comments: true
+
+  # Review these file types
+  path_filters:
+    include:
+      - "**/*.R"
+      - "**/*.r"
+      - "**/*.Rmd"
+      - "**/*.md"
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
+    exclude:
+      - "archive/**"
+      - "**/*.rds"
+      - "**/*.RData"
+      - "**/*.Rhistory"
+      - "tests/fixtures/**"
+      - "dev_logs/**"
+
+# Code quality checks
+checks:
+  # R-specific checks
+  r:
+    # Check for code style (tidyverse)
+    style_guide: tidyverse
+
+    # Check for common R anti-patterns
+    anti_patterns: true
+
+    # Check for performance issues
+    performance: true
+
+    # Check for security issues
+    security: true
+
+    # Check for proper error handling
+    error_handling: true
+
+    # Check for test coverage
+    test_coverage: true
+
+  # General code quality
+  general:
+    # Check for code duplication
+    duplication: true
+
+    # Check for complexity
+    complexity: true
+
+    # Check for maintainability
+    maintainability: true
+
+    # Check for documentation
+    documentation: true
+
+# Review focus areas
+focus_areas:
+  - name: "Shiny Reactivity"
+    description: "Review reactive expressions, observers, and reactivity patterns"
+    patterns:
+      - "reactive\\("
+      - "observe\\("
+      - "observeEvent\\("
+      - "eventReactive\\("
+      - "reactiveValues\\("
+      - "isolate\\("
+
+  - name: "Error Handling"
+    description: "Ensure proper error handling with try-catch blocks"
+    patterns:
+      - "tryCatch\\("
+      - "try\\("
+      - "stop\\("
+      - "warning\\("
+      - "message\\("
+
+  - name: "Data Validation"
+    description: "Check for input validation and data sanitization"
+    patterns:
+      - "validate\\("
+      - "req\\("
+      - "is\\.null\\("
+      - "is\\.na\\("
+      - "stopifnot\\("
+
+  - name: "Performance"
+    description: "Identify potential performance bottlenecks"
+    patterns:
+      - "for\\s*\\("
+      - "lapply\\("
+      - "sapply\\("
+      - "vapply\\("
+      - "rbind\\("
+      - "data\\.table"
+
+  - name: "Security"
+    description: "Check for security vulnerabilities"
+    patterns:
+      - "eval\\("
+      - "parse\\("
+      - "system\\("
+      - "shell\\("
+      - "Sys\\.setenv"
+
+  - name: "Testing"
+    description: "Ensure proper test coverage"
+    patterns:
+      - "test_that\\("
+      - "expect_"
+      - "context\\("
+      - "describe\\("
+
+# Custom rules for this project
+custom_rules:
+  - id: "shiny-observe-without-priority"
+    description: "Observers should have priority specified for complex apps"
+    severity: warning
+    pattern: "observe\\(\\{[\\s\\S]*?\\}\\)(?!.*priority)"
+    message: "Consider adding priority parameter to observer for better control"
+
+  - id: "missing-reactive-dependencies"
+    description: "Reactive expressions should declare all dependencies"
+    severity: error
+    pattern: "reactive\\(\\{[\\s\\S]*?<<-[\\s\\S]*?\\}\\)"
+    message: "Avoid using <<- in reactive expressions, use reactiveValues instead"
+
+  - id: "hardcoded-paths"
+    description: "Avoid hardcoded file paths"
+    severity: warning
+    pattern: "(file\\.path|setwd|getwd)\\(['\"][A-Z]:"
+    message: "Use relative paths or system-independent path construction"
+
+  - id: "console-output-in-reactive"
+    description: "Avoid print/cat in reactive expressions"
+    severity: warning
+    pattern: "reactive\\(\\{[\\s\\S]*?(print|cat)\\([\\s\\S]*?\\}\\)"
+    message: "Use proper logging functions instead of print/cat in reactives"
+
+  - id: "require-app-message"
+    description: "Use centralized logging function"
+    severity: info
+    pattern: "(message|warning)\\(['\"]"
+    message: "Consider using app_message() or bowtie_log() for consistent logging"
+
+# Documentation requirements
+documentation:
+  # Require documentation for functions
+  functions:
+    required: true
+    min_lines: 3
+    style: roxygen2
+
+  # Require documentation for complex logic
+  complex_blocks:
+    required: true
+    complexity_threshold: 10
+
+# Testing requirements
+testing:
+  # Require tests for new functions
+  new_functions: true
+
+  # Minimum test coverage for changes
+  coverage_threshold: 80
+
+  # Test file naming convention
+  test_file_pattern: "^test-.*\\.R$"
+
+# Performance thresholds
+performance:
+  # Maximum function length (lines)
+  max_function_length: 300
+
+  # Maximum cyclomatic complexity
+  max_complexity: 15
+
+  # Maximum nesting depth
+  max_nesting: 4
+
+# Auto-fix settings
+auto_fix:
+  # Enable auto-fix suggestions
+  enabled: true
+
+  # Auto-fix categories
+  categories:
+    - style
+    - formatting
+    - simple_refactoring
+
+# Comment settings
+comments:
+  # Tone: "constructive" | "neutral" | "brief"
+  tone: constructive
+
+  # Include code suggestions
+  include_suggestions: true
+
+  # Include links to documentation
+  include_links: true
+
+  # Emoji usage
+  use_emoji: true
+
+# Integration with CI/CD
+ci_integration:
+  # Block merge if critical issues found
+  block_merge_on_critical: true
+
+  # Add labels based on review
+  auto_label: true
+
+  # Labels to add
+  labels:
+    critical_issues: "⚠️ needs-review"
+    style_issues: "🎨 style"
+    performance_issues: "⚡ performance"
+    security_issues: "🔒 security"
+    test_coverage: "🧪 tests"
+
+# Project-specific context
+project_context:
+  type: "R Shiny Application"
+  domain: "Environmental Risk Analysis"
+  frameworks:
+    - "Shiny"
+    - "Bayesian Networks (bnlearn, gRain)"
+    - "Data Visualization (ggplot2, plotly, visNetwork)"
+    - "testthat"
+
+  key_files:
+    - "app.R"
+    - "ui.R"
+    - "server.R"
+    - "global.R"
+    - "guided_workflow.R"
+    - "utils.R"
+    - "vocabulary.R"
+
+  architecture_notes:
+    - "Uses modular Shiny architecture with separate UI/server files"
+    - "Implements guided workflow system with 8 steps"
+    - "Integrates Bayesian network analysis"
+    - "Uses reactive programming patterns extensively"
+    - "Implements LRU caching for performance"
+    - "Two-tier logging: app_message() for users, bowtie_log() for debug"
+
+# Learning mode
+learning:
+  # Learn from approved suggestions
+  enabled: true
+
+  # Adapt to project coding style
+  style_adaptation: true
+
+  # Learn project-specific patterns
+  pattern_recognition: true
+
+# Ignore patterns (in addition to .gitignore)
+ignore:
+  - "**/archive/**"
+  - "**/dev_logs/**"
+  - "**/*.rds"
+  - "**/*.RData"
+  - "**/custom_terms_database.rds"
+  - "**/nul"
+
+# Notification settings
+notifications:
+  # Notify on review completion
+  on_review_complete: true
+
+  # Notify on critical issues
+  on_critical_issues: true
+
+  # Summary format: "detailed" | "concise"
+  summary_format: detailed

@@ -254,6 +254,26 @@ The pre-commit hooks will automatically:
 
 For more details, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+### CodeRabbit AI Code Review
+
+**Automated AI-powered code reviews** on all pull requests:
+
+- 🤖 **Automatic Reviews**: CodeRabbit analyzes all PRs for quality, security, and performance
+- 💡 **Inline Suggestions**: Get specific, actionable feedback on code changes
+- 🔒 **Security Scanning**: Identifies potential vulnerabilities
+- ⚡ **Performance Analysis**: Detects bottlenecks and optimization opportunities
+- 🧪 **Test Coverage**: Ensures adequate testing of changes
+
+**Configuration**: `.coderabbit.yaml`
+**Documentation**: [.github/CODERABBIT.md](.github/CODERABBIT.md)
+
+**Interact with CodeRabbit** on PRs:
+```
+@coderabbitai review    # Request a review
+@coderabbitai apply     # Apply suggested fixes
+@coderabbitai explain   # Get clarification
+```
+
 ## Documentation
 
 ### Comprehensive PDF Manual (New in v5.3.0)
