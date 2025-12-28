@@ -329,12 +329,27 @@ generate_ai_suggestions <- function(vocabulary_data,
       relevant_links <- add_confidence_scores(relevant_links, confidence_context)
     }
 
-    # Sort by confidence (if available), then similarity, and limit
-    suggestions <- if ("confidence" %in% names(relevant_links)) {
+    # Add ML quality scores if classifier is available
+    if (exists("add_ml_quality_scores") && exists("get_ml_classifier")) {
+      ml_classifier <- get_ml_classifier()
+      if (!is.null(ml_classifier)) {
+        relevant_links <- add_ml_quality_scores(relevant_links, ml_classifier)
+      }
+    }
+
+    # Sort by ML quality (if available), then confidence, then similarity, and limit
+    suggestions <- if ("ml_quality" %in% names(relevant_links)) {
+      # ML ranking available - use it as primary sort key
+      relevant_links %>%
+        dplyr::arrange(desc(ml_quality), desc(confidence), desc(similarity)) %>%
+        head(max_suggestions)
+    } else if ("confidence" %in% names(relevant_links)) {
+      # No ML, use confidence
       relevant_links %>%
         dplyr::arrange(desc(confidence), desc(similarity)) %>%
         head(max_suggestions)
     } else {
+      # Fallback to similarity only
       relevant_links %>%
         dplyr::arrange(desc(similarity)) %>%
         head(max_suggestions)

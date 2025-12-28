@@ -110,6 +110,30 @@ tryCatch({
   cat("     ℹ️ AI linker will use standard semantic similarity\n")
 })
 
+# Load ML link quality classifier
+cat("   • Loading ML link quality classifier...\n")
+tryCatch({
+  source("ml_link_classifier.R")
+  cat("     ✓ ML classifier module loaded\n")
+  if (exists("ML_CLASSIFIER_CAPABILITIES")) {
+    if (ML_CLASSIFIER_CAPABILITIES$randomForest) {
+      cat("     ✓ Random Forest classifier available\n")
+      # Try to auto-load saved classifier
+      if (file.exists("models/link_classifier.rds") && exists("load_classifier")) {
+        model <- load_classifier()
+        if (!is.null(model)) {
+          cat("     ✓ Pre-trained classifier loaded\n")
+        }
+      }
+    } else {
+      cat("     ℹ️ Running without ML classifier (randomForest unavailable)\n")
+    }
+  }
+}, error = function(e) {
+  cat("     ⚠️ Warning: ML classifier not available:", e$message, "\n")
+  cat("     ℹ️ AI linker will use confidence scoring only\n")
+})
+
 source("environmental_scenarios.R")
 
 # Load translation system from separate file
