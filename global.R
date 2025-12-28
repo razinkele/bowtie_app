@@ -134,6 +134,36 @@ tryCatch({
   cat("     ℹ️ AI linker will use confidence scoring only\n")
 })
 
+# Load ensemble predictor (Phase 3)
+cat("   • Loading ensemble predictor...\n")
+tryCatch({
+  source("ml_ensemble_predictor.R")
+  cat("     ✓ Ensemble predictor module loaded\n")
+  if (exists("ENSEMBLE_CAPABILITIES") && ENSEMBLE_CAPABILITIES$ensemble_available) {
+    cat("     ✓ Ensemble methods available\n")
+    # Try to auto-load saved ensemble
+    if (file.exists("models/ensemble_predictor.rds") && exists("load_ensemble")) {
+      ensemble <- load_ensemble()
+      if (!is.null(ensemble)) {
+        cat("     ✓ Pre-trained ensemble loaded\n")
+      }
+    }
+  } else {
+    cat("     ℹ️ Ensemble unavailable (need 2+ ML packages)\n")
+  }
+}, error = function(e) {
+  cat("     ⚠️ Warning: Ensemble predictor not available:", e$message, "\n")
+})
+
+# Load explainable AI (Phase 3)
+cat("   • Loading explainable AI...\n")
+tryCatch({
+  source("explainable_ai.R")
+  cat("     ✓ Explainable AI module loaded\n")
+}, error = function(e) {
+  cat("     ⚠️ Warning: Explainable AI not available:", e$message, "\n")
+})
+
 source("environmental_scenarios.R")
 
 # Load translation system from separate file
