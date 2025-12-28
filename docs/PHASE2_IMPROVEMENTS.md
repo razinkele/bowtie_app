@@ -212,11 +212,11 @@ EMBEDDING_CAPABILITIES
 ## 🤖 I-008: Machine Learning Classification
 
 ### Overview
-Random Forest classifier that learns from historical user feedback to predict which suggestions users are likely to accept. Trained on 19 engineered features, the model continuously improves as more feedback is collected.
+Random Forest classifier that learns from historical user feedback to predict which suggestions users are likely to accept. Trained on 18 engineered features, the model continuously improves as more feedback is collected.
 
 ### Key Features
 - Random Forest classifier (500 trees)
-- 19-feature engineering from link attributes
+- 18-feature engineering from link attributes
 - Predicts acceptance probability (0-1)
 - Quality levels: very_low, low, medium, high, very_high
 - Automatic model retraining with new feedback
@@ -232,7 +232,7 @@ Random Forest classifier that learns from historical user feedback to predict wh
 
 ### Feature Engineering
 
-**19 Features Extracted**:
+**18 Features Extracted**:
 
 1. **Core Features** (5):
    - `similarity`: Base similarity score

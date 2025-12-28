@@ -1517,13 +1517,24 @@ get_index_stats <- function() {
 #' @param n_items Number of items to process
 #' @param threshold Minimum items to benefit from parallelization (default: 100)
 #' @return List with availability and recommended cores
-check_parallel_capability <- function(n_items = 0, threshold = 100) {
+check_parallel_capability <- function(vocabulary_data = NULL, n_items = 0, threshold = 100) {
+
+  # If vocabulary_data provided, count items
+  if (!is.null(vocabulary_data) && is.list(vocabulary_data)) {
+    n_items <- sum(
+      if (!is.null(vocabulary_data$activities)) nrow(vocabulary_data$activities) else 0,
+      if (!is.null(vocabulary_data$pressures)) nrow(vocabulary_data$pressures) else 0,
+      if (!is.null(vocabulary_data$consequences)) nrow(vocabulary_data$consequences) else 0,
+      if (!is.null(vocabulary_data$controls)) nrow(vocabulary_data$controls) else 0
+    )
+  }
 
   # Check if parallel package is available
   if (!requireNamespace("parallel", quietly = TRUE)) {
     return(list(
       available = FALSE,
       cores = 1,
+      recommended = 1,
       reason = "parallel package not available"
     ))
   }
@@ -1535,6 +1546,7 @@ check_parallel_capability <- function(n_items = 0, threshold = 100) {
     return(list(
       available = FALSE,
       cores = 1,
+      recommended = 1,
       reason = "single-core system"
     ))
   }
@@ -1543,7 +1555,8 @@ check_parallel_capability <- function(n_items = 0, threshold = 100) {
   if (n_items > 0 && n_items < threshold) {
     return(list(
       available = FALSE,
-      cores = 1,
+      cores = total_cores,
+      recommended = 1,
       reason = paste("dataset too small (", n_items, " items, need ", threshold, "+)")
     ))
   }
@@ -1553,8 +1566,8 @@ check_parallel_capability <- function(n_items = 0, threshold = 100) {
 
   return(list(
     available = TRUE,
-    cores = recommended_cores,
-    total_cores = total_cores,
+    cores = total_cores,
+    recommended = recommended_cores,
     reason = "parallel processing available"
   ))
 }

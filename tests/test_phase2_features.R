@@ -185,11 +185,11 @@ test_that("ML classifier works correctly", {
   features <- extract_link_features(test_link)
 
   expect_true(is.numeric(features))
-  expect_true(length(features) == 19)
+  expect_true(length(features) == 18)
   expect_true("similarity" %in% names(features))
   expect_true("confidence" %in% names(features))
 
-  cat("  ✓ Feature extraction working (19 features)\n")
+  cat(sprintf("  ✓ Feature extraction working (%d features)\n", length(features)))
 
   # Test batch feature extraction
   test_links <- rbind(test_link, test_link, test_link)
@@ -197,7 +197,7 @@ test_that("ML classifier works correctly", {
 
   expect_true(is.matrix(features_batch))
   expect_true(nrow(features_batch) == 3)
-  expect_true(ncol(features_batch) == 19)
+  expect_true(ncol(features_batch) == 18)
 
   cat("  ✓ Batch feature extraction working\n")
 
@@ -365,21 +365,22 @@ test_that("Phase 2 features improve performance", {
   if (exists("build_keyword_index")) {
     cat("  📊 Benchmarking keyword index...\n")
 
+    # Test without index first (clear any existing index)
+    if (exists(".keyword_index", envir = .GlobalEnv)) {
+      rm(list = ls(get(".keyword_index", envir = .GlobalEnv)),
+         envir = get(".keyword_index", envir = .GlobalEnv))
+    }
+
+    start_time <- Sys.time()
+    results_without_index <- find_keyword_connections(vocabulary_data)
+    time_without_index <- as.numeric(Sys.time() - start_time)
+
+    # Now build index and test again
     build_keyword_index(vocabulary_data)
 
     start_time <- Sys.time()
-    results_with_index <- find_keyword_connections(
-      vocabulary_data,
-      use_index = TRUE
-    )
+    results_with_index <- find_keyword_connections(vocabulary_data)
     time_with_index <- as.numeric(Sys.time() - start_time)
-
-    start_time <- Sys.time()
-    results_without_index <- find_keyword_connections(
-      vocabulary_data,
-      use_index = FALSE
-    )
-    time_without_index <- as.numeric(Sys.time() - start_time)
 
     speedup_index <- time_without_index / time_with_index
 
