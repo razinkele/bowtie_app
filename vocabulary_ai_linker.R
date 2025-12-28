@@ -749,6 +749,15 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
     return(data.frame())
   }
 
+  # Check if inverted index is available
+  use_index <- length(ls(.keyword_index)) > 0
+
+  if (use_index) {
+    cat("  Using inverted keyword index (fast O(1) lookups)\n")
+  } else {
+    cat("  Using sequential scan (slow O(n) - consider building index)\n")
+  }
+
   # Analyze each theme
   for (theme_name in names(themes)) {
     theme <- themes[[theme_name]]
@@ -756,8 +765,14 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
     theme_strength <- theme$strength
 
     # Find items containing theme keywords
-    keyword_pattern <- paste(theme_keywords, collapse = "|")
-    theme_items <- all_items[grepl(keyword_pattern, tolower(all_items$name)), ]
+    if (use_index) {
+      # Fast O(1) lookup from index
+      theme_items <- get_indexed_items(theme_name)
+    } else {
+      # Slow O(n) scan through all items
+      keyword_pattern <- paste(theme_keywords, collapse = "|")
+      theme_items <- all_items[grepl(keyword_pattern, tolower(all_items$name)), ]
+    }
 
     if (nrow(theme_items) > 1) {
       # Create connections between items sharing the same theme
@@ -1307,6 +1322,155 @@ precompute_similarity_matrix <- function(vocabulary_data,
 }
 
 # =============================================================================
+# INVERTED KEYWORD INDEX (I-005)
+# =============================================================================
+
+# Global keyword index (built once, used many times)
+.keyword_index <- new.env(parent = emptyenv())
+
+#' Build inverted index for keyword-based matching
+#'
+#' Creates an inverted index mapping themes to vocabulary items containing
+#' those keywords. Provides O(1) lookups instead of O(n) scans.
+#'
+#' @param vocabulary_data Vocabulary data structure
+#' @param themes Environmental themes (default: ENVIRONMENTAL_THEMES)
+#' @return Invisible NULL
+build_keyword_index <- function(vocabulary_data, themes = ENVIRONMENTAL_THEMES) {
+
+  cat("🔍 Building inverted keyword index...\n")
+
+  # Validate input
+  if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
+    warning("Invalid vocabulary_data provided")
+    return(invisible(NULL))
+  }
+
+  # Clear existing index
+  rm(list = ls(.keyword_index), envir = .keyword_index)
+
+  # Gather all vocabulary items
+  all_items <- data.frame()
+
+  if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$activities$id,
+      name = vocabulary_data$activities$name,
+      type = "Activity",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$pressures$id,
+      name = vocabulary_data$pressures$name,
+      type = "Pressure",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$consequences$id,
+      name = vocabulary_data$consequences$name,
+      type = "Consequence",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$controls$id,
+      name = vocabulary_data$controls$name,
+      type = "Control",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (nrow(all_items) == 0) {
+    warning("No vocabulary items found")
+    return(invisible(NULL))
+  }
+
+  # Build index for each theme
+  indexed_themes <- 0
+  total_items_indexed <- 0
+
+  for (theme_name in names(themes)) {
+    theme <- themes[[theme_name]]
+    theme_keywords <- theme$keywords
+
+    # Create regex pattern for all keywords
+    pattern <- paste(theme_keywords, collapse = "|")
+
+    # Find matching items (case-insensitive)
+    matching_rows <- grepl(pattern, tolower(all_items$name))
+    matching_items <- all_items[matching_rows, ]
+
+    # Store in index
+    if (nrow(matching_items) > 0) {
+      assign(theme_name, matching_items, envir = .keyword_index)
+      indexed_themes <- indexed_themes + 1
+      total_items_indexed <- total_items_indexed + nrow(matching_items)
+    }
+  }
+
+  cat(sprintf("✅ Indexed %d themes covering %d items\n",
+              indexed_themes, total_items_indexed))
+  cat(sprintf("   Average: %.1f items per theme\n\n",
+              total_items_indexed / max(1, indexed_themes)))
+
+  invisible(NULL)
+}
+
+#' Get items from keyword index
+#'
+#' Fast O(1) lookup of items matching a theme
+#'
+#' @param theme_name Name of the theme to lookup
+#' @return Data frame of matching items, or empty data frame if not found
+get_indexed_items <- function(theme_name) {
+  if (exists(theme_name, envir = .keyword_index)) {
+    return(get(theme_name, envir = .keyword_index))
+  } else {
+    return(data.frame())
+  }
+}
+
+#' Get keyword index statistics
+#'
+#' @return List with index statistics
+get_index_stats <- function() {
+  indexed_themes <- ls(.keyword_index)
+  theme_count <- length(indexed_themes)
+
+  if (theme_count == 0) {
+    return(list(
+      themes = 0,
+      total_items = 0,
+      memory_kb = 0
+    ))
+  }
+
+  # Count total items
+  total_items <- sum(sapply(indexed_themes, function(theme) {
+    nrow(get(theme, envir = .keyword_index))
+  }))
+
+  # Estimate memory (rough approximation)
+  memory_kb <- theme_count * 0.1  # ~100 bytes per theme
+
+  list(
+    themes = theme_count,
+    total_items = total_items,
+    avg_items_per_theme = round(total_items / theme_count, 1),
+    memory_kb = round(memory_kb, 2),
+    indexed_themes = indexed_themes
+  )
+}
+
+# =============================================================================
 # CONFIDENCE SCORING SYSTEM (I-003)
 # =============================================================================
 
@@ -1519,7 +1683,10 @@ cat("  - calculate_confidence_score()     : Multi-factor confidence scoring\n")
 cat("  - add_confidence_scores()          : Batch confidence calculation\n")
 cat("  - precompute_similarity_matrix()   : Pre-compute & cache similarities\n")
 cat("  - load_cache() / save_cache()      : Cache persistence\n")
-cat("  - get_cache_stats()                : Cache statistics\n\n")
+cat("  - get_cache_stats()                : Cache statistics\n")
+cat("  - build_keyword_index()            : Build inverted keyword index\n")
+cat("  - get_indexed_items()              : Fast O(1) keyword lookups\n")
+cat("  - get_index_stats()                : Index statistics\n\n")
 
 cat("📚 Usage Example:\n")
 cat('  result <- find_vocabulary_links(vocab_data, \n')
