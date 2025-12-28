@@ -206,6 +206,11 @@ jobs:
     - name: 📥 Checkout Repository
       uses: actions/checkout@v4
 
+    - name: 🔧 Setup R Environment
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.4.3'
+
     - name: 🔍 R Package Security Scan
       run: |
         Rscript -e "
