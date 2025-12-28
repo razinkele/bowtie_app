@@ -856,11 +856,21 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
     for (j in (i + 1):nrow(all_items)) {
       # Only link different types
       if (all_items$type[i] != all_items$type[j]) {
-        similarity <- calculate_semantic_similarity(
-          all_items$name[i],
-          all_items$name[j],
-          method = method
-        )
+        # Use cached similarity calculation for performance
+        similarity <- if (exists("calculate_semantic_similarity_cached")) {
+          calculate_semantic_similarity_cached(
+            all_items$name[i],
+            all_items$name[j],
+            method = method,
+            use_cache = TRUE
+          )
+        } else {
+          calculate_semantic_similarity(
+            all_items$name[i],
+            all_items$name[j],
+            method = method
+          )
+        }
 
         if (similarity >= threshold) {
           semantic_links <- rbind(semantic_links, data.frame(
@@ -1051,6 +1061,441 @@ find_vocabulary_links <- function(vocabulary_data,
 }
 
 # =============================================================================
+# SIMILARITY MATRIX CACHING SYSTEM (I-004)
+# =============================================================================
+
+# Global similarity cache (persists across function calls)
+.similarity_cache <- new.env(parent = emptyenv())
+
+#' Generate cache key for similarity pair
+#'
+#' @param text1 First text string
+#' @param text2 Second text string
+#' @param method Similarity method
+#' @return Character cache key
+get_cache_key <- function(text1, text2, method) {
+  # Sort texts to make cache symmetric (a->b same as b->a)
+  texts <- sort(c(text1, text2))
+  key <- paste(texts[1], texts[2], method, sep = "|||")
+  return(key)
+}
+
+#' Calculate semantic similarity with caching
+#'
+#' @param text1 First text string
+#' @param text2 Second text string
+#' @param method Similarity method ("jaccard" or "cosine")
+#' @param use_cache Whether to use cache (default TRUE)
+#' @return Numeric similarity score (0-1)
+calculate_semantic_similarity_cached <- function(text1, text2, method = "jaccard", use_cache = TRUE) {
+
+  if (use_cache) {
+    cache_key <- get_cache_key(text1, text2, method)
+
+    # Check cache
+    if (exists(cache_key, envir = .similarity_cache)) {
+      return(get(cache_key, envir = .similarity_cache))
+    }
+
+    # Compute similarity
+    similarity <- calculate_semantic_similarity(text1, text2, method)
+
+    # Store in cache
+    assign(cache_key, similarity, envir = .similarity_cache)
+
+    return(similarity)
+  } else {
+    # No cache - direct computation
+    return(calculate_semantic_similarity(text1, text2, method))
+  }
+}
+
+#' Get cache statistics
+#'
+#' @return List with cache statistics
+get_cache_stats <- function() {
+  cache_size <- length(ls(.similarity_cache))
+  cache_keys <- ls(.similarity_cache)
+
+  # Estimate memory usage (rough approximation)
+  memory_mb <- cache_size * 0.0001  # ~100 bytes per entry
+
+  list(
+    size = cache_size,
+    memory_mb = round(memory_mb, 2),
+    keys_sample = if (cache_size > 0) head(cache_keys, 5) else character(0)
+  )
+}
+
+#' Clear similarity cache
+#'
+#' @param confirm Require confirmation (default TRUE)
+#' @return Invisible NULL
+clear_cache <- function(confirm = TRUE) {
+  if (confirm) {
+    cat("⚠️ This will clear", length(ls(.similarity_cache)), "cached similarities.\n")
+    cat("Type 'yes' to confirm: ")
+    response <- readline()
+    if (tolower(response) != "yes") {
+      cat("Cache clear cancelled.\n")
+      return(invisible(NULL))
+    }
+  }
+
+  rm(list = ls(.similarity_cache), envir = .similarity_cache)
+  cat("✅ Cache cleared\n")
+  invisible(NULL)
+}
+
+#' Save cache to disk
+#'
+#' @param file_path Path to save cache file (default: "cache/similarity_cache.rds")
+#' @return Invisible NULL
+save_cache <- function(file_path = "cache/similarity_cache.rds") {
+  # Create cache directory if it doesn't exist
+  cache_dir <- dirname(file_path)
+  if (!dir.exists(cache_dir)) {
+    dir.create(cache_dir, recursive = TRUE)
+  }
+
+  tryCatch({
+    # Convert environment to list for saving
+    cache_list <- as.list(.similarity_cache)
+
+    # Save to disk
+    saveRDS(cache_list, file_path)
+
+    cat(sprintf("✅ Saved %d cached similarities to %s\n",
+                length(cache_list), file_path))
+  }, error = function(e) {
+    warning("Failed to save cache: ", e$message)
+  })
+
+  invisible(NULL)
+}
+
+#' Load cache from disk
+#'
+#' @param file_path Path to cache file (default: "cache/similarity_cache.rds")
+#' @return Invisible NULL
+load_cache <- function(file_path = "cache/similarity_cache.rds") {
+  if (!file.exists(file_path)) {
+    cat("ℹ️ No cache file found at", file_path, "\n")
+    return(invisible(NULL))
+  }
+
+  tryCatch({
+    # Load cache from disk
+    cache_list <- readRDS(file_path)
+
+    # Populate environment
+    list2env(cache_list, envir = .similarity_cache)
+
+    cat(sprintf("✅ Loaded %d cached similarities from %s\n",
+                length(cache_list), file_path))
+  }, error = function(e) {
+    warning("Failed to load cache: ", e$message)
+  })
+
+  invisible(NULL)
+}
+
+#' Pre-compute similarity matrix for vocabulary
+#'
+#' @param vocabulary_data Vocabulary data structure
+#' @param methods Methods to pre-compute (default: c("jaccard", "cosine"))
+#' @param save_to_disk Whether to save cache to disk (default: TRUE)
+#' @return Invisible NULL
+precompute_similarity_matrix <- function(vocabulary_data,
+                                        methods = c("jaccard", "cosine"),
+                                        save_to_disk = TRUE) {
+
+  cat("🔄 Pre-computing similarity matrix...\n")
+
+  # Validate input
+  if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
+    warning("Invalid vocabulary_data provided")
+    return(invisible(NULL))
+  }
+
+  # Gather all vocabulary items
+  all_items <- data.frame()
+
+  if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$activities$id,
+      name = vocabulary_data$activities$name,
+      type = "Activity",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$pressures$id,
+      name = vocabulary_data$pressures$name,
+      type = "Pressure",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$consequences$id,
+      name = vocabulary_data$consequences$name,
+      type = "Consequence",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+    all_items <- rbind(all_items, data.frame(
+      id = vocabulary_data$controls$id,
+      name = vocabulary_data$controls$name,
+      type = "Control",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (nrow(all_items) == 0) {
+    warning("No vocabulary items found")
+    return(invisible(NULL))
+  }
+
+  cat(sprintf("  Processing %d vocabulary items...\n", nrow(all_items)))
+
+  total_comparisons <- 0
+  start_time <- Sys.time()
+
+  # Compute all pairwise similarities for different types only
+  for (i in 1:(nrow(all_items) - 1)) {
+    for (j in (i + 1):nrow(all_items)) {
+      # Only compute for different types
+      if (all_items$type[i] != all_items$type[j]) {
+        for (method in methods) {
+          calculate_semantic_similarity_cached(
+            all_items$name[i],
+            all_items$name[j],
+            method,
+            use_cache = TRUE
+          )
+          total_comparisons <- total_comparisons + 1
+        }
+      }
+    }
+
+    # Progress indicator every 10 items
+    if (i %% 10 == 0) {
+      cat(sprintf("  Progress: %d/%d items processed\r", i, nrow(all_items)))
+    }
+  }
+
+  elapsed <- difftime(Sys.time(), start_time, units = "secs")
+
+  cat(sprintf("\n✅ Pre-computed %d similarities in %.2f seconds\n",
+              total_comparisons, elapsed))
+  cat(sprintf("   Cache size: %d entries\n", length(ls(.similarity_cache))))
+  cat(sprintf("   Average: %.2f ms per comparison\n",
+              as.numeric(elapsed) * 1000 / max(1, total_comparisons)))
+
+  # Save to disk if requested
+  if (save_to_disk) {
+    save_cache()
+  }
+
+  invisible(NULL)
+}
+
+# =============================================================================
+# CONFIDENCE SCORING SYSTEM (I-003)
+# =============================================================================
+
+#' Calculate confidence score for a link suggestion
+#'
+#' Multi-factor confidence scoring based on:
+#'   - Base similarity score
+#'   - Method reliability (from empirical observation)
+#'   - Connection multiplicity (multiple paths to same target)
+#'   - Causal chain completeness
+#'   - Domain-specific rules application
+#'
+#' @param link Data frame row or list containing link information
+#' @param context List with contextual information (connection_paths, selected_types, etc.)
+#' @return List with confidence score, level, and contributing factors
+calculate_confidence_score <- function(link, context = list()) {
+
+  # Validate input
+  if (is.null(link) || (is.data.frame(link) && nrow(link) == 0)) {
+    return(list(
+      confidence = 0,
+      level = "none",
+      factors = list()
+    ))
+  }
+
+  # Extract link properties
+  similarity <- if (is.list(link)) link$similarity else link$similarity[1]
+  method <- if (is.list(link)) link$method else as.character(link$method[1])
+
+  # Start with base similarity score
+  score <- similarity
+
+  # Factor 1: Method Reliability
+  # Based on empirical observation: causal > keyword > semantic
+  method_multiplier <- if (grepl("causal_chain", method)) {
+    1.20  # 20% boost for complete causal chains
+  } else if (grepl("causal_environmental_logic", method)) {
+    1.15  # 15% boost for environmental logic
+  } else if (grepl("causal_domain", method)) {
+    1.12  # 12% boost for domain-specific causal
+  } else if (grepl("causal_intervention", method)) {
+    1.18  # 18% boost for control interventions
+  } else if (grepl("causal", method)) {
+    1.10  # 10% boost for general causal
+  } else if (grepl("keyword_water", method) ||
+             grepl("keyword_pollution", method) ||
+             grepl("keyword_ecosystem", method)) {
+    1.08  # 8% boost for strong thematic keywords
+  } else if (grepl("keyword", method)) {
+    1.05  # 5% boost for general keywords
+  } else if (grepl("jaccard", method) || grepl("cosine", method)) {
+    1.02  # 2% boost for semantic (baseline)
+  } else {
+    1.00  # No boost for basic methods
+  }
+
+  score <- score * method_multiplier
+
+  # Factor 2: Connection Multiplicity
+  # If there are multiple paths to this target, boost confidence
+  connection_paths <- if (!is.null(context$connection_paths)) {
+    context$connection_paths
+  } else {
+    1
+  }
+
+  if (connection_paths > 1) {
+    # Logarithmic boost: 2 paths = 1.05x, 3 paths = 1.08x, 4+ paths = 1.10x
+    multiplicity_boost <- 1 + min(0.10, 0.025 * log2(connection_paths))
+    score <- score * multiplicity_boost
+  } else {
+    multiplicity_boost <- 1.0
+  }
+
+  # Factor 3: Causal Chain Completeness
+  # Complete environmental pathways are more reliable
+  chain_completeness <- if (grepl("chain", method)) {
+    1.12  # 12% boost for complete chains
+  } else {
+    1.0
+  }
+
+  score <- score * chain_completeness
+
+  # Factor 4: Domain-Specific Rules
+  # Domain knowledge application increases confidence
+  domain_specificity <- if (grepl("domain", method) ||
+                           grepl("environmental_logic", method)) {
+    1.08  # 8% boost for domain rules
+  } else {
+    1.0
+  }
+
+  score <- score * domain_specificity
+
+  # Factor 5: Vocabulary Coverage Diversity
+  # Slight penalty if this type is already heavily represented
+  # Slight bonus for introducing new vocabulary types
+  selected_types <- if (!is.null(context$selected_types)) {
+    context$selected_types
+  } else {
+    c()
+  }
+
+  to_type <- if (is.list(link)) link$to_type else as.character(link$to_type[1])
+
+  type_diversity <- if (length(selected_types) > 0) {
+    if (to_type %in% selected_types) {
+      0.98  # 2% penalty for already-present type
+    } else {
+      1.03  # 3% bonus for new type
+    }
+  } else {
+    1.0
+  }
+
+  score <- score * type_diversity
+
+  # Normalize confidence to 0-1 range
+  confidence <- min(1.0, max(0.0, score))
+
+  # Categorize confidence level
+  level <- if (confidence >= 0.85) {
+    "very_high"
+  } else if (confidence >= 0.70) {
+    "high"
+  } else if (confidence >= 0.50) {
+    "medium"
+  } else if (confidence >= 0.30) {
+    "low"
+  } else {
+    "very_low"
+  }
+
+  # Return comprehensive confidence information
+  return(list(
+    confidence = confidence,
+    level = level,
+    factors = list(
+      base_similarity = similarity,
+      method_reliability = method_multiplier,
+      connection_multiplicity = multiplicity_boost,
+      causal_completeness = chain_completeness,
+      domain_specificity = domain_specificity,
+      type_diversity = type_diversity,
+      final_score = confidence
+    ),
+    method = method
+  ))
+}
+
+#' Add confidence scores to a set of links
+#'
+#' @param links Data frame of links
+#' @param context List with contextual information
+#' @return Data frame with added confidence columns
+add_confidence_scores <- function(links, context = list()) {
+
+  if (is.null(links) || nrow(links) == 0) {
+    return(links)
+  }
+
+  # Calculate confidence for each link
+  confidence_info <- lapply(1:nrow(links), function(i) {
+    link_context <- context
+
+    # Add connection path count if we can compute it
+    if (!is.null(context$all_links)) {
+      # Count how many different source items point to this target
+      link_context$connection_paths <- sum(
+        context$all_links$to_id == links$to_id[i]
+      )
+    }
+
+    calculate_confidence_score(links[i, ], link_context)
+  })
+
+  # Extract confidence values
+  links$confidence <- sapply(confidence_info, function(x) x$confidence)
+  links$confidence_level <- sapply(confidence_info, function(x) x$level)
+
+  # Store full confidence info as list column (optional, for detailed analysis)
+  links$confidence_factors <- confidence_info
+
+  return(links)
+}
+
+# =============================================================================
 # INITIALIZATION MESSAGE
 # =============================================================================
 
@@ -1069,7 +1514,12 @@ cat("  - detect_causal_relationships()    : Causal relationship detection\n")
 cat("  - find_keyword_connections()       : Keyword-based thematic linking\n")
 cat("  - find_semantic_connections()      : Semantic similarity analysis\n")
 cat("  - find_basic_connections()         : Basic fallback linking\n")
-cat("  - calculate_semantic_similarity()  : Pairwise similarity calculation\n\n")
+cat("  - calculate_semantic_similarity()  : Pairwise similarity calculation\n")
+cat("  - calculate_confidence_score()     : Multi-factor confidence scoring\n")
+cat("  - add_confidence_scores()          : Batch confidence calculation\n")
+cat("  - precompute_similarity_matrix()   : Pre-compute & cache similarities\n")
+cat("  - load_cache() / save_cache()      : Cache persistence\n")
+cat("  - get_cache_stats()                : Cache statistics\n\n")
 
 cat("📚 Usage Example:\n")
 cat('  result <- find_vocabulary_links(vocab_data, \n')
@@ -1079,3 +1529,10 @@ cat('  summary <- result$summary\n\n')
 
 cat("✅ Ready for vocabulary linking!\n")
 cat("==================================================\n\n")
+
+# Automatically load cache if available
+if (file.exists("cache/similarity_cache.rds")) {
+  cat("📦 Loading similarity cache...\n")
+  load_cache()
+  cat("\n")
+}

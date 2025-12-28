@@ -105,15 +105,37 @@ create_ai_suggestions_ui <- function(ns, suggestion_type, title = "AI Suggestion
 #' @param suggestion_type Type of suggestion
 #' @return div with suggestion card
 create_suggestion_card_ui <- function(ns, suggestion, index, suggestion_type) {
-  # Determine similarity badge color
-  similarity_color <- if (suggestion$similarity >= 0.8) {
-    "success"
-  } else if (suggestion$similarity >= 0.6) {
-    "info"
-  } else if (suggestion$similarity >= 0.4) {
-    "warning"
+  # Determine confidence badge color and icon
+  confidence_info <- suggestion$confidence_info
+  confidence_level <- if (!is.null(confidence_info) && !is.null(confidence_info$level)) {
+    confidence_info$level
   } else {
-    "secondary"
+    suggestion$confidence_level
+  }
+
+  confidence_color <- switch(confidence_level,
+    "very_high" = "success",
+    "high" = "info",
+    "medium" = "warning",
+    "low" = "secondary",
+    "very_low" = "dark",
+    "secondary"  # default
+  )
+
+  confidence_icon <- switch(confidence_level,
+    "very_high" = "fa-check-circle",
+    "high" = "fa-thumbs-up",
+    "medium" = "fa-info-circle",
+    "low" = "fa-exclamation-triangle",
+    "very_low" = "fa-question-circle",
+    "fa-info-circle"  # default
+  )
+
+  # Get confidence score
+  confidence_score <- if (!is.null(suggestion$confidence)) {
+    suggestion$confidence
+  } else {
+    suggestion$similarity
   }
 
   # Determine method icon
@@ -137,16 +159,20 @@ create_suggestion_card_ui <- function(ns, suggestion, index, suggestion_type) {
         div(
           style = "flex: 1;",
           div(
-            style = "display: flex; align-items: center; margin-bottom: 5px;",
+            style = "display: flex; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 4px;",
             tags$strong(
               style = "font-size: 14px;",
               suggestion$to_name
             ),
+            # Confidence badge (primary indicator)
             tags$span(
-              class = paste0("badge bg-", similarity_color, " ms-2"),
+              class = paste0("badge bg-", confidence_color, " ms-2"),
               style = "font-size: 10px;",
-              sprintf("%.0f%%", suggestion$similarity * 100)
+              tags$i(class = paste("fas", confidence_icon)),
+              " ",
+              sprintf("%.0f%%", confidence_score * 100)
             ),
+            # Method badge
             tags$span(
               class = "badge bg-light text-dark ms-1",
               style = "font-size: 10px;",
@@ -292,14 +318,31 @@ generate_ai_suggestions <- function(vocabulary_data,
       }
     })
 
-    # Sort by similarity and limit
-    suggestions <- relevant_links %>%
-      dplyr::arrange(desc(similarity)) %>%
-      head(max_suggestions)
+    # Add confidence scores if function is available
+    if (exists("add_confidence_scores")) {
+      # Prepare context for confidence scoring
+      confidence_context <- list(
+        all_links = relevant_links,
+        selected_types = unique(sapply(selected_items, function(x) x$type))
+      )
+
+      relevant_links <- add_confidence_scores(relevant_links, confidence_context)
+    }
+
+    # Sort by confidence (if available), then similarity, and limit
+    suggestions <- if ("confidence" %in% names(relevant_links)) {
+      relevant_links %>%
+        dplyr::arrange(desc(confidence), desc(similarity)) %>%
+        head(max_suggestions)
+    } else {
+      relevant_links %>%
+        dplyr::arrange(desc(similarity)) %>%
+        head(max_suggestions)
+    }
 
     # Convert to list format
     suggestions_list <- lapply(1:nrow(suggestions), function(i) {
-      list(
+      suggestion <- list(
         to_id = suggestions$to_id[i],
         to_name = suggestions$to_name[i],
         to_type = suggestions$to_type[i],
@@ -310,6 +353,20 @@ generate_ai_suggestions <- function(vocabulary_data,
         method = suggestions$method[i],
         reasoning = suggestions$reasoning[i]
       )
+
+      # Add confidence information if available
+      if ("confidence" %in% names(suggestions)) {
+        suggestion$confidence <- suggestions$confidence[i]
+        suggestion$confidence_level <- suggestions$confidence_level[i]
+        suggestion$confidence_info <- suggestions$confidence_factors[[i]]
+      } else {
+        # Fallback: use similarity as confidence
+        suggestion$confidence <- suggestions$similarity[i]
+        suggestion$confidence_level <- if (suggestions$similarity[i] >= 0.7) "high" else if (suggestions$similarity[i] >= 0.5) "medium" else "low"
+        suggestion$confidence_info <- list(confidence = suggestions$similarity[i], level = suggestion$confidence_level)
+      }
+
+      suggestion
     })
 
     return(suggestions_list)
