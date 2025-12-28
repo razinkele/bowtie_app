@@ -81,6 +81,22 @@ cat("🧙 GUIDED WORKFLOW SYSTEM v1.1.0\n")
 cat("=================================\n")
 cat("Step-by-step bowtie creation with expert guidance\n\n")
 
+# Load AI suggestions module
+cat("🤖 Loading AI-powered suggestions...\n")
+if (file.exists("guided_workflow_ai_suggestions.R")) {
+  tryCatch({
+    source("guided_workflow_ai_suggestions.R")
+    WORKFLOW_AI_ENABLED <- TRUE
+    cat("✅ AI suggestions enabled\n\n")
+  }, error = function(e) {
+    WORKFLOW_AI_ENABLED <- FALSE
+    cat("⚠️ AI suggestions unavailable:", e$message, "\n\n")
+  })
+} else {
+  WORKFLOW_AI_ENABLED <- FALSE
+  cat("ℹ️ AI suggestions module not found\n\n")
+}
+
 # =============================================================================
 # WORKFLOW CONFIGURATION
 # =============================================================================
@@ -1063,15 +1079,27 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              
              h5(t("gw_selected_pressures", current_lang)),
              DTOutput(ns("selected_pressures_table")),
-             
+
              br(),
              div(class = "alert alert-info",
                  h6(t("gw_examples_title", current_lang)),
                  p(t("gw_pressures_examples_text", current_lang))
-             )
+             ),
+
+             # AI-powered suggestions for pressures (if available)
+             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+               create_ai_suggestions_ui(
+                 ns,
+                 "pressure",
+                 "🤖 AI-Powered Pressure Suggestions",
+                 current_lang
+               )
+             } else {
+               NULL
+             }
       )
     ),
-    
+
     br(),
     h4(t("gw_activity_pressure_connections_title", current_lang)),
     p(t("gw_link_activities", current_lang)),
@@ -1175,10 +1203,22 @@ generate_step4_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                    tags$li(strong(t("gw_preventive_physical", current_lang)), t("gw_preventive_physical_examples", current_lang)),
                    tags$li(strong(t("gw_preventive_operational", current_lang)), t("gw_preventive_operational_examples", current_lang))
                  )
-             )
+             ),
+
+             # AI-powered suggestions for preventive controls (if available)
+             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+               create_ai_suggestions_ui(
+                 ns,
+                 "control_preventive",
+                 "🤖 AI-Powered Control Suggestions",
+                 current_lang
+               )
+             } else {
+               NULL
+             }
       )
     ),
-    
+
     br(),
     h4(t("gw_link_controls_title", current_lang)),
     p(t("gw_link_controls_desc", current_lang)),
@@ -1282,10 +1322,22 @@ generate_step5_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                    tags$li(strong(t("gw_consequences_social", current_lang)), t("gw_consequences_social_examples", current_lang)),
                    tags$li(strong(t("gw_consequences_environmental", current_lang)), t("gw_consequences_environmental_examples", current_lang))
                  )
-             )
+             ),
+
+             # AI-powered suggestions for consequences (if available)
+             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+               create_ai_suggestions_ui(
+                 ns,
+                 "consequence",
+                 "🤖 AI-Powered Consequence Suggestions",
+                 current_lang
+               )
+             } else {
+               NULL
+             }
       )
     ),
-    
+
     br(),
     h4(t("gw_consequence_severity_title", current_lang)),
     p(t("gw_consequence_severity_desc", current_lang)),
@@ -1389,10 +1441,22 @@ generate_step6_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                    tags$li(strong(t("gw_protective_recovery", current_lang)), t("gw_protective_recovery_examples", current_lang)),
                    tags$li(strong(t("gw_protective_adaptive", current_lang)), t("gw_protective_adaptive_examples", current_lang))
                  )
-             )
+             ),
+
+             # AI-powered suggestions for protective controls (if available)
+             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+               create_ai_suggestions_ui(
+                 ns,
+                 "control_protective",
+                 "🤖 AI-Powered Protective Control Suggestions",
+                 current_lang
+               )
+             } else {
+               NULL
+             }
       )
     ),
-    
+
     br(),
     h4(t("gw_link_protective_controls_title", current_lang)),
     p(t("gw_link_protective_controls_desc", current_lang)),
@@ -1849,6 +1913,33 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
 
     removeModal()
   })
+
+  # =============================================================================
+  # AI-POWERED SUGGESTIONS INITIALIZATION
+  # =============================================================================
+
+  # Initialize AI suggestion handlers if available
+  if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED) {
+    tryCatch({
+      # Source the server-side suggestion handlers
+      if (file.exists("guided_workflow_ai_suggestions_server.R")) {
+        source("guided_workflow_ai_suggestions_server.R", local = TRUE)
+
+        # Initialize handlers with workflow state and vocabulary data
+        init_ai_suggestion_handlers(
+          input = input,
+          output = output,
+          session = session,
+          workflow_state = workflow_state(),
+          vocabulary_data_reactive = vocab_data
+        )
+
+        cat("✅ AI suggestions active in guided workflow\n")
+      }
+    }, error = function(e) {
+      cat("⚠️ Failed to initialize AI suggestions:", e$message, "\n")
+    })
+  }
 
   # =============================================================================
   # UI RENDERING
