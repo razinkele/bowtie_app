@@ -25,6 +25,7 @@ AI_LINKER_CAPABILITIES <- list(
   string_distance = FALSE,
   text_analysis = FALSE,
   network_analysis = FALSE,
+  word_embeddings = FALSE,
   basic_only = TRUE
 )
 
@@ -66,6 +67,14 @@ if (load_optional_package("igraph", quiet = TRUE)) {
   AI_LINKER_CAPABILITIES$network_analysis <- TRUE
 }
 
+# Check for word embeddings availability (loaded from word_embeddings.R)
+if (exists("EMBEDDING_CAPABILITIES") && exists("calculate_embedding_similarity")) {
+  if (EMBEDDING_CAPABILITIES$word2vec || EMBEDDING_CAPABILITIES$text2vec ||
+      EMBEDDING_CAPABILITIES$basic_embeddings) {
+    AI_LINKER_CAPABILITIES$word_embeddings <- TRUE
+  }
+}
+
 # Core packages (required)
 if (!requireNamespace("dplyr", quietly = TRUE)) {
   install.packages("dplyr")
@@ -80,7 +89,8 @@ library(tidyr)
 # Update basic_only flag
 AI_LINKER_CAPABILITIES$basic_only <- !(AI_LINKER_CAPABILITIES$text_mining ||
                                         AI_LINKER_CAPABILITIES$string_distance ||
-                                        AI_LINKER_CAPABILITIES$text_analysis)
+                                        AI_LINKER_CAPABILITIES$text_analysis ||
+                                        AI_LINKER_CAPABILITIES$word_embeddings)
 
 # =============================================================================
 # CORE UTILITY FUNCTIONS
@@ -154,6 +164,24 @@ calculate_semantic_similarity <- function(text1, text2, method = "jaccard") {
   } else if (method == "jw" && AI_LINKER_CAPABILITIES$string_distance) {
     # Jaro-Winkler string distance
     similarity <- 1 - stringdist::stringdist(text1_clean, text2_clean, method = "jw")
+
+  } else if (method == "embedding" && AI_LINKER_CAPABILITIES$word_embeddings) {
+    # Word embedding-based semantic similarity
+    # Uses Word2Vec or GloVe embeddings if available
+    if (exists("calculate_embedding_similarity")) {
+      # Get embedding model if available (check for global model)
+      embedding_model <- if (exists(".word2vec_model", envir = .GlobalEnv)) {
+        get(".word2vec_model", envir = .GlobalEnv)
+      } else {
+        NULL
+      }
+
+      similarity <- calculate_embedding_similarity(text1, text2, embedding_model)
+    } else {
+      # Fallback to Jaccard if embedding function not found
+      warning("Embedding similarity function not found, using Jaccard")
+      return(calculate_semantic_similarity(text1, text2, method = "jaccard"))
+    }
 
   } else {
     # Default to simple Jaccard if method unavailable
@@ -2098,6 +2126,120 @@ add_confidence_scores <- function(links, context = list()) {
 }
 
 # =============================================================================
+# WORD EMBEDDING MANAGEMENT
+# =============================================================================
+
+#' Train and cache Word2Vec model for vocabulary
+#'
+#' Creates a Word2Vec embedding model trained on vocabulary data
+#' and caches it globally for use in semantic similarity
+#'
+#' @param vocabulary_data Vocabulary data structure
+#' @param dim Embedding dimensions (default: 100)
+#' @param force_retrain Force retraining even if cached model exists
+#' @return word2vec model object or NULL
+train_vocabulary_embeddings <- function(vocabulary_data,
+                                       dim = 100,
+                                       force_retrain = FALSE) {
+
+  if (!AI_LINKER_CAPABILITIES$word_embeddings) {
+    cat("⚠️ Word embeddings not available\n")
+    return(NULL)
+  }
+
+  # Check if already trained (unless forcing retrain)
+  if (!force_retrain && exists(".word2vec_model", envir = .GlobalEnv)) {
+    cat("ℹ️ Using cached Word2Vec model\n")
+    return(get(".word2vec_model", envir = .GlobalEnv))
+  }
+
+  cat("🧠 Training Word2Vec embeddings for vocabulary...\n")
+
+  # Use the training function from word_embeddings.R
+  if (exists("train_word2vec_embeddings")) {
+    tryCatch({
+      model <- train_word2vec_embeddings(
+        vocabulary_data,
+        dim = dim,
+        window = 5,
+        iter = 20
+      )
+
+      # Cache globally
+      assign(".word2vec_model", model, envir = .GlobalEnv)
+
+      cat("✅ Word2Vec model trained and cached\n")
+      cat(sprintf("   Embedding size: %d dimensions\n", dim))
+
+      # Try to save to disk for persistence
+      if (exists("save_word2vec_model")) {
+        save_word2vec_model(model, file_path = "models/vocabulary_embeddings.bin")
+      }
+
+      return(model)
+    }, error = function(e) {
+      warning("Failed to train Word2Vec model: ", e$message)
+      return(NULL)
+    })
+  } else {
+    warning("train_word2vec_embeddings() function not found")
+    return(NULL)
+  }
+}
+
+#' Load pre-trained vocabulary embeddings from disk
+#'
+#' @param file_path Path to saved model (default: models/vocabulary_embeddings.bin)
+#' @return word2vec model object or NULL
+load_vocabulary_embeddings <- function(file_path = "models/vocabulary_embeddings.bin") {
+
+  if (!AI_LINKER_CAPABILITIES$word_embeddings) {
+    return(NULL)
+  }
+
+  if (exists("load_word2vec_model")) {
+    tryCatch({
+      model <- load_word2vec_model(file_path)
+
+      if (!is.null(model)) {
+        # Cache globally
+        assign(".word2vec_model", model, envir = .GlobalEnv)
+        cat("✅ Word2Vec model loaded from disk and cached\n")
+      }
+
+      return(model)
+    }, error = function(e) {
+      cat("ℹ️ No pre-trained model found at", file_path, "\n")
+      return(NULL)
+    })
+  } else {
+    return(NULL)
+  }
+}
+
+#' Initialize embeddings for vocabulary (auto-load or train)
+#'
+#' @param vocabulary_data Vocabulary data structure
+#' @param auto_train Automatically train if no cached model found
+#' @return TRUE if embeddings initialized, FALSE otherwise
+init_vocabulary_embeddings <- function(vocabulary_data, auto_train = FALSE) {
+
+  if (!AI_LINKER_CAPABILITIES$word_embeddings) {
+    return(FALSE)
+  }
+
+  # Try to load from disk first
+  model <- load_vocabulary_embeddings()
+
+  if (is.null(model) && auto_train) {
+    cat("ℹ️ No cached embeddings found, training new model...\n")
+    model <- train_vocabulary_embeddings(vocabulary_data)
+  }
+
+  return(!is.null(model))
+}
+
+# =============================================================================
 # INITIALIZATION MESSAGE
 # =============================================================================
 
@@ -2108,6 +2250,7 @@ cat("  - Text Mining:", if(AI_LINKER_CAPABILITIES$text_mining) "✅" else "❌",
 cat("  - String Distance:", if(AI_LINKER_CAPABILITIES$string_distance) "✅" else "❌", "\n")
 cat("  - Text Analysis:", if(AI_LINKER_CAPABILITIES$text_analysis) "✅" else "❌", "\n")
 cat("  - Network Analysis:", if(AI_LINKER_CAPABILITIES$network_analysis) "✅" else "❌", "\n")
+cat("  - Word Embeddings:", if(AI_LINKER_CAPABILITIES$word_embeddings) "✅" else "❌", "\n")
 cat("  - Basic Mode:", if(AI_LINKER_CAPABILITIES$basic_only) "⚠️ Yes (limited features)" else "✅ No (all features available)", "\n\n")
 
 cat("🔧 Available Functions:\n")

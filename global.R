@@ -89,6 +89,27 @@ tryCatch({
   cat("     ℹ️ Suggestions will work without feedback tracking\n")
 })
 
+# Load word embeddings for semantic similarity
+cat("   • Loading word embeddings system...\n")
+tryCatch({
+  source("word_embeddings.R")
+  cat("     ✓ Word embeddings module loaded\n")
+  if (exists("EMBEDDING_CAPABILITIES")) {
+    if (EMBEDDING_CAPABILITIES$word2vec) {
+      cat("     ✓ Word2Vec embeddings available\n")
+    }
+    if (EMBEDDING_CAPABILITIES$text2vec) {
+      cat("     ✓ Text2Vec (GloVe) embeddings available\n")
+    }
+    if (EMBEDDING_CAPABILITIES$basic_embeddings && !EMBEDDING_CAPABILITIES$word2vec) {
+      cat("     ℹ️ Running with basic embeddings (Word2Vec unavailable)\n")
+    }
+  }
+}, error = function(e) {
+  cat("     ⚠️ Warning: Word embeddings not available:", e$message, "\n")
+  cat("     ℹ️ AI linker will use standard semantic similarity\n")
+})
+
 source("environmental_scenarios.R")
 
 # Load translation system from separate file
