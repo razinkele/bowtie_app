@@ -21,10 +21,18 @@ if (file.exists("vocabulary.R")) {
   stop("vocabulary.R file not found. Please ensure it's in the working directory.")
 }
 
-if (file.exists("vocabulary-ai-linker.R")) {
-  source("vocabulary-ai-linker.R")
+# Try to load AI linker with correct filename
+ai_linker_loaded <- FALSE
+if (file.exists("vocabulary_ai_linker.R")) {
+  tryCatch({
+    source("vocabulary_ai_linker.R")
+    ai_linker_loaded <- TRUE
+    cat("✅ AI linker loaded successfully\n")
+  }, error = function(e) {
+    warning("Failed to load vocabulary_ai_linker.R: ", e$message)
+  })
 } else {
-  warning("vocabulary-ai-linker.R not found. Will use basic linking only.")
+  warning("vocabulary_ai_linker.R not found. Will use basic linking only.")
 }
 
 # =============================================================================
@@ -56,16 +64,32 @@ generate_vocabulary_bowtie <- function(
   # Step 2: Generate AI-powered links between vocabulary items
   cat("\n🤖 Generating intelligent connections between vocabulary elements...\n")
   
-  if (use_ai_linking && exists("find_vocabulary_links")) {
-    vocabulary_links <- find_vocabulary_links(
-      vocabulary_data, 
+  if (use_ai_linking && ai_linker_loaded && exists("find_vocabulary_links")) {
+    # Use AI-powered linking with all available methods
+    vocabulary_links_result <- find_vocabulary_links(
+      vocabulary_data,
       similarity_threshold = similarity_threshold,
       max_links_per_item = max_connections_per_item,
       methods = c("jaccard", "keyword", "causal")
     )
+    # Extract links dataframe from result
+    vocabulary_links <- if (is.list(vocabulary_links_result)) {
+      vocabulary_links_result$links
+    } else {
+      vocabulary_links_result
+    }
   } else {
+    # Fall back to basic linking
     cat("Using basic connection method...\n")
-    vocabulary_links <- find_basic_connections(vocabulary_data)
+    if (exists("find_basic_connections")) {
+      vocabulary_links <- find_basic_connections(
+        vocabulary_data,
+        max_links_per_item = max_connections_per_item
+      )
+    } else {
+      warning("No linking functions available. Creating empty links dataframe.")
+      vocabulary_links <- data.frame()
+    }
   }
   
   # Step 3: Create bow-tie structures for each central problem

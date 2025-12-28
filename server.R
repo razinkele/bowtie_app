@@ -1739,19 +1739,44 @@ server <- function(input, output, session) {
 
         ai_analysis_results(results)
 
+        # Handle both list and dataframe results
+        link_count <- if (is.list(results) && !is.null(results$links)) {
+          nrow(results$links)
+        } else if (is.data.frame(results)) {
+          nrow(results)
+        } else {
+          0
+        }
+
         showNotification(
-          paste("✅ AI analysis complete! Found", nrow(results$links), "connections"),
+          paste("✅ AI analysis complete! Found", link_count, "connections"),
           type = "message",
           duration = 3
         )
-      } else {
-        results <- find_vocabulary_connections(vocabulary_data, use_ai = FALSE)
+      } else if (exists("find_basic_connections")) {
+        # Fall back to basic connections
+        basic_links <- find_basic_connections(
+          vocabulary_data,
+          max_links_per_item = input$max_links_per_item
+        )
+
+        results <- list(
+          links = basic_links,
+          summary = data.frame(),
+          capabilities = list(basic_only = TRUE)
+        )
         ai_analysis_results(results)
 
         showNotification(
-          "ℹ️ Using basic keyword analysis (AI linker not available)",
+          paste("ℹ️ Using basic analysis (AI linker not available). Found", nrow(basic_links), "connections"),
           type = "warning",
           duration = 3
+        )
+      } else {
+        showNotification(
+          "⚠️ No linking functions available. Please ensure vocabulary_ai_linker.R is loaded.",
+          type = "error",
+          duration = 5
         )
       }
     }, error = function(e) {

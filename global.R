@@ -61,6 +61,24 @@ cat("   • Loading utility functions and data management...\n")
 source("utils.R")
 source("ui_components.R")  # UI component library for enhanced UX
 source("vocabulary.R")
+
+# Load AI-powered vocabulary linker
+cat("   • Loading AI-powered vocabulary linker...\n")
+tryCatch({
+  source("vocabulary_ai_linker.R")
+  cat("     ✓ AI vocabulary linker loaded successfully\n")
+  if (exists("AI_LINKER_CAPABILITIES")) {
+    if (AI_LINKER_CAPABILITIES$basic_only) {
+      cat("     ℹ️ Running in basic mode (some optional packages unavailable)\n")
+    } else {
+      cat("     ✓ All advanced AI features available\n")
+    }
+  }
+}, error = function(e) {
+  cat("     ⚠️ Warning: AI linker not available:", e$message, "\n")
+  cat("     ℹ️ Application will use basic linking fallback\n")
+})
+
 source("environmental_scenarios.R")
 
 # Load translation system from separate file
