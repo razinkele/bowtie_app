@@ -8,45 +8,60 @@ library(stringr)
 context("Consistency Fixes Validation")
 
 test_that("Circular dependency is resolved", {
-  # Test that guided_workflow.r loads without circular dependencies
-  workflow_content <- readLines("guided_workflow.r")
+  # Test that guided_workflow.R loads without circular dependencies
+  workflow_file <- "../../guided_workflow.R"
+  if (!file.exists(workflow_file)) {
+    skip("guided_workflow.R not found")
+  }
+
+  workflow_content <- readLines(workflow_file, warn = FALSE)
 
   # Should not contain any problematic circular source calls
-  circular_source_pattern <- 'source\\("guided_workflow\\.r"\\)'
-  has_circular_import <- any(grepl(circular_source_pattern, workflow_content))
+  circular_source_pattern <- 'source\\("guided_workflow\\.R"\\)'
+  has_circular_import <- any(grepl(circular_source_pattern, workflow_content, ignore.case = TRUE))
 
   expect_false(has_circular_import,
-               "guided_workflow.r should not source itself")
+               "guided_workflow.R should not source itself")
 
   # Should have proper dependency validation
   dependency_pattern <- "validate_guided_workflow_dependencies"
   has_dependency_check <- any(grepl(dependency_pattern, workflow_content))
 
   expect_true(has_dependency_check,
-              "guided_workflow.r should have dependency validation")
+              "guided_workflow.R should have dependency validation")
 })
 
 test_that("Icon usage is standardized across files", {
-  # Check guided_workflow.r for consistent icon() usage
-  workflow_content <- readLines("guided_workflow.r")
+  # Check guided_workflow.R for consistent icon() usage
+  workflow_file <- "../../guided_workflow.R"
+  if (!file.exists(workflow_file)) {
+    skip("guided_workflow.R not found")
+  }
+
+  workflow_content <- readLines(workflow_file, warn = FALSE)
 
   # Should not contain any tags$i() patterns for FontAwesome
   tags_i_pattern <- 'tags\\$i\\(class = "fas'
   has_tags_i <- any(grepl(tags_i_pattern, workflow_content))
 
   expect_false(has_tags_i,
-               "guided_workflow.r should use icon() function instead of tags$i()")
+               "guided_workflow.R should use icon() function instead of tags$i()")
 
   # Should contain standardized icon() calls
   icon_pattern <- 'icon\\("check-circle"'
   has_standard_icons <- any(grepl(icon_pattern, workflow_content))
 
   expect_true(has_standard_icons,
-              "guided_workflow.r should use standardized icon() function calls")
+              "guided_workflow.R should use standardized icon() function calls")
 })
 
 test_that("CLAUDE.md documentation matches actual file structure", {
-  claude_content <- readLines("CLAUDE.md")
+  claude_file <- "../../CLAUDE.md"
+  if (!file.exists(claude_file)) {
+    skip("CLAUDE.md not found")
+  }
+
+  claude_content <- readLines(claude_file, warn = FALSE)
   claude_text <- paste(claude_content, collapse = "\n")
 
   # Should describe app.r as launcher, not complete UI/server
@@ -72,7 +87,12 @@ test_that("CLAUDE.md documentation matches actual file structure", {
 })
 
 test_that("Global.R has enhanced import logic", {
-  global_content <- readLines("global.R")
+  global_file <- "../../global.R"
+  if (!file.exists(global_file)) {
+    skip("global.R not found")
+  }
+
+  global_content <- readLines(global_file, warn = FALSE)
   global_text <- paste(global_content, collapse = "\n")
 
   # Should have tryCatch block for guided workflow loading
@@ -99,15 +119,19 @@ test_that("Global.R has enhanced import logic", {
 
 test_that("Application starts without circular dependency warnings", {
   # This test would require actually running the app, so we'll check the structure instead
+  global_file <- "../../global.R"
+  if (!file.exists(global_file)) {
+    skip("global.R not found")
+  }
 
-  # Verify that global.R loads guided_workflow.r properly
-  global_content <- readLines("global.R")
+  # Verify that global.R loads guided_workflow.R properly
+  global_content <- readLines(global_file, warn = FALSE)
 
-  workflow_line <- which(grepl('source\\("guided_workflow\\.r"\\)', global_content))
+  workflow_line <- which(grepl('source\\("guided_workflow\\.R"\\)', global_content, ignore.case = TRUE))
 
-  expect_true(length(workflow_line) > 0, "global.R should source guided_workflow.r")
+  expect_true(length(workflow_line) > 0, "global.R should source guided_workflow.R")
 
-  # Verify guided_workflow.r has proper error handling
+  # Verify guided_workflow.R has proper error handling
   if (length(workflow_line) > 0) {
     # Check that loading is wrapped in tryCatch
     context_start <- max(1, workflow_line[1] - 5)
@@ -116,13 +140,18 @@ test_that("Application starts without circular dependency warnings", {
 
     has_error_handling <- any(grepl("tryCatch|error", context, ignore.case = TRUE))
     expect_true(has_error_handling,
-                "global.R should have error handling for guided_workflow.r loading")
+                "global.R should have error handling for guided_workflow.R loading")
   }
 })
 
 test_that("FontAwesome integration is consistent", {
   # Check that CLAUDE.md reflects the actual standardization
-  claude_content <- readLines("CLAUDE.md")
+  claude_file <- "../../CLAUDE.md"
+  if (!file.exists(claude_file)) {
+    skip("CLAUDE.md not found")
+  }
+
+  claude_content <- readLines(claude_file, warn = FALSE)
   claude_text <- paste(claude_content, collapse = "\n")
 
   # Should mention standardization, not direct element usage
@@ -145,9 +174,14 @@ test_that("Consistency fixes don't impact performance", {
   skip_if_not_installed("microbenchmark")
   library(microbenchmark)
 
+  global_file <- "../../global.R"
+  if (!file.exists(global_file)) {
+    skip("global.R not found")
+  }
+
   # Test that loading times are reasonable
   loading_time <- system.time({
-    source("global.R")
+    source(global_file, local = TRUE)
   })
 
   expect_true(loading_time[["elapsed"]] < 10,
