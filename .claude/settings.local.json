@@ -46,7 +46,8 @@
       "Bash(move VERSIONING_SYSTEM_IMPLEMENTATION.md docs )",
       "Bash(move:*)",
       "Bash(test:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

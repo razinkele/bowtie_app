@@ -45,11 +45,15 @@ desktop.ini
 # Backup files
 *_backup_*
 *.bak
+*.backup
+*~
+*.old
 *-laguna-safeBackup-*
 *-Dell-PCn.*
 
 # Temporary files
 _ul
+nul
 *.tmp
 *.temp
 
