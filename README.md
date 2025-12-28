@@ -232,6 +232,28 @@ install.packages("testthat")
    Rscript -e "source('app.R')"
    ```
 
+### Pre-commit Hooks (Recommended)
+
+**IMPORTANT**: Install pre-commit hooks to ensure code quality before commits:
+
+```r
+# Install hooks (one-time setup)
+Rscript install_hooks.R
+```
+
+The pre-commit hooks will automatically:
+- ✅ Run lintr on staged R files
+- ✅ Check for syntax errors
+- ✅ Run fast tests (if available)
+- ✅ Detect common issues (debug statements, large files)
+
+**Benefits**:
+- ⚡ Instant local feedback (vs minutes in CI)
+- 🛡️ Prevents bad commits before push
+- 📏 Consistent code style across contributors
+
+For more details, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Documentation
 
 ### Comprehensive PDF Manual (New in v5.3.0)
