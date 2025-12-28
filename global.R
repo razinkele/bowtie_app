@@ -79,6 +79,16 @@ tryCatch({
   cat("     ℹ️ Application will use basic linking fallback\n")
 })
 
+# Load suggestion feedback tracker
+cat("   • Loading suggestion feedback tracker...\n")
+tryCatch({
+  source("suggestion_feedback_tracker.R")
+  cat("     ✓ Feedback tracking system loaded\n")
+}, error = function(e) {
+  cat("     ⚠️ Warning: Feedback tracker not available:", e$message, "\n")
+  cat("     ℹ️ Suggestions will work without feedback tracking\n")
+})
+
 source("environmental_scenarios.R")
 
 # Load translation system from separate file

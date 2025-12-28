@@ -26,6 +26,18 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     return(NULL)
   }
 
+  # Initialize feedback tracker if available
+  feedback_enabled <- FALSE
+  if (exists("init_feedback_tracker")) {
+    tryCatch({
+      init_feedback_tracker()
+      feedback_enabled <- TRUE
+      cat("✅ Feedback tracking enabled\n")
+    }, error = function(e) {
+      cat("⚠️ Feedback tracking unavailable:", e$message, "\n")
+    })
+  }
+
   # Require shinyjs for showing/hiding elements
   if (!requireNamespace("shinyjs", quietly = TRUE)) {
     warning("shinyjs package required for AI suggestions")
@@ -115,6 +127,20 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
           if (!(new_pressure$id %in% existing_ids)) {
             workflow_state$selected_pressures <- c(workflow_state$selected_pressures, list(new_pressure))
+
+            # Log feedback (accepted)
+            if (feedback_enabled && exists("log_suggestion_feedback")) {
+              tryCatch({
+                log_suggestion_feedback(
+                  suggestion = suggestion_data,
+                  action = "accepted",
+                  session_id = session$token,
+                  step = "step3_pressure"
+                )
+              }, error = function(e) {
+                # Silently fail - don't interrupt user workflow
+              })
+            }
 
             showNotification(
               paste0("✅ Added suggested pressure: ", new_pressure$name),
@@ -215,6 +241,18 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           if (!(new_control$id %in% existing_ids)) {
             workflow_state$selected_preventive_controls <- c(workflow_state$selected_preventive_controls, list(new_control))
 
+            # Log feedback (accepted)
+            if (feedback_enabled && exists("log_suggestion_feedback")) {
+              tryCatch({
+                log_suggestion_feedback(
+                  suggestion = suggestion_data,
+                  action = "accepted",
+                  session_id = session$token,
+                  step = "step4_preventive_control"
+                )
+              }, error = function(e) { })
+            }
+
             showNotification(
               paste0("✅ Added suggested control: ", new_control$name),
               type = "message",
@@ -307,6 +345,18 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
           if (!(new_consequence$id %in% existing_ids)) {
             workflow_state$selected_consequences <- c(workflow_state$selected_consequences, list(new_consequence))
+
+            # Log feedback (accepted)
+            if (feedback_enabled && exists("log_suggestion_feedback")) {
+              tryCatch({
+                log_suggestion_feedback(
+                  suggestion = suggestion_data,
+                  action = "accepted",
+                  session_id = session$token,
+                  step = "step5_consequence"
+                )
+              }, error = function(e) { })
+            }
 
             showNotification(
               paste0("✅ Added suggested consequence: ", new_consequence$name),
@@ -401,6 +451,18 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           if (!(new_control$id %in% existing_ids)) {
             workflow_state$selected_protective_controls <- c(workflow_state$selected_protective_controls, list(new_control))
 
+            # Log feedback (accepted)
+            if (feedback_enabled && exists("log_suggestion_feedback")) {
+              tryCatch({
+                log_suggestion_feedback(
+                  suggestion = suggestion_data,
+                  action = "accepted",
+                  session_id = session$token,
+                  step = "step6_protective_control"
+                )
+              }, error = function(e) { })
+            }
+
             showNotification(
               paste0("✅ Added suggested control: ", new_control$name),
               type = "message",
@@ -415,6 +477,17 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           }
         }
       }
+    }
+  })
+
+  # Save feedback on exit (if enabled)
+  session$onSessionEnded(function() {
+    if (feedback_enabled && exists("save_feedback")) {
+      tryCatch({
+        save_feedback(quiet = TRUE)
+      }, error = function(e) {
+        # Silent failure
+      })
     }
   })
 

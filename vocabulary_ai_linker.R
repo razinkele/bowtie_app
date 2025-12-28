@@ -1471,6 +1471,195 @@ get_index_stats <- function() {
 }
 
 # =============================================================================
+# ADAPTIVE SIMILARITY THRESHOLDS (I-002)
+# =============================================================================
+
+#' Calculate adaptive threshold based on user feedback
+#'
+#' Analyzes historical feedback to determine optimal similarity threshold
+#' for a given link type and method combination
+#'
+#' @param link_type Link type (e.g., "Activity_Pressure", "Pressure_Consequence")
+#' @param method Detection method (e.g., "causal", "keyword", "jaccard")
+#' @param feedback_data Feedback data frame (from get_feedback_stats())
+#' @param min_samples Minimum samples required (default: 20)
+#' @param target_acceptance Target acceptance rate (default: 0.7)
+#' @return Numeric threshold value (0-1)
+calculate_adaptive_threshold <- function(link_type,
+                                        method,
+                                        feedback_data = NULL,
+                                        min_samples = 20,
+                                        target_acceptance = 0.7) {
+
+  # Default threshold if no feedback
+  default_threshold <- 0.3
+
+  # Load feedback if not provided
+  if (is.null(feedback_data)) {
+    if (!exists(".feedback_data") || !exists("records", envir = .feedback_data)) {
+      return(default_threshold)
+    }
+    feedback_data <- get(".feedback_data", envir = parent.frame())$records
+  }
+
+  # Filter to relevant feedback
+  relevant_feedback <- feedback_data %>%
+    dplyr::mutate(type = paste(from_type, to_type, sep = "_")) %>%
+    dplyr::filter(
+      type == link_type,
+      grepl(method, method, ignore.case = TRUE),
+      action %in% c("accepted", "rejected")
+    )
+
+  # Check if we have enough data
+  if (nrow(relevant_feedback) < min_samples) {
+    return(default_threshold)
+  }
+
+  # Calculate acceptance rate by similarity bands
+  bands <- relevant_feedback %>%
+    dplyr::mutate(
+      similarity_band = cut(
+        similarity,
+        breaks = seq(0, 1, 0.1),
+        labels = seq(0.05, 0.95, 0.1),
+        include.lowest = TRUE
+      )
+    ) %>%
+    dplyr::group_by(similarity_band) %>%
+    dplyr::summarise(
+      count = n(),
+      accepted = sum(action == "accepted"),
+      acceptance_rate = mean(action == "accepted"),
+      .groups = 'drop'
+    ) %>%
+    dplyr::filter(count >= 5)  # At least 5 samples per band
+
+  if (nrow(bands) == 0) {
+    return(default_threshold)
+  }
+
+  # Find optimal threshold (lowest similarity with target acceptance rate)
+  optimal_bands <- bands %>%
+    dplyr::filter(acceptance_rate >= target_acceptance) %>%
+    dplyr::arrange(similarity_band)
+
+  if (nrow(optimal_bands) > 0) {
+    # Use the lowest similarity that meets target
+    threshold <- as.numeric(as.character(optimal_bands$similarity_band[1]))
+
+    # Ensure reasonable bounds (0.2 - 0.7)
+    threshold <- max(0.2, min(0.7, threshold))
+
+    return(threshold)
+  } else {
+    # No band meets target - use band with highest acceptance
+    best_band <- bands %>%
+      dplyr::arrange(desc(acceptance_rate)) %>%
+      dplyr::slice(1)
+
+    threshold <- as.numeric(as.character(best_band$similarity_band))
+    threshold <- max(0.2, min(0.7, threshold))
+
+    return(threshold)
+  }
+}
+
+#' Get adaptive thresholds for all link types
+#'
+#' Calculates optimal thresholds for all combinations of link types and methods
+#'
+#' @param feedback_data Feedback data frame (optional)
+#' @return Data frame with adaptive thresholds
+get_adaptive_thresholds <- function(feedback_data = NULL) {
+
+  # Define link types to analyze
+  link_types <- c(
+    "Activity_Pressure",
+    "Pressure_Consequence",
+    "Activity_Control",
+    "Pressure_Control",
+    "Consequence_Control"
+  )
+
+  # Define methods
+  methods <- c("causal", "keyword", "jaccard", "cosine")
+
+  # Calculate threshold for each combination
+  thresholds <- expand.grid(
+    link_type = link_types,
+    method = methods,
+    stringsAsFactors = FALSE
+  )
+
+  thresholds$threshold <- sapply(1:nrow(thresholds), function(i) {
+    calculate_adaptive_threshold(
+      link_type = thresholds$link_type[i],
+      method = thresholds$method[i],
+      feedback_data = feedback_data
+    )
+  })
+
+  thresholds$is_adaptive <- thresholds$threshold != 0.3
+
+  return(thresholds)
+}
+
+#' Apply adaptive thresholds to link generation
+#'
+#' Uses learned thresholds instead of fixed values
+#'
+#' @param vocabulary_data Vocabulary data
+#' @param adaptive_thresholds Threshold data frame from get_adaptive_thresholds()
+#' @param methods Methods to use
+#' @param max_links_per_item Maximum links per item
+#' @return List with links and metadata
+find_vocabulary_links_adaptive <- function(vocabulary_data,
+                                          adaptive_thresholds = NULL,
+                                          methods = c("causal", "keyword", "jaccard"),
+                                          max_links_per_item = 5) {
+
+  cat("\n🎯 Finding vocabulary links with ADAPTIVE thresholds...\n")
+
+  # Get adaptive thresholds if not provided
+  if (is.null(adaptive_thresholds)) {
+    cat("📊 Calculating adaptive thresholds from feedback...\n")
+    adaptive_thresholds <- get_adaptive_thresholds()
+
+    # Report adaptive vs default
+    adaptive_count <- sum(adaptive_thresholds$is_adaptive)
+    if (adaptive_count > 0) {
+      cat(sprintf("   ✓ Using %d adaptive thresholds (learned from feedback)\n", adaptive_count))
+      cat(sprintf("   ℹ️ Using %d default thresholds (insufficient feedback)\n",
+                  nrow(adaptive_thresholds) - adaptive_count))
+    } else {
+      cat("   ℹ️ Using default thresholds (no feedback data available)\n")
+    }
+  }
+
+  # Call find_vocabulary_links with method-specific thresholds
+  # For now, use average adaptive threshold as baseline
+  avg_threshold <- mean(adaptive_thresholds$threshold[adaptive_thresholds$method %in% methods])
+
+  cat(sprintf("📏 Average adaptive threshold: %.2f\n", avg_threshold))
+
+  # Generate links with adaptive threshold
+  result <- find_vocabulary_links(
+    vocabulary_data = vocabulary_data,
+    similarity_threshold = avg_threshold,
+    max_links_per_item = max_links_per_item,
+    methods = methods,
+    use_domain_knowledge = TRUE
+  )
+
+  # Add adaptive threshold info to result
+  result$adaptive_thresholds <- adaptive_thresholds
+  result$threshold_source <- "adaptive"
+
+  return(result)
+}
+
+# =============================================================================
 # CONFIDENCE SCORING SYSTEM (I-003)
 # =============================================================================
 
@@ -1686,7 +1875,10 @@ cat("  - load_cache() / save_cache()      : Cache persistence\n")
 cat("  - get_cache_stats()                : Cache statistics\n")
 cat("  - build_keyword_index()            : Build inverted keyword index\n")
 cat("  - get_indexed_items()              : Fast O(1) keyword lookups\n")
-cat("  - get_index_stats()                : Index statistics\n\n")
+cat("  - get_index_stats()                : Index statistics\n")
+cat("  - calculate_adaptive_threshold()   : Learn optimal thresholds from feedback\n")
+cat("  - get_adaptive_thresholds()        : Get all adaptive thresholds\n")
+cat("  - find_vocabulary_links_adaptive() : Link generation with adaptive thresholds\n\n")
 
 cat("📚 Usage Example:\n")
 cat('  result <- find_vocabulary_links(vocab_data, \n')
