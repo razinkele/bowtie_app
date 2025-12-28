@@ -15,8 +15,8 @@ if (basename(getwd()) == "tests") {
 # Source the main files
 cat("Loading application modules...\n")
 source("utils.R")
-source("vocabulary.r")
-source("bowtie_bayesian_network.r")
+source("vocabulary.R")
+source("bowtie_bayesian_network.R")
 
 # Run all tests
 cat("Running tests...\n")

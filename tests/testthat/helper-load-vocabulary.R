@@ -26,7 +26,7 @@ tryCatch({
   message("helper-load-vocabulary: failed to source vocabulary.R (", e$message, ")")
 })
 tryCatch({
-  source(file.path(repo_root, "vocabulary-ai-helpers.R"), local = TRUE)
+  source(file.path(repo_root, "vocabulary_ai_helpers.R"), local = TRUE)
 }, error = function(e) {
-  message("helper-load-vocabulary: failed to source vocabulary-ai-helpers.R (", e$message, ")")
+  message("helper-load-vocabulary: failed to source vocabulary_ai_helpers.R (", e$message, ")")
 })

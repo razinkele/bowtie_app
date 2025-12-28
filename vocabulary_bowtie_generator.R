@@ -21,10 +21,10 @@ if (file.exists("vocabulary.R")) {
   stop("vocabulary.R file not found. Please ensure it's in the working directory.")
 }
 
-if (file.exists("vocabulary-ai-linker.R")) {
-  source("vocabulary-ai-linker.R")
+if (file.exists("vocabulary_ai_linker.R")) {
+  source("vocabulary_ai_linker.R")
 } else {
-  warning("vocabulary-ai-linker.R not found. Will use basic linking only.")
+  warning("vocabulary_ai_linker.R not found. Will use basic linking only.")
 }
 
 # =============================================================================
@@ -238,7 +238,7 @@ create_problem_specific_bowtie <- function(central_problem, vocabulary_data, lin
         bowtie_entries <- rbind(bowtie_entries, data.frame(
           Activity = activity$name,
           Pressure = pressure$name,
-          Problem = central_problem,
+          Central_Problem = central_problem,
           Consequence = consequence$name,
           Preventive_Control = preventive_control_name,
           Protective_Mitigation = protective_control_name,

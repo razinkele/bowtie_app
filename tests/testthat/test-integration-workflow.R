@@ -11,7 +11,7 @@ source(file.path(repo_root, "tests", "fixtures", "test_data.R"), local = TRUE)
 # Test complete workflow integration
 test_that("complete vocabulary bowtie workflow works end-to-end", {
   skip_if_not_installed("openxlsx")
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   
   # Source the generator (repo-root aware)
   repo_root <- find_repo_root()
@@ -57,7 +57,7 @@ test_that("complete vocabulary bowtie workflow works end-to-end", {
 # Test workflow with different scenarios
 test_that("workflow handles different generation scenarios", {
   skip_if_not_installed("openxlsx")
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   
   # If tests provide a local shim, prefer the real generator in repo root
   repo_root <- find_repo_root()
@@ -86,7 +86,7 @@ test_that("workflow handles different generation scenarios", {
 
 # Test vocabulary loading integration
 test_that("workflow integrates correctly with vocabulary system", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   
   repo_root <- find_repo_root()
   if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
@@ -112,7 +112,7 @@ test_that("workflow integrates correctly with vocabulary system", {
 # Test AI linking integration (if available)
 test_that("workflow integrates with AI linking when available", {
   skip_if_not(exists("find_vocabulary_links"), "AI linking functions not available")
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
   repo_root <- find_repo_root()
@@ -143,7 +143,7 @@ test_that("workflow integrates with AI linking when available", {
 
 # Test error handling in complete workflow
 test_that("workflow handles errors gracefully", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
   repo_root <- find_repo_root()
@@ -179,7 +179,7 @@ test_that("workflow handles errors gracefully", {
 
 # Test performance with larger datasets
 test_that("workflow performs adequately with larger vocabularies", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   skip("Performance test - run manually if needed")
   
@@ -214,7 +214,7 @@ test_that("workflow performs adequately with larger vocabularies", {
 
 # Test data quality and consistency
 test_that("generated data maintains quality and consistency", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
   repo_root <- find_repo_root()
@@ -256,7 +256,7 @@ test_that("generated data maintains quality and consistency", {
 
 # Test Excel file structure and readability
 test_that("Excel output has correct structure for main app", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
   repo_root <- find_repo_root()
@@ -291,7 +291,7 @@ test_that("Excel output has correct structure for main app", {
 
 # Test fallback mechanisms
 test_that("workflow uses fallback mechanisms when needed", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   
   repo_root <- find_repo_root()
   if (is.null(repo_root)) repo_root <- normalizePath("..", mustWork = FALSE)
@@ -313,7 +313,7 @@ test_that("workflow uses fallback mechanisms when needed", {
 
 # Test reproducibility
 test_that("workflow produces consistent results", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
   repo_root <- find_repo_root()

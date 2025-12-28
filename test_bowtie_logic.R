@@ -14,7 +14,7 @@ cat("Loading vocabulary system...\n")
 source("vocabulary.R")
 
 cat("Loading AI linker with bowtie logic...\n")
-source("vocabulary-ai-linker.R")
+source("vocabulary_ai_linker.R")
 
 cat("Loading vocabulary bowtie generator...\n")
 source("vocabulary_bowtie_generator.R")

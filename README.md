@@ -797,6 +797,33 @@ make test
 make app
 ```
 
+### Pre-commit Hooks (Recommended)
+
+**IMPORTANT**: Install pre-commit hooks to ensure code quality before commits:
+
+```r
+# Install hooks (one-time setup)
+Rscript install_hooks.R
+```
+
+The pre-commit hooks will automatically:
+- ✅ Run lintr on staged R files
+- ✅ Check for syntax errors
+- ✅ Run fast tests (if available)
+- ✅ Detect common issues (debug statements, large files)
+
+**To bypass hooks** (not recommended):
+```bash
+git commit --no-verify -m "your message"
+```
+
+**To uninstall hooks**:
+```bash
+rm .git/hooks/pre-commit
+```
+
+For detailed contributor guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ### Code Style Guidelines
 
 - **Functions**: Use clear, descriptive names with camelCase
@@ -853,6 +880,10 @@ make app
 ├── CONSEQUENCES.xlsx              # Consequences vocabulary (26 items)
 ├── CONTROLS.xlsx                  # Controls vocabulary (74 items)
 ├── environmental_bowtie_data_*.xlsx # Sample datasets
+├── archive/                        # Historical backups and deprecated files
+│   ├── backups/                   # Backup files (.backup, .bak, *~)
+│   ├── documentation/             # Historical documentation
+│   └── old-versions/              # Deprecated code versions
 ├── VERSION_HISTORY.md             # Complete version history (NEW)
 ├── CLAUDE.md                      # Development guidance (updated v5.3.0)
 └── README.md                      # This file (updated v5.3.0)

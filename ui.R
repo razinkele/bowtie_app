@@ -184,7 +184,7 @@ ui <- fluidPage(
                  card_body(
                    fluidRow(
                      # Left column - File upload
-                     column(4,
+                     column(6,
                        h6(uiOutput("data_upload_option1_title", inline = TRUE)),
                        uiOutput("file_input_ui"),
                        conditionalPanel(
@@ -195,8 +195,9 @@ ui <- fluidPage(
                        )
                      ),
                      
-                     # Middle column - Generate from vocabulary
-                     column(4,
+                     
+                     # Right column - Generate from environmental scenarios
+                     column(6,
                        div(style = "min-height: 150px;",
                          uiOutput("data_upload_option2_title"),
                          uiOutput("data_option2_desc")
@@ -206,30 +207,14 @@ ui <- fluidPage(
                                      choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
                                      selected = "")
                        ),
-                       div(class = "d-grid", actionButton("generateSample",
-                                                         tagList(icon("seedling"), "Generate Data"),
-                                                         class = "btn-success"))
-                     ),
-                     
-                     # Right column - Multiple controls
-                     column(4,
-                       div(style = "min-height: 150px;",
-                         uiOutput("data_upload_option2b_title"),
-                         uiOutput("data_option2b_desc")
-                       ),
-                       div(class = "mb-3",
-                         selectInput("data_scenario_template_2b", "Select environmental scenario:",
-                                     choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
-                                     selected = "")
-                       ),
                        div(class = "d-grid", actionButton("generateMultipleControls",
-                                                         tagList(icon("shield-alt"), "Multiple Controls"),
-                                                         class = "btn-info")),
+                                                         tagList(icon("seedling"), "Generate Sample Data"),
+                                                         class = "btn-success")),
                        conditionalPanel(
                          condition = "output.envDataGenerated",
                          div(class = "d-grid mt-2", downloadButton("downloadSample",
                                                              tagList(icon("download"), "Download"),
-                                                             class = "btn-info"))
+                                                             class = "btn-success"))
                        )
                      )
                    )
@@ -1250,6 +1235,156 @@ ui <- fluidPage(
                    uiOutput("vocab_info")
                  )
                )
+        )
+      )
+    ),
+
+    # Custom Terms Review Tab (Administrator)
+    nav_panel(
+      title = tagList(icon("clipboard-check"), "Custom Terms Review"), value = "custom_terms_review",
+
+      # Authorization panel
+      conditionalPanel(
+        condition = "!output.custom_terms_authorized",
+        fluidRow(
+          column(12,
+                 div(class = "card border-warning mb-3",
+                     div(class = "card-header bg-warning",
+                         h5(icon("lock"), " Access Control", style = "margin: 0;")
+                     ),
+                     div(class = "card-body text-center",
+                         p("This section is restricted to authorized reviewers only."),
+                         br(),
+                         textInput("custom_terms_password", "Enter Password:",
+                                  placeholder = "Enter reviewer password"),
+                         actionButton("custom_terms_login", "Login",
+                                    class = "btn-primary",
+                                    icon = icon("sign-in-alt")),
+                         br(), br(),
+                         div(class = "alert alert-info",
+                             icon("info-circle"),
+                             " Contact your administrator for access credentials.")
+                     )
+                 )
+          )
+        )
+      ),
+
+      # Main review interface (shown only when authorized)
+      conditionalPanel(
+        condition = "output.custom_terms_authorized",
+
+        # Header with statistics
+        fluidRow(
+          column(12,
+                 div(class = "card border-primary mb-3",
+                     div(class = "card-header bg-primary text-white",
+                         h4(icon("clipboard-check"), " Custom Terms Management System", style = "margin: 0;")
+                     ),
+                     div(class = "card-body",
+                         p(class = "lead",
+                           "Review and manage custom vocabulary terms submitted across all guided workflows. ",
+                           "Approve valid terms for vocabulary integration or reject inappropriate entries."),
+                         hr(),
+                         uiOutput("custom_terms_statistics")
+                     )
+                 )
+          )
+        ),
+
+        # Filters and actions
+        fluidRow(
+          column(3,
+                 card(
+                   card_header(tagList(icon("filter"), "Filters"), class = "bg-secondary text-white"),
+                   card_body(
+                     selectInput("custom_terms_status_filter",
+                                "Status Filter:",
+                                choices = c("All" = "all",
+                                          "Pending Review" = "pending",
+                                          "Approved" = "approved",
+                                          "Rejected" = "rejected"),
+                                selected = "pending"),
+
+                     selectInput("custom_terms_category_filter",
+                                "Category Filter:",
+                                choices = c("All Categories" = "all",
+                                          "Activities" = "activities",
+                                          "Pressures" = "pressures",
+                                          "Preventive Controls" = "preventive_controls",
+                                          "Consequences" = "consequences",
+                                          "Protective Controls" = "protective_controls"),
+                                selected = "all"),
+
+                     hr(),
+                     actionButton("custom_terms_refresh", "Refresh Data",
+                                class = "btn-info w-100",
+                                icon = icon("sync"))
+                   )
+                 )
+          ),
+
+          column(9,
+                 card(
+                   card_header(tagList(icon("table"), "Custom Terms Table"), class = "bg-info text-white"),
+                   card_body(
+                     p("Select rows and use action buttons below to review terms."),
+                     DT::DTOutput("custom_terms_datatable"),
+                     hr(),
+
+                     fluidRow(
+                       column(3,
+                              actionButton("custom_terms_approve", "Approve Selected",
+                                         class = "btn-success w-100",
+                                         icon = icon("check"))
+                       ),
+                       column(3,
+                              actionButton("custom_terms_reject", "Reject Selected",
+                                         class = "btn-danger w-100",
+                                         icon = icon("times"))
+                       ),
+                       column(3,
+                              downloadButton("custom_terms_export_excel", "Export to Excel",
+                                           class = "btn-warning w-100")
+                       ),
+                       column(3,
+                              actionButton("custom_terms_clear_reviewed", "Clear Reviewed",
+                                         class = "btn-outline-danger w-100",
+                                         icon = icon("trash"))
+                       )
+                     )
+                   )
+                 )
+          )
+        ),
+
+        # Notes panel
+        fluidRow(
+          column(12,
+                 card(
+                   card_header(tagList(icon("sticky-note"), "Review Notes"), class = "bg-light"),
+                   card_body(
+                     p("Add notes about selected terms for documentation purposes."),
+                     textAreaInput("custom_terms_notes",
+                                  "Notes:",
+                                  placeholder = "Enter review notes here...",
+                                  rows = 3,
+                                  width = "100%"),
+                     actionButton("custom_terms_add_notes", "Add Notes to Selected",
+                                class = "btn-secondary",
+                                icon = icon("save"))
+                   )
+                 )
+          )
+        ),
+
+        # Logout button
+        fluidRow(
+          column(12,
+                 actionButton("custom_terms_logout", "Logout",
+                            class = "btn-outline-secondary float-end",
+                            icon = icon("sign-out-alt"))
+          )
         )
       )
     ),

@@ -15,7 +15,7 @@ if (file.exists("tests/fixtures/realistic_test_data.R")) {
 
 test_that("vocabulary data loads controls correctly", {
   # Test the actual vocabulary loading
-  skip_if_not(file.exists("vocabulary.r"), "vocabulary.r not found")
+  skip_if_not(file.exists("vocabulary.R"), "vocabulary.R not found")
 
   source("vocabulary.R")
 
@@ -43,7 +43,7 @@ test_that("vocabulary data loads controls correctly", {
 })
 
 test_that("generate_step4_ui creates controls selectizeInput", {
-  skip_if_not(file.exists("guided_workflow.r"), "guided_workflow.r not found")
+  skip_if_not(file.exists("guided_workflow.R"), "guided_workflow.R not found")
 
   source("guided_workflow.R")
 
@@ -134,7 +134,7 @@ test_that("controls choices are properly formatted for selectizeInput", {
 })
 
 test_that("guided_workflow server integration works", {
-  skip_if_not(file.exists("guided_workflow.r"), "guided_workflow.r not found")
+  skip_if_not(file.exists("guided_workflow.R"), "guided_workflow.R not found")
 
   source("guided_workflow.R")
 
@@ -142,7 +142,7 @@ test_that("guided_workflow server integration works", {
   expect_true(exists("guided_workflow_server"))
 
   # Test that vocabulary data parameter is passed to Step 4
-  # This tests the fix we implemented in guided_workflow.r line 593
+  # This tests the fix we implemented in guided_workflow.R line 593
 
   # Create a mock test to verify the integration
   test_vocab <- create_realistic_test_vocabulary()

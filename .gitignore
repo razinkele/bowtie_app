@@ -45,6 +45,9 @@ desktop.ini
 # Backup files
 *_backup_*
 *.bak
+*.backup
+*~
+*.old
 *-laguna-safeBackup-*
 *-Dell-PCn.*
 

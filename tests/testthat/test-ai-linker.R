@@ -1,6 +1,6 @@
 test_that("validate_bowtie_structure accepts valid links and rejects invalid ones", {
   # Source the AI linker to ensure functions are available in test environment
-  source(file.path("..", "..", "vocabulary-ai-linker.R"), local = TRUE)
+  source(file.path("..", "..", "vocabulary_ai_linker.R"), local = TRUE)
 
   valid_links <- data.frame(
     from_type = c("Activity","Pressure","Control"),
@@ -17,7 +17,7 @@ test_that("validate_bowtie_structure accepts valid links and rejects invalid one
 
 
 test_that("find_control_links sets singular to_type correctly", {
-  source(file.path("..", "..", "vocabulary-ai-linker.R"), local = TRUE)
+  source(file.path("..", "..", "vocabulary_ai_linker.R"), local = TRUE)
 
   controls <- data.frame(id = c('C1'), name = c('Emergency response team'), stringsAsFactors = FALSE)
   activities <- data.frame(id = c('A1'), name = c('Fishing activity'), stringsAsFactors = FALSE)

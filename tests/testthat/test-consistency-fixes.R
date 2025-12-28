@@ -16,7 +16,7 @@ context("Consistency Fixes Validation")
 test_that("Circular dependency is resolved", {
   # Prefer repo-aware lookup for the guided workflow file (case-insensitive)
   found_content <- read_repo_file_if_exists("guided_workflow.R")
-  if (length(found_content) == 0) found_content <- read_repo_file_if_exists("guided_workflow.r")
+  if (length(found_content) == 0) found_content <- read_repo_file_if_exists("guided_workflow.R")
   found <- NULL
   if (length(found_content) == 0) {
     repo_root <- find_repo_root()
@@ -131,9 +131,9 @@ test_that("Application starts without circular dependency warnings", {
 
   workflow_line <- which(grepl("source\\((\"|')guided_workflow\\.r(\"|')\\)", global_content, ignore.case = TRUE))
 
-  expect_true(length(workflow_line) > 0, "global.R should source guided_workflow.r")
+  expect_true(length(workflow_line) > 0, "global.R should source guided_workflow.R")
 
-  # Verify guided_workflow.r has proper error handling
+  # Verify guided_workflow.R has proper error handling
   if (length(workflow_line) > 0) {
     # Check that loading is wrapped in tryCatch
     context_start <- max(1, workflow_line[1] - 5)
@@ -142,7 +142,7 @@ test_that("Application starts without circular dependency warnings", {
 
     has_error_handling <- any(grepl("tryCatch|error", context, ignore.case = TRUE))
     expect_true(has_error_handling,
-                "global.R should have error handling for guided_workflow.r loading")
+                "global.R should have error handling for guided_workflow.R loading")
   }
 })
 

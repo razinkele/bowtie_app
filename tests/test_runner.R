@@ -21,8 +21,8 @@ if (basename(getwd()) == "tests") {
 }
 
 # Verify we're in the correct directory
-if (!file.exists("app.r")) {
-  stop("ERROR: app.r not found. Please run this script from the app root directory.")
+if (!file.exists("app.R")) {
+  stop("ERROR: app.R not found. Please run this script from the app root directory.")
 }
 
 cat("Working directory:", getwd(), "\n")
@@ -31,26 +31,26 @@ cat("Loading application modules...\n")
 # Source the application files with error handling
 tryCatch({
   source("utils.R")
-  cat("✓ Loaded utils.r\n")
+  cat("✓ Loaded utils.R\n")
 }, error = function(e) {
-  cat("✗ Failed to load utils.r:", e$message, "\n")
-  stop("Cannot proceed without utils.r")
+  cat("✗ Failed to load utils.R:", e$message, "\n")
+  stop("Cannot proceed without utils.R")
 })
 
 tryCatch({
-  source("vocabulary.r")
-  cat("✓ Loaded vocabulary.r\n")
+  source("vocabulary.R")
+  cat("✓ Loaded vocabulary.R\n")
 }, error = function(e) {
-  cat("✗ Failed to load vocabulary.r:", e$message, "\n")
-  stop("Cannot proceed without vocabulary.r")
+  cat("✗ Failed to load vocabulary.R:", e$message, "\n")
+  stop("Cannot proceed without vocabulary.R")
 })
 
 tryCatch({
-  source("bowtie_bayesian_network.r")
-  cat("✓ Loaded bowtie_bayesian_network.r\n")
+  source("bowtie_bayesian_network.R")
+  cat("✓ Loaded bowtie_bayesian_network.R\n")
 }, error = function(e) {
-  cat("✗ Failed to load bowtie_bayesian_network.r:", e$message, "\n")
-  stop("Cannot proceed without bowtie_bayesian_network.r")
+  cat("✗ Failed to load bowtie_bayesian_network.R:", e$message, "\n")
+  stop("Cannot proceed without bowtie_bayesian_network.R")
 })
 
 # Load test fixtures
@@ -62,15 +62,15 @@ if (file.exists("tests/fixtures/test_data.R")) {
 }
 
 # Load vocabulary bowtie generator if available
-if (file.exists("vocabulary_bowtie_generator.r")) {
+if (file.exists("vocabulary_bowtie_generator.R")) {
   tryCatch({
-    source("vocabulary_bowtie_generator.r")
-    cat("✓ Loaded vocabulary_bowtie_generator.r\n")
+    source("vocabulary_bowtie_generator.R")
+    cat("✓ Loaded vocabulary_bowtie_generator.R\n")
   }, error = function(e) {
-    cat("⚠ Warning loading vocabulary_bowtie_generator.r:", e$message, "\n")
+    cat("⚠ Warning loading vocabulary_bowtie_generator.R:", e$message, "\n")
   })
 } else {
-  cat("⚠ vocabulary_bowtie_generator.r not found, skipping related tests\n")
+  cat("⚠ vocabulary_bowtie_generator.R not found, skipping related tests\n")
 }
 
 cat("\n========================================\n")

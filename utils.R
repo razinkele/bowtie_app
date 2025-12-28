@@ -5,53 +5,270 @@
 # Description: Optimized performance with improved caching and error handling
 # =============================================================================
 
-# Improved cache for expensive computations with memory management
+# Enhanced LRU Cache for expensive computations with memory management
 .cache <- new.env()
-.cache$max_size <- 100  # Maximum cache entries
+.cache$data <- new.env()           # Actual cached data
+.cache$access_times <- new.env()   # Access timestamps for LRU
+.cache$max_size <- 100             # Maximum cache entries
 .cache$current_size <- 0
+.cache$hits <- 0                   # Cache hit counter
+.cache$misses <- 0                 # Cache miss counter
+.cache$evictions <- 0              # LRU eviction counter
 
 # Cache management functions
-clear_cache <- function() {
-  rm(list = ls(.cache), envir = .cache)
+clear_cache <- function(reset_stats = FALSE) {
+  rm(list = ls(.cache$data), envir = .cache$data)
+  rm(list = ls(.cache$access_times), envir = .cache$access_times)
   .cache$current_size <- 0
+
+  if (reset_stats) {
+    .cache$hits <- 0
+    .cache$misses <- 0
+    .cache$evictions <- 0
+  }
+
   bowtie_log("🧹 Cache cleared successfully", .verbose = TRUE)
 }
 
-# Backward-compatibility wrapper
-clearCache <- function() {
-  clear_cache()
+# LRU eviction: removes least recently used item
+evict_lru <- function() {
+  if (.cache$current_size == 0) return(invisible(NULL))
+
+  # Get all keys and their access times
+  keys <- ls(.cache$access_times)
+  if (length(keys) == 0) return(invisible(NULL))
+
+  access_times <- sapply(keys, function(k) .cache$access_times[[k]])
+
+  # Find least recently used key
+  lru_key <- keys[which.min(access_times)]
+
+  # Remove from cache
+  rm(list = lru_key, envir = .cache$data)
+  rm(list = lru_key, envir = .cache$access_times)
+  .cache$current_size <- .cache$current_size - 1
+  .cache$evictions <- .cache$evictions + 1
+
+  bowtie_log(paste("♻️ Evicted LRU cache entry:", lru_key), .verbose = TRUE)
 }
 
-# Memory-aware cache setter
+# Memory-aware cache setter with LRU eviction
 set_cache <- function(key, value) {
-  if (.cache$current_size >= .cache$max_size) {
-    clear_cache()
+  # If key already exists, update it
+  if (exists(key, envir = .cache$data)) {
+    .cache$data[[key]] <- value
+    .cache$access_times[[key]] <- Sys.time()
+    return(invisible(NULL))
   }
-  .cache[[key]] <- value
+
+  # If cache is full, evict LRU item
+  if (.cache$current_size >= .cache$max_size) {
+    evict_lru()
+  }
+
+  # Add new entry
+  .cache$data[[key]] <- value
+  .cache$access_times[[key]] <- Sys.time()
   .cache$current_size <- .cache$current_size + 1
 }
 
-# Safe cache getter
+# Safe cache getter with LRU timestamp update
 get_cache <- function(key, default = NULL) {
-  if (exists(key, envir = .cache)) {
-    return(.cache[[key]])
+  if (exists(key, envir = .cache$data)) {
+    # Cache hit - update access time (LRU tracking) and increment counter
+    .cache$access_times[[key]] <- Sys.time()
+    .cache$hits <- .cache$hits + 1
+    return(.cache$data[[key]])
   }
+
+  # Cache miss
+  .cache$misses <- .cache$misses + 1
   return(default)
+}
+
+# Get cache statistics with memory monitoring
+get_cache_stats <- function(include_keys = FALSE) {
+  # Calculate memory usage
+  total_memory <- 0
+  cache_keys <- ls(.cache$data)
+
+  if (length(cache_keys) > 0) {
+    total_memory <- sum(sapply(cache_keys, function(k) {
+      object.size(.cache$data[[k]])
+    }))
+  }
+
+  # Calculate actual hit rate
+  total_requests <- .cache$hits + .cache$misses
+  hit_rate <- if (total_requests > 0) {
+    .cache$hits / total_requests
+  } else {
+    0
+  }
+
+  stats <- list(
+    current_size = .cache$current_size,
+    max_size = .cache$max_size,
+    utilization = .cache$current_size / .cache$max_size,
+    hits = .cache$hits,
+    misses = .cache$misses,
+    total_requests = total_requests,
+    hit_rate = hit_rate,
+    evictions = .cache$evictions,
+    memory_bytes = total_memory,
+    memory_mb = round(total_memory / 1024^2, 2)
+  )
+
+  if (include_keys) {
+    stats$keys <- cache_keys
+  }
+
+  return(stats)
+}
+
+# Print cache statistics in human-readable format
+print_cache_stats <- function() {
+  stats <- get_cache_stats()
+
+  app_message("📊 Cache Statistics:", level = "info")
+  app_message(sprintf("   Size: %d / %d (%.1f%% full)",
+                     stats$current_size, stats$max_size, stats$utilization * 100))
+  app_message(sprintf("   Requests: %d total (%d hits, %d misses)",
+                     stats$total_requests, stats$hits, stats$misses))
+  app_message(sprintf("   Hit Rate: %.1f%%", stats$hit_rate * 100))
+  app_message(sprintf("   Evictions: %d", stats$evictions))
+  app_message(sprintf("   Memory: %.2f MB", stats$memory_mb))
+
+  invisible(stats)
+}
+
+# Invalidate caches when data changes
+#' Call this when bowtie data is updated to clear related caches
+invalidate_bowtie_caches <- function() {
+  # Clear all node and edge caches (they depend on hazard_data)
+  cache_keys <- ls(.cache$data)
+  nodes_edges_keys <- grep("^(nodes_updated|edges_updated)", cache_keys, value = TRUE)
+
+  for (key in nodes_edges_keys) {
+    rm(list = key, envir = .cache$data)
+    rm(list = key, envir = .cache$access_times)
+    .cache$current_size <- .cache$current_size - 1
+  }
+
+  bowtie_log(paste("🔄 Invalidated", length(nodes_edges_keys), "bowtie-related cache entries"), .verbose = TRUE)
+}
+
+# Memoization wrapper for expensive functions
+#' @param fn Function to memoize
+#' @param key_fn Optional function to generate cache key from arguments
+#' @return Memoized version of the function
+memoize <- function(fn, key_fn = NULL) {
+  force(fn)
+  force(key_fn)
+
+  function(...) {
+    # Generate cache key
+    args <- list(...)
+    if (is.null(key_fn)) {
+      # Fallback: use simple serialization if digest not available
+      if (requireNamespace("digest", quietly = TRUE)) {
+        key <- paste0("memo_", digest::digest(list(fn, args), algo = "xxhash64"))
+      } else {
+        # Simple hash based on deparse
+        key <- paste0("memo_", paste(collapse = "_", lapply(args, function(x) substr(digest::digest(x), 1, 8))))
+      }
+    } else {
+      key <- paste0("memo_", key_fn(...))
+    }
+
+    # Check cache
+    cached_result <- get_cache(key)
+    if (!is.null(cached_result)) {
+      bowtie_log(paste("📦 Cache hit for memoized function"), .verbose = TRUE)
+      return(cached_result)
+    }
+
+    # Compute and cache
+    bowtie_log(paste("🔄 Computing and caching result"), .verbose = TRUE)
+    result <- fn(...)
+    set_cache(key, result)
+
+    return(result)
+  }
+}
+
+# Simple memoization for parameterless functions
+#' @param fn Parameterless function to memoize
+#' @param cache_key Unique key for this function's cache entry
+#' @return Memoized version of the function
+memoize_simple <- function(fn, cache_key) {
+  force(fn)
+  force(cache_key)
+
+  function() {
+    cached_result <- get_cache(cache_key)
+    if (!is.null(cached_result)) {
+      bowtie_log(paste("📦 Using cached", cache_key), .verbose = TRUE)
+      return(cached_result)
+    }
+
+    bowtie_log(paste("🔄 Generating", cache_key), .verbose = TRUE)
+    result <- fn()
+    set_cache(cache_key, result)
+
+    return(result)
+  }
 }
 
 # Performance monitoring utilities
 .perf <- new.env()
 
-# Centralized, controllable logging helper
-# Use options(bowtie.verbose = TRUE) to enable logs in development. Tests/CI will be quiet by default.
-bowtie_log <- function(..., level = c("info", "warn", "error"), .verbose = getOption("bowtie.verbose", FALSE)) {
+# Centralized logging system
+# ============================================================================
+
+# User-facing application messages (always visible unless explicitly silenced)
+# Use for important startup messages, progress indicators, and user feedback
+# Control with options(bowtie.quiet = TRUE) to suppress non-critical messages
+app_message <- function(..., level = c("info", "success", "warn", "error"), force = FALSE) {
+  level <- match.arg(level)
+
+  # Check if messages should be shown
+  quiet_mode <- getOption("bowtie.quiet", FALSE)
+  if (quiet_mode && !force) return(invisible(NULL))
+
+  msg <- paste(..., collapse = " ")
+
+  # Use cat() for user-facing messages (goes to stdout, more predictable than message())
+  if (level %in% c("info", "success")) {
+    cat(msg, "\n", sep = "")
+  } else if (level == "warn") {
+    warning(msg, call. = FALSE, immediate. = TRUE)
+  } else if (level == "error") {
+    stop(msg, call. = FALSE)
+  }
+
+  invisible(msg)
+}
+
+# Developer/debug logging (quiet by default, verbose in development)
+# Use for debugging, profiling, and development messages
+# Enable with options(bowtie.verbose = TRUE)
+bowtie_log <- function(..., level = c("debug", "info", "warn", "error"), .verbose = getOption("bowtie.verbose", FALSE)) {
   level <- match.arg(level)
   if (!.verbose) return(invisible(NULL))
+
   msg <- paste(..., collapse = " ")
-  # Use message() so logs are visible but can be captured separately
-  if (level == "info") message(msg)
-  else if (level == "warn") warning(msg, call. = FALSE)
-  else message(msg)
+
+  # Use message() so logs can be captured separately from user output
+  if (level %in% c("debug", "info")) {
+    message(msg)
+  } else if (level == "warn") {
+    warning(msg, call. = FALSE, immediate. = TRUE)
+  } else {
+    message(msg)
+  }
+
+  invisible(msg)
 }
 
 # Performance timer
@@ -73,11 +290,98 @@ end_timer <- function(operation = "task", silent = FALSE) {
 
 # Memory usage check
 check_memory <- function() {
-  if (requireNamespace("pryr", quietly = TRUE)) {
-    bowtie_log(paste0("💾 Memory usage: ", pryr::mem_used()), .verbose = TRUE)
-  } else {
-    bowtie_log("💾 Memory monitoring requires 'pryr' package", .verbose = TRUE)
+  gc_info <- gc()
+  memory_mb <- round(sum(gc_info[, "used"] * c(8, 8)) / 1024 / 1024, 2)
+  bowtie_log(paste0("💾 Memory usage: ", memory_mb, " MB"), .verbose = TRUE)
+  return(memory_mb)
+}
+
+# Enhanced performance benchmarking utilities
+.benchmark <- new.env()
+.benchmark$history <- list()
+
+# Benchmark a function execution
+benchmark_function <- function(fn, name = "function", iterations = 1, ...) {
+  times <- numeric(iterations)
+  memory_before <- check_memory()
+
+  for (i in 1:iterations) {
+    start_time <- Sys.time()
+    result <- fn(...)
+    end_time <- Sys.time()
+    times[i] <- as.numeric(difftime(end_time, start_time, units = "secs"))
   }
+
+  memory_after <- check_memory()
+  memory_delta <- memory_after - memory_before
+
+  benchmark_result <- list(
+    name = name,
+    iterations = iterations,
+    min_time = min(times),
+    max_time = max(times),
+    mean_time = mean(times),
+    median_time = median(times),
+    total_time = sum(times),
+    memory_delta_mb = memory_delta,
+    timestamp = Sys.time()
+  )
+
+  # Store in history
+  .benchmark$history[[length(.benchmark$history) + 1]] <- benchmark_result
+
+  # Print summary
+  bowtie_log(paste0(
+    "📊 Benchmark: ", name,
+    " | Mean: ", round(benchmark_result$mean_time, 3), "s",
+    " | Median: ", round(benchmark_result$median_time, 3), "s",
+    " | Memory Δ: ", round(memory_delta, 2), " MB"
+  ), .verbose = TRUE)
+
+  return(benchmark_result)
+}
+
+# Get benchmark history
+get_benchmark_history <- function() {
+  .benchmark$history
+}
+
+# Clear benchmark history
+clear_benchmark_history <- function() {
+  .benchmark$history <- list()
+  bowtie_log("🧹 Benchmark history cleared", .verbose = TRUE)
+}
+
+# Compare two benchmark results
+compare_benchmarks <- function(name1, name2) {
+  history <- .benchmark$history
+  bench1 <- Find(function(x) x$name == name1, history)
+  bench2 <- Find(function(x) x$name == name2, history)
+
+  if (is.null(bench1) || is.null(bench2)) {
+    bowtie_log("⚠️  One or both benchmarks not found", .verbose = TRUE)
+    return(NULL)
+  }
+
+  speedup <- bench1$mean_time / bench2$mean_time
+  memory_diff <- bench2$memory_delta_mb - bench1$memory_delta_mb
+
+  result <- list(
+    name1 = name1,
+    name2 = name2,
+    speedup = speedup,
+    speedup_percent = (speedup - 1) * 100,
+    memory_difference_mb = memory_diff,
+    faster = if(speedup > 1) name2 else name1
+  )
+
+  bowtie_log(paste0(
+    "🏁 ", result$faster, " is ", abs(round(result$speedup_percent, 1)),
+    "% ", if(speedup > 1) "faster" else "slower",
+    " | Memory diff: ", round(memory_diff, 2), " MB"
+  ), .verbose = TRUE)
+
+  return(result)
 }
 
 # Function to generate environmental management sample data with connections and granular risk values
@@ -473,13 +777,24 @@ calculateRiskLevel <- function(likelihood, severity) {
 } 
 
 # Improved color mappings for comprehensive structure
-RISK_COLORS <- c("Low" = "#90EE90", "Medium" = "#FFD700", "High" = "#FF6B6B")
-ACTIVITY_COLOR <- "#8E44AD"          # Purple for activities
-PRESSURE_COLOR <- "#E74C3C"          # Red for pressures/threats
-PREVENTIVE_COLOR <- "#27AE60"        # Green for preventive controls
-ESCALATION_COLOR <- "#F39C12"        # Orange for escalation factors
+# Use APP_CONFIG if available, otherwise use fallback defaults
+if (exists("APP_CONFIG")) {
+  RISK_COLORS <- c(
+    "Low" = APP_CONFIG$RISK_LEVELS$LOW$color,
+    "Medium" = APP_CONFIG$RISK_LEVELS$MEDIUM$color,
+    "High" = APP_CONFIG$RISK_LEVELS$HIGH$color
+  )
+} else {
+  RISK_COLORS <- c("Low" = "#90EE90", "Medium" = "#FFD700", "High" = "#FF6B6B")
+}
+
+# Node type colors with APP_CONFIG integration
+ACTIVITY_COLOR <- if(exists("APP_CONFIG")) "#8E44AD" else "#8E44AD"          # Purple for activities
+PRESSURE_COLOR <- if(exists("APP_CONFIG")) APP_CONFIG$THEME$DANGER_COLOR else "#E74C3C"          # Red for pressures/threats
+PREVENTIVE_COLOR <- if(exists("APP_CONFIG")) APP_CONFIG$THEME$SUCCESS_COLOR else "#27AE60"        # Green for preventive controls
+ESCALATION_COLOR <- if(exists("APP_CONFIG")) APP_CONFIG$THEME$WARNING_COLOR else "#F39C12"        # Orange for escalation factors
 CENTRAL_PROBLEM_COLOR <- "#C0392B"   # Dark red for central problem
-PROTECTIVE_COLOR <- "#3498DB"        # Blue for protective mitigation
+PROTECTIVE_COLOR <- if(exists("APP_CONFIG")) APP_CONFIG$THEME$INFO_COLOR else "#3498DB"        # Blue for protective mitigation
 CONSEQUENCE_COLOR <- "#E67E22"       # Dark orange for consequences
 
 # Optimized risk color function - accepts numeric scores or categorical levels
@@ -501,19 +816,20 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
   if (missing(hazard_data) || !is.data.frame(hazard_data) || nrow(hazard_data) == 0) {
     stop("Invalid hazard data: 'hazard_data' must be a non-empty data.frame with required columns")
   }
-  required_cols <- c("Activity", "Pressure", "Problem", "Consequence")
+  required_cols <- c("Activity", "Pressure", "Central_Problem", "Consequence")
   if (!all(required_cols %in% names(hazard_data))) {
     stop(sprintf("Invalid hazard data: missing required columns: %s", paste(setdiff(required_cols, names(hazard_data)), collapse = ", ")))
   }
 
-  # Check cache first (removed aggressive cache clearing for better performance)
+  # Check cache first using LRU-aware get_cache()
   cache_key <- paste0("nodes_updated_v432_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
-  if (exists(cache_key, envir = .cache)) {
-    cat("📋 Using cached nodes\n")
-    return(get(cache_key, envir = .cache))
+  cached_nodes <- get_cache(cache_key)
+  if (!is.null(cached_nodes)) {
+    bowtie_log("📋 Using cached nodes", level = "debug")
+    return(cached_nodes)
   }
 
-  cat("🔧 Creating Updated bowtie nodes (v432 - extra spacing)\n")
+  bowtie_log("🔧 Creating Updated bowtie nodes (v432 - extra spacing)", level = "debug")
 
   # Helper function to wrap text for multi-word labels
   wrap_label <- function(text, max_width = 20) {
@@ -560,8 +876,8 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
     protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
     n_barriers <- length(preventive_controls) + length(escalation_factors) + length(protective_mitigations)
-    
-    cat("🛡️ Found", length(protective_mitigations), "unique protective mitigations\n")
+
+    bowtie_log("🛡️ Found", length(protective_mitigations), "unique protective mitigations", level = "debug")
   }
   
   total_nodes <- 1 + n_activities + n_pressures + n_consequences + n_barriers
@@ -839,10 +1155,10 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
         )
       }
 
-      cat("🔗 Created", length(protective_mitigations), "protective mitigation nodes\n")
+      bowtie_log("🔗 Created", length(protective_mitigations), "protective mitigation nodes", level = "debug")
     }
   }
-  
+
   nodes <- data.frame(
     id = ids,
     label = labels,
@@ -856,11 +1172,11 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     y = y_coords,
     stringsAsFactors = FALSE
   )
-  
-  cat("✅ Created", nrow(nodes), "total nodes for Updated bowtie\n")
-  
-  # Cache the result
-  assign(cache_key, nodes, envir = .cache)
+
+  bowtie_log("✅ Created", nrow(nodes), "total nodes for Updated bowtie", level = "debug")
+
+  # Cache the result using LRU-aware set_cache()
+  set_cache(cache_key, nodes)
   nodes
 }
 
@@ -879,12 +1195,13 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
   }
   
   cache_key <- paste0("edges_updated_v430_", nrow(hazard_data), "_", show_barriers, "_", mitigation_hash)
-  if (exists(cache_key, envir = .cache)) {
-    cat("📋 Using cached edges\n")
-    return(get(cache_key, envir = .cache))
+  cached_edges <- get_cache(cache_key)
+  if (!is.null(cached_edges)) {
+    bowtie_log("📋 Using cached edges", level = "debug")
+    return(cached_edges)
   }
-  
-  cat("🔧 Creating Updated bowtie edges with improved protective mitigation connections\n")
+
+  bowtie_log("🔧 Creating Updated bowtie edges with improved protective mitigation connections", level = "debug")
   
   activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
   pressures <- unique(hazard_data$Pressure[hazard_data$Pressure != ""])
@@ -968,9 +1285,9 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
     preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
     escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
     protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
-    
-    cat("🛡️ Found", length(protective_mitigations), "unique protective mitigations\n")
-    cat("🎯 Found", length(consequences), "unique consequences\n")
+
+    bowtie_log("🛡️ Found", length(protective_mitigations), "unique protective mitigations", level = "debug")
+    bowtie_log("🎯 Found", length(consequences), "unique consequences", level = "debug")
     
     # Activity → Pressure connections
     for (i in seq_along(activities)) {
@@ -1096,9 +1413,9 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
       mitigation = hazard_data$Protective_Mitigation,
       stringsAsFactors = FALSE
     )
-    
-    cat("🔍 Processing", nrow(mitigation_map), "mitigation mappings\n")
-    
+
+    bowtie_log("🔍 Processing", nrow(mitigation_map), "mitigation mappings", level = "debug")
+
     # Method 1: Improved row-wise mapping with validation
     for (i in seq_len(nrow(hazard_data))) {
       row <- hazard_data[i, ]
@@ -1137,14 +1454,14 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
           ))
 
           mitigation_connections <- mitigation_connections + 1
-          cat("✅ Connected mitigation", mitigation_idx, "('", substr(mitigation, 1, 30), "...') to consequence", consequence_idx, "('", consequence, "')\n")
+          bowtie_log("✅ Connected mitigation", mitigation_idx, "('", substr(mitigation, 1, 30), "...') to consequence", consequence_idx, "('", consequence, "')", level = "debug")
         }
       }
     }
 
     # Connect escalation factors to protective mitigations (right side of bowtie)
     # Escalation factors can weaken both preventive controls (left) AND protective mitigations (right)
-    cat("🔗 Connecting escalation factors to protective mitigations...\n")
+    bowtie_log("🔗 Connecting escalation factors to protective mitigations...", level = "debug")
     escalation_mitigation_connections <- 0
 
     for (i in seq_len(nrow(hazard_data))) {
@@ -1176,7 +1493,7 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
     }
 
     if (escalation_mitigation_connections > 0) {
-      cat("✅ Created", escalation_mitigation_connections, "escalation → protective mitigation connections\n")
+      bowtie_log("✅ Created", escalation_mitigation_connections, "escalation → protective mitigation connections", level = "debug")
     }
 
     # Method 2: Add remaining direct connections for consequences without proper mitigation
@@ -1202,16 +1519,16 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
           "<b>To:</b> ", consequence
         ))
         direct_connections <- direct_connections + 1
-        cat("⚠️ Direct connection to consequence", i, "('", consequence, "') - no proper mitigation\n")
+        bowtie_log("⚠️ Direct connection to consequence", i, "('", consequence, "') - no proper mitigation", level = "debug")
       }
     }
-    
-    cat("📊 Connection Summary:\n")
-    cat("   🔗 Central → Mitigation connections:", mitigation_connections, "\n")
-    cat("   ⚡ Escalation → Mitigation connections:", escalation_mitigation_connections, "\n")
-    cat("   ➡️ Direct consequence connections:", direct_connections, "\n")
+
+    bowtie_log("📊 Connection Summary:", level = "debug")
+    bowtie_log("   🔗 Central → Mitigation connections:", mitigation_connections, level = "debug")
+    bowtie_log("   ⚡ Escalation → Mitigation connections:", escalation_mitigation_connections, level = "debug")
+    bowtie_log("   ➡️ Direct consequence connections:", direct_connections, level = "debug")
   }
-  
+
   edges <- data.frame(
     from = from,
     to = to,
@@ -1222,11 +1539,11 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
     title = titles,
     stringsAsFactors = FALSE
   )
-  
-  cat("✅ Created", nrow(edges), "edges with protective mitigation connections\n")
-  
-  # Cache the result
-  assign(cache_key, edges, envir = .cache)
+
+  bowtie_log("✅ Created", nrow(edges), "edges with protective mitigation connections", level = "debug")
+
+  # Cache the result using LRU-aware set_cache()
+  set_cache(cache_key, edges)
   edges
 }
 
@@ -1359,7 +1676,7 @@ validateProtectiveMitigations <- function(data) {
 
 # NEW: Generate data with multiple preventive controls per pressure
 generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
-  cat("🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure\n")
+  bowtie_log("🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure", level = "debug")
 
   # If a scenario is provided, use it as the base and expand controls
   if (!is.null(scenario_key) && scenario_key != "") {
@@ -1367,7 +1684,7 @@ generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
       # Use generateScenarioSpecificBowtie to get base scenario data
       base_scenario <- generateScenarioSpecificBowtie(scenario_key)
       if (!is.null(base_scenario) && nrow(base_scenario) > 0) {
-        cat("📋 Using scenario:", scenario_key, "\n")
+        bowtie_log("📋 Using scenario:", scenario_key, level = "debug")
 
         # Define scenario-specific control variations
         preventive_variations <- switch(scenario_key,
@@ -1516,17 +1833,17 @@ generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
           return(replicated_rows)
         }))
 
-        cat("✅ Expanded to", nrow(expanded_data), "rows with multiple DIFFERENT controls\n")
+        bowtie_log("✅ Expanded to", nrow(expanded_data), "rows with multiple DIFFERENT controls", level = "debug")
         return(expanded_data)
       }
     }, error = function(e) {
-      cat("⚠️ Error using scenario:", scenario_key, "-", e$message, "\n")
-      cat("📋 Falling back to default scenario\n")
+      bowtie_log("⚠️ Error using scenario:", scenario_key, "-", e$message, level = "warn")
+      bowtie_log("📋 Falling back to default scenario", level = "debug")
     })
   }
-  
+
   # Default fallback: generate water pollution scenario with multiple controls
-  cat("📋 Using default water pollution scenario with multiple controls\n")
+  bowtie_log("📋 Using default water pollution scenario with multiple controls", level = "debug")
   
   # Define pressure-control relationships (2 controls per activity for tidier diagram)
   pressure_control_data <- data.frame(
@@ -1612,15 +1929,15 @@ generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
   
   # Add default columns (pass empty scenario for default escalation factors)
   pressure_control_data <- addDefaultColumns(pressure_control_data, "")
-  
-  cat("✅ Generated", n_rows, "entries with multiple preventive controls per pressure\n")
-  cat("🎯 Unique pressures:", length(unique(pressure_control_data$Pressure)), "\n")
-  cat("🛡️ Unique preventive controls:", length(unique(pressure_control_data$Preventive_Control)), "\n")
-  cat("📊 Controls per pressure:\n")
+
+  bowtie_log("✅ Generated", n_rows, "entries with multiple preventive controls per pressure", level = "debug")
+  bowtie_log("🎯 Unique pressures:", length(unique(pressure_control_data$Pressure)), level = "debug")
+  bowtie_log("🛡️ Unique preventive controls:", length(unique(pressure_control_data$Preventive_Control)), level = "debug")
+  bowtie_log("📊 Controls per pressure:", level = "debug")
   pressure_counts <- table(pressure_control_data$Pressure)
   for (pressure in names(pressure_counts)) {
     controls_for_pressure <- unique(pressure_control_data$Preventive_Control[pressure_control_data$Pressure == pressure])
-    cat("   ", pressure, ":", length(controls_for_pressure), "controls\n")
+    bowtie_log("   ", pressure, ":", length(controls_for_pressure), "controls", level = "debug")
   }
   
   return(pressure_control_data)
@@ -1628,18 +1945,18 @@ generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
 
 # Generate bowtie data using ALL vocabulary elements from Excel files
 generateDataFromVocabulary <- function(scenario_type = "marine_pollution") {
-  cat("🔄 Redirecting to FOCUSED bow-tie generation instead of comprehensive data...\n")
-  cat("📋 Using focused scenario:", scenario_type, "\n")
+  bowtie_log("🔄 Redirecting to FOCUSED bow-tie generation instead of comprehensive data...", level = "debug")
+  bowtie_log("📋 Using focused scenario:", scenario_type, level = "debug")
 
   # Redirect to our focused scenario-specific function
   return(generateScenarioSpecificBowtie(scenario_type))
 
 
-  cat("📊 Using vocabulary data:\n")
-  cat("   • Activities:", nrow(activities), "items\n")
-  cat("   • Pressures:", nrow(pressures), "items\n")
-  cat("   • Consequences:", nrow(consequences), "items\n")
-  cat("   • Controls:", nrow(controls), "items\n")
+  bowtie_log("📊 Using vocabulary data:", level = "debug")
+  bowtie_log("   • Activities:", nrow(activities), "items", level = "debug")
+  bowtie_log("   • Pressures:", nrow(pressures), "items", level = "debug")
+  bowtie_log("   • Consequences:", nrow(consequences), "items", level = "debug")
+  bowtie_log("   • Controls:", nrow(controls), "items", level = "debug")
 
   # Create comprehensive bowtie combinations
   # Each activity can cause multiple pressures, each pressure needs controls and can lead to consequences
@@ -1724,18 +2041,18 @@ generateDataFromVocabulary <- function(scenario_type = "marine_pollution") {
   # Add default columns that the app expects
   bowtie_data <- addDefaultColumns(bowtie_data)
 
-  cat("✅ Generated", nrow(bowtie_data), "comprehensive bowtie scenarios from vocabulary\n")
-  cat("🎯 Activities included:", length(unique(bowtie_data$Activity)), "/", nrow(activities), "\n")
-  cat("⚠️ Pressures included:", length(unique(bowtie_data$Pressure)), "/", nrow(pressures), "\n")
-  cat("🛡️ Controls included:", length(unique(c(bowtie_data$Preventive_Control, bowtie_data$Protective_Control))), "/", nrow(controls), "\n")
-  cat("💥 Consequences included:", length(unique(bowtie_data$Consequence)), "/", nrow(consequences), "\n")
+  bowtie_log("✅ Generated", nrow(bowtie_data), "comprehensive bowtie scenarios from vocabulary", level = "debug")
+  bowtie_log("🎯 Activities included:", length(unique(bowtie_data$Activity)), "/", nrow(activities), level = "debug")
+  bowtie_log("⚠️ Pressures included:", length(unique(bowtie_data$Pressure)), "/", nrow(pressures), level = "debug")
+  bowtie_log("🛡️ Controls included:", length(unique(c(bowtie_data$Preventive_Control, bowtie_data$Protective_Control))), "/", nrow(controls), level = "debug")
+  bowtie_log("💥 Consequences included:", length(unique(bowtie_data$Consequence)), "/", nrow(consequences), level = "debug")
 
   return(bowtie_data)
 }
 
 # Generate scenario-specific bowtie data with SINGLE central problem
 generateScenarioSpecificBowtie <- function(scenario_type = "") {
-  cat("🎯 Generating FOCUSED bowtie with ONE central problem for scenario:", scenario_type, "\n")
+  bowtie_log("🎯 Generating FOCUSED bowtie with ONE central problem for scenario:", scenario_type, level = "debug")
 
   # Check if vocabulary_data is available
   if (!exists("vocabulary_data") || is.null(vocabulary_data)) {
@@ -1832,18 +2149,18 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
     )
   )
 
-  cat("📋 Scenario:", scenario_type, "\n")
-  cat("🎯 Central Problem:", scenario_config$central_problem, "\n")
+  bowtie_log("📋 Scenario:", scenario_type, level = "debug")
+  bowtie_log("🎯 Central Problem:", scenario_config$central_problem, level = "debug")
 
   # Use SPECIFIC elements for focused bow-tie (no filtering needed - direct selection)
   focused_activities <- scenario_config$specific_activities
   focused_pressures <- scenario_config$specific_pressures
   focused_consequences <- scenario_config$specific_consequences
 
-  cat("📊 Focused elements:\n")
-  cat("   • Activities:", length(focused_activities), "specific items\n")
-  cat("   • Pressures:", length(focused_pressures), "specific items\n")
-  cat("   • Consequences:", length(focused_consequences), "specific items\n")
+  bowtie_log("📊 Focused elements:", level = "debug")
+  bowtie_log("   • Activities:", length(focused_activities), "specific items", level = "debug")
+  bowtie_log("   • Pressures:", length(focused_pressures), "specific items", level = "debug")
+  bowtie_log("   • Consequences:", length(focused_consequences), "specific items", level = "debug")
 
   # Generate well-connected activity-pressure combinations
   activity_pressure_combinations <- list()
@@ -1908,7 +2225,7 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   # Use the well-connected pairs (limit to 2)
   activity_pressure_combinations <- head(scenario_specific_pairs, 2)
 
-  cat("🔗 Created", length(activity_pressure_combinations), "well-connected activity-pressure pairs\n")
+  bowtie_log("🔗 Created", length(activity_pressure_combinations), "well-connected activity-pressure pairs", level = "debug")
 
   # Generate bowtie data with SINGLE central problem
   bowtie_data <- data.frame(
@@ -2016,12 +2333,12 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   # Add default columns that the app expects
   bowtie_data <- addDefaultColumns(bowtie_data, scenario_type)
 
-  cat("✅ Generated", nrow(bowtie_data), "bowtie scenarios with SINGLE central problem\n")
-  cat("🎯 Central Problem:", unique(bowtie_data$Central_Problem), "\n")
-  cat("📊 Activities:", length(unique(bowtie_data$Activity)), "\n")
-  cat("⚠️ Pressures:", length(unique(bowtie_data$Pressure)), "\n")
-  cat("💥 Consequences:", length(unique(bowtie_data$Consequence)), "\n")
-  cat("🛡️ Controls:", length(unique(c(bowtie_data$Preventive_Control, bowtie_data$Protective_Control))), "\n")
+  bowtie_log("✅ Generated", nrow(bowtie_data), "bowtie scenarios with SINGLE central problem", level = "debug")
+  bowtie_log("🎯 Central Problem:", unique(bowtie_data$Central_Problem), level = "debug")
+  bowtie_log("📊 Activities:", length(unique(bowtie_data$Activity)), level = "debug")
+  bowtie_log("⚠️ Pressures:", length(unique(bowtie_data$Pressure)), level = "debug")
+  bowtie_log("💥 Consequences:", length(unique(bowtie_data$Consequence)), level = "debug")
+  bowtie_log("🛡️ Controls:", length(unique(c(bowtie_data$Preventive_Control, bowtie_data$Protective_Control))), level = "debug")
 
   return(bowtie_data)
 }
@@ -2055,11 +2372,11 @@ generate_comprehensive_environmental_data <- function(num_scenarios = 100,
   return(df)
 }
 
-cat("🎉 v5.1.0 Environmental Bowtie Risk Analysis Utilities Loaded\n")
-cat("✅ Protective mitigation connections\n")
-cat("🖼️ PNG image support enabled\n")
-cat("🔗 GRANULAR connection-level risk analysis (7 connections per scenario)\n")
-cat("   • Escalation factors affect BOTH preventive controls AND protective mitigations\n")
-cat("🎯 Overall pathway risk calculation from granular components\n")
-cat("🔧 Mapping and validation functions ready\n")
-cat("🆕 MULTIPLE PREVENTIVE CONTROLS per pressure support added\n")
+app_message("🎉 v5.1.0 Environmental Bowtie Risk Analysis Utilities Loaded", level = "success")
+app_message("✅ Protective mitigation connections")
+app_message("🖼️ PNG image support enabled")
+app_message("🔗 GRANULAR connection-level risk analysis (7 connections per scenario)")
+app_message("   • Escalation factors affect BOTH preventive controls AND protective mitigations")
+app_message("🎯 Overall pathway risk calculation from granular components")
+app_message("🔧 Mapping and validation functions ready")
+app_message("🆕 MULTIPLE PREVENTIVE CONTROLS per pressure support added")

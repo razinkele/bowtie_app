@@ -70,13 +70,13 @@ test_that("Vocabulary loading performance is acceptable", {
   skip_if_not_installed("microbenchmark")
   library(microbenchmark)
 
-  # Ensure vocabulary.r is available
-  expect_true(file.exists("vocabulary.r"), "vocabulary.r file should exist")
+  # Ensure vocabulary.R is available
+  expect_true(file.exists("vocabulary.R"), "vocabulary.R file should exist")
 
   # Measure vocabulary loading time
   vocab_benchmark <- microbenchmark(
     {
-      source("vocabulary.r", chdir = TRUE)
+      source("vocabulary.R", chdir = TRUE)
       vocabulary_data <- load_vocabulary()
     },
     times = 5,
@@ -116,7 +116,7 @@ test_that("Guided workflow initialization performance", {
   library(microbenchmark)
 
   # Ensure guided workflow file exists
-  expect_true(file.exists("guided_workflow.r"), "guided_workflow.r should exist")
+  expect_true(file.exists("guided_workflow.R"), "guided_workflow.R should exist")
 
   # Measure guided workflow loading time
   workflow_benchmark <- microbenchmark(
@@ -183,7 +183,7 @@ test_that("Icon rendering performance after standardization", {
   }
 
   # Test that guided workflow icons are efficiently implemented
-  workflow_content <- safe_read("guided_workflow.r")
+  workflow_content <- safe_read("guided_workflow.R")
   if (length(workflow_content) > 0) {
     workflow_icons <- length(grep('icon\\(', workflow_content))
 

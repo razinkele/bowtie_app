@@ -50,7 +50,11 @@
       "WebSearch",
       "WebFetch(domain:shiny.posit.co)",
       "Bash(git rm:*)",
-      "Bash(timeout 60 Rscript:*)"
+      "Bash(timeout 60 Rscript:*)",
+      "Bash(timeout 15 echo:*)",
+      "Bash(timeout 20 echo:*)",
+      "Bash(timeout 20 Rscript:*)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": []

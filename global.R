@@ -38,10 +38,39 @@ if (!file.exists(file.path(base_dir, "config.R"))) {
 # Source config using resolved base_dir
 source(file.path(base_dir, "config.R"))
 
+# Centralized logging functions (defined early for use in startup)
+# ============================================================================
+
+# User-facing application messages (always visible unless explicitly silenced)
+app_message <- function(..., level = c("info", "success", "warn", "error"), force = FALSE) {
+  level <- match.arg(level)
+  quiet_mode <- getOption("bowtie.quiet", FALSE)
+  if (quiet_mode && !force) return(invisible(NULL))
+
+  msg <- paste(..., collapse = " ")
+
+  if (level %in% c("info", "success")) {
+    cat(msg, "\n", sep = "")
+  } else if (level == "warn") {
+    warning(msg, call. = FALSE, immediate. = TRUE)
+  } else if (level == "error") {
+    stop(msg, call. = FALSE)
+  }
+  invisible(msg)
+}
+
+# Developer/debug logging (quiet by default)
+bowtie_log <- function(..., level = c("debug", "info"), .verbose = getOption("bowtie.verbose", FALSE)) {
+  level <- match.arg(level)
+  if (!.verbose) return(invisible(NULL))
+  message(paste(..., collapse = " "))
+  invisible(NULL)
+}
+
 # Enhanced package loading with better error handling
 load_packages <- function() {
-  cat("🚀 Starting", APP_CONFIG$TITLE, "...\n")
-  cat("📦 Loading required packages...\n")
+  app_message("🚀 Starting", APP_CONFIG$TITLE, "...")
+  app_message("📦 Loading required packages...")
 
   required_packages <- c(
     "shiny", "bslib", "DT", "readxl", "openxlsx",
@@ -52,78 +81,85 @@ load_packages <- function() {
   bayesian_packages <- c("bnlearn", "gRain", "igraph", "DiagrammeR")
 
   # Load core packages
-  cat("   • Loading core Shiny and visualization packages...\n")
+  app_message("   • Loading core Shiny and visualization packages...")
   for (pkg in required_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      cat("     ⚠️ Package not installed:", pkg, "- continuing without it for tests\n")
+      app_message("     ⚠️ Package not installed:", pkg, "- continuing without it for tests", level = "warn")
     }
   }
 
   # Load Bayesian network packages with a warning if missing
-  cat("   • Loading Bayesian network analysis packages...\n")
+  app_message("   • Loading Bayesian network analysis packages...")
   for (pkg in bayesian_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      cat("     ⚠️ Bayesian package not installed:", pkg, "- some features may be unavailable\n")
+      app_message("     ⚠️ Bayesian package not installed:", pkg, "- some features may be unavailable", level = "warn")
     }
   }
-  cat("✅ Package presence checked (non-installing mode for tests)\n")
+  app_message("✅ Package presence checked (non-installing mode for tests)", level = "success")
 }
 
 # Load all packages
 suppressMessages(load_packages())
 
 # Source utility functions and vocabulary management
-cat("🔧 Loading application modules...\n")
-cat("   • Loading utility functions and data management...\n")
+app_message("🔧 Loading application modules...")
+app_message("   • Loading utility functions and data management...")
 source(file.path(base_dir, "utils.R"))
 source(file.path(base_dir, "vocabulary.R"))
+source(file.path(base_dir, "custom_terms_storage.R"))
 source(file.path(base_dir, "environmental_scenarios.R"))
 
 # Load translation system from separate file
-cat("   • Loading translation system...\n")
+app_message("   • Loading translation system...")
 source(file.path(base_dir, "translations_data.R"))
 
-cat("   • Loading Bayesian network analysis...\n")
+app_message("   • Loading Bayesian network analysis...")
 tryCatch({
   source(file.path(base_dir, "bowtie_bayesian_network.R"))
-  cat("     ✓ Bayesian network analysis loaded\n")
+  app_message("     ✓ Bayesian network analysis loaded", level = "success")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Failed to load Bayesian network analysis:", e$message, "\n")
+  app_message("     ⚠️ Warning: Failed to load Bayesian network analysis", level = "warn")
+  bowtie_log("        Error:", e$message, level = "debug")
+  app_message("        Note: Bayesian network features will be unavailable. Install required packages with:")
+  app_message("              install.packages(c('bnlearn', 'gRain', 'igraph'))")
 })
 
-cat("   • Loading vocabulary bowtie generator...\n")
+app_message("   • Loading vocabulary bowtie generator...")
 tryCatch({
   source(file.path(base_dir, "vocabulary_bowtie_generator.R"))
-  cat("     ✓ Vocabulary bowtie generator loaded\n")
+  app_message("     ✓ Vocabulary bowtie generator loaded", level = "success")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Failed to load vocabulary bowtie generator:", e$message, "\n")
+  app_message("     ⚠️ Warning: Failed to load vocabulary bowtie generator", level = "warn")
+  bowtie_log("        Error:", e$message, level = "debug")
+  app_message("        Note: AI-assisted bowtie generation will be unavailable.")
+  app_message("              You can still use the guided workflow with manual selection.")
 })
 
 # Source guided workflow system with dependency management
 # source("guided_workflow.R")  # marker for consistency tests (do not remove)
-cat("   • Loading guided workflow system...\n")
+app_message("   • Loading guided workflow system...")
 tryCatch({
   # Load workflow configuration first
   source(file.path(base_dir, "guided_workflow.R"))
-  cat("     ✓ Guided workflow core loaded\n")
+  app_message("     ✓ Guided workflow core loaded", level = "success")
 
   # Load step definitions (depends on WORKFLOW_CONFIG from guided_workflow.R)
   # NOTE: guided_workflow_steps.r was removed - functionality merged into guided_workflow.R
   # source(file.path(base_dir, "guided_workflow_steps.r"))
-  # cat("     ✓ Workflow step definitions loaded\n")
+  # app_message("     ✓ Workflow step definitions loaded", level = "success")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Failed to load guided workflow system:", e$message, "\n")
+  app_message("     ⚠️ Warning: Failed to load guided workflow system:", e$message, level = "warn")
 })
 
 # Enhanced vocabulary data loading with graceful fallback
 load_app_data <- function() {
   tryCatch({
     vocabulary_data <- load_vocabulary()
-    cat("✅ Vocabulary data loaded successfully\n")
+    app_message("✅ Vocabulary data loaded successfully", level = "success")
     return(vocabulary_data)
   }, error = function(e) {
-    cat("⚠️ Warning: Could not load vocabulary data:", e$message, "\n")
-    cat("📝 Using fallback empty data structure\n")
+    app_message("⚠️ Warning: Could not load vocabulary data:", e$message, level = "warn")
+    app_message("📝 Using fallback empty data structure")
     return(list(
       activities = data.frame(hierarchy = character(), id = character(), name = character()),
       pressures = data.frame(hierarchy = character(), id = character(), name = character()),
@@ -134,5 +170,5 @@ load_app_data <- function() {
 }
 
 # Load vocabulary data with enhanced error handling
-cat("📊 Loading environmental vocabulary data from Excel files...\n")
+app_message("📊 Loading environmental vocabulary data from Excel files...")
 vocabulary_data <- load_app_data()

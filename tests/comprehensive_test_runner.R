@@ -1,6 +1,6 @@
-# comprehensive_test_runner.R (Version 5.3.4 - Advanced Framework)
+# comprehensive_test_runner.R (Version 5.4.1 - Advanced Framework)
 # Enhanced test runner with parallel execution, performance monitoring, and advanced reporting
-# Version 5.3.4 Features: Custom entries testing, manual linking testing, parallel testing, memory monitoring, performance benchmarking, CI/CD integration, advanced analytics
+# Version 5.4.1 Features: Custom terms system, custom entries testing, manual linking testing, parallel testing, memory monitoring, performance benchmarking, CI/CD integration, advanced analytics
 
 suppressWarnings(suppressMessages({
   library(testthat)
@@ -22,8 +22,8 @@ if (basename(current_dir) == "tests") {
 }
 
 cat("========================================\n")
-cat("Environmental Bowtie App Test Runner v5.3.4\n")
-cat("Enhanced with custom entries, manual linking, workflow fixes & CI/CD integration\n")
+cat("Environmental Bowtie App Test Runner v5.4.1\n")
+cat("Enhanced with custom terms system, custom entries, manual linking, workflow fixes & CI/CD integration\n")
 cat("========================================\n\n")
 
 cat("Working directory:", getwd(), "\n")
@@ -42,6 +42,7 @@ test_config <- list(
   run_export_fixes = TRUE,  # NEW v5.3.2: Test export & completion
   run_custom_entries = TRUE,  # NEW v5.3.4: Test custom entries feature
   run_manual_linking = TRUE,  # NEW v5.3.4: Test manual linking feature
+  run_custom_terms_system = TRUE,  # NEW v5.4.1: Test custom terms tracking & review
   skip_problematic_tests = TRUE,  # Skip tests causing segfaults
   parallel_execution = TRUE,  # NEW: Enable parallel testing
   memory_profiling = TRUE,  # NEW: Memory usage monitoring
@@ -379,6 +380,23 @@ if (test_config$run_manual_linking && file.exists("tests/testthat/test-manual-li
   if (!is.null(manual_linking_result)) {
     all_results$manual_linking <- manual_linking_result
     cat("✅ Manual linking tests completed\n")
+  }
+}
+
+# NEW v5.4.1: Run custom terms system tests
+if (test_config$run_custom_terms_system && file.exists("tests/testthat/test-custom-terms-system.R")) {
+  cat("\n=== RUNNING CUSTOM TERMS SYSTEM TESTS (v5.4.1) ===\n")
+  cat("Testing: Custom term detection, tracking, metadata, Excel export, review panel, integration\n")
+  custom_terms_result <- tryCatch({
+    test_file("tests/testthat/test-custom-terms-system.R", reporter = "progress")
+  }, error = function(e) {
+    cat("❌ Error running custom terms system tests:", e$message, "\n")
+    NULL
+  })
+
+  if (!is.null(custom_terms_result)) {
+    all_results$custom_terms_system <- custom_terms_result
+    cat("✅ Custom terms system tests completed\n")
   }
 }
 

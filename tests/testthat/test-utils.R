@@ -106,6 +106,6 @@ test_that("getDataSummaryFixed returns valid summary", {
 })
 
 # Test cache functions
-test_that("clearCache works without error", {
-  expect_no_error(clearCache())
+test_that("clear_cache works without error", {
+  expect_no_error(clear_cache())
 })

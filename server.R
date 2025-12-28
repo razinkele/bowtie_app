@@ -30,7 +30,7 @@ server <- function(input, output, session) {
       updateActionButton(session, "applyLanguage",
                         label = t("apply_language", new_lang), icon = icon("check"))
     }, error = function(e) {
-      cat("Note: Some UI elements may not update until page refresh\n")
+      bowtie_log("Note: Some UI elements may not update until page refresh", level = "debug")
     })
 
     # Update main navigation tab titles using JavaScript
@@ -97,28 +97,38 @@ server <- function(input, output, session) {
   themeUpdateTrigger <- reactiveVal(0)
   appliedTheme <- reactiveVal("zephyr")
 
-  # Optimized data retrieval with caching
+  # Optimized data retrieval with caching and reduced reactive dependencies
   getCurrentData <- reactive({
+    # Only depend on the reactive values when needed
     edited <- editedData()
-    if (!is.null(edited)) edited else currentData()
+    current <- currentData()
+
+    # Return edited if available, otherwise current
+    if (!is.null(edited) && is.data.frame(edited) && nrow(edited) > 0) {
+      edited
+    } else {
+      current
+    }
   })
 
   # Enhanced Theme management with comprehensive Bootstrap theme support
+  # Optimized with isolate() to reduce unnecessary reactive dependencies
   current_theme <- reactive({
     # React to the trigger to update theme
     trigger_val <- themeUpdateTrigger()
     theme_choice <- appliedTheme()
 
-    cat("🔄 current_theme() reactive triggered. Trigger:", trigger_val, "Choice:", theme_choice, "\n")
+    bowtie_log("🔄 current_theme() reactive triggered. Trigger:", trigger_val, "Choice:", theme_choice, level = "debug")
 
     # Handle custom theme with comprehensive user-defined colors
+    # Use isolate() for input reads since they don't need to invalidate the reactive
     if (theme_choice == "custom") {
-      primary_color <- if (!is.null(input$primary_color)) input$primary_color else "#28a745"
-      secondary_color <- if (!is.null(input$secondary_color)) input$secondary_color else "#6c757d"
-      success_color <- if (!is.null(input$success_color)) input$success_color else "#28a745"
-      info_color <- if (!is.null(input$info_color)) input$info_color else "#17a2b8"
-      warning_color <- if (!is.null(input$warning_color)) input$warning_color else "#ffc107"
-      danger_color <- if (!is.null(input$danger_color)) input$danger_color else "#dc3545"
+      primary_color <- isolate(if (!is.null(input$primary_color)) input$primary_color else "#28a745")
+      secondary_color <- isolate(if (!is.null(input$secondary_color)) input$secondary_color else "#6c757d")
+      success_color <- isolate(if (!is.null(input$success_color)) input$success_color else "#28a745")
+      info_color <- isolate(if (!is.null(input$info_color)) input$info_color else "#17a2b8")
+      warning_color <- isolate(if (!is.null(input$warning_color)) input$warning_color else "#ffc107")
+      danger_color <- isolate(if (!is.null(input$danger_color)) input$danger_color else "#dc3545")
 
       bs_theme(
         version = 5,
@@ -161,9 +171,12 @@ server <- function(input, output, session) {
     }
   })
 
+  # Debounced theme reactive to prevent excessive re-rendering
+  theme_debounced <- debounce(current_theme, millis = 500)
+
   # Enhanced theme observer with better error handling for bslib v5+
   observe({
-    theme <- current_theme()
+    theme <- theme_debounced()
     tryCatch({
       # Use bs_themer() for dynamic theme switching in bslib 0.4+
       if (exists("bs_themer") && packageVersion("bslib") >= "0.4.0") {
@@ -173,7 +186,9 @@ server <- function(input, output, session) {
         }
       }
     }, error = function(e) {
-      # Silent error handling - theme functionality is working
+      # Log error for debugging but don't interrupt user experience
+      bowtie_log(paste("Theme update error:", e$message), .verbose = TRUE)
+      # Theme functionality will continue with default theme
     })
   })
 
@@ -246,55 +261,6 @@ server <- function(input, output, session) {
     })
   })
 
-  # Enhanced sample data generation with scenario-specific single central problem
-  observeEvent(input$generateSample, {
-    # Get selected environmental scenario
-    selected_scenario <- input$data_scenario_template
-    scenario_name <- if (is.null(selected_scenario) || selected_scenario == "") {
-      "custom scenario"
-    } else {
-      switch(selected_scenario,
-        "marine_pollution" = "Marine pollution",
-        "industrial_contamination" = "Industrial contamination",
-        "oil_spills" = "Oil spills",
-        "agricultural_runoff" = "Agricultural runoff",
-        "overfishing_depletion" = "Overfishing depletion",
-        "custom scenario"
-      )
-    }
-
-    showNotification(paste("🎯 Generating", scenario_name, "bowtie with SINGLE central problem..."),
-                    type = "default", duration = 3)
-
-    tryCatch({
-      # Use new scenario-specific function
-      sample_data <- generateScenarioSpecificBowtie(selected_scenario)
-      currentData(sample_data)
-      editedData(sample_data)
-      envDataGenerated(TRUE)
-      dataVersion(dataVersion() + 1)
-      clear_cache()
-
-      problem_choices <- unique(sample_data$Central_Problem)
-      updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
-      updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
-
-      # Enhanced notification with scenario details
-      central_problem <- unique(sample_data$Central_Problem)[1]
-      n_activities <- length(unique(sample_data$Activity))
-      n_consequences <- length(unique(sample_data$Consequence))
-
-      showNotification(
-        paste("✅", t("notify_data_generated", lang()), "|",
-              nrow(sample_data), "scenarios |", central_problem,
-              "| Activities:", n_activities, "| Consequences:", n_consequences),
-        type = "message", duration = 5)
-
-    }, error = function(e) {
-      showNotification(paste("❌ Error generating scenario-specific data:", e$message),
-                      type = "error", duration = 5)
-    })
-  })
 
   # NEW: Multiple preventive controls data generation
   observeEvent(input$generateMultipleControls, {
@@ -404,7 +370,7 @@ server <- function(input, output, session) {
 
     }, error = function(e) {
       showNotification(paste("❌", t("notify_bayesian_error", lang()), e$message), type = "error")
-      cat("Bayesian network error:", e$message, "\n")
+      bowtie_log("Bayesian network error:", e$message, level = "warn")
     })
   })
 
@@ -1439,11 +1405,15 @@ server <- function(input, output, session) {
   # Get current vocabulary based on selection
   current_vocabulary <- reactive({
     req(input$vocab_type)
-    if (exists("vocabulary_data") && !is.null(vocabulary_data[[input$vocab_type]])) {
-      vocabulary_data[[input$vocab_type]]
-    } else {
-      data.frame()
+    # Access vocabulary_data from global environment
+    if (!is.null(vocabulary_data) && input$vocab_type %in% names(vocabulary_data)) {
+      vocab <- vocabulary_data[[input$vocab_type]]
+      if (!is.null(vocab) && nrow(vocab) > 0) {
+        return(vocab)
+      }
     }
+    # Return empty dataframe if data not available
+    data.frame()
   })
 
   # Update level filter based on selected vocabulary
@@ -1473,8 +1443,9 @@ server <- function(input, output, session) {
   output$vocab_tree <- renderPrint({
     vocab <- filtered_vocabulary()
     if (nrow(vocab) > 0) {
-      tree <- create_tree_structure(vocab)
-      cat(paste(tree$display, collapse = "\n"))
+      # Use format_tree_display to create text representation
+      display_lines <- format_tree_display(vocab)
+      cat(paste(display_lines, collapse = "\n"))
     } else {
       cat("No vocabulary data available.\nPlease ensure CAUSES.xlsx, CONSEQUENCES.xlsx, and CONTROLS.xlsx files are in the app directory.")
     }
@@ -1678,8 +1649,9 @@ server <- function(input, output, session) {
     content = function(file) {
       vocab <- current_vocabulary()
       if (nrow(vocab) > 0) {
-        tree_data <- create_tree_structure(vocab)
-        export_data <- tree_data %>% select(level, id, name, path)
+        # Export vocabulary data with available columns
+        cols_to_export <- intersect(c("level", "id", "name", "hierarchy", "parent_id"), names(vocab))
+        export_data <- vocab %>% select(all_of(cols_to_export))
         openxlsx::write.xlsx(export_data, file, rowNames = FALSE)
       }
     }
@@ -2433,30 +2405,17 @@ server <- function(input, output, session) {
     h5(tagList(icon("file-excel"), t("data_upload_option1", current_lang)))
   })
 
+
   output$data_upload_option2_title <- renderUI({
     current_lang <- lang()
-    h5(tagList(icon("leaf"), t("data_upload_option2", current_lang)))
+    h5(tagList(icon("seedling"), t("data_upload_option2", current_lang)))
   })
 
-  output$data_upload_option2b_title <- renderUI({
-    current_lang <- lang()
-    h5(tagList(icon("shield-alt"), t("data_upload_option2b", current_lang)))
-  })
 
   output$data_option2_desc <- renderUI({
     current_lang <- lang()
     div(
       p(t("data_option2_description", current_lang)),
-      tags$ul(class = "small text-muted",
-        tags$li(paste("📊", t("complete_vocabulary_coverage", current_lang)))
-      )
-    )
-  })
-
-  output$data_option2b_desc <- renderUI({
-    current_lang <- lang()
-    div(
-      p(t("option2b_description", current_lang)),
       tags$ul(class = "small text-muted",
         tags$li(paste("🛡️", t("multiple_controls_per_pressure", current_lang))),
         tags$li(paste("🔗", t("pressure_linked_measures", current_lang)))
@@ -3686,5 +3645,335 @@ server <- function(input, output, session) {
 
   return(results)
   }
+
+  # =============================================================================
+  # CUSTOM TERMS REVIEW TAB - Administrator Interface
+  # =============================================================================
+
+  # Authorization system
+  custom_terms_authorized <- reactiveVal(FALSE)
+
+  # Password check
+  observeEvent(input$custom_terms_login, {
+    req(input$custom_terms_password)
+
+    # Password configuration (should be in config file)
+    # Default password: "admin123" - CHANGE THIS IN PRODUCTION!
+    valid_password <- "admin123"
+
+    if (input$custom_terms_password == valid_password) {
+      custom_terms_authorized(TRUE)
+      updateTextInput(session, "custom_terms_password", value = "")
+      showNotification("✅ Login successful! Welcome to Custom Terms Review.", type = "message", duration = 3)
+    } else {
+      showNotification("❌ Invalid password. Please try again.", type = "error", duration = 3)
+    }
+  })
+
+  # Logout
+  observeEvent(input$custom_terms_logout, {
+    custom_terms_authorized(FALSE)
+    updateTextInput(session, "custom_terms_password", value = "")
+    showNotification("Logged out successfully.", type = "message", duration = 2)
+  })
+
+  # Output authorization status for conditional panels
+  output$custom_terms_authorized <- reactive({
+    custom_terms_authorized()
+  })
+  outputOptions(output, "custom_terms_authorized", suspendWhenHidden = FALSE)
+
+  # Reactive value for custom terms data
+  custom_terms_data <- reactiveVal(load_custom_terms())
+
+  # Refresh data
+  observeEvent(input$custom_terms_refresh, {
+    req(custom_terms_authorized())
+    custom_terms_data(load_custom_terms())
+    showNotification("📊 Data refreshed from storage.", type = "message", duration = 2)
+  })
+
+  # Auto-refresh on tab activation
+  observe({
+    req(input$navbar == "custom_terms_review")
+    req(custom_terms_authorized())
+    custom_terms_data(load_custom_terms())
+  })
+
+  # Filtered custom terms based on user selections
+  filtered_custom_terms <- reactive({
+    req(custom_terms_authorized())
+
+    data <- custom_terms_data()
+
+    # Apply status filter
+    status_filter <- if (input$custom_terms_status_filter == "all") {
+      NULL
+    } else {
+      input$custom_terms_status_filter
+    }
+
+    # Get combined table
+    combined <- get_combined_custom_terms_table(data, status_filter)
+
+    # Apply category filter
+    if (input$custom_terms_category_filter != "all") {
+      category_name <- tools::toTitleCase(gsub("_", " ", input$custom_terms_category_filter))
+      combined <- combined %>% filter(category == category_name)
+    }
+
+    return(combined)
+  })
+
+  # Render statistics
+  output$custom_terms_statistics <- renderUI({
+    req(custom_terms_authorized())
+
+    stats <- get_custom_terms_stats(custom_terms_data())
+
+    tagList(
+      fluidRow(
+        column(3, div(class = "text-center",
+                     h2(stats$total, class = "text-primary", style = "margin: 0;"),
+                     p("Total Terms", style = "margin-top: 5px;"))),
+        column(3, div(class = "text-center",
+                     h2(stats$pending, class = "text-warning", style = "margin: 0;"),
+                     p("Pending Review", style = "margin-top: 5px;"))),
+        column(3, div(class = "text-center",
+                     h2(stats$approved, class = "text-success", style = "margin: 0;"),
+                     p("Approved", style = "margin-top: 5px;"))),
+        column(3, div(class = "text-center",
+                     h2(stats$rejected, class = "text-danger", style = "margin: 0;"),
+                     p("Rejected", style = "margin-top: 5px;")))
+      ),
+      br(),
+      fluidRow(
+        column(12,
+               div(class = "alert alert-info",
+                   icon("info-circle"),
+                   strong(" Workflow Breakdown: "),
+                   paste("Data from", length(unique(get_combined_custom_terms_table(custom_terms_data())$workflow_id)), "workflow(s)"))
+        )
+      )
+    )
+  })
+
+  # Render DataTable
+  output$custom_terms_datatable <- DT::renderDT({
+    req(custom_terms_authorized())
+
+    df <- filtered_custom_terms()
+
+    if (nrow(df) == 0) {
+      # Return empty table with message
+      return(DT::datatable(
+        data.frame(Message = "No custom terms found with current filters."),
+        options = list(dom = 't'),
+        rownames = FALSE
+      ))
+    }
+
+    DT::datatable(
+      df,
+      selection = list(mode = "multiple", target = "row"),
+      options = list(
+        pageLength = 25,
+        lengthMenu = c(10, 25, 50, 100),
+        order = list(list(3, 'desc')),  # Sort by added_date descending
+        dom = 'Blfrtip',
+        buttons = c('copy', 'csv'),
+        scrollX = TRUE,
+        columnDefs = list(
+          list(width = '80px', targets = 0),   # Category
+          list(width = '150px', targets = 1),  # Original Name
+          list(width = '150px', targets = 2),  # Term
+          list(width = '120px', targets = 3),  # Added Date
+          list(width = '120px', targets = 4),  # Workflow ID
+          list(width = '80px', targets = 5),   # User
+          list(width = '80px', targets = 6),   # Status
+          list(width = '200px', targets = 7),  # Notes
+          list(width = '100px', targets = 8),  # Reviewed By
+          list(width = '120px', targets = 9)   # Reviewed Date
+        )
+      ),
+      rownames = FALSE,
+      class = 'cell-border stripe hover'
+    )
+  })
+
+  # Approve selected terms
+  observeEvent(input$custom_terms_approve, {
+    req(custom_terms_authorized())
+
+    selected <- input$custom_terms_datatable_rows_selected
+
+    if (length(selected) > 0) {
+      success <- update_custom_term_status(selected, "approved", "admin")
+
+      if (success) {
+        custom_terms_data(load_custom_terms())
+        showNotification(
+          paste("✅ Approved", length(selected), "custom term(s)."),
+          type = "message",
+          duration = 3
+        )
+      } else {
+        showNotification("❌ Error approving terms.", type = "error", duration = 3)
+      }
+    } else {
+      showNotification("⚠️ Please select at least one term to approve.", type = "warning", duration = 3)
+    }
+  })
+
+  # Reject selected terms
+  observeEvent(input$custom_terms_reject, {
+    req(custom_terms_authorized())
+
+    selected <- input$custom_terms_datatable_rows_selected
+
+    if (length(selected) > 0) {
+      success <- update_custom_term_status(selected, "rejected", "admin")
+
+      if (success) {
+        custom_terms_data(load_custom_terms())
+        showNotification(
+          paste("❌ Rejected", length(selected), "custom term(s)."),
+          type = "message",
+          duration = 3
+        )
+      } else {
+        showNotification("❌ Error rejecting terms.", type = "error", duration = 3)
+      }
+    } else {
+      showNotification("⚠️ Please select at least one term to reject.", type = "warning", duration = 3)
+    }
+  })
+
+  # Excel export
+  output$custom_terms_export_excel <- downloadHandler(
+    filename = function() {
+      paste0("custom_terms_review_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".xlsx")
+    },
+    content = function(file) {
+      req(custom_terms_authorized())
+
+      status_filter <- if (input$custom_terms_status_filter == "all") {
+        NULL
+      } else {
+        input$custom_terms_status_filter
+      }
+
+      success <- export_custom_terms_excel(custom_terms_data(), file, status_filter)
+
+      if (!success) {
+        showNotification("❌ Error exporting to Excel.", type = "error", duration = 3)
+      }
+    }
+  )
+
+  # Clear reviewed terms (with confirmation)
+  observeEvent(input$custom_terms_clear_reviewed, {
+    req(custom_terms_authorized())
+
+    showModal(modalDialog(
+      title = tagList(icon("exclamation-triangle"), " Clear Reviewed Terms?"),
+      div(
+        p("This action will permanently remove all approved and rejected custom terms from the database."),
+        p(strong("Pending terms will remain untouched.")),
+        br(),
+        p(class = "text-danger", icon("warning"), " This action cannot be undone!")
+      ),
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("custom_terms_confirm_clear", "Yes, Clear All Reviewed",
+                    class = "btn-danger", icon = icon("trash"))
+      ),
+      size = "m"
+    ))
+  })
+
+  # Confirm clear reviewed terms
+  observeEvent(input$custom_terms_confirm_clear, {
+    req(custom_terms_authorized())
+
+    removed <- clear_reviewed_terms(remove_approved = TRUE, remove_rejected = TRUE)
+    custom_terms_data(load_custom_terms())
+    removeModal()
+
+    showNotification(
+      paste("🗑️ Removed", removed, "reviewed custom term(s) from database."),
+      type = "message",
+      duration = 4
+    )
+  })
+
+  # Add notes to selected terms
+  observeEvent(input$custom_terms_add_notes, {
+    req(custom_terms_authorized())
+
+    selected <- input$custom_terms_datatable_rows_selected
+    notes <- input$custom_terms_notes
+
+    if (length(selected) == 0) {
+      showNotification("⚠️ Please select at least one term to add notes.", type = "warning", duration = 3)
+      return()
+    }
+
+    if (!nzchar(trimws(notes))) {
+      showNotification("⚠️ Please enter notes before saving.", type = "warning", duration = 3)
+      return()
+    }
+
+    # Load current data
+    storage <- load_custom_terms()
+    combined <- get_combined_custom_terms_table(storage)
+
+    if (nrow(combined) == 0) {
+      return()
+    }
+
+    # Get terms to update
+    terms_to_update <- combined[selected, ]
+
+    # Update notes in each category
+    for (i in 1:nrow(terms_to_update)) {
+      term_info <- terms_to_update[i, ]
+      category <- tolower(gsub(" ", "_", term_info$category))
+
+      if (category %in% names(storage)) {
+        # Find matching term in category
+        match_idx <- which(
+          storage[[category]]$original_name == term_info$original_name &
+          storage[[category]]$added_date == term_info$added_date
+        )
+
+        if (length(match_idx) > 0) {
+          # Append notes (don't overwrite)
+          existing_notes <- storage[[category]]$notes[match_idx]
+          new_notes <- if (nzchar(existing_notes)) {
+            paste(existing_notes, "|", notes)
+          } else {
+            notes
+          }
+          storage[[category]]$notes[match_idx] <- new_notes
+        }
+      }
+    }
+
+    # Save updated storage
+    success <- save_custom_terms(storage)
+
+    if (success) {
+      custom_terms_data(load_custom_terms())
+      updateTextAreaInput(session, "custom_terms_notes", value = "")
+      showNotification(
+        paste("📝 Added notes to", length(selected), "term(s)."),
+        type = "message",
+        duration = 3
+      )
+    } else {
+      showNotification("❌ Error saving notes.", type = "error", duration = 3)
+    }
+  })
 
 }

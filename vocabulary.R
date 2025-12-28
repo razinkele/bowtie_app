@@ -19,9 +19,17 @@ suppressMessages(load_required_packages())
 
 # Enhanced function to read and process hierarchical data from Excel
 read_hierarchical_data <- function(file_path, sheet_name = NULL) {
-  # Validate file existence
+  # Validate file existence with enhanced error message
   if (!file.exists(file_path)) {
-    stop(paste("File not found:", file_path))
+    stop(paste0(
+      "File not found: ", basename(file_path), "\n",
+      "  Path: ", file_path, "\n",
+      "  Please ensure:\n",
+      "  1. The file exists in the specified location\n",
+      "  2. The file path is correct (check for typos)\n",
+      "  3. You have read permissions for this file\n",
+      "  4. The file is not locked by another program"
+    ))
   }
   
   tryCatch({
@@ -66,7 +74,14 @@ read_hierarchical_data <- function(file_path, sheet_name = NULL) {
     cat("✅ Successfully read", nrow(data), "rows from", basename(file_path), "\n")
     
   }, error = function(e) {
-    stop(paste("Error reading Excel file:", file_path, "-", e$message))
+    stop(paste0(
+      "Error reading Excel file: ", basename(file_path), "\n",
+      "  Details: ", e$message, "\n",
+      "  Please ensure:\n",
+      "  1. The file exists and is not open in another program\n",
+      "  2. The file is a valid Excel format (.xlsx)\n",
+      "  3. The file contains the required 'Hierarchy', 'ID#', and 'name' columns"
+    ))
   })
   
   # Select and rename columns for consistency
@@ -129,16 +144,29 @@ create_hierarchy_list <- function(data) {
 
 # Helper to resolve vocabulary file paths (search up to several parent folders and repo root)
 resolve_vocab_file <- function(filename) {
-  # Prefer test fixtures when present (supports test runs)
-  test_path <- file.path('tests', filename)
-  if (file.exists(test_path)) return(normalizePath(test_path))
+  # CRITICAL FIX: Only prefer test fixtures when actually running tests
+  # Check if we're in the tests directory
+  cwd <- normalizePath(getwd(), mustWork = FALSE)
+  in_tests_dir <- grepl("[\\\\/]tests[\\\\/]?$", cwd) || basename(cwd) == "tests"
+
+  # If we're in tests directory, prefer test fixtures
+  if (in_tests_dir) {
+    test_path <- file.path('tests', filename)
+    if (file.exists(test_path)) return(normalizePath(test_path))
+    # Also check current directory for test files
+    if (file.exists(filename)) return(normalizePath(filename))
+  }
+
+  # For main app: check current directory first (where main vocab files are)
   if (file.exists(filename)) return(normalizePath(filename))
-  # Walk up a bounded set of parent directories
+
+  # Walk up parent directories to find vocabulary files
   search_dirs <- c('.', '..', '../..', '../../..', '../../../..')
   for (d in search_dirs) {
     candidate <- file.path(d, filename)
     if (file.exists(candidate)) return(normalizePath(candidate))
   }
+
   # Try to detect repo root by looking for markers
   cur <- normalizePath(getwd(), mustWork = FALSE)
   repeat {
@@ -150,20 +178,34 @@ resolve_vocab_file <- function(filename) {
     if (identical(parent, cur)) break
     cur <- parent
   }
+
   # Not found - return original name (will cause read_hierarchical_data to raise error)
   return(filename)
 }
 
-# Function to load all vocabulary data
+# Function to load all vocabulary data with LRU caching
 load_vocabulary <- function(causes_file = "CAUSES.xlsx",
                           consequences_file = "CONSEQUENCES.xlsx",
-                          controls_file = "CONTROLS.xlsx") {
-  
+                          controls_file = "CONTROLS.xlsx",
+                          use_cache = TRUE) {
+
+  # Check LRU cache first (uses the shared .cache from utils.R)
+  cache_key <- paste0("vocabulary_", causes_file, "_", consequences_file, "_", controls_file)
+  if (use_cache) {
+    cached_vocab <- get_cache(cache_key)
+    if (!is.null(cached_vocab)) {
+      message("📦 Using cached vocabulary data")
+      return(cached_vocab)
+    }
+  }
+
+  message("🔄 Loading vocabulary data from Excel files...")
+
   # Resolve candidate file paths so files are found when working dir is inside tests subdirs
   causes_file <- resolve_vocab_file(causes_file)
   consequences_file <- resolve_vocab_file(consequences_file)
   controls_file <- resolve_vocab_file(controls_file)
-  
+
   vocabulary <- list()
   
   # Load Activities from CAUSES file
@@ -207,7 +249,13 @@ load_vocabulary <- function(causes_file = "CAUSES.xlsx",
   vocabulary$pressures_hierarchy <- create_hierarchy_list(vocabulary$pressures)
   vocabulary$consequences_hierarchy <- create_hierarchy_list(vocabulary$consequences)
   vocabulary$controls_hierarchy <- create_hierarchy_list(vocabulary$controls)
-  
+
+  # Cache the result using LRU cache (from utils.R)
+  if (use_cache) {
+    set_cache(cache_key, vocabulary)
+    message("✅ Vocabulary data cached for faster subsequent access")
+  }
+
   return(vocabulary)
 }
 
@@ -297,7 +345,61 @@ create_tree_structure <- function(data) {
   if (length(edges_list) > 0) edges <- do.call(rbind, edges_list) else edges <- data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
 
   return(list(nodes = nodes, edges = edges))
-} 
+}
+
+# Function to format hierarchical vocabulary as text tree display
+format_tree_display <- function(data) {
+  # Ensure required columns exist
+  if (nrow(data) == 0) {
+    return(character(0))
+  }
+
+  if (!"level" %in% names(data)) {
+    return(paste(data$name, collapse = "\n"))
+  }
+
+  # Sort by level and id for proper hierarchy
+  data <- data %>%
+    arrange(level, id)
+
+  # Create display lines with indentation
+  display_lines <- character(nrow(data))
+
+  for (i in seq_len(nrow(data))) {
+    level <- data$level[i]
+    name <- data$name[i]
+    id <- data$id[i]
+
+    # Handle NA values
+    if (is.na(level)) level <- 1
+    if (is.na(name)) name <- ""
+    if (is.na(id)) id <- ""
+
+    # Create indentation based on level
+    if (!is.na(level) && level == 1) {
+      # Level 1: Category headers (no indent, bold appearance with uppercase)
+      indent <- ""
+      prefix <- "▶ "
+    } else if (!is.na(level) && level == 2) {
+      # Level 2: Main items
+      indent <- "  "
+      prefix <- "├─ "
+    } else if (!is.na(level) && level > 2) {
+      # Level 3+: Sub-items
+      indent <- paste(rep("  ", level - 1), collapse = "")
+      prefix <- "└─ "
+    } else {
+      # Fallback for invalid/missing level
+      indent <- ""
+      prefix <- "• "
+    }
+
+    # Format: indentation + prefix + name + [id]
+    display_lines[i] <- paste0(indent, prefix, name, " [", id, "]")
+  }
+
+  return(display_lines)
+}
 
 # Function to search vocabulary items
 search_vocabulary <- function(data, search_term, search_in = c("id", "name")) {

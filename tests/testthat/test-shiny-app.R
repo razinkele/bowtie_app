@@ -81,7 +81,7 @@ test_that("Reactive values are properly initialized", {
 # Test data generation functionality
 test_that("Environmental data generation works in app context", {
   # Source required files
-  source("utils.r", local = TRUE)
+  source("utils.R", local = TRUE)
   
   expect_no_error({
     env_data <- generateEnvironmentalDataFixed()
@@ -93,7 +93,7 @@ test_that("Environmental data generation works in app context", {
 
 # Test vocabulary loading
 test_that("Vocabulary loading works in app context", {
-  source("vocabulary.r", local = TRUE)
+  source("vocabulary.R", local = TRUE)
   
   # Test vocabulary loading with error handling
   expect_no_error({
@@ -115,8 +115,8 @@ test_that("Vocabulary loading works in app context", {
 test_that("Bayesian network functions work in app context", {
   skip_if_not_installed("bnlearn")
   
-  source("utils.r", local = TRUE)
-  source("bowtie_bayesian_network.r", local = TRUE)
+  source("utils.R", local = TRUE)
+  source("bowtie_bayesian_network.R", local = TRUE)
   
   expect_no_error({
     test_data <- generateEnvironmentalDataFixed()
@@ -126,7 +126,7 @@ test_that("Bayesian network functions work in app context", {
 
 # Test file upload simulation
 test_that("File processing functions handle different inputs", {
-  source("utils.r", local = TRUE)
+  source("utils.R", local = TRUE)
   
   # Test with generated data
   test_data <- generateEnvironmentalDataFixed()
@@ -144,7 +144,7 @@ test_that("File processing functions handle different inputs", {
 
 # Test visualization components
 test_that("Visualization functions work correctly", {
-  source("utils.r", local = TRUE)
+  source("utils.R", local = TRUE)
   
   test_data <- generateEnvironmentalDataFixed()
   
@@ -163,7 +163,7 @@ test_that("Visualization functions work correctly", {
 
 # Test error handling in app context
 test_that("App handles errors gracefully", {
-  source("utils.r", local = TRUE)
+  source("utils.R", local = TRUE)
   
   # Test with invalid data
   expect_error({
@@ -180,7 +180,7 @@ test_that("App handles errors gracefully", {
 
 # Test data summary functionality
 test_that("Data summary functions work in app", {
-  source("utils.r", local = TRUE)
+  source("utils.R", local = TRUE)
   
   test_data <- generateEnvironmentalDataFixed()
   
@@ -193,16 +193,16 @@ test_that("Data summary functions work in app", {
 
 # Test cache functionality
 test_that("Cache operations work correctly", {
-  source("utils.r", local = TRUE)
-  
+  source("utils.R", local = TRUE)
+
   expect_no_error({
-    clearCache()
+    clear_cache()
   })
 })
 
 # Test input validation
 test_that("Input validation functions work properly", {
-  source("utils.r", local = TRUE)
+  source("utils.R", local = TRUE)
   
   # Test numeric validation
   expect_equal(validateNumericInput(3, 1, 5), 3)

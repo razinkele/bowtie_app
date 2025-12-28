@@ -1,6 +1,6 @@
 library(testthat)
 
-source('../../vocabulary-ai-helpers.R')
+source('../../vocabulary_ai_helpers.R')
 
 test_that('preprocess_text works and handles NA', {
   expect_equal(preprocess_text('Hello, World!'), 'hello world')

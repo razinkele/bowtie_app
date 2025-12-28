@@ -12,7 +12,7 @@
 
 # Validate and load required dependencies
 validate_guided_workflow_dependencies <- function() {
-  cat("🔍 Validating guided workflow dependencies...\n")
+  bowtie_log("🔍 Validating guided workflow dependencies...", level = "debug")
 
   required_packages <- c("shiny", "bslib", "dplyr", "DT")
   optional_packages <- c("ggplot2", "plotly", "openxlsx", "jsonlite")
@@ -41,14 +41,14 @@ validate_guided_workflow_dependencies <- function() {
 
   # Report results
   if (length(missing_required) > 0) {
-    cat("❌ Missing required packages:", paste(missing_required, collapse = ", "), "\n")
-    cat("   Install with: install.packages(c(", paste(paste0("'", missing_required, "'"), collapse = ", "), "))\n")
+    app_message("❌ Missing required packages:", paste(missing_required, collapse = ", "), level = "error")
+    app_message("   Install with: install.packages(c(", paste(paste0("'", missing_required, "'"), collapse = ", "), "))", level = "error")
     return(FALSE)
   }
 
   if (length(missing_optional) > 0) {
-    cat("⚠️ Missing optional packages:", paste(missing_optional, collapse = ", "), "\n")
-    cat("   Some features may be limited. Install with: install.packages(c(", paste(paste0("'", missing_optional, "'"), collapse = ", "), "))\n")
+    app_message("⚠️ Missing optional packages:", paste(missing_optional, collapse = ", "), level = "warn")
+    app_message("   Some features may be limited. Install with: install.packages(c(", paste(paste0("'", missing_optional, "'"), collapse = ", "), "))", level = "warn")
   }
 
   # Validate function availability
@@ -64,11 +64,11 @@ validate_guided_workflow_dependencies <- function() {
   }
 
   if (length(missing_functions) > 0) {
-    cat("❌ Missing required functions:", paste(missing_functions, collapse = ", "), "\n")
+    app_message("❌ Missing required functions:", paste(missing_functions, collapse = ", "), level = "error")
     return(FALSE)
   }
 
-  cat("✅ All dependencies validated successfully!\n")
+  app_message("✅ All dependencies validated successfully!", level = "success")
   return(TRUE)
 }
 
@@ -77,9 +77,9 @@ if (!validate_guided_workflow_dependencies()) {
   stop("❌ Guided Workflow System: Dependency validation failed")
 }
 
-cat("🧙 GUIDED WORKFLOW SYSTEM v1.1.0\n")
-cat("=================================\n")
-cat("Step-by-step bowtie creation with expert guidance\n\n")
+app_message("🧙 GUIDED WORKFLOW SYSTEM v1.1.0", level = "success")
+app_message("=================================")
+app_message("Step-by-step bowtie creation with expert guidance")
 
 # =============================================================================
 # WORKFLOW CONFIGURATION
@@ -423,7 +423,50 @@ init_workflow_state <- function() {
     # Additional workflow metadata
     workflow_complete = FALSE,
     converted_main_data = NULL,
-    last_saved = NULL
+    last_saved = NULL,
+    # CUSTOM TERMS TRACKING SYSTEM
+    custom_terms = list(
+      activities = data.frame(
+        term = character(0),
+        original_name = character(0),
+        added_date = character(0),
+        status = character(0),  # "pending", "approved", "rejected"
+        notes = character(0),
+        stringsAsFactors = FALSE
+      ),
+      pressures = data.frame(
+        term = character(0),
+        original_name = character(0),
+        added_date = character(0),
+        status = character(0),
+        notes = character(0),
+        stringsAsFactors = FALSE
+      ),
+      preventive_controls = data.frame(
+        term = character(0),
+        original_name = character(0),
+        added_date = character(0),
+        status = character(0),
+        notes = character(0),
+        stringsAsFactors = FALSE
+      ),
+      consequences = data.frame(
+        term = character(0),
+        original_name = character(0),
+        added_date = character(0),
+        status = character(0),
+        notes = character(0),
+        stringsAsFactors = FALSE
+      ),
+      protective_controls = data.frame(
+        term = character(0),
+        original_name = character(0),
+        added_date = character(0),
+        status = character(0),
+        notes = character(0),
+        stringsAsFactors = FALSE
+      )
+    )
   )
 }
 
@@ -435,14 +478,43 @@ update_workflow_progress <- function(state, step_number = NULL, data = NULL) {
       state$completed_steps <- c(state$completed_steps, step_number)
     }
   }
-  
+
   if (!is.null(data)) {
     state$project_data <- append(state$project_data, data)
   }
-  
+
   # Update progress percentage
   state$progress_percentage <- (length(state$completed_steps) / state$total_steps) * 100
-  
+
+  return(state)
+}
+
+# Helper function to track custom terms
+track_custom_term <- function(state, term_with_marker, category) {
+  original_name <- gsub(" \\(Custom\\)$", "", term_with_marker)
+  new_custom_entry <- data.frame(
+    term = term_with_marker,
+    original_name = original_name,
+    added_date = as.character(Sys.time()),
+    status = "pending",
+    notes = "",
+    stringsAsFactors = FALSE
+  )
+
+  # Add to appropriate category
+  if (category == "activities") {
+    state$custom_terms$activities <- rbind(state$custom_terms$activities, new_custom_entry)
+  } else if (category == "pressures") {
+    state$custom_terms$pressures <- rbind(state$custom_terms$pressures, new_custom_entry)
+  } else if (category == "preventive_controls") {
+    state$custom_terms$preventive_controls <- rbind(state$custom_terms$preventive_controls, new_custom_entry)
+  } else if (category == "consequences") {
+    state$custom_terms$consequences <- rbind(state$custom_terms$consequences, new_custom_entry)
+  } else if (category == "protective_controls") {
+    state$custom_terms$protective_controls <- rbind(state$custom_terms$protective_controls, new_custom_entry)
+  }
+
+  bowtie_log("📝 Tracked custom", category, ":", original_name, level = "debug")
   return(state)
 }
 
@@ -786,47 +858,58 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
       column(6,
              h4(t("gw_human_activities_title", current_lang)),
              p(t("gw_human_activities_desc", current_lang)),
-             
+
              fluidRow(
-               column(8, {
-                 # Prepare activity choices from vocabulary data
-                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
-                 activity_choices <- character(0)
+               column(12, {
+                 # Prepare hierarchical activity data
+                 activity_categories <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-                   # Only include Level 2 and above (exclude category headers)
                    if ("level" %in% names(vocabulary_data$activities)) {
-                     activity_choices <- vocabulary_data$activities %>%
-                       filter(level > 1) %>%
+                     # Get Level 1 category headers
+                     activity_categories <- vocabulary_data$activities %>%
+                       filter(level == 1) %>%
                        pull(name)
-                   } else {
-                     # Fallback if level column doesn't exist
-                     activity_choices <- vocabulary_data$activities$name
                    }
                  }
 
-                 selectizeInput(ns("activity_search"), t("gw_search_activities", current_lang),
-                              choices = activity_choices,  # Use vocabulary choices if available
-                              selected = NULL,
-                              options = list(
-                                placeholder = "Search or type custom activity (min 3 chars)...",
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
-                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
-                              ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_activity"), tagList(icon("plus"), t("gw_add_activity", current_lang)),
-                                 class = "btn-success btn-sm")
-               )
+                 tagList(
+                   # Category selector (Level 1)
+                   selectInput(ns("activity_category"),
+                              "1. Select Activity Category:",
+                              choices = c("Select category..." = "", activity_categories),
+                              selected = ""),
+
+                   # Item selector (Level 2+) - populated based on category
+                   selectizeInput(ns("activity_search"),
+                                 "2. Select or Enter Activity:",
+                                 choices = NULL,  # Will be populated dynamically
+                                 selected = NULL,
+                                 options = list(
+                                   placeholder = "First select a category above, or type custom activity (min 3 chars)...",
+                                   maxOptions = 100,
+                                   openOnFocus = TRUE,
+                                   selectOnTab = TRUE,
+                                   hideSelected = FALSE,
+                                   create = TRUE,  # Enable custom entries
+                                   createFilter = '^.{3,}$'  # Minimum 3 characters
+                                 )),
+
+                   # Add button
+                   actionButton(ns("add_activity"),
+                               tagList(icon("plus"), t("gw_add_activity", current_lang)),
+                               class = "btn-success btn-sm"),
+
+                   # Info about custom entries
+                   div(class = "text-muted small mt-2",
+                       icon("info-circle"),
+                       " Custom entries will be marked for review and saved separately.")
+                 )
+               })
              ),
-             
+
              h5(t("gw_selected_activities", current_lang)),
              DTOutput(ns("selected_activities_table")),
-             
+
              br(),
              div(class = "alert alert-info",
                  h6(t("gw_examples_title", current_lang)),
@@ -839,40 +922,51 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              p(t("gw_env_pressures_desc", current_lang)),
              
              fluidRow(
-               column(8, {
-                 # Prepare pressure choices from vocabulary data
-                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
-                 pressure_choices <- character(0)
+               column(12, {
+                 # Prepare hierarchical pressure data
+                 pressure_categories <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-                   # Only include Level 2 and above (exclude category headers)
                    if ("level" %in% names(vocabulary_data$pressures)) {
-                     pressure_choices <- vocabulary_data$pressures %>%
-                       filter(level > 1) %>%
+                     # Get Level 1 category headers
+                     pressure_categories <- vocabulary_data$pressures %>%
+                       filter(level == 1) %>%
                        pull(name)
-                   } else {
-                     # Fallback if level column doesn't exist
-                     pressure_choices <- vocabulary_data$pressures$name
                    }
                  }
 
-                 selectizeInput(ns("pressure_search"), t("gw_search_pressures", current_lang),
-                              choices = pressure_choices,  # Use vocabulary choices if available
-                              selected = NULL,
-                              options = list(
-                                placeholder = "Search or type custom pressure (min 3 chars)...",
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
-                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
-                              ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_pressure"), tagList(icon("plus"), t("gw_add_pressure", current_lang)),
-                                 class = "btn-warning btn-sm")
-               )
+                 tagList(
+                   # Category selector (Level 1)
+                   selectInput(ns("pressure_category"),
+                              "1. Select Pressure Category:",
+                              choices = c("Select category..." = "", pressure_categories),
+                              selected = ""),
+
+                   # Item selector (Level 2+) - populated based on category
+                   selectizeInput(ns("pressure_search"),
+                                 "2. Select or Enter Pressure:",
+                                 choices = NULL,  # Will be populated dynamically
+                                 selected = NULL,
+                                 options = list(
+                                   placeholder = "First select a category above, or type custom pressure (min 3 chars)...",
+                                   maxOptions = 100,
+                                   openOnFocus = TRUE,
+                                   selectOnTab = TRUE,
+                                   hideSelected = FALSE,
+                                   create = TRUE,  # Enable custom entries
+                                   createFilter = '^.{3,}$'  # Minimum 3 characters
+                                 )),
+
+                   # Add button
+                   actionButton(ns("add_pressure"),
+                               tagList(icon("plus"), t("gw_add_pressure", current_lang)),
+                               class = "btn-warning btn-sm"),
+
+                   # Info about custom entries
+                   div(class = "text-muted small mt-2",
+                       icon("info-circle"),
+                       " Custom entries will be marked for review and saved separately.")
+                 )
+               })
              ),
              
              h5(t("gw_selected_pressures", current_lang)),
@@ -936,40 +1030,51 @@ generate_step4_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              p(t("gw_search_add_preventive_controls_desc", current_lang)),
              
              fluidRow(
-               column(8, {
-                 # Prepare control choices from vocabulary data
-                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
-                 control_choices <- character(0)
+               column(12, {
+                 # Prepare hierarchical control data
+                 control_categories <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   # Only include Level 2 and above (exclude category headers)
                    if ("level" %in% names(vocabulary_data$controls)) {
-                     control_choices <- vocabulary_data$controls %>%
-                       filter(level > 1) %>%
+                     # Get Level 1 category headers
+                     control_categories <- vocabulary_data$controls %>%
+                       filter(level == 1) %>%
                        pull(name)
-                   } else {
-                     # Fallback if level column doesn't exist
-                     control_choices <- vocabulary_data$controls$name
                    }
                  }
 
-                 selectizeInput(ns("preventive_control_search"), t("gw_search_preventive_controls_label", current_lang),
-                              choices = control_choices,
-                              selected = NULL,
-                              options = list(
-                                placeholder = "Search or type custom control (min 3 chars)...",
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
-                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
-                              ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_preventive_control"), tagList(icon("shield-alt"), t("gw_add_control", current_lang)),
-                                 class = "btn-success btn-sm")
-               )
+                 tagList(
+                   # Category selector (Level 1)
+                   selectInput(ns("preventive_control_category"),
+                              "1. Select Control Category:",
+                              choices = c("Select category..." = "", control_categories),
+                              selected = ""),
+
+                   # Item selector (Level 2+) - populated based on category
+                   selectizeInput(ns("preventive_control_search"),
+                                 "2. Select or Enter Preventive Control:",
+                                 choices = NULL,  # Will be populated dynamically
+                                 selected = NULL,
+                                 options = list(
+                                   placeholder = "First select a category above, or type custom control (min 3 chars)...",
+                                   maxOptions = 100,
+                                   openOnFocus = TRUE,
+                                   selectOnTab = TRUE,
+                                   hideSelected = FALSE,
+                                   create = TRUE,  # Enable custom entries
+                                   createFilter = '^.{3,}$'  # Minimum 3 characters
+                                 )),
+
+                   # Add button
+                   actionButton(ns("add_preventive_control"),
+                               tagList(icon("shield-alt"), t("gw_add_control", current_lang)),
+                               class = "btn-success btn-sm"),
+
+                   # Info about custom entries
+                   div(class = "text-muted small mt-2",
+                       icon("info-circle"),
+                       " Custom entries will be marked for review and saved separately.")
+                 )
+               })
              ),
              
              br(),
@@ -1013,40 +1118,51 @@ generate_step5_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              p(t("gw_consequences_desc2", current_lang)),
              
              fluidRow(
-               column(8, {
-                 # Prepare consequence choices from vocabulary data
-                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
-                 consequence_choices <- character(0)
+               column(12, {
+                 # Prepare hierarchical consequence data
+                 consequence_categories <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-                   # Only include Level 2 and above (exclude category headers)
                    if ("level" %in% names(vocabulary_data$consequences)) {
-                     consequence_choices <- vocabulary_data$consequences %>%
-                       filter(level > 1) %>%
+                     # Get Level 1 category headers
+                     consequence_categories <- vocabulary_data$consequences %>%
+                       filter(level == 1) %>%
                        pull(name)
-                   } else {
-                     # Fallback if level column doesn't exist
-                     consequence_choices <- vocabulary_data$consequences$name
                    }
                  }
 
-                 selectizeInput(ns("consequence_search"), t("gw_search_consequences_label", current_lang),
-                              choices = consequence_choices,
-                              selected = NULL,
-                              options = list(
-                                placeholder = "Search or type custom consequence (min 3 chars)...",
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
-                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
-                              ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_consequence"), tagList(icon("exclamation-triangle"), t("gw_add_consequence", current_lang)),
-                                 class = "btn-warning btn-sm")
-               )
+                 tagList(
+                   # Category selector (Level 1)
+                   selectInput(ns("consequence_category"),
+                              "1. Select Consequence Category:",
+                              choices = c("Select category..." = "", consequence_categories),
+                              selected = ""),
+
+                   # Item selector (Level 2+) - populated based on category
+                   selectizeInput(ns("consequence_search"),
+                                 "2. Select or Enter Consequence:",
+                                 choices = NULL,  # Will be populated dynamically
+                                 selected = NULL,
+                                 options = list(
+                                   placeholder = "First select a category above, or type custom consequence (min 3 chars)...",
+                                   maxOptions = 100,
+                                   openOnFocus = TRUE,
+                                   selectOnTab = TRUE,
+                                   hideSelected = FALSE,
+                                   create = TRUE,  # Enable custom entries
+                                   createFilter = '^.{3,}$'  # Minimum 3 characters
+                                 )),
+
+                   # Add button
+                   actionButton(ns("add_consequence"),
+                               tagList(icon("exclamation-triangle"), t("gw_add_consequence", current_lang)),
+                               class = "btn-warning btn-sm"),
+
+                   # Info about custom entries
+                   div(class = "text-muted small mt-2",
+                       icon("info-circle"),
+                       " Custom entries will be marked for review and saved separately.")
+                 )
+               })
              ),
              
              br(),
@@ -1090,40 +1206,51 @@ generate_step6_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              p(t("gw_protective_controls_desc", current_lang)),
              
              fluidRow(
-               column(8, {
-                 # Prepare protective control choices from vocabulary data
-                 # CRITICAL FIX (Issue #1): Filter out Level 1 category headers
-                 protective_control_choices <- character(0)
+               column(12, {
+                 # Prepare hierarchical protective control data
+                 protective_control_categories <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   # Only include Level 2 and above (exclude category headers)
                    if ("level" %in% names(vocabulary_data$controls)) {
-                     protective_control_choices <- vocabulary_data$controls %>%
-                       filter(level > 1) %>%
+                     # Get Level 1 category headers
+                     protective_control_categories <- vocabulary_data$controls %>%
+                       filter(level == 1) %>%
                        pull(name)
-                   } else {
-                     # Fallback if level column doesn't exist
-                     protective_control_choices <- vocabulary_data$controls$name
                    }
                  }
 
-                 selectizeInput(ns("protective_control_search"), t("gw_search_protective_controls_label", current_lang),
-                              choices = protective_control_choices,
-                              selected = NULL,
-                              options = list(
-                                placeholder = "Search or type custom protective control (min 3 chars)...",
-                                maxOptions = 100,
-                                openOnFocus = TRUE,
-                                selectOnTab = TRUE,
-                                hideSelected = FALSE,
-                                create = TRUE,  # HIGH PRIORITY FIX (Issue #2): Enable custom entries
-                                createFilter = '^.{3,}$'  # Minimum 3 characters for custom entries
-                              ))
-               }),
-               column(4,
-                      br(),
-                      actionButton(ns("add_protective_control"), tagList(icon("medkit"), t("gw_add_control", current_lang)),
-                                 class = "btn-primary btn-sm")
-               )
+                 tagList(
+                   # Category selector (Level 1)
+                   selectInput(ns("protective_control_category"),
+                              "1. Select Control Category:",
+                              choices = c("Select category..." = "", protective_control_categories),
+                              selected = ""),
+
+                   # Item selector (Level 2+) - populated based on category
+                   selectizeInput(ns("protective_control_search"),
+                                 "2. Select or Enter Protective Control:",
+                                 choices = NULL,  # Will be populated dynamically
+                                 selected = NULL,
+                                 options = list(
+                                   placeholder = "First select a category above, or type custom control (min 3 chars)...",
+                                   maxOptions = 100,
+                                   openOnFocus = TRUE,
+                                   selectOnTab = TRUE,
+                                   hideSelected = FALSE,
+                                   create = TRUE,  # Enable custom entries
+                                   createFilter = '^.{3,}$'  # Minimum 3 characters
+                                 )),
+
+                   # Add button
+                   actionButton(ns("add_protective_control"),
+                               tagList(icon("medkit"), t("gw_add_control", current_lang)),
+                               class = "btn-primary btn-sm"),
+
+                   # Info about custom entries
+                   div(class = "text-muted small mt-2",
+                       icon("info-circle"),
+                       " Custom entries will be marked for review and saved separately.")
+                 )
+               })
              ),
              
              br(),
@@ -1280,7 +1407,23 @@ generate_step8_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              )
       )
     ),
-    
+
+    br(),
+
+    # CUSTOM TERMS INFO PANEL
+    fluidRow(
+      column(12,
+             div(class = "card border-info mb-3",
+                 div(class = "card-header bg-info text-white",
+                     h5(icon("info-circle"), " Custom Terms", style = "margin: 0;")
+                 ),
+                 div(class = "card-body",
+                     uiOutput(ns("custom_terms_info_message"))
+                 )
+             )
+      )
+    ),
+
     br(),
     fluidRow(
       column(6,
@@ -1406,17 +1549,17 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
     
     # Get the UI generation function for the current step
     ui_function_name <- paste0("generate_step", state$current_step, "_ui")
-    
+
     if (exists(ui_function_name, mode = "function")) {
       ui_function <- get(ui_function_name)
-      # Call with session parameter and vocabulary_data for step 3
-      if (state$current_step == 3) {
+      # Call with session parameter and vocabulary_data for steps 3-6 (all steps with hierarchical dropdowns)
+      if (state$current_step %in% c(3, 4, 5, 6)) {
         ui_function(vocabulary_data = vocabulary_data, session = session, current_lang = lang())
       } else {
         ui_function(session = session, current_lang = lang())
       }
     } else {
-      div(class = "alert alert-danger", 
+      div(class = "alert alert-danger",
           paste("UI for step", state$current_step, "not found."))
     }
   })
@@ -1448,27 +1591,27 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observe({
     state <- workflow_state()
     if (!is.null(state) && state$current_step == 3) {
-      
-      cat("🔍 Step 3 detected - updating vocabulary choices\n")
-      
+
+      bowtie_log("🔍 Step 3 detected - updating vocabulary choices", level = "debug")
+
       # Update activity choices
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
         activity_choices <- vocabulary_data$activities$name
         if (length(activity_choices) > 0) {
-          cat("📝 Updating activity_search with", length(activity_choices), "choices\n")
-          updateSelectizeInput(session, "activity_search", 
+          bowtie_log("📝 Updating activity_search with", length(activity_choices), "choices", level = "debug")
+          updateSelectizeInput(session, "activity_search",
                              choices = activity_choices,
                              server = TRUE,
                              selected = character(0))
         }
       }
-      
+
       # Update pressure choices
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures)) {
         pressure_choices <- vocabulary_data$pressures$name
         if (length(pressure_choices) > 0) {
-          cat("📝 Updating pressure_search with", length(pressure_choices), "choices\n")
-          updateSelectizeInput(session, "pressure_search", 
+          bowtie_log("📝 Updating pressure_search with", length(pressure_choices), "choices", level = "debug")
+          updateSelectizeInput(session, "pressure_search",
                              choices = pressure_choices,
                              server = TRUE,
                              selected = character(0))
@@ -1485,7 +1628,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
     validation_result <- tryCatch({
       validate_current_step(state, input, lang())
     }, error = function(e) {
-      cat("❌ Validation error:", e$message, "\n")
+      bowtie_log("❌ Validation error:", e$message, level = "warn")
       list(is_valid = FALSE, message = paste("Validation error:", e$message))
     })
 
@@ -1498,7 +1641,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
     state <- tryCatch({
       save_step_data(state, input)
     }, error = function(e) {
-      cat("❌ Error saving step data:", e$message, "\n")
+      bowtie_log("❌ Error saving step data:", e$message, level = "warn")
       showNotification(paste("Error saving data:", e$message), type = "error", duration = 5)
       return(state)
     })
@@ -1524,13 +1667,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
     state <- workflow_state()
     if (state$current_step > 1) {
       # CRITICAL FIX: Save current step data before navigating back (Issue #11 - State Preservation)
-      cat("💾 Previous button: Saving step", state$current_step, "data before navigation...\n")
+      bowtie_log("💾 Previous button: Saving step", state$current_step, "data before navigation...", level = "debug")
       state <- save_step_data(state, input)
 
       state$current_step <- state$current_step - 1
       workflow_state(state)
 
-      cat("⬅️ Navigated back to step", state$current_step, "\n")
+      bowtie_log("⬅️ Navigated back to step", state$current_step, level = "debug")
     }
   })
   
@@ -1569,7 +1712,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       if (!is.null(state$project_data$project_description) && nchar(state$project_data$project_description) > 0) {
         updateTextAreaInput(session, "project_description", value = state$project_data$project_description)
       }
-      cat("🔄 Step 1: Restored fields from workflow state\n")
+      bowtie_log("🔄 Step 1: Restored fields from workflow state", level = "debug")
     }
   })
 
@@ -1593,7 +1736,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       if (!is.null(state$project_data$problem_urgency)) {
         updateSelectInput(session, "problem_urgency", selected = state$project_data$problem_urgency)
       }
-      cat("🔄 Step 2: Restored fields from workflow state\n")
+      bowtie_log("🔄 Step 2: Restored fields from workflow state", level = "debug")
     }
   })
 
@@ -1628,7 +1771,176 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # HIERARCHICAL DROPDOWN LOGIC
+  # Update activity items when category is selected
+  observeEvent(input$activity_category, {
+    req(input$activity_category)
+
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
+      # Get selected category
+      selected_category <- input$activity_category
+
+      # Find all items under this category
+      # Strategy: find the category's ID prefix and get all items starting with that prefix
+      category_row <- vocabulary_data$activities %>%
+        filter(level == 1, name == selected_category)
+
+      if (nrow(category_row) > 0) {
+        category_id_prefix <- category_row$id[1]  # e.g., "A1"
+
+        # Get all Level 2+ items that belong to this category
+        category_items <- vocabulary_data$activities %>%
+          filter(level > 1,
+                 startsWith(id, category_id_prefix)) %>%
+          pull(name)
+
+        # Update the selectizeInput choices
+        updateSelectizeInput(session, "activity_search",
+                            choices = category_items,
+                            selected = NULL,
+                            server = TRUE)
+      }
+    }
+  })
+
+  # Update pressure items when category is selected
+  observeEvent(input$pressure_category, {
+    req(input$pressure_category)
+
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
+      # Get selected category
+      selected_category <- input$pressure_category
+
+      # Find all items under this category
+      category_row <- vocabulary_data$pressures %>%
+        filter(level == 1, name == selected_category)
+
+      if (nrow(category_row) > 0) {
+        category_id_prefix <- category_row$id[1]  # e.g., "P1"
+
+        # Get all Level 2+ items that belong to this category
+        category_items <- vocabulary_data$pressures %>%
+          filter(level > 1,
+                 startsWith(id, category_id_prefix)) %>%
+          pull(name)
+
+        # Update the selectizeInput choices
+        updateSelectizeInput(session, "pressure_search",
+                            choices = category_items,
+                            selected = NULL,
+                            server = TRUE)
+      }
+    }
+  })
+
+  # Update preventive control items when category is selected (Step 4)
+  observeEvent(input$preventive_control_category, {
+    req(input$preventive_control_category)
+
+    bowtie_log("🔍 DEBUG: preventive_control_category changed to:", input$preventive_control_category, level = "debug")
+
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+      # Get selected category
+      selected_category <- input$preventive_control_category
+      bowtie_log("  • Selected category:", selected_category, level = "debug")
+      bowtie_log("  • Total controls in vocabulary:", nrow(vocabulary_data$controls), level = "debug")
+
+      # Find all items under this category
+      category_row <- vocabulary_data$controls %>%
+        filter(level == 1, name == selected_category)
+
+      bowtie_log("  • Category rows found:", nrow(category_row), level = "debug")
+
+      if (nrow(category_row) > 0) {
+        category_id_prefix <- category_row$id[1]  # e.g., "Ctrl1"
+        bowtie_log("  • Category ID prefix:", category_id_prefix, level = "debug")
+
+        # Get all Level 2+ items that belong to this category
+        category_items <- vocabulary_data$controls %>%
+          filter(level > 1,
+                 startsWith(id, category_id_prefix)) %>%
+          pull(name)
+
+        bowtie_log("  • Items found for category:", length(category_items), level = "debug")
+        if (length(category_items) > 0) {
+          bowtie_log("  • First 5 items:", paste(head(category_items, 5), collapse = ", "), level = "debug")
+        }
+
+        # Update the selectizeInput choices
+        updateSelectizeInput(session, "preventive_control_search",
+                            choices = category_items,
+                            selected = NULL,
+                            server = TRUE)
+        bowtie_log("  ✅ Updated preventive_control_search with", length(category_items), "choices", level = "debug")
+      } else {
+        bowtie_log("  ❌ No category row found for:", selected_category, level = "debug")
+      }
+    } else {
+      bowtie_log("  ❌ Vocabulary data not available or empty", level = "debug")
+    }
+  })
+
+  # Update consequence items when category is selected (Step 5)
+  observeEvent(input$consequence_category, {
+    req(input$consequence_category)
+
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
+      # Get selected category
+      selected_category <- input$consequence_category
+
+      # Find all items under this category
+      category_row <- vocabulary_data$consequences %>%
+        filter(level == 1, name == selected_category)
+
+      if (nrow(category_row) > 0) {
+        category_id_prefix <- category_row$id[1]  # e.g., "C1"
+
+        # Get all Level 2+ items that belong to this category
+        category_items <- vocabulary_data$consequences %>%
+          filter(level > 1,
+                 startsWith(id, category_id_prefix)) %>%
+          pull(name)
+
+        # Update the selectizeInput choices
+        updateSelectizeInput(session, "consequence_search",
+                            choices = category_items,
+                            selected = NULL,
+                            server = TRUE)
+      }
+    }
+  })
+
+  # Update protective control items when category is selected (Step 6)
+  observeEvent(input$protective_control_category, {
+    req(input$protective_control_category)
+
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+      # Get selected category
+      selected_category <- input$protective_control_category
+
+      # Find all items under this category
+      category_row <- vocabulary_data$controls %>%
+        filter(level == 1, name == selected_category)
+
+      if (nrow(category_row) > 0) {
+        category_id_prefix <- category_row$id[1]  # e.g., "M1"
+
+        # Get all Level 2+ items that belong to this category
+        category_items <- vocabulary_data$controls %>%
+          filter(level > 1,
+                 startsWith(id, category_id_prefix)) %>%
+          pull(name)
+
+        # Update the selectizeInput choices
+        updateSelectizeInput(session, "protective_control_search",
+                            choices = category_items,
+                            selected = NULL,
+                            server = TRUE)
+      }
+    }
+  })
+
   # Handle "Add Activity" button
   observeEvent(input$add_activity, {
     activity_name <- input$activity_search
@@ -1656,10 +1968,29 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         # Update workflow state
         state <- workflow_state()
         state$project_data$activities <- current
+
+        # CUSTOM TERMS TRACKING: If custom entry, add to custom_terms list
+        if (is_custom) {
+          original_name <- gsub(" \\(Custom\\)$", "", activity_name)  # Remove marker
+          new_custom_entry <- data.frame(
+            term = activity_name,
+            original_name = original_name,
+            added_date = as.character(Sys.time()),
+            status = "pending",
+            notes = "",
+            stringsAsFactors = FALSE
+          )
+          state$custom_terms$activities <- rbind(
+            state$custom_terms$activities,
+            new_custom_entry
+          )
+          cat("📝 Tracked custom activity:", original_name, "\n")
+        }
+
         workflow_state(state)
 
         notification_msg <- if (is_custom) {
-          paste("Added custom activity:", activity_name)
+          paste("Added custom activity:", activity_name, "- marked for review")
         } else {
           paste(t("gw_added_activity", lang()), activity_name)
         }
@@ -1722,10 +2053,29 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         # Update workflow state
         state <- workflow_state()
         state$project_data$pressures <- current
+
+        # CUSTOM TERMS TRACKING: If custom entry, add to custom_terms list
+        if (is_custom) {
+          original_name <- gsub(" \\(Custom\\)$", "", pressure_name)
+          new_custom_entry <- data.frame(
+            term = pressure_name,
+            original_name = original_name,
+            added_date = as.character(Sys.time()),
+            status = "pending",
+            notes = "",
+            stringsAsFactors = FALSE
+          )
+          state$custom_terms$pressures <- rbind(
+            state$custom_terms$pressures,
+            new_custom_entry
+          )
+          cat("📝 Tracked custom pressure:", original_name, "\n")
+        }
+
         workflow_state(state)
 
         notification_msg <- if (is_custom) {
-          paste("Added custom pressure:", pressure_name)
+          paste("Added custom pressure:", pressure_name, "- marked for review")
         } else {
           paste(t("gw_added_pressure", lang()), pressure_name)
         }
@@ -1977,18 +2327,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observe({
     state <- workflow_state()
     if (!is.null(state) && state$current_step == 4) {
-      # Update control search choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
-        control_choices <- vocabulary_data$controls$name
-        if (length(control_choices) > 0) {
-          cat("📝 Updating preventive_control_search with", length(control_choices), "choices\n")
-          updateSelectizeInput(session, "preventive_control_search", 
-                             choices = control_choices,
-                             server = TRUE,
-                             selected = character(0))
-        }
-      }
-      
+      # DO NOT populate all choices - let category filtering handle this
+      # The category observer will populate choices based on selected category
+
       # Load controls from state if available
       if (!is.null(state$project_data$preventive_controls) && length(state$project_data$preventive_controls) > 0) {
         controls <- as.character(state$project_data$preventive_controls)
@@ -2026,10 +2367,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         # Update workflow state
         state <- workflow_state()
         state$project_data$preventive_controls <- current
+
+        # CUSTOM TERMS TRACKING: If custom entry, add to custom_terms list
+        if (is_custom) {
+          state <- track_custom_term(state, control_name, "preventive_controls")
+        }
+
         workflow_state(state)
 
         notification_msg <- if (is_custom) {
-          paste("Added custom preventive control:", control_name)
+          paste("Added custom preventive control:", control_name, "- marked for review")
         } else {
           paste(t("gw_added_control", lang()), control_name)
         }
@@ -2189,18 +2536,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observe({
     state <- workflow_state()
     if (!is.null(state) && state$current_step == 5) {
-      # Update consequence search choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences)) {
-        consequence_choices <- vocabulary_data$consequences$name
-        if (length(consequence_choices) > 0) {
-          cat("📝 Updating consequence_search with", length(consequence_choices), "choices\n")
-          updateSelectizeInput(session, "consequence_search", 
-                             choices = consequence_choices,
-                             server = TRUE,
-                             selected = character(0))
-        }
-      }
-      
+      # DO NOT populate all choices - let category filtering handle this
+      # The category observer will populate choices based on selected category
+
       # Load consequences from state if available
       if (!is.null(state$project_data$consequences) && length(state$project_data$consequences) > 0) {
         consequences <- as.character(state$project_data$consequences)
@@ -2238,10 +2576,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         # Update workflow state
         state <- workflow_state()
         state$project_data$consequences <- current
+
+        # CUSTOM TERMS TRACKING: If custom entry, add to custom_terms list
+        if (is_custom) {
+          state <- track_custom_term(state, consequence_name, "consequences")
+        }
+
         workflow_state(state)
 
         notification_msg <- if (is_custom) {
-          paste("Added custom consequence:", consequence_name)
+          paste("Added custom consequence:", consequence_name, "- marked for review")
         } else {
           paste(t("gw_added_consequence", lang()), consequence_name)
         }
@@ -2369,18 +2713,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   observe({
     state <- workflow_state()
     if (!is.null(state) && state$current_step == 6) {
-      # Update protective control search choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
-        protective_control_choices <- vocabulary_data$controls$name
-        if (length(protective_control_choices) > 0) {
-          cat("📝 Updating protective_control_search with", length(protective_control_choices), "choices\n")
-          updateSelectizeInput(session, "protective_control_search", 
-                             choices = protective_control_choices,
-                             server = TRUE,
-                             selected = character(0))
-        }
-      }
-      
+      # DO NOT populate all choices - let category filtering handle this
+      # The category observer will populate choices based on selected category
+
       # Load protective controls from state if available
       if (!is.null(state$project_data$protective_controls) && length(state$project_data$protective_controls) > 0) {
         controls <- as.character(state$project_data$protective_controls)
@@ -2418,10 +2753,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         # Update workflow state
         state <- workflow_state()
         state$project_data$protective_controls <- current
+
+        # CUSTOM TERMS TRACKING: If custom entry, add to custom_terms list
+        if (is_custom) {
+          state <- track_custom_term(state, control_name, "protective_controls")
+        }
+
         workflow_state(state)
 
         notification_msg <- if (is_custom) {
-          paste("Added custom protective control:", control_name)
+          paste("Added custom protective control:", control_name, "- marked for review")
         } else {
           paste(t("gw_added_protective", lang()), control_name)
         }
@@ -3204,6 +3545,57 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
     # Mark workflow as complete
     state$workflow_complete <- TRUE
 
+    # Save custom terms to persistent storage if any exist
+    if (!is.null(state$custom_terms)) {
+      total_custom <- sum(
+        nrow(state$custom_terms$activities),
+        nrow(state$custom_terms$pressures),
+        nrow(state$custom_terms$preventive_controls),
+        nrow(state$custom_terms$consequences),
+        nrow(state$custom_terms$protective_controls)
+      )
+
+      if (total_custom > 0) {
+        cat("📝 Saving", total_custom, "custom term(s) to persistent storage...\n")
+
+        # Generate workflow ID
+        workflow_id <- paste0("workflow_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+
+        # Get user name if available, otherwise "anonymous"
+        user_name <- if (!is.null(session$user)) session$user else "anonymous"
+
+        # Save to persistent storage
+        tryCatch({
+          add_workflow_custom_terms(
+            workflow_custom_terms = state$custom_terms,
+            workflow_id = workflow_id,
+            user = user_name
+          )
+
+          cat("✅ Custom terms saved to persistent storage (ID:", workflow_id, ")\n")
+
+          showNotification(
+            tagList(
+              icon("info-circle"),
+              " ",
+              paste(total_custom, "custom term(s) saved for administrator review."),
+              br(),
+              "Check the ", strong("Custom Terms Review"), " tab for details."
+            ),
+            type = "message",
+            duration = 8
+          )
+        }, error = function(e) {
+          cat("❌ Error saving custom terms to storage:", e$message, "\n")
+          showNotification(
+            paste("Warning: Could not save custom terms:", e$message),
+            type = "warning",
+            duration = 5
+          )
+        })
+      }
+    }
+
     # Convert workflow data to main application format
     converted_data <- tryCatch({
       convert_to_main_data_format(state$project_data)
@@ -3225,6 +3617,48 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       return(state)
     }
   }
+
+  # =============================================================================
+  # CUSTOM TERMS INFO MESSAGE (Step 8)
+  # =============================================================================
+
+  # Display info message about custom terms
+  output$custom_terms_info_message <- renderUI({
+    state <- workflow_state()
+    custom_terms <- state$custom_terms
+
+    # Count total custom terms
+    total_custom <- sum(
+      nrow(custom_terms$activities),
+      nrow(custom_terms$pressures),
+      nrow(custom_terms$preventive_controls),
+      nrow(custom_terms$consequences),
+      nrow(custom_terms$protective_controls)
+    )
+
+    if (total_custom == 0) {
+      return(
+        tagList(
+          p(icon("check-circle"), strong(" No custom terms entered in this workflow.")),
+          p("All vocabulary selections were from the official vocabulary database.")
+        )
+      )
+    }
+
+    # Show summary and link to review tab
+    tagList(
+      p(icon("info-circle"), strong(paste(" ", total_custom, "custom term(s) were entered in this workflow."))),
+      p("Custom terms have been automatically saved to the centralized review system."),
+      br(),
+      div(class = "alert alert-light",
+          p(strong("For Administrators:")),
+          p("Navigate to the ", strong("Custom Terms Review"), " tab to review and manage all custom terms across workflows."),
+          p(class = "text-muted small", icon("lock"), " Administrator authentication required for access.")
+      )
+    )
+  })
+
+  # =============================================================================
 
   # Handle "Complete Workflow" button in Step 8
   observeEvent(input$complete_workflow_btn, {

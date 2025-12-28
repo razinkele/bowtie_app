@@ -38,7 +38,7 @@ test_that("generate_vocabulary_bowtie creates valid output", {
   expect_true(nrow(result$data) > 0)
   
   # Check required columns
-  required_cols <- c("Activity", "Pressure", "Problem", "Consequence", 
+  required_cols <- c("Activity", "Pressure", "Central_Problem", "Consequence",
                      "Preventive_Control", "Protective_Mitigation",
                      "Threat_Likelihood", "Consequence_Severity")
   expect_true(all(required_cols %in% names(result$data)))

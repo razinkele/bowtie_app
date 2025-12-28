@@ -8,6 +8,11 @@
 
 cat("🔧 Loading Enhanced Development Framework v5.2\n")
 
+# Load APP_CONFIG for centralized configuration
+if (file.exists("config.R") && !exists("APP_CONFIG")) {
+  source("config.R", local = FALSE)
+}
+
 # Development mode settings
 dev_config <- list(
   # Environment settings
@@ -31,8 +36,8 @@ dev_config <- list(
   performance_regression = TRUE,
 
   # Network settings
-  host = "0.0.0.0",
-  port = 3838,
+  host = ifelse(exists("APP_CONFIG"), APP_CONFIG$DEFAULT_HOST, "0.0.0.0"),
+  port = ifelse(exists("APP_CONFIG"), APP_CONFIG$DEFAULT_PORT, 3838),
   network_accessible = TRUE,
 
   # Logging settings

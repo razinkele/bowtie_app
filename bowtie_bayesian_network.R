@@ -26,28 +26,77 @@ library(tidyr)
 create_bayesian_structure <- function(bowtie_data, central_problem = NULL) {
   cat("🔄 Converting bowtie to Bayesian network structure...\n")
 
-  # Basic input validation and column mapping (support commonly used alt names)
-  if (!is.data.frame(bowtie_data) || nrow(bowtie_data) == 0) {
-    stop("bowtie_data must be a non-empty data.frame with required columns")
+  # Enhanced input validation
+  if (is.null(bowtie_data)) {
+    stop("bowtie_data cannot be NULL. Please provide a valid data frame.")
+  }
+
+  if (!is.data.frame(bowtie_data)) {
+    stop(paste0(
+      "bowtie_data must be a data.frame, not ", class(bowtie_data)[1], ".\n",
+      "  Please convert your data to a data frame using as.data.frame()."
+    ))
+  }
+
+  if (nrow(bowtie_data) == 0) {
+    stop("bowtie_data is empty (0 rows). Please provide data with at least one row.")
+  }
+
+  if (ncol(bowtie_data) == 0) {
+    stop("bowtie_data has no columns. Please provide data with required columns.")
+  }
+
+  # Helper function for NULL-safe column mapping
+  safe_coalesce <- function(...) {
+    cols <- list(...)
+    for (col in cols) {
+      if (!is.null(col) && length(col) > 0 && !all(is.na(col))) {
+        return(col)
+      }
+    }
+    return(NA_character_)
   }
 
   # Map alternative column names to canonical ones used in this module
   col_map <- list(
-    Central_Problem = dplyr::coalesce(bowtie_data$Central_Problem, bowtie_data$Problem),
-    Likelihood = dplyr::coalesce(bowtie_data$Likelihood, bowtie_data$Threat_Likelihood),
-    Severity = dplyr::coalesce(bowtie_data$Severity, bowtie_data$Consequence_Severity),
-    Preventive_Control = dplyr::coalesce(bowtie_data$Preventive_Control, bowtie_data$Control),
-    Protective_Mitigation = dplyr::coalesce(bowtie_data$Protective_Mitigation, bowtie_data$Mitigation),
+    Central_Problem = safe_coalesce(bowtie_data$Central_Problem, bowtie_data$Problem),
+    Likelihood = safe_coalesce(bowtie_data$Likelihood, bowtie_data$Threat_Likelihood),
+    Severity = safe_coalesce(bowtie_data$Severity, bowtie_data$Consequence_Severity),
+    Preventive_Control = safe_coalesce(bowtie_data$Preventive_Control, bowtie_data$Control),
+    Protective_Mitigation = safe_coalesce(bowtie_data$Protective_Mitigation, bowtie_data$Mitigation),
     Activity = bowtie_data$Activity,
     Pressure = bowtie_data$Pressure,
     Consequence = bowtie_data$Consequence
   )
 
-  # Check required fields
-  required_present <- all(c("Activity", "Pressure", "Consequence") %in% names(col_map)) &&
-                       !is.null(col_map$Activity) && !is.null(col_map$Pressure) && !is.null(col_map$Consequence)
-  if (!required_present) {
-    stop("bowtie_data is missing required columns: Activity, Pressure, or Consequence")
+  # Check required fields with detailed error reporting
+  required_cols <- c("Activity", "Pressure", "Consequence")
+  missing_cols <- c()
+
+  for (col_name in required_cols) {
+    if (!col_name %in% names(col_map) || is.null(col_map[[col_name]])) {
+      missing_cols <- c(missing_cols, col_name)
+    }
+  }
+
+  if (length(missing_cols) > 0) {
+    available_cols <- paste(names(bowtie_data), collapse = ", ")
+    stop(paste0(
+      "bowtie_data is missing required columns: ", paste(missing_cols, collapse = ", "), "\n",
+      "  Available columns: ", available_cols, "\n",
+      "  Please ensure your data has columns named: Activity, Pressure, Consequence\n",
+      "  (or their alternatives: Threat/Cause for Activity, Event for Pressure)"
+    ))
+  }
+
+  # Validate that required columns have non-NA values
+  for (col_name in required_cols) {
+    if (all(is.na(col_map[[col_name]]))) {
+      stop(paste0(
+        "Column '", col_name, "' contains only NA values.\n",
+        "  Please ensure this column has valid data."
+      ))
+    }
   }
 
   # If a central_problem filter is provided, filter the canonical Central_Problem column
@@ -55,7 +104,7 @@ create_bayesian_structure <- function(bowtie_data, central_problem = NULL) {
     bowtie_data <- bowtie_data[which(col_map$Central_Problem == central_problem), , drop = FALSE]
     if (nrow(bowtie_data) == 0) stop("No rows found for the specified central_problem")
     # refresh mapped cols for filtered data
-    col_map$Central_Problem <- dplyr::coalesce(bowtie_data$Central_Problem, bowtie_data$Problem)
+    col_map$Central_Problem <- safe_coalesce(bowtie_data$Central_Problem, bowtie_data$Problem)
   }
 
   # Helper to make safe node ids
@@ -104,7 +153,7 @@ create_bayesian_structure <- function(bowtie_data, central_problem = NULL) {
     esc_node <- make_id("ESC_", row$Escalation_Factor)
     edges <- rbind(edges, data.frame(from = ctrl_node, to = esc_node, type = "can_fail", stringsAsFactors = FALSE))
 
-    prob_node <- make_id("PROB_", dplyr::coalesce(row$Central_Problem, row$Problem))
+    prob_node <- make_id("PROB_", safe_coalesce(row$Central_Problem, row$Problem))
     edges <- rbind(edges, data.frame(from = esc_node, to = prob_node, type = "escalates_to", stringsAsFactors = FALSE))
 
     mit_node <- make_id("MIT_", row$Protective_Mitigation)
