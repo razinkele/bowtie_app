@@ -18,7 +18,8 @@ load_packages <- function() {
   required_packages <- c(
     "shiny", "bslib", "DT", "readxl", "openxlsx",
     "ggplot2", "plotly", "dplyr", "visNetwork",
-    "shinycssloaders", "colourpicker", "htmlwidgets", "shinyjs"
+    "shinycssloaders", "colourpicker", "htmlwidgets", "shinyjs",
+    "bs4Dash", "shinyWidgets", "fresh"
   )
 
   bayesian_packages <- c("bnlearn", "gRain", "igraph", "DiagrammeR")
