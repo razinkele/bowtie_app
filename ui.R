@@ -83,7 +83,6 @@ ui <- dashboardPage(
     fixed = TRUE,
 
     sidebarUserPanel(
-      image = "img/marbefes.png",
       name = "Environmental Risk Management"
     ),
 
