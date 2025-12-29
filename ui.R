@@ -366,6 +366,17 @@ ui <- dashboardPage(
         .badge-success {
           animation: pulse 2s infinite;
         }
+
+        /* Disabled menu items */
+        .nav-sidebar .nav-link.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+
+        .nav-sidebar .nav-link.disabled:hover {
+          background-color: transparent;
+        }
       "))
     ),
 

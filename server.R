@@ -92,6 +92,32 @@ server <- function(input, output, session) {
   output$hasData <- reactive({ hasData() })
   outputOptions(output, "hasData", suspendWhenHidden = FALSE)
 
+  # Conditional menu item disabling based on data availability
+  observe({
+    data_available <- hasData()
+
+    # Menu items that require bowtie data to function
+    menu_items_to_disable <- c("bowtie", "matrix", "link_risk", "bayesian")
+
+    if (data_available) {
+      # Enable menu items when data is available
+      runjs(paste0("
+        ", paste(sapply(menu_items_to_disable, function(item) {
+          sprintf("$('.sidebar-menu a.nav-link[data-value=\"%s\"]').removeClass('disabled');", item)
+        }), collapse = "\n        "), "
+        console.log('Menu items enabled: data available');
+      "))
+    } else {
+      # Disable menu items when no data is available
+      runjs(paste0("
+        ", paste(sapply(menu_items_to_disable, function(item) {
+          sprintf("$('.sidebar-menu a.nav-link[data-value=\"%s\"]').addClass('disabled');", item)
+        }), collapse = "\n        "), "
+        console.log('Menu items disabled: no data available');
+      "))
+    }
+  })
+
   # ARIA live region announcer for accessibility
   output$notification_announcer <- renderUI({
     msg <- lastNotification()
