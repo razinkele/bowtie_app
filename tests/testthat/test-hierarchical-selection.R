@@ -119,15 +119,15 @@ test_that("Custom entries reactive value initializes correctly", {
     protective_controls = character(0)
   )
 
-  expect_equal(length(custom_entries), 5, "Should have 5 categories")
-  expect_equal(names(custom_entries),
+  expect_identical(length(custom_entries), 5L, "Should have 5 categories")
+  expect_identical(names(custom_entries),
               c("activities", "pressures", "preventive_controls",
                 "consequences", "protective_controls"),
               "Should have correct category names")
 
   # All categories should start empty
   for (category in names(custom_entries)) {
-    expect_equal(length(custom_entries[[category]]), 0,
+    expect_identical(length(custom_entries[[category]]), 0L,
                 paste(category, "should start empty"))
   }
 })
@@ -143,19 +143,19 @@ test_that("Custom entries can be added to each category", {
 
   # Add custom activity
   custom_entries$activities <- c(custom_entries$activities, "Custom Activity 1")
-  expect_equal(length(custom_entries$activities), 1)
-  expect_equal(custom_entries$activities[1], "Custom Activity 1")
+  expect_identical(length(custom_entries$activities), 1L)
+  expect_identical(custom_entries$activities[1], "Custom Activity 1")
 
   # Add multiple custom pressures
   custom_entries$pressures <- c(custom_entries$pressures,
                                 "Custom Pressure 1",
                                 "Custom Pressure 2")
-  expect_equal(length(custom_entries$pressures), 2)
+  expect_identical(length(custom_entries$pressures), 2L)
 
   # Add custom control
   custom_entries$preventive_controls <- c(custom_entries$preventive_controls,
                                           "Custom Control 1")
-  expect_equal(length(custom_entries$preventive_controls), 1)
+  expect_identical(length(custom_entries$preventive_controls), 1L)
 })
 
 test_that("Custom entries prevent duplicates", {
@@ -171,8 +171,8 @@ test_that("Custom entries prevent duplicates", {
   }
 
   # Should still have only 2 entries
-  expect_equal(length(custom_entries$activities), 2)
-  expect_equal(custom_entries$activities, c("Activity 1", "Activity 2"))
+  expect_identical(length(custom_entries$activities), 2L)
+  expect_identical(custom_entries$activities, c("Activity 1", "Activity 2"))
 })
 
 # =============================================================================
@@ -182,6 +182,8 @@ test_that("Custom entries prevent duplicates", {
 context("Hierarchical Selection - UI Components")
 
 test_that("Step 3 UI generates hierarchical selection inputs", {
+  source("../../translations_data.R")
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
   source("../../vocabulary.R")
 
@@ -205,6 +207,8 @@ test_that("Step 3 UI generates hierarchical selection inputs", {
 })
 
 test_that("Step 3 UI includes custom entry options", {
+  source("../../translations_data.R")
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
   source("../../vocabulary.R")
 
@@ -226,6 +230,8 @@ test_that("Step 3 UI includes custom entry options", {
 })
 
 test_that("Step 4 UI generates hierarchical control selection", {
+  source("../../translations_data.R")
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
   source("../../vocabulary.R")
 
@@ -242,6 +248,8 @@ test_that("Step 4 UI generates hierarchical control selection", {
 })
 
 test_that("Step 5 UI generates hierarchical consequence selection", {
+  source("../../translations_data.R")
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
   source("../../vocabulary.R")
 
@@ -258,6 +266,8 @@ test_that("Step 5 UI generates hierarchical consequence selection", {
 })
 
 test_that("Step 6 UI generates hierarchical protective control selection", {
+  source("../../translations_data.R")
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
   source("../../vocabulary.R")
 
@@ -274,6 +284,8 @@ test_that("Step 6 UI generates hierarchical protective control selection", {
 })
 
 test_that("Step 7 UI includes custom entries review table", {
+  source("../../translations_data.R")
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
 
   ui <- generate_step7_ui(session = NULL, current_lang = "en")
@@ -405,9 +417,9 @@ test_that("Workflow state stores custom entries correctly", {
   # Verify custom entries are stored
   expect_true(!is.null(state$project_data$custom_entries),
              "Custom entries should be in state")
-  expect_equal(length(state$project_data$custom_entries$activities), 1,
+  expect_identical(length(state$project_data$custom_entries$activities), 1L,
               "Should have 1 custom activity")
-  expect_equal(state$project_data$custom_entries$activities[1], "Custom Activity",
+  expect_identical(state$project_data$custom_entries$activities[1], "Custom Activity",
               "Custom activity name should match")
 })
 
@@ -489,11 +501,11 @@ test_that("Custom entries review table generates correct data", {
   }
 
   # Verify review table data
-  expect_equal(nrow(entries_data), 7, "Should have 7 total entries")
-  expect_equal(sum(entries_data$Category == "Activity"), 2, "Should have 2 activities")
-  expect_equal(sum(entries_data$Category == "Pressure"), 1, "Should have 1 pressure")
-  expect_equal(sum(entries_data$Category == "Preventive Control"), 3, "Should have 3 preventive controls")
-  expect_equal(sum(entries_data$Category == "Protective Control"), 1, "Should have 1 protective control")
+  expect_identical(nrow(entries_data), 7L, "Should have 7 total entries")
+  expect_identical(sum(entries_data$Category == "Activity"), 2L, "Should have 2 activities")
+  expect_identical(sum(entries_data$Category == "Pressure"), 1L, "Should have 1 pressure")
+  expect_identical(sum(entries_data$Category == "Preventive Control"), 3L, "Should have 3 preventive controls")
+  expect_identical(sum(entries_data$Category == "Protective Control"), 1L, "Should have 1 protective control")
 })
 
 # =============================================================================
@@ -503,6 +515,7 @@ test_that("Custom entries review table generates correct data", {
 context("Hierarchical Selection - Edge Cases")
 
 test_that("Empty vocabulary data is handled gracefully", {
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
 
   # Create empty vocabulary data
@@ -519,6 +532,7 @@ test_that("Empty vocabulary data is handled gracefully", {
 })
 
 test_that("NULL vocabulary data is handled gracefully", {
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
 
   # Should not error when generating UI with NULL vocabulary
@@ -536,7 +550,7 @@ test_that("Invalid group selection returns no items", {
     grepl(paste0("^", gsub("\\.", "\\\\.", invalid_group), "\\."), vocab$activities$id),
   ]
 
-  expect_equal(nrow(children), 0, "Should return no items for invalid group")
+  expect_identical(nrow(children), 0L, "Should return no items for invalid group")
 })
 
 test_that("Duplicate custom entries are prevented", {
@@ -551,7 +565,7 @@ test_that("Duplicate custom entries are prevented", {
     custom_entries$activities <- c(custom_entries$activities, new_entry)
   }
 
-  expect_equal(length(custom_entries$activities), 2,
+  expect_identical(length(custom_entries$activities), 2L,
               "Should not add duplicate entry")
   expect_true("Custom 1" %in% custom_entries$activities,
              "Original entry should still exist")
@@ -590,8 +604,8 @@ test_that("Empty custom entries show appropriate message", {
     )
   }
 
-  expect_equal(nrow(entries_data), 1, "Should have 1 row for empty message")
-  expect_equal(entries_data$Category[1], "No custom entries",
+  expect_identical(nrow(entries_data), 1L, "Should have 1 row for empty message")
+  expect_identical(entries_data$Category[1], "No custom entries",
               "Should show 'No custom entries' message")
 })
 
@@ -646,6 +660,8 @@ test_that("Hierarchical filtering is performant", {
 })
 
 test_that("UI generation is performant", {
+  source("../../translations_data.R")
+  source("../../ui_components.R")
   source("../../guided_workflow.R")
   source("../../vocabulary.R")
 
