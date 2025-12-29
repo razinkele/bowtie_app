@@ -3603,7 +3603,45 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       }
     }
   })
-  
+
+  # Populate Step 2 fields from template data when navigating to Step 2
+  observe({
+    state <- workflow_state()
+    req(state)
+    req(state$current_step)
+
+    # When user navigates to Step 2, populate fields from stored template data
+    if (state$current_step == 2 && !is.null(state$project_data$template_applied)) {
+      # Small delay to ensure Step 2 UI is fully rendered
+      shinyjs::delay(100, {
+        # Populate problem statement if available
+        if (!is.null(state$project_data$problem_statement) && state$project_data$problem_statement != "") {
+          updateTextInput(session, "problem_statement", value = state$project_data$problem_statement)
+        }
+
+        # Populate problem category if available
+        if (!is.null(state$project_data$problem_category) && state$project_data$problem_category != "") {
+          updateSelectInput(session, "problem_category", selected = state$project_data$problem_category)
+        }
+
+        # Populate problem details if available
+        if (!is.null(state$project_data$problem_details) && state$project_data$problem_details != "") {
+          updateTextAreaInput(session, "problem_details", value = state$project_data$problem_details)
+        }
+
+        # Populate problem scale if available
+        if (!is.null(state$project_data$problem_scale) && state$project_data$problem_scale != "") {
+          updateSelectInput(session, "problem_scale", selected = state$project_data$problem_scale)
+        }
+
+        # Populate problem urgency if available
+        if (!is.null(state$project_data$problem_urgency) && state$project_data$problem_urgency != "") {
+          updateSelectInput(session, "problem_urgency", selected = state$project_data$problem_urgency)
+        }
+      })
+    }
+  })
+
   # =============================================================================
   # FINALIZATION & EXPORT
   # =============================================================================
