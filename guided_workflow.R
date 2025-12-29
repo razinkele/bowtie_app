@@ -3538,24 +3538,24 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
 
       if (!is.null(template_data)) {
         # Update Step 1 (Project Setup) fields
-        updateTextInput(session, "project_name", value = template_data$project_name)
-        updateTextInput(session, "project_location", value = template_data$project_location)
-        updateSelectInput(session, "project_type", selected = template_data$project_type)
-        updateTextAreaInput(session, "project_description", value = template_data$project_description)
+        updateTextInput(session, ns("project_name"), value = template_data$project_name)
+        updateTextInput(session, ns("project_location"), value = template_data$project_location)
+        updateSelectInput(session, ns("project_type"), selected = template_data$project_type)
+        updateTextAreaInput(session, ns("project_description"), value = template_data$project_description)
 
         # Update Step 2 (Central Problem Definition) fields
-        updateTextInput(session, "problem_statement", value = template_data$central_problem)
+        updateTextInput(session, ns("problem_statement"), value = template_data$central_problem)
         if (!is.null(template_data$problem_category)) {
-          updateSelectInput(session, "problem_category", selected = template_data$problem_category)
+          updateSelectInput(session, ns("problem_category"), selected = template_data$problem_category)
         }
         if (!is.null(template_data$problem_details)) {
-          updateTextAreaInput(session, "problem_details", value = template_data$problem_details)
+          updateTextAreaInput(session, ns("problem_details"), value = template_data$problem_details)
         }
         if (!is.null(template_data$problem_scale)) {
-          updateSelectInput(session, "problem_scale", selected = template_data$problem_scale)
+          updateSelectInput(session, ns("problem_scale"), selected = template_data$problem_scale)
         }
         if (!is.null(template_data$problem_urgency)) {
-          updateSelectInput(session, "problem_urgency", selected = template_data$problem_urgency)
+          updateSelectInput(session, ns("problem_urgency"), selected = template_data$problem_urgency)
         }
 
         # Store template info in state
