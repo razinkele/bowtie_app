@@ -51,30 +51,88 @@ empty_state <- function(
 }
 
 #' Empty state for data table
+#'
+#' @param message Message text to display
+#' @param action_buttons Optional action buttons div (for backward compatibility)
+#' @param primary_action Primary action button (optional)
+#' @param secondary_action Secondary action button (optional)
 empty_state_table <- function(
-    message = "No data available. Upload a file or generate sample data to get started."
+    message = "No data available. Upload a file or generate sample data to get started.",
+    action_buttons = NULL,
+    primary_action = NULL,
+    secondary_action = NULL
 ) {
+  # Handle backward compatibility - if action_buttons div is provided, extract the buttons
+  if (!is.null(action_buttons) && inherits(action_buttons, "shiny.tag")) {
+    # If action_buttons is a div with buttons inside, use the parent empty_state
+    # and pass the entire action_buttons div as children
+    return(
+      div(
+        class = "empty-state text-center p-5",
+        icon("table", class = "empty-state-icon fa-4x text-muted mb-3"),
+        h4("No Data to Display", class = "text-muted mb-2"),
+        p(message, class = "text-muted mb-4"),
+        action_buttons
+      )
+    )
+  }
+
+  # Standard behavior with primary/secondary actions
   empty_state(
     icon_name = "table",
     title = "No Data to Display",
-    message = message
+    message = message,
+    primary_action = primary_action,
+    secondary_action = secondary_action
   )
 }
 
 #' Empty state for network visualization
+#'
+#' @param icon_name FontAwesome icon name (default: "diagram-project")
+#' @param message Message text to display
+#' @param action_buttons Optional action buttons div (for backward compatibility)
+#' @param primary_action Primary action button (optional)
+#' @param secondary_action Secondary action button (optional)
 empty_state_network <- function(
-    message = "No network to display. Load data to visualize the bowtie diagram."
-) {
-  empty_state(
     icon_name = "diagram-project",
+    message = "No network to display. Load data to visualize the bowtie diagram.",
+    action_buttons = NULL,
+    primary_action = NULL,
+    secondary_action = NULL
+) {
+  # Handle backward compatibility - if action_buttons div is provided
+  if (!is.null(action_buttons) && inherits(action_buttons, "shiny.tag")) {
+    return(
+      div(
+        class = "empty-state text-center p-5",
+        icon(icon_name, class = "empty-state-icon fa-4x text-muted mb-3"),
+        h4("No Network Diagram", class = "text-muted mb-2"),
+        p(message, class = "text-muted mb-4"),
+        action_buttons
+      )
+    )
+  }
+
+  # Standard behavior with primary/secondary actions
+  empty_state(
+    icon_name = icon_name,
     title = "No Network Diagram",
-    message = message
+    message = message,
+    primary_action = primary_action,
+    secondary_action = secondary_action
   )
 }
 
 #' Empty state for search results
-empty_state_search <- function(query = NULL) {
-  msg <- if (!is.null(query) && nchar(query) > 0) {
+#'
+#' @param query Search query (optional)
+#' @param message Custom message (optional, overrides default)
+empty_state_search <- function(query = NULL, message = NULL) {
+  # Use custom message if provided, otherwise generate based on query
+  msg <- if (!is.null(message)) {
+    message
+  } else if (!is.null(query) && nchar(query) > 0) {
     paste0("No results found for '", query, "'. Try different search terms.")
   } else {
     "Enter search terms to find vocabulary items."
