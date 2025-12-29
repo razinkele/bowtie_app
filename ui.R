@@ -84,7 +84,7 @@ ui <- dashboardPage(
 
     sidebarUserPanel(
       image = "img/marbefes.png",
-      name = "Bowtie Risk Analysis"
+      name = "Environmental Risk Management"
     ),
 
     sidebarMenu(
