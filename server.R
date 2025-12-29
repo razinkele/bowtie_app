@@ -26,7 +26,7 @@ server <- function(input, output, session) {
     tryCatch({
       updateActionButton(session, "loadData",
                         label = t("upload_button", new_lang), icon = icon("upload"))
-      updateActionButton(session, "generateSample",
+      updateActionButton(session, "generateMultipleControls",
                         label = t("generate_data_button", new_lang), icon = icon("seedling"))
       updateActionButton(session, "applyLanguage",
                         label = t("apply_language", new_lang), icon = icon("check"))
@@ -265,62 +265,9 @@ server <- function(input, output, session) {
     })
   })
 
-  # Enhanced sample data generation with scenario-specific single central problem
-  observeEvent(input$generateSample, {
-    # Get selected environmental scenario
-    selected_scenario <- input$data_scenario_template
-    scenario_name <- if (is.null(selected_scenario) || selected_scenario == "") {
-      "custom scenario"
-    } else {
-      switch(selected_scenario,
-        "marine_pollution" = "Marine pollution",
-        "industrial_contamination" = "Industrial contamination",
-        "oil_spills" = "Oil spills",
-        "agricultural_runoff" = "Agricultural runoff",
-        "overfishing_depletion" = "Overfishing depletion",
-        "custom scenario"
-      )
-    }
-
-    showNotification(paste("🎯 Generating", scenario_name, "bowtie with SINGLE central problem..."),
-                    type = "default", duration = 3)
-
-    tryCatch({
-      # Use new scenario-specific function
-      sample_data <- generateScenarioSpecificBowtie(selected_scenario)
-      currentData(sample_data)
-      editedData(sample_data)
-      envDataGenerated(TRUE)
-      hasData(TRUE)  # Track that data is generated
-      dataVersion(dataVersion() + 1)
-      clear_cache()
-
-      problem_choices <- unique(sample_data$Central_Problem)
-      updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
-      updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
-
-      # Enhanced notification with scenario details
-      central_problem <- unique(sample_data$Central_Problem)[1]
-      n_activities <- length(unique(sample_data$Activity))
-      n_consequences <- length(unique(sample_data$Consequence))
-
-      notification_msg <- paste("✅", t("notify_data_generated", lang()), "|",
-              nrow(sample_data), "scenarios |", central_problem,
-              "| Activities:", n_activities, "| Consequences:", n_consequences)
-      lastNotification(notification_msg)
-      showNotification(notification_msg, type = "message", duration = 5)
-
-    }, error = function(e) {
-      hasData(FALSE)
-      error_msg <- paste("❌ Error generating scenario-specific data:", e$message)
-      lastNotification(error_msg)
-      showNotification(error_msg, type = "error", duration = 8)
-    })
-  })
-
-  # NEW: Multiple preventive controls data generation
+  # Generate data using standardized vocabularies with multiple controls
   observeEvent(input$generateMultipleControls, {
-    scenario_key <- input$data_scenario_template_2b
+    scenario_key <- input$data_scenario_template
     
     scenario_msg <- if (!is.null(scenario_key) && scenario_key != "") {
       paste0("🔄 Generating data with MULTIPLE CONTROLS for scenario: ", scenario_key)
@@ -2440,26 +2387,12 @@ server <- function(input, output, session) {
     h5(tagList(icon("leaf"), t("data_upload_option2", current_lang)))
   })
 
-  output$data_upload_option2b_title <- renderUI({
-    current_lang <- lang()
-    h5(tagList(icon("shield-alt"), t("data_upload_option2b", current_lang)))
-  })
-
   output$data_option2_desc <- renderUI({
     current_lang <- lang()
     div(
       p(t("data_option2_description", current_lang)),
       tags$ul(class = "small text-muted",
-        tags$li(paste("📊", t("complete_vocabulary_coverage", current_lang)))
-      )
-    )
-  })
-
-  output$data_option2b_desc <- renderUI({
-    current_lang <- lang()
-    div(
-      p(t("option2b_description", current_lang)),
-      tags$ul(class = "small text-muted",
+        tags$li(paste("📊", t("complete_vocabulary_coverage", current_lang))),
         tags$li(paste("🛡️", t("multiple_controls_per_pressure", current_lang))),
         tags$li(paste("🔗", t("pressure_linked_measures", current_lang)))
       )

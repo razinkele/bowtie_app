@@ -194,7 +194,7 @@ ui <- fluidPage(
                  card_body(
                    fluidRow(
                      # Left column - File upload
-                     column(4,
+                     column(6,
                        h6(uiOutput("data_upload_option1_title", inline = TRUE)),
                        uiOutput("file_input_ui"),
                        conditionalPanel(
@@ -204,9 +204,9 @@ ui <- fluidPage(
                                                            class = "btn-primary"))
                        )
                      ),
-                     
-                     # Middle column - Generate from vocabulary
-                     column(4,
+
+                     # Right column - Generate from vocabulary
+                     column(6,
                        div(style = "min-height: 150px;",
                          uiOutput("data_upload_option2_title"),
                          uiOutput("data_option2_desc")
@@ -216,30 +216,14 @@ ui <- fluidPage(
                                      choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
                                      selected = "")
                        ),
-                       div(class = "d-grid", actionButton("generateSample",
-                                                         tagList(icon("seedling"), "Generate Data"),
-                                                         class = "btn-success"))
-                     ),
-                     
-                     # Right column - Multiple controls
-                     column(4,
-                       div(style = "min-height: 150px;",
-                         uiOutput("data_upload_option2b_title"),
-                         uiOutput("data_option2b_desc")
-                       ),
-                       div(class = "mb-3",
-                         selectInput("data_scenario_template_2b", "Select environmental scenario:",
-                                     choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
-                                     selected = "")
-                       ),
                        div(class = "d-grid", actionButton("generateMultipleControls",
-                                                         tagList(icon("shield-alt"), "Multiple Controls"),
-                                                         class = "btn-info")),
+                                                         tagList(icon("seedling"), "Generate Data"),
+                                                         class = "btn-success")),
                        conditionalPanel(
                          condition = "output.envDataGenerated",
                          div(class = "d-grid mt-2", downloadButton("downloadSample",
                                                              tagList(icon("download"), "Download"),
-                                                             class = "btn-info"))
+                                                             class = "btn-success"))
                        )
                      )
                    )
