@@ -107,14 +107,20 @@ ui <- dashboardPage(
         icon = icon("table")
       ),
 
-      # Analysis Tools
-      sidebarHeader("RISK ANALYSIS"),
-
       menuItem(
         text = "Guided Creation",
         tabName = "guided",
         icon = icon("magic")
       ),
+
+      menuItem(
+        text = "Link Review",
+        tabName = "link_risk",
+        icon = icon("link")
+      ),
+
+      # Analysis Tools
+      sidebarHeader("RISK ANALYSIS"),
 
       menuItem(
         text = "Bowtie Diagram",
@@ -126,12 +132,6 @@ ui <- dashboardPage(
         text = "Risk Matrix",
         tabName = "matrix",
         icon = icon("th")
-      ),
-
-      menuItem(
-        text = "Link Risk",
-        tabName = "link_risk",
-        icon = icon("link")
       ),
 
       # Advanced Analysis
