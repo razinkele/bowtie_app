@@ -2132,7 +2132,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, ns("activity_item"),
+        updateSelectizeInput(session, session$ns("activity_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2149,7 +2149,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, ns("pressure_item"),
+        updateSelectizeInput(session, session$ns("pressure_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2166,7 +2166,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, ns("preventive_control_item"),
+        updateSelectizeInput(session, session$ns("preventive_control_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2183,7 +2183,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, ns("consequence_item"),
+        updateSelectizeInput(session, session$ns("consequence_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2200,7 +2200,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, ns("protective_control_item"),
+        updateSelectizeInput(session, session$ns("protective_control_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2274,9 +2274,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, ns("activity_item"), selected = character(0))
+        updateSelectizeInput(session, session$ns("activity_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, ns("activity_custom_text"), value = "")
+          updateTextInput(session, session$ns("activity_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_activity_exists", lang()), type = "warning", duration = 2)
@@ -2329,9 +2329,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, ns("pressure_item"), selected = character(0))
+        updateSelectizeInput(session, session$ns("pressure_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, ns("pressure_custom_text"), value = "")
+          updateTextInput(session, session$ns("pressure_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_pressure_exists", lang()), type = "warning", duration = 2)
@@ -2520,9 +2520,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, ns("preventive_control_item"), selected = character(0))
+        updateSelectizeInput(session, session$ns("preventive_control_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, ns("preventive_control_custom_text"), value = "")
+          updateTextInput(session, session$ns("preventive_control_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
@@ -2704,9 +2704,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, ns("consequence_item"), selected = character(0))
+        updateSelectizeInput(session, session$ns("consequence_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, ns("consequence_custom_text"), value = "")
+          updateTextInput(session, session$ns("consequence_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_consequence_exists", lang()), type = "warning", duration = 2)
@@ -2856,9 +2856,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, ns("protective_control_item"), selected = character(0))
+        updateSelectizeInput(session, session$ns("protective_control_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, ns("protective_control_custom_text"), value = "")
+          updateTextInput(session, session$ns("protective_control_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
@@ -3072,7 +3072,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         showNotification(paste(t("gw_added_escalation", lang()), factor_name), type = "message", duration = 2)
 
         # Clear the input
-        updateTextInput(session, ns("escalation_factor_input"), value = "")
+        updateTextInput(session, session$ns("escalation_factor_input"), value = "")
       } else {
         showNotification(t("gw_escalation_exists", lang()), type = "warning", duration = 2)
       }
@@ -3538,24 +3538,24 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
 
       if (!is.null(template_data)) {
         # Update Step 1 (Project Setup) fields
-        updateTextInput(session, ns("project_name"), value = template_data$project_name)
-        updateTextInput(session, ns("project_location"), value = template_data$project_location)
-        updateSelectInput(session, ns("project_type"), selected = template_data$project_type)
-        updateTextAreaInput(session, ns("project_description"), value = template_data$project_description)
+        updateTextInput(session, session$ns("project_name"), value = template_data$project_name)
+        updateTextInput(session, session$ns("project_location"), value = template_data$project_location)
+        updateSelectInput(session, session$ns("project_type"), selected = template_data$project_type)
+        updateTextAreaInput(session, session$ns("project_description"), value = template_data$project_description)
 
         # Update Step 2 (Central Problem Definition) fields
-        updateTextInput(session, ns("problem_statement"), value = template_data$central_problem)
+        updateTextInput(session, session$ns("problem_statement"), value = template_data$central_problem)
         if (!is.null(template_data$problem_category)) {
-          updateSelectInput(session, ns("problem_category"), selected = template_data$problem_category)
+          updateSelectInput(session, session$ns("problem_category"), selected = template_data$problem_category)
         }
         if (!is.null(template_data$problem_details)) {
-          updateTextAreaInput(session, ns("problem_details"), value = template_data$problem_details)
+          updateTextAreaInput(session, session$ns("problem_details"), value = template_data$problem_details)
         }
         if (!is.null(template_data$problem_scale)) {
-          updateSelectInput(session, ns("problem_scale"), selected = template_data$problem_scale)
+          updateSelectInput(session, session$ns("problem_scale"), selected = template_data$problem_scale)
         }
         if (!is.null(template_data$problem_urgency)) {
-          updateSelectInput(session, ns("problem_urgency"), selected = template_data$problem_urgency)
+          updateSelectInput(session, session$ns("problem_urgency"), selected = template_data$problem_urgency)
         }
 
         # Store template info in state
