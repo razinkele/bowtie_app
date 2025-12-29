@@ -20,7 +20,7 @@ options(warn = -1)
 context("Hierarchical Integration - Complete Workflow")
 
 test_that("Complete workflow: Select activities hierarchically", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   source("../../guided_workflow.R")
 
   vocab <- load_vocabulary()
@@ -56,7 +56,7 @@ test_that("Complete workflow: Select activities hierarchically", {
 })
 
 test_that("Complete workflow: Add custom entries and review", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   source("../../guided_workflow.R")
 
   # Initialize workflow state
@@ -137,7 +137,7 @@ test_that("Complete workflow: Add custom entries and review", {
 })
 
 test_that("Complete workflow: Mix vocabulary and custom entries", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   vocab <- load_vocabulary()
 
@@ -213,7 +213,7 @@ test_that("Custom entries persist when navigating between steps", {
 })
 
 test_that("Hierarchical selections persist across step navigation", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   # Create workflow state with hierarchical selections
@@ -299,7 +299,7 @@ test_that("Duplicate entries are detected across vocabulary and custom", {
 })
 
 test_that("Group-item relationship is validated", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   validate_item_belongs_to_group <- function(group_id, item_name, vocab_data) {
@@ -436,7 +436,7 @@ test_that("Export data includes custom entries metadata", {
 context("Hierarchical Integration - User Experience")
 
 test_that("User can complete workflow using only vocabulary items", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   workflow <- list(
@@ -498,7 +498,7 @@ test_that("User can complete workflow using only custom entries", {
 })
 
 test_that("User can mix vocabulary and custom entries seamlessly", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   workflow <- list(

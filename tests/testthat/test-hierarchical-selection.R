@@ -21,7 +21,7 @@ context("Hierarchical Selection - Vocabulary Structure")
 
 test_that("Vocabulary data has hierarchical structure", {
   # Source vocabulary module
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   # Load vocabulary
   vocab <- load_vocabulary()
@@ -56,7 +56,7 @@ test_that("Vocabulary data has hierarchical structure", {
 })
 
 test_that("get_children function returns correct hierarchical data", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   # Get first Level 1 activity
@@ -76,7 +76,7 @@ test_that("get_children function returns correct hierarchical data", {
 })
 
 test_that("Hierarchical structure is consistent across vocabulary types", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   # Check each vocabulary type has consistent structure
@@ -183,7 +183,7 @@ context("Hierarchical Selection - UI Components")
 
 test_that("Step 3 UI generates hierarchical selection inputs", {
   source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   vocab <- load_vocabulary()
 
@@ -206,7 +206,7 @@ test_that("Step 3 UI generates hierarchical selection inputs", {
 
 test_that("Step 3 UI includes custom entry options", {
   source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   vocab <- load_vocabulary()
   ui <- generate_step3_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -227,7 +227,7 @@ test_that("Step 3 UI includes custom entry options", {
 
 test_that("Step 4 UI generates hierarchical control selection", {
   source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   vocab <- load_vocabulary()
   ui <- generate_step4_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -243,7 +243,7 @@ test_that("Step 4 UI generates hierarchical control selection", {
 
 test_that("Step 5 UI generates hierarchical consequence selection", {
   source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   vocab <- load_vocabulary()
   ui <- generate_step5_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -259,7 +259,7 @@ test_that("Step 5 UI generates hierarchical consequence selection", {
 
 test_that("Step 6 UI generates hierarchical protective control selection", {
   source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   vocab <- load_vocabulary()
   ui <- generate_step6_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -292,7 +292,7 @@ test_that("Step 7 UI includes custom entries review table", {
 context("Hierarchical Selection - Server Logic")
 
 test_that("Group selection updates item choices correctly", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   # Simulate selecting a group
@@ -360,7 +360,7 @@ test_that("Item selection from hierarchy works correctly", {
     return(NULL)
   }
 
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   if (nrow(vocab$activities) > 0) {
@@ -527,7 +527,7 @@ test_that("NULL vocabulary data is handled gracefully", {
 })
 
 test_that("Invalid group selection returns no items", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   # Try to get children of non-existent group
@@ -602,7 +602,7 @@ test_that("Empty custom entries show appropriate message", {
 context("Hierarchical Selection - Performance")
 
 test_that("Large vocabulary loads efficiently", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   # Measure load time
   start_time <- Sys.time()
@@ -618,7 +618,7 @@ test_that("Large vocabulary loads efficiently", {
 })
 
 test_that("Hierarchical filtering is performant", {
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
   vocab <- load_vocabulary()
 
   if (nrow(vocab$activities) > 0) {
@@ -647,7 +647,7 @@ test_that("Hierarchical filtering is performant", {
 
 test_that("UI generation is performant", {
   source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  source("../../vocabulary.R")
 
   vocab <- load_vocabulary()
 
