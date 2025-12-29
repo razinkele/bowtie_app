@@ -935,9 +935,13 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                  # Prepare Level 1 (group) choices from vocabulary data
                  activity_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-                   level1_activities <- vocabulary_data$activities[vocabulary_data$activities$level == 1, ]
+                   level1_activities <- vocabulary_data$activities[vocabulary_data$activities$level == 1 & !is.na(vocabulary_data$activities$level), ]
+                   # Additional safety: filter out any NA names or IDs
                    if (nrow(level1_activities) > 0) {
-                     activity_groups <- setNames(level1_activities$id, level1_activities$name)
+                     level1_activities <- level1_activities[!is.na(level1_activities$name) & !is.na(level1_activities$id), ]
+                     if (nrow(level1_activities) > 0) {
+                       activity_groups <- setNames(level1_activities$id, level1_activities$name)
+                     }
                    }
                  }
 
@@ -1016,9 +1020,13 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                  # Prepare Level 1 (group) choices from vocabulary data
                  pressure_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-                   level1_pressures <- vocabulary_data$pressures[vocabulary_data$pressures$level == 1, ]
+                   level1_pressures <- vocabulary_data$pressures[vocabulary_data$pressures$level == 1 & !is.na(vocabulary_data$pressures$level), ]
+                   # Additional safety: filter out any NA names or IDs
                    if (nrow(level1_pressures) > 0) {
-                     pressure_groups <- setNames(level1_pressures$id, level1_pressures$name)
+                     level1_pressures <- level1_pressures[!is.na(level1_pressures$name) & !is.na(level1_pressures$id), ]
+                     if (nrow(level1_pressures) > 0) {
+                       pressure_groups <- setNames(level1_pressures$id, level1_pressures$name)
+                     }
                    }
                  }
 
@@ -1128,9 +1136,13 @@ generate_step4_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                  # Prepare Level 1 (group) choices from vocabulary data
                  control_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   level1_controls <- vocabulary_data$controls[vocabulary_data$controls$level == 1, ]
+                   level1_controls <- vocabulary_data$controls[vocabulary_data$controls$level == 1 & !is.na(vocabulary_data$controls$level), ]
+                   # Additional safety: filter out any NA names or IDs
                    if (nrow(level1_controls) > 0) {
-                     control_groups <- setNames(level1_controls$id, level1_controls$name)
+                     level1_controls <- level1_controls[!is.na(level1_controls$name) & !is.na(level1_controls$id), ]
+                     if (nrow(level1_controls) > 0) {
+                       control_groups <- setNames(level1_controls$id, level1_controls$name)
+                     }
                    }
                  }
 
@@ -1247,9 +1259,13 @@ generate_step5_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                  # Prepare Level 1 (group) choices from vocabulary data
                  consequence_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-                   level1_consequences <- vocabulary_data$consequences[vocabulary_data$consequences$level == 1, ]
+                   level1_consequences <- vocabulary_data$consequences[vocabulary_data$consequences$level == 1 & !is.na(vocabulary_data$consequences$level), ]
+                   # Additional safety: filter out any NA names or IDs
                    if (nrow(level1_consequences) > 0) {
-                     consequence_groups <- setNames(level1_consequences$id, level1_consequences$name)
+                     level1_consequences <- level1_consequences[!is.na(level1_consequences$name) & !is.na(level1_consequences$id), ]
+                     if (nrow(level1_consequences) > 0) {
+                       consequence_groups <- setNames(level1_consequences$id, level1_consequences$name)
+                     }
                    }
                  }
 
@@ -1366,9 +1382,13 @@ generate_step6_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                  # Prepare Level 1 (group) choices from vocabulary data
                  protective_control_groups <- character(0)
                  if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-                   level1_controls <- vocabulary_data$controls[vocabulary_data$controls$level == 1, ]
+                   level1_controls <- vocabulary_data$controls[vocabulary_data$controls$level == 1 & !is.na(vocabulary_data$controls$level), ]
+                   # Additional safety: filter out any NA names or IDs
                    if (nrow(level1_controls) > 0) {
-                     protective_control_groups <- setNames(level1_controls$id, level1_controls$name)
+                     level1_controls <- level1_controls[!is.na(level1_controls$name) & !is.na(level1_controls$id), ]
+                     if (nrow(level1_controls) > 0) {
+                       protective_control_groups <- setNames(level1_controls$id, level1_controls$name)
+                     }
                    }
                  }
 
