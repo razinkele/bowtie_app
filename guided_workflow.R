@@ -2152,7 +2152,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, session$ns("activity_item"),
+        updateSelectizeInput(session, "activity_item",
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2169,7 +2169,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, session$ns("pressure_item"),
+        updateSelectizeInput(session, "pressure_item",
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2186,7 +2186,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, session$ns("preventive_control_item"),
+        updateSelectizeInput(session, "preventive_control_item",
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2203,7 +2203,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, session$ns("consequence_item"),
+        updateSelectizeInput(session, "consequence_item",
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2220,7 +2220,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, session$ns("protective_control_item"),
+        updateSelectizeInput(session, "protective_control_item",
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
