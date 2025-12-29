@@ -2246,7 +2246,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       activity_name <- input$activity_item
     }
 
-    if (!is.null(activity_name) && nchar(trimws(activity_name)) > 0) {
+    # Validate: not NULL, not NA, not empty after trimming
+    if (!is.null(activity_name) && !is.na(activity_name) &&
+        nchar(trimws(activity_name)) > 0) {
       # Get current list
       current <- selected_activities()
 
@@ -2299,7 +2301,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       pressure_name <- input$pressure_item
     }
 
-    if (!is.null(pressure_name) && nchar(trimws(pressure_name)) > 0) {
+    # Validate: not NULL, not NA, not empty after trimming
+    if (!is.null(pressure_name) && !is.na(pressure_name) &&
+        nchar(trimws(pressure_name)) > 0) {
       # Get current list
       current <- selected_pressures()
 
@@ -2488,7 +2492,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       control_name <- input$preventive_control_item
     }
 
-    if (!is.null(control_name) && nchar(trimws(control_name)) > 0) {
+    # Validate: not NULL, not NA, not empty after trimming
+    if (!is.null(control_name) && !is.na(control_name) &&
+        nchar(trimws(control_name)) > 0) {
       # Get current list
       current <- selected_preventive_controls()
 
@@ -2670,7 +2676,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       consequence_name <- input$consequence_item
     }
 
-    if (!is.null(consequence_name) && nchar(trimws(consequence_name)) > 0) {
+    # Validate: not NULL, not NA, not empty after trimming
+    if (!is.null(consequence_name) && !is.na(consequence_name) &&
+        nchar(trimws(consequence_name)) > 0) {
       # Get current list
       current <- selected_consequences()
 
@@ -2820,7 +2828,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       control_name <- input$protective_control_item
     }
 
-    if (!is.null(control_name) && nchar(trimws(control_name)) > 0) {
+    # Validate: not NULL, not NA, not empty after trimming
+    if (!is.null(control_name) && !is.na(control_name) &&
+        nchar(trimws(control_name)) > 0) {
       # Get current list
       current <- selected_protective_controls()
 
@@ -3042,11 +3052,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # Handle "Add Escalation Factor" button
   observeEvent(input$add_escalation_factor, {
     factor_name <- input$escalation_factor_input
-    
-    if (!is.null(factor_name) && nchar(trimws(factor_name)) > 0) {
+
+    # Validate: not NULL, not NA, not empty after trimming
+    if (!is.null(factor_name) && !is.na(factor_name) &&
+        nchar(trimws(factor_name)) > 0) {
       # Get current list
       current <- selected_escalation_factors()
-      
+
       # Check if already added
       if (!factor_name %in% current) {
         current <- c(current, factor_name)
