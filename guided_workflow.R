@@ -2132,7 +2132,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, "activity_item",
+        updateSelectizeInput(session, ns("activity_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2149,7 +2149,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, "pressure_item",
+        updateSelectizeInput(session, ns("pressure_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2166,7 +2166,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, "preventive_control_item",
+        updateSelectizeInput(session, ns("preventive_control_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2183,7 +2183,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, "consequence_item",
+        updateSelectizeInput(session, ns("consequence_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2200,7 +2200,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
       ]
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
-        updateSelectizeInput(session, "protective_control_item",
+        updateSelectizeInput(session, ns("protective_control_item"),
                            choices = c("Choose an item..." = "", item_choices),
                            selected = NULL)
       }
@@ -2274,9 +2274,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, "activity_item", selected = character(0))
+        updateSelectizeInput(session, ns("activity_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, "activity_custom_text", value = "")
+          updateTextInput(session, ns("activity_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_activity_exists", lang()), type = "warning", duration = 2)
@@ -2329,9 +2329,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, "pressure_item", selected = character(0))
+        updateSelectizeInput(session, ns("pressure_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, "pressure_custom_text", value = "")
+          updateTextInput(session, ns("pressure_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_pressure_exists", lang()), type = "warning", duration = 2)
@@ -2520,9 +2520,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, "preventive_control_item", selected = character(0))
+        updateSelectizeInput(session, ns("preventive_control_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, "preventive_control_custom_text", value = "")
+          updateTextInput(session, ns("preventive_control_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
@@ -2704,9 +2704,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, "consequence_item", selected = character(0))
+        updateSelectizeInput(session, ns("consequence_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, "consequence_custom_text", value = "")
+          updateTextInput(session, ns("consequence_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_consequence_exists", lang()), type = "warning", duration = 2)
@@ -2856,9 +2856,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         workflow_state(state)
 
         # Clear inputs
-        updateSelectizeInput(session, "protective_control_item", selected = character(0))
+        updateSelectizeInput(session, ns("protective_control_item"), selected = character(0))
         if (is_custom) {
-          updateTextInput(session, "protective_control_custom_text", value = "")
+          updateTextInput(session, ns("protective_control_custom_text"), value = "")
         }
       } else {
         showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
@@ -3072,7 +3072,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
         showNotification(paste(t("gw_added_escalation", lang()), factor_name), type = "message", duration = 2)
 
         # Clear the input
-        updateTextInput(session, "escalation_factor_input", value = "")
+        updateTextInput(session, ns("escalation_factor_input"), value = "")
       } else {
         showNotification(t("gw_escalation_exists", lang()), type = "warning", duration = 2)
       }
