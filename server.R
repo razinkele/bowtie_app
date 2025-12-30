@@ -2099,7 +2099,9 @@ server <- function(input, output, session) {
     ai_enabled = reactive({
       # Explicitly check - only TRUE if checkbox is checked
       # NULL, NA, FALSE all treated as disabled
-      !is.null(input$ai_suggestions_enabled) && isTRUE(input$ai_suggestions_enabled)
+      result <- !is.null(input$ai_suggestions_enabled) && isTRUE(input$ai_suggestions_enabled)
+      cat("⚙️ [SERVER] AI enabled reactive called. input$ai_suggestions_enabled =", input$ai_suggestions_enabled, "→ result =", result, "\n")
+      result
     }),
     ai_methods = reactive({
       methods <- c()

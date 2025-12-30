@@ -2045,37 +2045,40 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   
   # Update selectize choices when entering step 3
-  observe({
+  # Use observeEvent with priority so it only triggers on step changes, not every state update
+  observeEvent(workflow_state()$current_step, {
     state <- workflow_state()
     if (!is.null(state) && state$current_step == 3) {
-      
-      cat("🔍 Step 3 detected - updating vocabulary choices\n")
-      
+
+      cat("🔍 [VOCAB CHOICES] Step 3 entered - updating vocabulary choices (ONE TIME ONLY)\n")
+
       # Update activity choices
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
         activity_choices <- vocabulary_data$activities$name
         if (length(activity_choices) > 0) {
-          cat("📝 Updating activity_search with", length(activity_choices), "choices\n")
-          updateSelectizeInput(session, "activity_search", 
+          cat("📝 [VOCAB CHOICES] Updating activity_search with", length(activity_choices), "choices\n")
+          updateSelectizeInput(session, "activity_search",
                              choices = activity_choices,
                              server = TRUE,
                              selected = character(0))
         }
       }
-      
+
       # Update pressure choices
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures)) {
         pressure_choices <- vocabulary_data$pressures$name
         if (length(pressure_choices) > 0) {
-          cat("📝 Updating pressure_search with", length(pressure_choices), "choices\n")
-          updateSelectizeInput(session, "pressure_search", 
+          cat("📝 [VOCAB CHOICES] Updating pressure_search with", length(pressure_choices), "choices\n")
+          updateSelectizeInput(session, "pressure_search",
                              choices = pressure_choices,
                              server = TRUE,
                              selected = character(0))
         }
       }
+
+      cat("📝 [VOCAB CHOICES] Vocabulary choices updated. This will NOT trigger again until step changes.\n")
     }
-  })
+  }, ignoreInit = FALSE)
   
   # Handle "Next" button click
   observeEvent(input$next_step, {

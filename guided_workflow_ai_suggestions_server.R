@@ -115,14 +115,21 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
   # Observer for pressure suggestions
   observe({
-    cat("\n🔍 [AI SUGGESTIONS] Pressure observer triggered!\n")
+    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    cat("🔍 [AI SUGGESTIONS] Pressure observer triggered!\n")
+    cat("🔍 [AI SUGGESTIONS] Checking AI enabled status...\n")
+
+    ai_status <- ai_enabled()
+    cat("🔍 [AI SUGGESTIONS] ai_enabled() returned:", ai_status, "\n")
+    cat("🔍 [AI SUGGESTIONS] ai_enabled() class:", class(ai_status), "\n")
 
     # Check if AI is enabled FIRST (before any expensive operations)
-    if (!ai_enabled()) {
-      cat("🔍 [AI SUGGESTIONS] AI is disabled in settings - skipping\n")
+    if (!ai_status) {
+      cat("🔍 [AI SUGGESTIONS] AI is DISABLED in settings - skipping\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       return()
     }
-    cat("🔍 [AI SUGGESTIONS] AI is ENABLED in settings\n")
+    cat("🔍 [AI SUGGESTIONS] AI is ENABLED in settings - proceeding\n")
 
     # Get current activities directly from state
     state <- workflow_state()
