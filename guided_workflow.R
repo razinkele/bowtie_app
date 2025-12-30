@@ -2240,28 +2240,40 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   observe({
     state <- workflow_state()
     if (!is.null(state) && state$current_step == 3) {
+      cat("\n🔄 [STATE SYNC] Step 3 state sync triggered\n")
+
       # Load activities from state if available
       if (!is.null(state$project_data$activities) && length(state$project_data$activities) > 0) {
         # Ensure it's a character vector
         activities <- as.character(state$project_data$activities)
+        cat("🔄 [STATE SYNC] Loading", length(activities), "activities from state:", paste(activities, collapse = ", "), "\n")
         selected_activities(activities)
       } else {
+        cat("🔄 [STATE SYNC] No activities in state - clearing list\n")
         selected_activities(list())
       }
-      
+
       # Load pressures from state if available
       if (!is.null(state$project_data$pressures) && length(state$project_data$pressures) > 0) {
         # Ensure it's a character vector
         pressures <- as.character(state$project_data$pressures)
+        cat("🔄 [STATE SYNC] Loading", length(pressures), "pressures from state:", paste(pressures, collapse = ", "), "\n")
         selected_pressures(pressures)
       } else {
+        cat("🔄 [STATE SYNC] No pressures in state - clearing list\n")
         selected_pressures(list())
       }
+
+      cat("🔄 [STATE SYNC] State sync completed. NOT touching input fields.\n")
     }
   })
   
   # Handle "Add Activity" button
   observeEvent(input$add_activity, {
+    cat("\n📝 [ADD ACTIVITY] Button clicked!\n")
+    cat("📝 [ADD ACTIVITY] Current activity_group input:", input$activity_group, "\n")
+    cat("📝 [ADD ACTIVITY] Current activity_item input:", input$activity_item, "\n")
+
     # Determine if using custom entry or hierarchical selection
     activity_name <- NULL
     is_custom <- FALSE
@@ -2270,9 +2282,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       # Custom entry mode
       activity_name <- input$activity_custom_text
       is_custom <- TRUE
+      cat("📝 [ADD ACTIVITY] Using CUSTOM entry mode:", activity_name, "\n")
     } else {
       # Hierarchical selection mode
       activity_name <- input$activity_item
+      cat("📝 [ADD ACTIVITY] Using HIERARCHICAL selection mode:", activity_name, "\n")
     }
 
     # Validate: not NULL, not NA, not empty after trimming
@@ -2280,11 +2294,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         nchar(trimws(activity_name)) > 0) {
       # Get current list
       current <- selected_activities()
+      cat("📝 [ADD ACTIVITY] Current activities list:", paste(current, collapse = ", "), "\n")
 
       # Check if already added
       if (!activity_name %in% current) {
         current <- c(current, activity_name)
         selected_activities(current)
+        cat("📝 [ADD ACTIVITY] Updated activities list:", paste(current, collapse = ", "), "\n")
 
         # Track custom entries
         if (is_custom) {
@@ -2296,21 +2312,28 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           showNotification(paste(t("gw_added_activity", lang()), activity_name), type = "message", duration = 2)
         }
 
+        cat("📝 [ADD ACTIVITY] Updating workflow state...\n")
         # Update workflow state
         state <- workflow_state()
         state$project_data$activities <- current
         state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
+        cat("📝 [ADD ACTIVITY] Workflow state updated successfully\n")
 
+        cat("📝 [ADD ACTIVITY] Clearing activity_item input...\n")
         # Clear inputs
         updateSelectizeInput(session, session$ns("activity_item"), selected = character(0))
         if (is_custom) {
           updateTextInput(session, session$ns("activity_custom_text"), value = "")
         }
+        cat("📝 [ADD ACTIVITY] Input cleared. NOT clearing activity_group.\n")
+        cat("📝 [ADD ACTIVITY] Completed successfully!\n")
       } else {
+        cat("📝 [ADD ACTIVITY] Activity already exists:", activity_name, "\n")
         showNotification(t("gw_activity_exists", lang()), type = "warning", duration = 2)
       }
     } else {
+      cat("📝 [ADD ACTIVITY] Validation failed - empty or invalid input\n")
       showNotification("Please select an activity or enter a custom name", type = "warning", duration = 2)
     }
   })

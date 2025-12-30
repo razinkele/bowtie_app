@@ -113,25 +113,20 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # STEP 3: PRESSURE SUGGESTIONS (based on selected activities)
   # ======================================================================
 
-  # Create a debounced reactive for activities
-  activities_debounced <- debounce(reactive({
-    state <- workflow_state()
-    state$project_data$activities
-  }), 1000)  # Wait 1 second after last change
-
   # Observer for pressure suggestions
   observe({
     cat("\n🔍 [AI SUGGESTIONS] Pressure observer triggered!\n")
 
-    # Check if AI is enabled
+    # Check if AI is enabled FIRST (before any expensive operations)
     if (!ai_enabled()) {
       cat("🔍 [AI SUGGESTIONS] AI is disabled in settings - skipping\n")
       return()
     }
     cat("🔍 [AI SUGGESTIONS] AI is ENABLED in settings\n")
 
-    # Get debounced activities (this prevents rapid re-triggers)
-    selected_activities_names <- activities_debounced()
+    # Get current activities directly from state
+    state <- workflow_state()
+    selected_activities_names <- state$project_data$activities
     cat("🔍 [AI SUGGESTIONS] Selected activities: ",
         if (is.null(selected_activities_names)) "NULL" else paste(selected_activities_names, collapse = ", "), "\n")
     cat("🔍 [AI SUGGESTIONS] Activity count: ",
