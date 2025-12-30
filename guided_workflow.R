@@ -2170,6 +2170,12 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # HIERARCHICAL SELECTION: Update item choices when group is selected
   # =============================================================================
 
+  # DEBUG: Track when activity_group input changes
+  observe({
+    cat("🔍 [ACTIVITY_GROUP DEBUG] activity_group value changed to:",
+        if(is.null(input$activity_group)) "NULL" else if(nchar(input$activity_group)==0) "EMPTY" else input$activity_group, "\n")
+  })
+
   # Update activity items when group is selected
   observeEvent(input$activity_group, {
     req(input$activity_group)
