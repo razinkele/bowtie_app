@@ -35,22 +35,22 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     if (is.null(vocab_df)) return(list())
 
     # Convert each name to item format
-    lapply(names_vector, function(name) {
-      # Try to find in vocabulary
-      row <- vocab_df[vocab_df$Activity == name | vocab_df$Pressure == name |
-                      vocab_df$Consequence == name | vocab_df$Control == name, ]
+    # All vocab types use same structure: hierarchy, id, name, level
+    lapply(names_vector, function(item_name) {
+      # Try to find in vocabulary by matching the 'name' column
+      row <- vocab_df[vocab_df$name == item_name, ]
 
       if (nrow(row) > 0) {
         list(
-          id = row$id[1],
-          name = name,
+          id = as.character(row$id[1]),
+          name = as.character(row$name[1]),
           type = vocab_type
         )
       } else {
         # Custom entry - use name as ID
         list(
-          id = paste0("custom_", gsub("[^a-z0-9_]", "_", tolower(name))),
-          name = name,
+          id = paste0("custom_", gsub("[^a-z0-9_]", "_", tolower(item_name))),
+          name = item_name,
           type = vocab_type
         )
       }
