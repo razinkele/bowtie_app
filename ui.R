@@ -258,7 +258,105 @@ ui <- dashboardPage(
         actionButton("applyTheme",
                     "Apply Theme",
                     icon = icon("palette"),
-                    class = "btn-primary btn-block")
+                    class = "btn-primary btn-block"),
+
+        hr(),
+
+        h4(icon("robot"), " AI Suggestions Settings"),
+        p(class = "text-muted small", "Configure AI-powered vocabulary suggestions in Guided Workflow"),
+
+        div(class = "form-group",
+          div(class = "custom-control custom-switch",
+            tags$input(
+              type = "checkbox",
+              class = "custom-control-input",
+              id = "ai_suggestions_enabled",
+              checked = NA
+            ),
+            tags$label(
+              class = "custom-control-label",
+              `for` = "ai_suggestions_enabled",
+              "Enable AI Suggestions"
+            )
+          ),
+          tags$small(class = "form-text text-muted",
+            "⚠️ May cause 2-3 second delays when adding items"
+          )
+        ),
+
+        div(id = "ai_methods_container", style = "margin-left: 20px; margin-top: 10px;",
+          h6("Analysis Methods:"),
+
+          div(class = "custom-control custom-checkbox",
+            tags$input(
+              type = "checkbox",
+              class = "custom-control-input",
+              id = "ai_method_semantic",
+              checked = "checked"
+            ),
+            tags$label(
+              class = "custom-control-label",
+              `for` = "ai_method_semantic",
+              "Semantic Similarity (Jaccard)"
+            )
+          ),
+
+          div(class = "custom-control custom-checkbox",
+            tags$input(
+              type = "checkbox",
+              class = "custom-control-input",
+              id = "ai_method_keyword",
+              checked = "checked"
+            ),
+            tags$label(
+              class = "custom-control-label",
+              `for` = "ai_method_keyword",
+              "Keyword Matching"
+            )
+          ),
+
+          div(class = "custom-control custom-checkbox",
+            tags$input(
+              type = "checkbox",
+              class = "custom-control-input",
+              id = "ai_method_causal",
+              checked = "checked"
+            ),
+            tags$label(
+              class = "custom-control-label",
+              `for` = "ai_method_causal",
+              "Causal Relationships"
+            )
+          ),
+
+          br(),
+
+          sliderInput("ai_max_suggestions",
+                     "Max Suggestions:",
+                     min = 1,
+                     max = 10,
+                     value = 5,
+                     step = 1,
+                     ticks = FALSE)
+        ),
+
+        tags$script(HTML("
+          $(document).ready(function() {
+            // Show/hide AI methods based on enabled switch
+            $('#ai_suggestions_enabled').on('change', function() {
+              if ($(this).is(':checked')) {
+                $('#ai_methods_container').slideDown();
+              } else {
+                $('#ai_methods_container').slideUp();
+              }
+            });
+
+            // Initialize visibility
+            if (!$('#ai_suggestions_enabled').is(':checked')) {
+              $('#ai_methods_container').hide();
+            }
+          });
+        "))
       )
     )
   ),

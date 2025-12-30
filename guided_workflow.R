@@ -83,26 +83,22 @@ cat("Step-by-step bowtie creation with expert guidance\n\n")
 
 # Load AI suggestions module
 cat("🤖 Loading AI-powered suggestions...\n")
-# TEMPORARILY DISABLED: AI suggestions cause session blocking (2+ sec analysis)
-# TODO: Implement async processing using promises/future
-WORKFLOW_AI_ENABLED <- FALSE
-cat("⚠️ AI suggestions temporarily disabled (causes session blocking)\n")
-cat("   App will work normally without AI suggestions\n\n")
-
-# Original code (keep for reference):
-# if (file.exists("guided_workflow_ai_suggestions.R")) {
-#   tryCatch({
-#     source("guided_workflow_ai_suggestions.R")
-#     WORKFLOW_AI_ENABLED <- TRUE
-#     cat("✅ AI suggestions enabled\n\n")
-#   }, error = function(e) {
-#     WORKFLOW_AI_ENABLED <- FALSE
-#     cat("⚠️ AI suggestions unavailable:", e$message, "\n\n")
-#   })
-# } else {
-#   WORKFLOW_AI_ENABLED <- FALSE
-#   cat("ℹ️ AI suggestions module not found\n\n")
-# }
+# AI suggestions available but controlled by user settings (gear icon)
+if (file.exists("guided_workflow_ai_suggestions.R")) {
+  tryCatch({
+    source("guided_workflow_ai_suggestions.R")
+    WORKFLOW_AI_AVAILABLE <- TRUE
+    cat("✅ AI suggestions module loaded (controlled by user settings)\n")
+    cat("   ⚙️  Enable in Settings → AI Suggestions Settings\n")
+    cat("   ⚠️  Warning: May cause 2-3 second delays when enabled\n\n")
+  }, error = function(e) {
+    WORKFLOW_AI_AVAILABLE <- FALSE
+    cat("⚠️ AI suggestions unavailable:", e$message, "\n\n")
+  })
+} else {
+  WORKFLOW_AI_AVAILABLE <- FALSE
+  cat("ℹ️ AI suggestions module not found\n\n")
+}
 
 # =============================================================================
 # WORKFLOW CONFIGURATION
@@ -1102,7 +1098,7 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              ),
 
              # AI-powered suggestions for pressures (if available)
-             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+             if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
                create_ai_suggestions_ui(
                  ns,
                  "pressure",
@@ -1225,7 +1221,7 @@ generate_step4_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              ),
 
              # AI-powered suggestions for preventive controls (if available)
-             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+             if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
                create_ai_suggestions_ui(
                  ns,
                  "control_preventive",
@@ -1348,7 +1344,7 @@ generate_step5_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              ),
 
              # AI-powered suggestions for consequences (if available)
-             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+             if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
                create_ai_suggestions_ui(
                  ns,
                  "consequence",
@@ -1471,7 +1467,7 @@ generate_step6_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              ),
 
              # AI-powered suggestions for protective controls (if available)
-             if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED && exists("create_ai_suggestions_ui")) {
+             if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
                create_ai_suggestions_ui(
                  ns,
                  "control_protective",
@@ -1686,7 +1682,10 @@ generate_step8_ui <- function(session = NULL, current_lang = "en") {
 # =============================================================================
 
 # Server logic for the guided workflow module
-guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"})) {
+guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
+                                   ai_enabled = reactive({FALSE}),
+                                   ai_methods = reactive({c("jaccard")}),
+                                   ai_max_suggestions = reactive({5})) {
   moduleServer(id, function(input, output, session) {
     
     # =============================================================================
@@ -1946,7 +1945,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
   # =============================================================================
 
   # Initialize AI suggestion handlers if available
-  if (exists("WORKFLOW_AI_ENABLED") && WORKFLOW_AI_ENABLED) {
+  if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE) {
     tryCatch({
       # Source the server-side suggestion handlers
       if (file.exists("guided_workflow_ai_suggestions_server.R")) {
@@ -1958,10 +1957,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
           output = output,
           session = session,
           workflow_state = workflow_state,  # Pass reactive, not value
-          vocabulary_data_reactive = vocab_data
+          vocabulary_data_reactive = vocab_data,
+          ai_enabled = ai_enabled,  # User setting from settings panel
+          ai_methods = ai_methods,  # Selected methods (jaccard, keyword, causal)
+          ai_max_suggestions = ai_max_suggestions  # Max number of suggestions
         )
 
-        cat("✅ AI suggestions active in guided workflow\n")
+        cat("✅ AI suggestions module ready (controlled by settings)\n")
       }
     }, error = function(e) {
       cat("⚠️ Failed to initialize AI suggestions:", e$message, "\n")

@@ -14,9 +14,16 @@
 #' @param session Shiny session object
 #' @param workflow_state Reactive values containing workflow state
 #' @param vocabulary_data_reactive Reactive containing vocabulary data
-init_ai_suggestion_handlers <- function(input, output, session, workflow_state, vocabulary_data_reactive) {
+#' @param ai_enabled Reactive returning TRUE/FALSE for whether AI is enabled
+#' @param ai_methods Reactive returning vector of methods (e.g., c("jaccard", "keyword"))
+#' @param ai_max_suggestions Reactive returning max number of suggestions
+init_ai_suggestion_handlers <- function(input, output, session, workflow_state, vocabulary_data_reactive,
+                                       ai_enabled = reactive({FALSE}),
+                                       ai_methods = reactive({c("jaccard")}),
+                                       ai_max_suggestions = reactive({5})) {
 
   cat("🤖 Initializing AI suggestion handlers...\n")
+  cat("   AI will be controlled by user settings\n")
 
   # Helper function to convert character vector to item list with vocab lookup
   convert_to_item_list <- function(names_vector, vocab_type, vocab_data) {
@@ -116,6 +123,13 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   observe({
     cat("\n🔍 [AI SUGGESTIONS] Pressure observer triggered!\n")
 
+    # Check if AI is enabled
+    if (!ai_enabled()) {
+      cat("🔍 [AI SUGGESTIONS] AI is disabled in settings - skipping\n")
+      return()
+    }
+    cat("🔍 [AI SUGGESTIONS] AI is ENABLED in settings\n")
+
     # Get debounced activities (this prevents rapid re-triggers)
     selected_activities_names <- activities_debounced()
     cat("🔍 [AI SUGGESTIONS] Selected activities: ",
@@ -160,11 +174,15 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       }
 
       cat("🔍 [AI SUGGESTIONS] Calling generate_ai_suggestions()...\n")
+      cat("🔍 [AI SUGGESTIONS] Using methods: ", paste(ai_methods(), collapse = ", "), "\n")
+      cat("🔍 [AI SUGGESTIONS] Max suggestions: ", ai_max_suggestions(), "\n")
+
       suggestions <- generate_ai_suggestions(
         vocab_data,
         selected_activities,
         target_type = "Pressure",
-        max_suggestions = 5
+        max_suggestions = ai_max_suggestions(),
+        methods = ai_methods()
       )
 
       cat("🔍 [AI SUGGESTIONS] generate_ai_suggestions() returned. Count: ", length(suggestions), "\n")

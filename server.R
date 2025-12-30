@@ -2095,7 +2095,17 @@ server <- function(input, output, session) {
   guided_workflow_state <- guided_workflow_server(
     "guided_workflow",
     vocabulary_data = vocabulary_data,
-    lang = lang
+    lang = lang,
+    ai_enabled = reactive({ isTRUE(input$ai_suggestions_enabled) }),
+    ai_methods = reactive({
+      methods <- c()
+      if (isTRUE(input$ai_method_semantic)) methods <- c(methods, "jaccard")
+      if (isTRUE(input$ai_method_keyword)) methods <- c(methods, "keyword")
+      if (isTRUE(input$ai_method_causal)) methods <- c(methods, "causal")
+      if (length(methods) == 0) methods <- "jaccard"  # Default
+      methods
+    }),
+    ai_max_suggestions = reactive({ as.integer(input$ai_max_suggestions %||% 5) })
   )
 
   # React to workflow completion - only when actually completed (step 8)

@@ -234,11 +234,13 @@ create_suggestion_card_ui <- function(ns, suggestion, index, suggestion_type) {
 #' @param selected_items Currently selected items (activities, pressures, etc.)
 #' @param target_type Type of suggestions to generate ("Pressure", "Consequence", "Control")
 #' @param max_suggestions Maximum number of suggestions to return
+#' @param methods Analysis methods to use (e.g., c("jaccard", "keyword", "causal"))
 #' @return List of suggestions with metadata
 generate_ai_suggestions <- function(vocabulary_data,
                                     selected_items,
                                     target_type,
-                                    max_suggestions = 5) {
+                                    max_suggestions = 5,
+                                    methods = c("causal", "keyword", "jaccard")) {
 
   # Validate inputs
   if (is.null(vocabulary_data) || length(selected_items) == 0) {
@@ -257,7 +259,7 @@ generate_ai_suggestions <- function(vocabulary_data,
       vocabulary_data,
       similarity_threshold = 0.3,  # Lower threshold for suggestions
       max_links_per_item = 10,     # Get more potential suggestions
-      methods = c("causal", "keyword", "jaccard"),
+      methods = methods,           # Use selected methods from settings
       use_domain_knowledge = TRUE
     )
 
