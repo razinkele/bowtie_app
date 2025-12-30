@@ -2345,13 +2345,25 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         workflow_state(state)
         cat("📝 [ADD ACTIVITY] Workflow state updated successfully\n")
 
+        # Save the current activity_group selection BEFORE clearing activity_item
+        # (Clearing child can trigger parent clearing in Selectize.js)
+        saved_group <- input$activity_group
+        cat("📝 [ADD ACTIVITY] Saving activity_group:", saved_group, "\n")
+
         cat("📝 [ADD ACTIVITY] Clearing activity_item input...\n")
         # Clear inputs
         updateSelectizeInput(session, session$ns("activity_item"), selected = character(0))
         if (is_custom) {
           updateTextInput(session, session$ns("activity_custom_text"), value = "")
         }
-        cat("📝 [ADD ACTIVITY] Input cleared. NOT clearing activity_group.\n")
+
+        # Restore activity_group if it was cleared by Selectize.js
+        if (!is.null(saved_group) && nchar(saved_group) > 0) {
+          cat("📝 [ADD ACTIVITY] Restoring activity_group to:", saved_group, "\n")
+          updateSelectizeInput(session, session$ns("activity_group"), selected = saved_group)
+        }
+
+        cat("📝 [ADD ACTIVITY] Input cleared and activity_group preserved.\n")
         cat("📝 [ADD ACTIVITY] Completed successfully!\n")
       } else {
         cat("📝 [ADD ACTIVITY] Activity already exists:", activity_name, "\n")
@@ -2405,10 +2417,18 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
 
+        # Save the current pressure_group selection BEFORE clearing pressure_item
+        saved_pressure_group <- input$pressure_group
+
         # Clear inputs
         updateSelectizeInput(session, session$ns("pressure_item"), selected = character(0))
         if (is_custom) {
           updateTextInput(session, session$ns("pressure_custom_text"), value = "")
+        }
+
+        # Restore pressure_group if it was cleared by Selectize.js
+        if (!is.null(saved_pressure_group) && nchar(saved_pressure_group) > 0) {
+          updateSelectizeInput(session, session$ns("pressure_group"), selected = saved_pressure_group)
         }
       } else {
         showNotification(t("gw_pressure_exists", lang()), type = "warning", duration = 2)
