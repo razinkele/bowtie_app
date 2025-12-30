@@ -377,6 +377,17 @@ ui <- dashboardPage(
         .nav-sidebar .nav-link.disabled:hover {
           background-color: transparent;
         }
+
+        /* Wider controlbar for settings */
+        .control-sidebar {
+          width: 400px !important;
+        }
+
+        @media (max-width: 768px) {
+          .control-sidebar {
+            width: 300px !important;
+          }
+        }
       "))
     ),
 

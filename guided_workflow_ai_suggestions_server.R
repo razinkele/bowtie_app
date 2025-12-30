@@ -18,6 +18,45 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
   cat("🤖 Initializing AI suggestion handlers...\n")
 
+  # Helper function to convert character vector to item list with vocab lookup
+  convert_to_item_list <- function(names_vector, vocab_type, vocab_data) {
+    if (is.null(names_vector) || length(names_vector) == 0) {
+      return(list())
+    }
+
+    vocab_df <- switch(vocab_type,
+      "Activity" = vocab_data$activities,
+      "Pressure" = vocab_data$pressures,
+      "Consequence" = vocab_data$consequences,
+      "Control" = vocab_data$controls,
+      NULL
+    )
+
+    if (is.null(vocab_df)) return(list())
+
+    # Convert each name to item format
+    lapply(names_vector, function(name) {
+      # Try to find in vocabulary
+      row <- vocab_df[vocab_df$Activity == name | vocab_df$Pressure == name |
+                      vocab_df$Consequence == name | vocab_df$Control == name, ]
+
+      if (nrow(row) > 0) {
+        list(
+          id = row$id[1],
+          name = name,
+          type = vocab_type
+        )
+      } else {
+        # Custom entry - use name as ID
+        list(
+          id = paste0("custom_", gsub("[^a-z0-9_]", "_", tolower(name))),
+          name = name,
+          type = vocab_type
+        )
+      }
+    })
+  }
+
   # Check if AI linker is available
   ai_available <- exists("find_vocabulary_links") && exists("generate_ai_suggestions")
 
@@ -51,9 +90,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   observe({
     # Get selected activities from reactive state
     state <- workflow_state()
-    selected_activities <- state$selected_activities
+    selected_activities_names <- state$project_data$activities
 
-    if (is.null(selected_activities) || length(selected_activities) == 0) {
+    if (is.null(selected_activities_names) || length(selected_activities_names) == 0) {
       # Hide suggestions
       shinyjs::hide("suggestion_loading_pressure")
       shinyjs::hide("suggestions_list_pressure")
@@ -72,8 +111,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     # Generate suggestions
     tryCatch({
+      # Convert character vector to item list format
+      vocab_data <- vocabulary_data_reactive()
+      selected_activities <- convert_to_item_list(selected_activities_names, "Activity", vocab_data)
+
       suggestions <- generate_ai_suggestions(
-        vocabulary_data_reactive(),
+        vocab_data,
         selected_activities,
         target_type = "Pressure",
         max_suggestions = 5
@@ -169,12 +212,11 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   observe({
     # Get selected activities and pressures from reactive state
     state <- workflow_state()
-    selected_items <- c(
-      state$selected_activities,
-      state$selected_pressures
-    )
+    activity_names <- state$project_data$activities
+    pressure_names <- state$project_data$pressures
 
-    if (is.null(selected_items) || length(selected_items) == 0) {
+    if ((is.null(activity_names) || length(activity_names) == 0) &&
+        (is.null(pressure_names) || length(pressure_names) == 0)) {
       shinyjs::hide("suggestion_loading_control_preventive")
       shinyjs::hide("suggestions_list_control_preventive")
       shinyjs::hide("no_suggestions_control_preventive")
@@ -192,8 +234,15 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     # Generate suggestions
     tryCatch({
+      # Convert character vectors to item list format
+      vocab_data <- vocabulary_data_reactive()
+      selected_items <- c(
+        convert_to_item_list(activity_names, "Activity", vocab_data),
+        convert_to_item_list(pressure_names, "Pressure", vocab_data)
+      )
+
       suggestions <- generate_ai_suggestions(
-        vocabulary_data_reactive(),
+        vocab_data,
         selected_items,
         target_type = "Control",
         max_suggestions = 5
@@ -283,9 +332,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   observe({
     # Get selected pressures from reactive state
     state <- workflow_state()
-    selected_pressures <- state$selected_pressures
+    pressure_names <- state$project_data$pressures
 
-    if (is.null(selected_pressures) || length(selected_pressures) == 0) {
+    if (is.null(pressure_names) || length(pressure_names) == 0) {
       shinyjs::hide("suggestion_loading_consequence")
       shinyjs::hide("suggestions_list_consequence")
       shinyjs::hide("no_suggestions_consequence")
@@ -301,8 +350,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     shinyjs::show("suggestion_loading_consequence")
 
     tryCatch({
+      # Convert character vector to item list format
+      vocab_data <- vocabulary_data_reactive()
+      selected_pressures <- convert_to_item_list(pressure_names, "Pressure", vocab_data)
+
       suggestions <- generate_ai_suggestions(
-        vocabulary_data_reactive(),
+        vocab_data,
         selected_pressures,
         target_type = "Consequence",
         max_suggestions = 5
@@ -392,9 +445,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   observe({
     # Get selected consequences from reactive state
     state <- workflow_state()
-    selected_consequences <- state$selected_consequences
+    consequence_names <- state$project_data$consequences
 
-    if (is.null(selected_consequences) || length(selected_consequences) == 0) {
+    if (is.null(consequence_names) || length(consequence_names) == 0) {
       shinyjs::hide("suggestion_loading_control_protective")
       shinyjs::hide("suggestions_list_control_protective")
       shinyjs::hide("no_suggestions_control_protective")
@@ -410,8 +463,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     shinyjs::show("suggestion_loading_control_protective")
 
     tryCatch({
+      # Convert character vector to item list format
+      vocab_data <- vocabulary_data_reactive()
+      selected_consequences <- convert_to_item_list(consequence_names, "Consequence", vocab_data)
+
       suggestions <- generate_ai_suggestions(
-        vocabulary_data_reactive(),
+        vocab_data,
         selected_consequences,
         target_type = "Control",
         max_suggestions = 5
