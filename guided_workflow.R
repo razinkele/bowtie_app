@@ -1950,7 +1950,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}))
           input = input,
           output = output,
           session = session,
-          workflow_state = workflow_state(),
+          workflow_state = workflow_state,  # Pass reactive, not value
           vocabulary_data_reactive = vocab_data
         )
 

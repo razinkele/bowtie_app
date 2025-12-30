@@ -49,8 +49,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
-    # Get selected activities
-    selected_activities <- workflow_state$selected_activities
+    # Get selected activities from reactive state
+    state <- workflow_state()
+    selected_activities <- state$selected_activities
 
     if (is.null(selected_activities) || length(selected_activities) == 0) {
       # Hide suggestions
@@ -123,10 +124,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
 
           # Check if already added
-          existing_ids <- sapply(workflow_state$selected_pressures, function(x) x$id)
+          state <- workflow_state()
+          existing_ids <- sapply(state$selected_pressures, function(x) x$id)
 
           if (!(new_pressure$id %in% existing_ids)) {
-            workflow_state$selected_pressures <- c(workflow_state$selected_pressures, list(new_pressure))
+            state$selected_pressures <- c(state$selected_pressures, list(new_pressure))
+            workflow_state(state)
 
             # Log feedback (accepted)
             if (feedback_enabled && exists("log_suggestion_feedback")) {
@@ -164,10 +167,11 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
-    # Get selected activities and pressures
+    # Get selected activities and pressures from reactive state
+    state <- workflow_state()
     selected_items <- c(
-      workflow_state$selected_activities,
-      workflow_state$selected_pressures
+      state$selected_activities,
+      state$selected_pressures
     )
 
     if (is.null(selected_items) || length(selected_items) == 0) {
@@ -236,10 +240,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
             source = "AI Suggestion"
           )
 
-          existing_ids <- sapply(workflow_state$selected_preventive_controls, function(x) x$id)
+          state <- workflow_state()
+          existing_ids <- sapply(state$selected_preventive_controls, function(x) x$id)
 
           if (!(new_control$id %in% existing_ids)) {
-            workflow_state$selected_preventive_controls <- c(workflow_state$selected_preventive_controls, list(new_control))
+            state$selected_preventive_controls <- c(state$selected_preventive_controls, list(new_control))
+            workflow_state(state)
 
             # Log feedback (accepted)
             if (feedback_enabled && exists("log_suggestion_feedback")) {
@@ -275,7 +281,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
-    selected_pressures <- workflow_state$selected_pressures
+    # Get selected pressures from reactive state
+    state <- workflow_state()
+    selected_pressures <- state$selected_pressures
 
     if (is.null(selected_pressures) || length(selected_pressures) == 0) {
       shinyjs::hide("suggestion_loading_consequence")
@@ -341,10 +349,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
             source = "AI Suggestion"
           )
 
-          existing_ids <- sapply(workflow_state$selected_consequences, function(x) x$id)
+          state <- workflow_state()
+          existing_ids <- sapply(state$selected_consequences, function(x) x$id)
 
           if (!(new_consequence$id %in% existing_ids)) {
-            workflow_state$selected_consequences <- c(workflow_state$selected_consequences, list(new_consequence))
+            state$selected_consequences <- c(state$selected_consequences, list(new_consequence))
+            workflow_state(state)
 
             # Log feedback (accepted)
             if (feedback_enabled && exists("log_suggestion_feedback")) {
@@ -380,7 +390,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
-    selected_consequences <- workflow_state$selected_consequences
+    # Get selected consequences from reactive state
+    state <- workflow_state()
+    selected_consequences <- state$selected_consequences
 
     if (is.null(selected_consequences) || length(selected_consequences) == 0) {
       shinyjs::hide("suggestion_loading_control_protective")
@@ -446,10 +458,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
             source = "AI Suggestion"
           )
 
-          existing_ids <- sapply(workflow_state$selected_protective_controls, function(x) x$id)
+          state <- workflow_state()
+          existing_ids <- sapply(state$selected_protective_controls, function(x) x$id)
 
           if (!(new_control$id %in% existing_ids)) {
-            workflow_state$selected_protective_controls <- c(workflow_state$selected_protective_controls, list(new_control))
+            state$selected_protective_controls <- c(state$selected_protective_controls, list(new_control))
+            workflow_state(state)
 
             # Log feedback (accepted)
             if (feedback_enabled && exists("log_suggestion_feedback")) {
