@@ -270,8 +270,8 @@ ui <- dashboardPage(
             tags$input(
               type = "checkbox",
               class = "custom-control-input",
-              id = "ai_suggestions_enabled",
-              checked = NA
+              id = "ai_suggestions_enabled"
+              # NOT checked by default (disabled to prevent session blocking)
             ),
             tags$label(
               class = "custom-control-label",

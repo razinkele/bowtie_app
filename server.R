@@ -2096,7 +2096,11 @@ server <- function(input, output, session) {
     "guided_workflow",
     vocabulary_data = vocabulary_data,
     lang = lang,
-    ai_enabled = reactive({ isTRUE(input$ai_suggestions_enabled) }),
+    ai_enabled = reactive({
+      # Explicitly check - only TRUE if checkbox is checked
+      # NULL, NA, FALSE all treated as disabled
+      !is.null(input$ai_suggestions_enabled) && isTRUE(input$ai_suggestions_enabled)
+    }),
     ai_methods = reactive({
       methods <- c()
       if (isTRUE(input$ai_method_semantic)) methods <- c(methods, "jaccard")
