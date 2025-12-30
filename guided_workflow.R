@@ -83,19 +83,26 @@ cat("Step-by-step bowtie creation with expert guidance\n\n")
 
 # Load AI suggestions module
 cat("🤖 Loading AI-powered suggestions...\n")
-if (file.exists("guided_workflow_ai_suggestions.R")) {
-  tryCatch({
-    source("guided_workflow_ai_suggestions.R")
-    WORKFLOW_AI_ENABLED <- TRUE
-    cat("✅ AI suggestions enabled\n\n")
-  }, error = function(e) {
-    WORKFLOW_AI_ENABLED <- FALSE
-    cat("⚠️ AI suggestions unavailable:", e$message, "\n\n")
-  })
-} else {
-  WORKFLOW_AI_ENABLED <- FALSE
-  cat("ℹ️ AI suggestions module not found\n\n")
-}
+# TEMPORARILY DISABLED: AI suggestions cause session blocking (2+ sec analysis)
+# TODO: Implement async processing using promises/future
+WORKFLOW_AI_ENABLED <- FALSE
+cat("⚠️ AI suggestions temporarily disabled (causes session blocking)\n")
+cat("   App will work normally without AI suggestions\n\n")
+
+# Original code (keep for reference):
+# if (file.exists("guided_workflow_ai_suggestions.R")) {
+#   tryCatch({
+#     source("guided_workflow_ai_suggestions.R")
+#     WORKFLOW_AI_ENABLED <- TRUE
+#     cat("✅ AI suggestions enabled\n\n")
+#   }, error = function(e) {
+#     WORKFLOW_AI_ENABLED <- FALSE
+#     cat("⚠️ AI suggestions unavailable:", e$message, "\n\n")
+#   })
+# } else {
+#   WORKFLOW_AI_ENABLED <- FALSE
+#   cat("ℹ️ AI suggestions module not found\n\n")
+# }
 
 # =============================================================================
 # WORKFLOW CONFIGURATION
