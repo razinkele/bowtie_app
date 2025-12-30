@@ -126,22 +126,22 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     if (is.null(selected_activities_names) || length(selected_activities_names) == 0) {
       cat("🔍 [AI SUGGESTIONS] No activities selected - hiding suggestions UI\n")
-      # Hide suggestions
-      shinyjs::hide("suggestion_loading_pressure")
-      shinyjs::hide("suggestions_list_pressure")
-      shinyjs::hide("no_suggestions_pressure")
-      shinyjs::hide("suggestion_error_pressure")
-      shinyjs::show("suggestion_status_pressure")
+      # Hide suggestions (use session$ns for proper namespacing in module)
+      shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
+      shinyjs::hide(id = "suggestions_list_pressure", asis = FALSE)
+      shinyjs::hide(id = "no_suggestions_pressure", asis = FALSE)
+      shinyjs::hide(id = "suggestion_error_pressure", asis = FALSE)
+      shinyjs::show(id = "suggestion_status_pressure", asis = FALSE)
       return()
     }
 
     cat("🔍 [AI SUGGESTIONS] Activities found! Showing loading UI...\n")
-    # Show loading
-    shinyjs::hide("suggestion_status_pressure")
-    shinyjs::hide("suggestions_list_pressure")
-    shinyjs::hide("no_suggestions_pressure")
-    shinyjs::hide("suggestion_error_pressure")
-    shinyjs::show("suggestion_loading_pressure")
+    # Show loading (use session$ns for proper namespacing in module)
+    shinyjs::hide(id = "suggestion_status_pressure", asis = FALSE)
+    shinyjs::hide(id = "suggestions_list_pressure", asis = FALSE)
+    shinyjs::hide(id = "no_suggestions_pressure", asis = FALSE)
+    shinyjs::hide(id = "suggestion_error_pressure", asis = FALSE)
+    shinyjs::show(id = "suggestion_loading_pressure", asis = FALSE)
 
     # Generate suggestions
     tryCatch({
@@ -172,8 +172,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
       if (length(suggestions) == 0) {
         cat("🔍 [AI SUGGESTIONS] No suggestions generated - showing 'no suggestions' message\n")
-        shinyjs::hide("suggestion_loading_pressure")
-        shinyjs::show("no_suggestions_pressure")
+        shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
+        shinyjs::show(id = "no_suggestions_pressure", asis = FALSE)
       } else {
         cat("🔍 [AI SUGGESTIONS] Got ", length(suggestions), " suggestions! Rendering UI...\n")
 
@@ -187,8 +187,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         })
 
         cat("🔍 [AI SUGGESTIONS] UI rendered. Showing suggestions list...\n")
-        shinyjs::hide("suggestion_loading_pressure")
-        shinyjs::show("suggestions_list_pressure")
+        shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
+        shinyjs::show(id = "suggestions_list_pressure", asis = FALSE)
         cat("✅ [AI SUGGESTIONS] Pressure suggestions displayed successfully!\n")
       }
     }, error = function(e) {
@@ -197,8 +197,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       cat("   Error call: ", deparse(e$call), "\n")
       print(traceback())
       warning("Error generating pressure suggestions: ", e$message)
-      shinyjs::hide("suggestion_loading_pressure")
-      shinyjs::show("suggestion_error_pressure")
+      shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
+      shinyjs::show(id = "suggestion_error_pressure", asis = FALSE)
     })
   })
 
