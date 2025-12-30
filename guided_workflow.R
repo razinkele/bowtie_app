@@ -2357,13 +2357,17 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           updateTextInput(session, session$ns("activity_custom_text"), value = "")
         }
 
-        # Restore activity_group if it was cleared by Selectize.js
+        # Restore activity_group AFTER a delay to ensure Selectize.js clear has completed
+        # updateSelectizeInput is async, so immediate restore gets overwritten by delayed clear
         if (!is.null(saved_group) && nchar(saved_group) > 0) {
-          cat("📝 [ADD ACTIVITY] Restoring activity_group to:", saved_group, "\n")
-          updateSelectizeInput(session, session$ns("activity_group"), selected = saved_group)
+          cat("📝 [ADD ACTIVITY] Scheduling delayed restore of activity_group to:", saved_group, "\n")
+          shinyjs::delay(100, {
+            cat("📝 [ADD ACTIVITY] [DELAYED] Restoring activity_group to:", saved_group, "\n")
+            updateSelectizeInput(session, session$ns("activity_group"), selected = saved_group)
+          })
         }
 
-        cat("📝 [ADD ACTIVITY] Input cleared and activity_group preserved.\n")
+        cat("📝 [ADD ACTIVITY] Input cleared, activity_group restore scheduled.\n")
         cat("📝 [ADD ACTIVITY] Completed successfully!\n")
       } else {
         cat("📝 [ADD ACTIVITY] Activity already exists:", activity_name, "\n")
@@ -2426,9 +2430,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           updateTextInput(session, session$ns("pressure_custom_text"), value = "")
         }
 
-        # Restore pressure_group if it was cleared by Selectize.js
+        # Restore pressure_group AFTER a delay to ensure Selectize.js clear has completed
         if (!is.null(saved_pressure_group) && nchar(saved_pressure_group) > 0) {
-          updateSelectizeInput(session, session$ns("pressure_group"), selected = saved_pressure_group)
+          shinyjs::delay(100, {
+            updateSelectizeInput(session, session$ns("pressure_group"), selected = saved_pressure_group)
+          })
         }
       } else {
         showNotification(t("gw_pressure_exists", lang()), type = "warning", duration = 2)
