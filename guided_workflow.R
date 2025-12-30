@@ -2044,48 +2044,57 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # EVENT HANDLING & NAVIGATION
   # =============================================================================
   
-  # Create a reactive for just the current step
-  # This prevents triggering when other parts of workflow_state change
-  current_step <- reactive({
-    state <- workflow_state()
-    if (!is.null(state)) state$current_step else 0
-  })
+  # Track the previous step to detect ACTUAL step changes
+  # Use reactiveVal to store the last step we processed
+  last_processed_step <- reactiveVal(0)
 
   # Update selectize choices when entering step 3
-  # ONLY triggers when current_step changes, not when activities/pressures/etc change
-  observeEvent(current_step(), {
-    step <- current_step()
+  # ONLY triggers when step ACTUALLY changes from a different value
+  observe({
+    state <- workflow_state()
+    current_step_num <- if (!is.null(state)) state$current_step else 0
+    previous_step <- last_processed_step()
 
-    if (step == 3) {
-      cat("🔍 [VOCAB CHOICES] Step 3 entered - updating vocabulary choices (ONLY ON STEP CHANGE)\n")
+    cat("🔍 [VOCAB CHOICES] Observer triggered. Current step:", current_step_num, "| Previous:", previous_step, "\n")
 
-      # Update activity choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
-        activity_choices <- vocabulary_data$activities$name
-        if (length(activity_choices) > 0) {
-          cat("📝 [VOCAB CHOICES] Updating activity_search with", length(activity_choices), "choices\n")
-          updateSelectizeInput(session, "activity_search",
-                             choices = activity_choices,
-                             server = TRUE,
-                             selected = character(0))
+    # Only update if step has ACTUALLY CHANGED
+    if (current_step_num != previous_step) {
+      cat("🔍 [VOCAB CHOICES] Step changed from", previous_step, "to", current_step_num, "\n")
+      last_processed_step(current_step_num)
+
+      if (current_step_num == 3) {
+        cat("🔍 [VOCAB CHOICES] Entering Step 3 - updating vocabulary choices\n")
+
+        # Update activity choices
+        if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
+          activity_choices <- vocabulary_data$activities$name
+          if (length(activity_choices) > 0) {
+            cat("📝 [VOCAB CHOICES] Updating activity_search with", length(activity_choices), "choices\n")
+            updateSelectizeInput(session, "activity_search",
+                               choices = activity_choices,
+                               server = TRUE,
+                               selected = character(0))
+          }
         }
-      }
 
-      # Update pressure choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures)) {
-        pressure_choices <- vocabulary_data$pressures$name
-        if (length(pressure_choices) > 0) {
-          cat("📝 [VOCAB CHOICES] Updating pressure_search with", length(pressure_choices), "choices\n")
-          updateSelectizeInput(session, "pressure_search",
-                             choices = pressure_choices,
-                             server = TRUE,
-                             selected = character(0))
+        # Update pressure choices
+        if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures)) {
+          pressure_choices <- vocabulary_data$pressures$name
+          if (length(pressure_choices) > 0) {
+            cat("📝 [VOCAB CHOICES] Updating pressure_search with", length(pressure_choices), "choices\n")
+            updateSelectizeInput(session, "pressure_search",
+                               choices = pressure_choices,
+                               server = TRUE,
+                               selected = character(0))
+          }
         }
-      }
 
-      cat("📝 [VOCAB CHOICES] Vocabulary choices updated. Will NOT trigger again until step number changes.\n")
+        cat("📝 [VOCAB CHOICES] Vocabulary choices updated.\n")
+      }
+    } else {
+      cat("🔍 [VOCAB CHOICES] Step unchanged (still", current_step_num, ") - skipping vocab update\n")
     }
-  }, ignoreInit = FALSE)
+  })
   
   # Handle "Next" button click
   observeEvent(input$next_step, {
