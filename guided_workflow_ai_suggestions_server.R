@@ -20,7 +20,13 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
   # Helper function to convert character vector to item list with vocab lookup
   convert_to_item_list <- function(names_vector, vocab_type, vocab_data) {
+    cat("🔍 [CONVERT] convert_to_item_list called\n")
+    cat("🔍 [CONVERT] vocab_type: ", vocab_type, "\n")
+    cat("🔍 [CONVERT] names_vector: ", if (is.null(names_vector)) "NULL" else paste(names_vector, collapse = ", "), "\n")
+    cat("🔍 [CONVERT] names_vector length: ", if (is.null(names_vector)) 0 else length(names_vector), "\n")
+
     if (is.null(names_vector) || length(names_vector) == 0) {
+      cat("🔍 [CONVERT] Empty input - returning empty list\n")
       return(list())
     }
 
@@ -32,21 +38,31 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       NULL
     )
 
-    if (is.null(vocab_df)) return(list())
+    cat("🔍 [CONVERT] vocab_df is ", if (is.null(vocab_df)) "NULL" else paste("data.frame with", nrow(vocab_df), "rows"), "\n")
+
+    if (is.null(vocab_df)) {
+      cat("🔍 [CONVERT] vocab_df is NULL - returning empty list\n")
+      return(list())
+    }
 
     # Convert each name to item format
     # All vocab types use same structure: hierarchy, id, name, level
-    lapply(names_vector, function(item_name) {
+    result <- lapply(names_vector, function(item_name) {
+      cat("🔍 [CONVERT] Processing item: '", item_name, "'\n", sep = "")
+
       # Try to find in vocabulary by matching the 'name' column
       row <- vocab_df[vocab_df$name == item_name, ]
+      cat("🔍 [CONVERT] Matching rows found: ", nrow(row), "\n")
 
       if (nrow(row) > 0) {
+        cat("🔍 [CONVERT] Found in vocabulary! ID: ", row$id[1], "\n")
         list(
           id = as.character(row$id[1]),
           name = as.character(row$name[1]),
           type = vocab_type
         )
       } else {
+        cat("🔍 [CONVERT] Not found in vocabulary - creating custom entry\n")
         # Custom entry - use name as ID
         list(
           id = paste0("custom_", gsub("[^a-z0-9_]", "_", tolower(item_name))),
@@ -55,6 +71,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         )
       }
     })
+
+    cat("🔍 [CONVERT] Converted ", length(result), " items\n")
+    return(result)
   }
 
   # Check if AI linker is available
@@ -88,11 +107,25 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
+    cat("\n🔍 [AI SUGGESTIONS] Pressure observer triggered!\n")
+
     # Get selected activities from reactive state
     state <- workflow_state()
+    cat("🔍 [AI SUGGESTIONS] Got workflow state\n")
+    cat("🔍 [AI SUGGESTIONS] State structure: ", paste(names(state), collapse = ", "), "\n")
+
+    if (!is.null(state$project_data)) {
+      cat("🔍 [AI SUGGESTIONS] project_data structure: ", paste(names(state$project_data), collapse = ", "), "\n")
+    }
+
     selected_activities_names <- state$project_data$activities
+    cat("🔍 [AI SUGGESTIONS] Selected activities: ",
+        if (is.null(selected_activities_names)) "NULL" else paste(selected_activities_names, collapse = ", "), "\n")
+    cat("🔍 [AI SUGGESTIONS] Activity count: ",
+        if (is.null(selected_activities_names)) 0 else length(selected_activities_names), "\n")
 
     if (is.null(selected_activities_names) || length(selected_activities_names) == 0) {
+      cat("🔍 [AI SUGGESTIONS] No activities selected - hiding suggestions UI\n")
       # Hide suggestions
       shinyjs::hide("suggestion_loading_pressure")
       shinyjs::hide("suggestions_list_pressure")
@@ -102,6 +135,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       return()
     }
 
+    cat("🔍 [AI SUGGESTIONS] Activities found! Showing loading UI...\n")
     # Show loading
     shinyjs::hide("suggestion_status_pressure")
     shinyjs::hide("suggestions_list_pressure")
@@ -111,10 +145,22 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     # Generate suggestions
     tryCatch({
+      cat("🔍 [AI SUGGESTIONS] Starting suggestion generation...\n")
+
       # Convert character vector to item list format
       vocab_data <- vocabulary_data_reactive()
-      selected_activities <- convert_to_item_list(selected_activities_names, "Activity", vocab_data)
+      cat("🔍 [AI SUGGESTIONS] Got vocabulary data\n")
+      cat("🔍 [AI SUGGESTIONS] Vocab activities count: ", nrow(vocab_data$activities), "\n")
 
+      selected_activities <- convert_to_item_list(selected_activities_names, "Activity", vocab_data)
+      cat("🔍 [AI SUGGESTIONS] Converted to item list. Count: ", length(selected_activities), "\n")
+
+      if (length(selected_activities) > 0) {
+        cat("🔍 [AI SUGGESTIONS] First activity item structure:\n")
+        print(str(selected_activities[[1]]))
+      }
+
+      cat("🔍 [AI SUGGESTIONS] Calling generate_ai_suggestions()...\n")
       suggestions <- generate_ai_suggestions(
         vocab_data,
         selected_activities,
@@ -122,10 +168,15 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         max_suggestions = 5
       )
 
+      cat("🔍 [AI SUGGESTIONS] generate_ai_suggestions() returned. Count: ", length(suggestions), "\n")
+
       if (length(suggestions) == 0) {
+        cat("🔍 [AI SUGGESTIONS] No suggestions generated - showing 'no suggestions' message\n")
         shinyjs::hide("suggestion_loading_pressure")
         shinyjs::show("no_suggestions_pressure")
       } else {
+        cat("🔍 [AI SUGGESTIONS] Got ", length(suggestions), " suggestions! Rendering UI...\n")
+
         # Render suggestions
         output$suggestions_content_pressure <- renderUI({
           tagList(
@@ -135,10 +186,16 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
         })
 
+        cat("🔍 [AI SUGGESTIONS] UI rendered. Showing suggestions list...\n")
         shinyjs::hide("suggestion_loading_pressure")
         shinyjs::show("suggestions_list_pressure")
+        cat("✅ [AI SUGGESTIONS] Pressure suggestions displayed successfully!\n")
       }
     }, error = function(e) {
+      cat("❌ [AI SUGGESTIONS] ERROR in pressure suggestions:\n")
+      cat("   Error message: ", e$message, "\n")
+      cat("   Error call: ", deparse(e$call), "\n")
+      print(traceback())
       warning("Error generating pressure suggestions: ", e$message)
       shinyjs::hide("suggestion_loading_pressure")
       shinyjs::show("suggestion_error_pressure")
