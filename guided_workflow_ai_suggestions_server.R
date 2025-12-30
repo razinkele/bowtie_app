@@ -286,6 +286,16 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
+    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    cat("🔍 [AI SUGGESTIONS] Preventive control observer triggered!\n")
+
+    # Check if AI is enabled FIRST
+    if (!ai_enabled()) {
+      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping preventive control suggestions\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+      return()
+    }
+
     # Get selected activities and pressures from reactive state
     state <- workflow_state()
     activity_names <- state$project_data$activities
@@ -406,6 +416,16 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
+    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    cat("🔍 [AI SUGGESTIONS] Consequence observer triggered!\n")
+
+    # Check if AI is enabled FIRST
+    if (!ai_enabled()) {
+      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping consequence suggestions\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+      return()
+    }
+
     # Get selected pressures from reactive state
     state <- workflow_state()
     pressure_names <- state$project_data$pressures
@@ -519,6 +539,16 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
+    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    cat("🔍 [AI SUGGESTIONS] Protective control observer triggered!\n")
+
+    # Check if AI is enabled FIRST
+    if (!ai_enabled()) {
+      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping protective control suggestions\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+      return()
+    }
+
     # Get selected consequences from reactive state
     state <- workflow_state()
     consequence_names <- state$project_data$consequences

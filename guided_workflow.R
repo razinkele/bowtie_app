@@ -2044,13 +2044,20 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # EVENT HANDLING & NAVIGATION
   # =============================================================================
   
-  # Update selectize choices when entering step 3
-  # Use observeEvent with priority so it only triggers on step changes, not every state update
-  observeEvent(workflow_state()$current_step, {
+  # Create a reactive for just the current step
+  # This prevents triggering when other parts of workflow_state change
+  current_step <- reactive({
     state <- workflow_state()
-    if (!is.null(state) && state$current_step == 3) {
+    if (!is.null(state)) state$current_step else 0
+  })
 
-      cat("🔍 [VOCAB CHOICES] Step 3 entered - updating vocabulary choices (ONE TIME ONLY)\n")
+  # Update selectize choices when entering step 3
+  # ONLY triggers when current_step changes, not when activities/pressures/etc change
+  observeEvent(current_step(), {
+    step <- current_step()
+
+    if (step == 3) {
+      cat("🔍 [VOCAB CHOICES] Step 3 entered - updating vocabulary choices (ONLY ON STEP CHANGE)\n")
 
       # Update activity choices
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
@@ -2076,7 +2083,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         }
       }
 
-      cat("📝 [VOCAB CHOICES] Vocabulary choices updated. This will NOT trigger again until step changes.\n")
+      cat("📝 [VOCAB CHOICES] Vocabulary choices updated. Will NOT trigger again until step number changes.\n")
     }
   }, ignoreInit = FALSE)
   
