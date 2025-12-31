@@ -24,6 +24,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
   cat("🤖 Initializing AI suggestion handlers...\n")
   cat("   AI will be controlled by user settings\n")
+  cat("🔍 [INIT DEBUG] Checking for required functions:\n")
+  cat("   - find_vocabulary_links exists?", exists("find_vocabulary_links"), "\n")
+  cat("   - generate_ai_suggestions exists?", exists("generate_ai_suggestions"), "\n")
 
   # Helper function to convert character vector to item list with vocab lookup
   convert_to_item_list <- function(names_vector, vocab_type, vocab_data) {
@@ -113,6 +116,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # STEP 3: ACTIVITY SUGGESTIONS (based on central problem from Step 2)
   # ======================================================================
 
+  cat("🔧 [INIT DEBUG] Registering activity suggestions observer...\n")
+
   # Observer for activity suggestions based on central problem
   observe({
     cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
@@ -133,22 +138,22 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     if (is.null(problem_statement) || nchar(trimws(problem_statement)) < 5) {
       cat("🔍 [AI SUGGESTIONS] No problem statement or too short - hiding suggestions\n")
-      shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
-      shinyjs::hide(id = "suggestions_list_activity", asis = FALSE)
-      shinyjs::hide(id = "no_suggestions_activity", asis = FALSE)
-      shinyjs::hide(id = "suggestion_error_activity", asis = FALSE)
-      shinyjs::show(id = "suggestion_status_activity", asis = FALSE)
+      shinyjs::hide(id = session$ns("suggestion_loading_activity"))
+      shinyjs::hide(id = session$ns("suggestions_list_activity"))
+      shinyjs::hide(id = session$ns("no_suggestions_activity"))
+      shinyjs::hide(id = session$ns("suggestion_error_activity"))
+      shinyjs::show(id = session$ns("suggestion_status_activity"))
       return()
     }
 
     cat("🔍 [AI SUGGESTIONS] Generating activity suggestions based on problem...\n")
 
     # Show loading
-    shinyjs::hide(id = "suggestion_status_activity", asis = FALSE)
-    shinyjs::hide(id = "suggestions_list_activity", asis = FALSE)
-    shinyjs::hide(id = "no_suggestions_activity", asis = FALSE)
-    shinyjs::hide(id = "suggestion_error_activity", asis = FALSE)
-    shinyjs::show(id = "suggestion_loading_activity", asis = FALSE)
+    shinyjs::hide(id = session$ns("suggestion_status_activity"))
+    shinyjs::hide(id = session$ns("suggestions_list_activity"))
+    shinyjs::hide(id = session$ns("no_suggestions_activity"))
+    shinyjs::hide(id = session$ns("suggestion_error_activity"))
+    shinyjs::show(id = session$ns("suggestion_loading_activity"))
 
     # Generate suggestions
     tryCatch({
@@ -180,11 +185,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
             if (!is.na(vocab_data$activities$level[i]) && vocab_data$activities$level[i] >= 2) {
               matching_activities <- c(matching_activities, list(list(
                 id = vocab_data$activities$id[i],
-                name = vocab_data$activities$name[i],
-                level1 = if("level1" %in% names(vocab_data$activities)) vocab_data$activities$level1[i] else "Activity",
-                level2 = if("level2" %in% names(vocab_data$activities)) vocab_data$activities$level2[i] else "",
+                to_name = vocab_data$activities$name[i],  # Use 'to_name' to match expected field
+                to_type = "Activity",
                 confidence = 0.8,  # High confidence for keyword match
-                method = "keyword"
+                confidence_level = "high",  # For badge display
+                method = "keyword",
+                reasoning = paste("Matches keyword:", keyword)
               )))
               break
             }
@@ -201,8 +207,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       cat("🔍 [AI SUGGESTIONS] Found", length(suggestions), "activity suggestions\n")
 
       if (length(suggestions) == 0) {
-        shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
-        shinyjs::show(id = "no_suggestions_activity", asis = FALSE)
+        shinyjs::hide(id = session$ns("suggestion_loading_activity"))
+        shinyjs::show(id = session$ns("no_suggestions_activity"))
       } else {
         # Render suggestions
         output$suggestions_content_activity <- renderUI({
@@ -213,22 +219,63 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
         })
 
-        shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
-        shinyjs::show(id = "suggestions_list_activity", asis = FALSE)
-        cat("✅ [AI SUGGESTIONS] Activity suggestions displayed successfully!\n")
+        cat("🔍 [AI SUGGESTIONS] Hiding loading, showing suggestions list...\n")
+        cat("🔍 [AI SUGGESTIONS] Namespaced ID for suggestions_list:", session$ns("suggestions_list_activity"), "\n")
+
+        # Use JavaScript setTimeout to ensure UI is rendered before trying to show/hide
+        suggestions_id <- session$ns("suggestions_list_activity")
+        loading_id <- session$ns("suggestion_loading_activity")
+        status_id <- session$ns("suggestion_status_activity")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            console.log('[AI SUGGESTIONS] Delayed show - checking elements...');
+            console.log('[AI SUGGESTIONS] Looking for ID: %s');
+
+            // List ALL elements with 'suggestion' in ID
+            var allSuggestionEls = $('[id*=\"suggestion\"]');
+            console.log('[AI SUGGESTIONS] Found', allSuggestionEls.length, 'elements with suggestion in ID:');
+            allSuggestionEls.each(function() {
+              console.log('  -', this.id, '(visible:', $(this).is(':visible'), ')');
+            });
+
+            var suggestionsEl = $('#%s');
+            var loadingEl = $('#%s');
+            var statusEl = $('#%s');
+
+            console.log('TARGET suggestions element exists:', suggestionsEl.length);
+            console.log('TARGET loading element exists:', loadingEl.length);
+            console.log('TARGET status element exists:', statusEl.length);
+
+            if (suggestionsEl.length > 0) {
+              loadingEl.hide();
+              statusEl.hide();
+              suggestionsEl.show();
+              console.log('[AI SUGGESTIONS] Successfully showed suggestions panel!');
+            } else {
+              console.error('[AI SUGGESTIONS] Suggestions element not found in DOM!');
+            }
+          }, 500);
+        ", suggestions_id, suggestions_id, loading_id, status_id)
+
+        shinyjs::runjs(js_code)
+        cat("✅ [AI SUGGESTIONS] Activity suggestions display scheduled via JavaScript!\n")
       }
     }, error = function(e) {
       cat("❌ [AI SUGGESTIONS] ERROR in activity suggestions:\n")
       cat("   Error message: ", e$message, "\n")
       warning("Error generating activity suggestions: ", e$message)
-      shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
-      shinyjs::show(id = "suggestion_error_activity", asis = FALSE)
+      shinyjs::hide(id = session$ns("suggestion_loading_activity"))
+      shinyjs::show(id = session$ns("suggestion_error_activity"))
     })
   })
 
   # Handle activity suggestion clicks
   observeEvent(input$suggestion_clicked_activity, {
+    cat("\n🔔 [CLICK HANDLER] Activity suggestion clicked!\n")
     suggestion_data <- input$suggestion_clicked_activity
+    cat("🔔 [CLICK HANDLER] Suggestion data:", if(is.null(suggestion_data)) "NULL" else paste(names(suggestion_data), collapse = ", "), "\n")
+    cat("🔔 [CLICK HANDLER] Suggestion ID:", if(is.null(suggestion_data$id)) "NULL" else suggestion_data$id, "\n")
 
     if (!is.null(suggestion_data) && !is.null(suggestion_data$id)) {
       # Get the full item from vocabulary

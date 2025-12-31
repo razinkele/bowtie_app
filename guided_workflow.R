@@ -1012,16 +1012,17 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
                  p(t("gw_activities_examples_text", current_lang))
              ),
 
-             # AI-powered suggestions for activities (if available)
-             if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
-               create_ai_suggestions_ui(
-                 ns,
-                 "activity",
-                 "🤖 AI-Powered Activity Suggestions",
-                 current_lang
-               )
-             } else {
-               NULL
+             # AI-powered suggestions for activities (always render, controlled by availability)
+             {
+               if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
+                 cat("✅ [UI DEBUG] Creating activity suggestions UI panel\n")
+                 create_ai_suggestions_ui(
+                   ns,
+                   "activity",
+                   "🤖 AI-Powered Activity Suggestions",
+                   current_lang
+                 )
+               }
              }
       ),
       
@@ -1957,11 +1958,20 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
 
   # Initialize AI suggestion handlers if available
+  cat("🔍 [SERVER DEBUG] Checking AI suggestions availability...\n")
+  cat("🔍 [SERVER DEBUG] WORKFLOW_AI_AVAILABLE exists?", exists("WORKFLOW_AI_AVAILABLE"), "\n")
+  if (exists("WORKFLOW_AI_AVAILABLE")) {
+    cat("🔍 [SERVER DEBUG] WORKFLOW_AI_AVAILABLE value:", WORKFLOW_AI_AVAILABLE, "\n")
+  }
+
   if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE) {
+    cat("🔧 [SERVER DEBUG] AI suggestions enabled - initializing...\n")
     tryCatch({
       # Source the server-side suggestion handlers
       if (file.exists("guided_workflow_ai_suggestions_server.R")) {
+        cat("🔧 [SERVER DEBUG] Sourcing AI suggestions server file...\n")
         source("guided_workflow_ai_suggestions_server.R", local = TRUE)
+        cat("✅ [SERVER DEBUG] AI suggestions server file sourced\n")
 
         # Initialize handlers with workflow state and vocabulary data
         init_ai_suggestion_handlers(
