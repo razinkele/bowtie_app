@@ -2357,14 +2357,20 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           updateTextInput(session, session$ns("activity_custom_text"), value = "")
         }
 
-        # Restore activity_group AFTER a delay to ensure Selectize.js clear has completed
-        # updateSelectizeInput is async, so immediate restore gets overwritten by delayed clear
+        # Restore activity_group using JavaScript setTimeout to avoid async race condition
+        # Direct JS approach ensures execution after Selectize.js completes clearing
         if (!is.null(saved_group) && nchar(saved_group) > 0) {
-          cat("📝 [ADD ACTIVITY] Scheduling delayed restore of activity_group to:", saved_group, "\n")
-          shinyjs::delay(100, {
-            cat("📝 [ADD ACTIVITY] [DELAYED] Restoring activity_group to:", saved_group, "\n")
-            updateSelectizeInput(session, session$ns("activity_group"), selected = saved_group)
-          })
+          cat("📝 [ADD ACTIVITY] Scheduling JS-based delayed restore of activity_group to:", saved_group, "\n")
+          # Create properly namespaced input ID for module context
+          input_id <- session$ns("activity_group")
+          # Use runjs to execute after 150ms delay
+          shinyjs::runjs(sprintf(
+            "setTimeout(function() {
+              console.log('[DELAYED RESTORE] Restoring activity_group to: %s');
+              $('#%s').val('%s').trigger('change');
+            }, 150);",
+            saved_group, input_id, saved_group
+          ))
         }
 
         cat("📝 [ADD ACTIVITY] Input cleared, activity_group restore scheduled.\n")
@@ -2430,11 +2436,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           updateTextInput(session, session$ns("pressure_custom_text"), value = "")
         }
 
-        # Restore pressure_group AFTER a delay to ensure Selectize.js clear has completed
+        # Restore pressure_group using JavaScript setTimeout
         if (!is.null(saved_pressure_group) && nchar(saved_pressure_group) > 0) {
-          shinyjs::delay(100, {
-            updateSelectizeInput(session, session$ns("pressure_group"), selected = saved_pressure_group)
-          })
+          input_id <- session$ns("pressure_group")
+          shinyjs::runjs(sprintf(
+            "setTimeout(function() {
+              console.log('[DELAYED RESTORE] Restoring pressure_group to: %s');
+              $('#%s').val('%s').trigger('change');
+            }, 150);",
+            saved_pressure_group, input_id, saved_pressure_group
+          ))
         }
       } else {
         showNotification(t("gw_pressure_exists", lang()), type = "warning", duration = 2)
