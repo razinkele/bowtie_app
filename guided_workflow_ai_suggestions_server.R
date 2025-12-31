@@ -142,6 +142,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     }
 
     cat("🔍 [AI SUGGESTIONS] Generating activity suggestions based on problem...\n")
+
     # Show loading
     shinyjs::hide(id = "suggestion_status_activity", asis = FALSE)
     shinyjs::hide(id = "suggestions_list_activity", asis = FALSE)
@@ -155,11 +156,16 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
       # Use text analysis to find relevant activities
       # Search for activities that match keywords from the problem statement
-      problem_keywords <- tolower(unlist(strsplit(problem_statement, "[\\s,;.]+"))
-      )
-      problem_keywords <- problem_keywords[nchar(problem_keywords) > 3]  # Filter short words
 
-      cat("🔍 [AI SUGGESTIONS] Problem keywords:", paste(problem_keywords, collapse = ", "), "\n")
+      # Use robust word splitting (non-word character boundary)
+      # This is more reliable than regex patterns that can fail on special characters
+      raw_split <- unlist(strsplit(problem_statement, "\\W+"))
+      problem_keywords <- tolower(raw_split)
+
+      # Filter short words and empty strings
+      problem_keywords <- problem_keywords[nchar(problem_keywords) > 3]
+
+      cat("🔍 [AI SUGGESTIONS] Extracted keywords:", paste(problem_keywords, collapse = ", "), "\n")
 
       # Find activities with matching keywords in their names or IDs
       matching_activities <- list()
