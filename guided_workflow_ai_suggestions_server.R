@@ -270,9 +270,94 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     })
   })
 
-  # Handle activity suggestion clicks
+  # Handle activity suggestion "Add" button clicks
+  # The suggestion cards create buttons like: add_suggestion_activity_1, add_suggestion_activity_2, etc.
+  # We need to observe all possible button clicks dynamically
+  # Use lapply to avoid closure issues with loops
+  cat("🔧 [INIT DEBUG] Registering activity Add button observers (1-10)...\n")
+  lapply(1:10, function(i) {
+    button_id <- paste0("add_suggestion_activity_", i)
+    cat("🔧 [INIT DEBUG] Registering observer for button:", button_id, "\n")
+
+    observeEvent(input[[button_id]], {
+      cat("\n🔔 [CLICK HANDLER] Activity suggestion Add button clicked! Index:", i, "\n")
+
+        # Get the current suggestions from the reactive
+        state <- workflow_state()
+        problem_statement <- state$project_data$problem_statement
+
+        if (!is.null(problem_statement) && nchar(trimws(problem_statement)) >= 5) {
+          # Re-generate suggestions to get the data (we don't store them)
+          vocab_data <- vocabulary_data_reactive()
+
+          # Extract keywords
+          raw_split <- unlist(strsplit(problem_statement, "\\W+"))
+          problem_keywords <- tolower(raw_split)
+          problem_keywords <- problem_keywords[nchar(problem_keywords) > 3]
+
+          # Find matching activities
+          matching_activities <- list()
+          for (j in seq_len(nrow(vocab_data$activities))) {
+            activity_name <- tolower(vocab_data$activities$name[j])
+            activity_id <- tolower(vocab_data$activities$id[j])
+
+            for (keyword in problem_keywords) {
+              if (grepl(keyword, activity_name) || grepl(keyword, activity_id)) {
+                if (!is.na(vocab_data$activities$level[j]) && vocab_data$activities$level[j] >= 2) {
+                  matching_activities <- c(matching_activities, list(list(
+                    id = vocab_data$activities$id[j],
+                    name = vocab_data$activities$name[j]
+                  )))
+                  break
+                }
+              }
+            }
+          }
+
+          # Limit to max suggestions
+          if (length(matching_activities) > ai_max_suggestions()) {
+            matching_activities <- matching_activities[1:ai_max_suggestions()]
+          }
+
+          # Get the clicked suggestion
+          if (i <= length(matching_activities)) {
+            suggestion <- matching_activities[[i]]
+            activity_name <- suggestion$name
+
+            cat("🔔 [CLICK HANDLER] Adding activity:", activity_name, "\n")
+
+            # Add to workflow state
+            current_activities <- state$project_data$activities
+            if (is.null(current_activities)) current_activities <- character(0)
+
+            if (!(activity_name %in% current_activities)) {
+              current_activities <- c(current_activities, activity_name)
+              state$project_data$activities <- current_activities
+              workflow_state(state)
+
+              cat("✅ [CLICK HANDLER] Activity added successfully!\n")
+
+              showNotification(
+                paste0("✅ Added suggested activity: ", activity_name),
+                type = "message",
+                duration = 3
+              )
+            } else {
+              cat("ℹ️ [CLICK HANDLER] Activity already in selection\n")
+              showNotification(
+                "ℹ️ This activity is already in your selection",
+                type = "warning",
+                duration = 3
+              )
+            }
+          }
+        }
+      }, ignoreInit = TRUE)
+  })
+
+  # Legacy handler (keeping for backward compatibility)
   observeEvent(input$suggestion_clicked_activity, {
-    cat("\n🔔 [CLICK HANDLER] Activity suggestion clicked!\n")
+    cat("\n🔔 [CLICK HANDLER] Legacy activity suggestion clicked!\n")
     suggestion_data <- input$suggestion_clicked_activity
     cat("🔔 [CLICK HANDLER] Suggestion data:", if(is.null(suggestion_data)) "NULL" else paste(names(suggestion_data), collapse = ", "), "\n")
     cat("🔔 [CLICK HANDLER] Suggestion ID:", if(is.null(suggestion_data$id)) "NULL" else suggestion_data$id, "\n")
