@@ -110,6 +110,159 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   }
 
   # ======================================================================
+  # STEP 3: ACTIVITY SUGGESTIONS (based on central problem from Step 2)
+  # ======================================================================
+
+  # Observer for activity suggestions based on central problem
+  observe({
+    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    cat("🔍 [AI SUGGESTIONS] Activity observer triggered!\n")
+
+    # Check if AI is enabled FIRST
+    if (!ai_enabled()) {
+      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping activity suggestions\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+      return()
+    }
+
+    # Get central problem from Step 2
+    state <- workflow_state()
+    problem_statement <- state$project_data$problem_statement
+
+    cat("🔍 [AI SUGGESTIONS] Problem statement:", if(is.null(problem_statement)) "NULL" else problem_statement, "\n")
+
+    if (is.null(problem_statement) || nchar(trimws(problem_statement)) < 5) {
+      cat("🔍 [AI SUGGESTIONS] No problem statement or too short - hiding suggestions\n")
+      shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
+      shinyjs::hide(id = "suggestions_list_activity", asis = FALSE)
+      shinyjs::hide(id = "no_suggestions_activity", asis = FALSE)
+      shinyjs::hide(id = "suggestion_error_activity", asis = FALSE)
+      shinyjs::show(id = "suggestion_status_activity", asis = FALSE)
+      return()
+    }
+
+    cat("🔍 [AI SUGGESTIONS] Generating activity suggestions based on problem...\n")
+    # Show loading
+    shinyjs::hide(id = "suggestion_status_activity", asis = FALSE)
+    shinyjs::hide(id = "suggestions_list_activity", asis = FALSE)
+    shinyjs::hide(id = "no_suggestions_activity", asis = FALSE)
+    shinyjs::hide(id = "suggestion_error_activity", asis = FALSE)
+    shinyjs::show(id = "suggestion_loading_activity", asis = FALSE)
+
+    # Generate suggestions
+    tryCatch({
+      vocab_data <- vocabulary_data_reactive()
+
+      # Use text analysis to find relevant activities
+      # Search for activities that match keywords from the problem statement
+      problem_keywords <- tolower(unlist(strsplit(problem_statement, "[\\s,;.]+"))
+      )
+      problem_keywords <- problem_keywords[nchar(problem_keywords) > 3]  # Filter short words
+
+      cat("🔍 [AI SUGGESTIONS] Problem keywords:", paste(problem_keywords, collapse = ", "), "\n")
+
+      # Find activities with matching keywords in their names or IDs
+      matching_activities <- list()
+      for (i in seq_len(nrow(vocab_data$activities))) {
+        activity_name <- tolower(vocab_data$activities$name[i])
+        activity_id <- tolower(vocab_data$activities$id[i])
+
+        # Check if any keywords match
+        for (keyword in problem_keywords) {
+          if (grepl(keyword, activity_name) || grepl(keyword, activity_id)) {
+            # Only include level 2+ items (not category headers)
+            if (!is.na(vocab_data$activities$level[i]) && vocab_data$activities$level[i] >= 2) {
+              matching_activities <- c(matching_activities, list(list(
+                id = vocab_data$activities$id[i],
+                name = vocab_data$activities$name[i],
+                level1 = if("level1" %in% names(vocab_data$activities)) vocab_data$activities$level1[i] else "Activity",
+                level2 = if("level2" %in% names(vocab_data$activities)) vocab_data$activities$level2[i] else "",
+                confidence = 0.8,  # High confidence for keyword match
+                method = "keyword"
+              )))
+              break
+            }
+          }
+        }
+      }
+
+      # Limit to max suggestions
+      suggestions <- matching_activities
+      if (length(suggestions) > ai_max_suggestions()) {
+        suggestions <- suggestions[1:ai_max_suggestions()]
+      }
+
+      cat("🔍 [AI SUGGESTIONS] Found", length(suggestions), "activity suggestions\n")
+
+      if (length(suggestions) == 0) {
+        shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
+        shinyjs::show(id = "no_suggestions_activity", asis = FALSE)
+      } else {
+        # Render suggestions
+        output$suggestions_content_activity <- renderUI({
+          tagList(
+            lapply(1:length(suggestions), function(i) {
+              create_suggestion_card_ui(session$ns, suggestions[[i]], i, "activity")
+            })
+          )
+        })
+
+        shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
+        shinyjs::show(id = "suggestions_list_activity", asis = FALSE)
+        cat("✅ [AI SUGGESTIONS] Activity suggestions displayed successfully!\n")
+      }
+    }, error = function(e) {
+      cat("❌ [AI SUGGESTIONS] ERROR in activity suggestions:\n")
+      cat("   Error message: ", e$message, "\n")
+      warning("Error generating activity suggestions: ", e$message)
+      shinyjs::hide(id = "suggestion_loading_activity", asis = FALSE)
+      shinyjs::show(id = "suggestion_error_activity", asis = FALSE)
+    })
+  })
+
+  # Handle activity suggestion clicks
+  observeEvent(input$suggestion_clicked_activity, {
+    suggestion_data <- input$suggestion_clicked_activity
+
+    if (!is.null(suggestion_data) && !is.null(suggestion_data$id)) {
+      # Get the full item from vocabulary
+      vocab <- vocabulary_data_reactive()
+
+      if (!is.null(vocab$activities)) {
+        activity_row <- vocab$activities[vocab$activities$id == suggestion_data$id, ]
+
+        if (nrow(activity_row) > 0) {
+          # Add to selected activities (trigger the add button)
+          activity_name <- activity_row$name[1]
+
+          # Add to workflow state
+          state <- workflow_state()
+          current_activities <- state$project_data$activities
+          if (is.null(current_activities)) current_activities <- character(0)
+
+          if (!(activity_name %in% current_activities)) {
+            current_activities <- c(current_activities, activity_name)
+            state$project_data$activities <- current_activities
+            workflow_state(state)
+
+            showNotification(
+              paste0("✅ Added suggested activity: ", activity_name),
+              type = "message",
+              duration = 3
+            )
+          } else {
+            showNotification(
+              "ℹ️ This activity is already in your selection",
+              type = "warning",
+              duration = 2
+            )
+          }
+        }
+      }
+    }
+  })
+
+  # ======================================================================
   # STEP 3: PRESSURE SUGGESTIONS (based on selected activities)
   # ======================================================================
 

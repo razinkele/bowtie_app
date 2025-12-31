@@ -1005,12 +1005,24 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              
              h5(t("gw_selected_activities", current_lang)),
              DTOutput(ns("selected_activities_table")),
-             
+
              br(),
              div(class = "alert alert-info",
                  h6(t("gw_examples_title", current_lang)),
                  p(t("gw_activities_examples_text", current_lang))
-             )
+             ),
+
+             # AI-powered suggestions for activities (if available)
+             if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
+               create_ai_suggestions_ui(
+                 ns,
+                 "activity",
+                 "🤖 AI-Powered Activity Suggestions",
+                 current_lang
+               )
+             } else {
+               NULL
+             }
       ),
       
       column(6,
