@@ -594,6 +594,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     if ((is.null(activity_names) || length(activity_names) == 0) &&
         (is.null(pressure_names) || length(pressure_names) == 0)) {
+      cat("⏭️ [AI SUGGESTIONS] No activities or pressures - skipping preventive control analysis (saves ~2 seconds)\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       shinyjs::hide("suggestion_loading_control_preventive")
       shinyjs::hide("suggestions_list_control_preventive")
       shinyjs::hide("no_suggestions_control_preventive")
@@ -722,6 +724,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     pressure_names <- state$project_data$pressures
 
     if (is.null(pressure_names) || length(pressure_names) == 0) {
+      cat("⏭️ [AI SUGGESTIONS] No pressures selected - skipping consequence analysis (saves ~2 seconds)\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       shinyjs::hide("suggestion_loading_consequence")
       shinyjs::hide("suggestions_list_consequence")
       shinyjs::hide("no_suggestions_consequence")
@@ -845,6 +849,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     consequence_names <- state$project_data$consequences
 
     if (is.null(consequence_names) || length(consequence_names) == 0) {
+      cat("⏭️ [AI SUGGESTIONS] No consequences selected - skipping protective control analysis (saves ~2 seconds)\n")
+      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       shinyjs::hide("suggestion_loading_control_protective")
       shinyjs::hide("suggestions_list_control_protective")
       shinyjs::hide("no_suggestions_control_protective")

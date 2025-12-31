@@ -273,6 +273,33 @@ generate_ai_suggestions <- function(vocabulary_data,
     # Get IDs of selected items
     selected_ids <- sapply(selected_items, function(x) x$id)
 
+    cat("🔍 [GENERATE_AI] Selected IDs:", paste(selected_ids, collapse = ", "), "\n")
+    cat("🔍 [GENERATE_AI] Target type:", target_type, "\n")
+    cat("🔍 [GENERATE_AI] Total links before filtering:", nrow(links), "\n")
+    cat("🔍 [GENERATE_AI] Unique from_types:", paste(unique(links$from_type), collapse = ", "), "\n")
+    cat("🔍 [GENERATE_AI] Unique to_types:", paste(unique(links$to_type), collapse = ", "), "\n")
+    cat("🔍 [GENERATE_AI] Sample from_ids (first 10):", paste(head(unique(links$from_id), 10), collapse = ", "), "\n")
+
+    # Check if our selected ID appears in the links at all
+    id_in_from <- selected_ids[1] %in% links$from_id
+    id_in_to <- selected_ids[1] %in% links$to_id
+    cat("🔍 [GENERATE_AI] Selected ID", selected_ids[1], "appears in from_id:", id_in_from, "\n")
+    cat("🔍 [GENERATE_AI] Selected ID", selected_ids[1], "appears in to_id:", id_in_to, "\n")
+
+    # If ID appears in to_id, we need to reverse the links
+    if (id_in_to && !id_in_from) {
+      cat("⚠️ [GENERATE_AI] Selected ID only appears as TO, not FROM. Checking reverse links...\n")
+      # Count reverse links
+      reverse_matches <- sum(links$to_id %in% selected_ids & links$from_type == target_type)
+      cat("🔍 [GENERATE_AI] Reverse links (TO selected, FROM target type):", reverse_matches, "\n")
+    }
+
+    # Count how many match each filter
+    from_matches <- sum(links$from_id %in% selected_ids)
+    to_matches <- sum(links$to_type == target_type)
+    cat("🔍 [GENERATE_AI] Links matching from_id:", from_matches, "\n")
+    cat("🔍 [GENERATE_AI] Links matching to_type:", to_matches, "\n")
+
     # Filter links that:
     # 1. Start from selected items
     # 2. Point to target type
@@ -282,7 +309,48 @@ generate_ai_suggestions <- function(vocabulary_data,
       links$to_type == target_type,
     ]
 
+    cat("🔍 [GENERATE_AI] Relevant links after filtering:", nrow(relevant_links), "\n")
+
     if (nrow(relevant_links) == 0) {
+      cat("❌ [GENERATE_AI] No relevant links found in AI analysis!\n")
+      cat("🔄 [GENERATE_AI] Falling back to direct vocabulary matching...\n")
+
+      # Fallback: Create suggestions based on direct vocabulary relationships
+      # For Activity->Pressure: suggest all pressures that have matching themes/keywords
+      fallback_suggestions <- list()
+
+      if (target_type == "Pressure") {
+        # Get all pressures
+        pressures <- vocabulary_data$pressures
+        if (!is.null(pressures) && nrow(pressures) > 0) {
+          # Filter to Level 2+ items
+          pressures <- pressures[!is.na(pressures$level) & pressures$level >= 2, ]
+
+          # Get first N as suggestions (simple fallback)
+          n_suggestions <- min(max_suggestions, nrow(pressures))
+          if (n_suggestions > 0) {
+            for (i in 1:n_suggestions) {
+              fallback_suggestions[[i]] <- list(
+                to_id = pressures$id[i],
+                to_name = pressures$name[i],
+                to_type = "Pressure",
+                from_id = selected_ids[1],
+                from_name = selected_items[[1]]$name,
+                from_type = "Activity",
+                similarity = 0.5,
+                confidence = 0.5,
+                confidence_level = "medium",
+                method = "fallback_vocabulary",
+                reasoning = "General environmental pressure (AI analysis incomplete)"
+              )
+            }
+            cat("✅ [GENERATE_AI] Created", length(fallback_suggestions), "fallback suggestions\n")
+            return(fallback_suggestions)
+          }
+        }
+      }
+
+      cat("❌ [GENERATE_AI] No fallback suggestions possible. Returning empty list.\n")
       return(list())
     }
 
