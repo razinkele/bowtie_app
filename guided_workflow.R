@@ -2357,19 +2357,25 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           updateTextInput(session, session$ns("activity_custom_text"), value = "")
         }
 
-        # Restore activity_group using JavaScript setTimeout to avoid async race condition
+        # Restore activity_group using JavaScript setTimeout with Selectize API
         # Direct JS approach ensures execution after Selectize.js completes clearing
         if (!is.null(saved_group) && nchar(saved_group) > 0) {
           cat("📝 [ADD ACTIVITY] Scheduling JS-based delayed restore of activity_group to:", saved_group, "\n")
           # Create properly namespaced input ID for module context
           input_id <- session$ns("activity_group")
-          # Use runjs to execute after 150ms delay
+          # Use runjs to execute after 200ms delay with Selectize API
           shinyjs::runjs(sprintf(
             "setTimeout(function() {
-              console.log('[DELAYED RESTORE] Restoring activity_group to: %s');
-              $('#%s').val('%s').trigger('change');
-            }, 150);",
-            saved_group, input_id, saved_group
+              console.log('[DELAYED RESTORE] Attempting to restore activity_group to: %s');
+              var elem = $('#%s');
+              if (elem.length > 0 && elem[0].selectize) {
+                elem[0].selectize.setValue('%s', false);
+                console.log('[DELAYED RESTORE] Successfully restored activity_group to: %s');
+              } else {
+                console.error('[DELAYED RESTORE] Selectize not found for #%s');
+              }
+            }, 200);",
+            saved_group, input_id, saved_group, saved_group, input_id
           ))
         }
 
@@ -2436,15 +2442,21 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           updateTextInput(session, session$ns("pressure_custom_text"), value = "")
         }
 
-        # Restore pressure_group using JavaScript setTimeout
+        # Restore pressure_group using JavaScript setTimeout with Selectize API
         if (!is.null(saved_pressure_group) && nchar(saved_pressure_group) > 0) {
           input_id <- session$ns("pressure_group")
           shinyjs::runjs(sprintf(
             "setTimeout(function() {
-              console.log('[DELAYED RESTORE] Restoring pressure_group to: %s');
-              $('#%s').val('%s').trigger('change');
-            }, 150);",
-            saved_pressure_group, input_id, saved_pressure_group
+              console.log('[DELAYED RESTORE] Attempting to restore pressure_group to: %s');
+              var elem = $('#%s');
+              if (elem.length > 0 && elem[0].selectize) {
+                elem[0].selectize.setValue('%s', false);
+                console.log('[DELAYED RESTORE] Successfully restored pressure_group to: %s');
+              } else {
+                console.error('[DELAYED RESTORE] Selectize not found for #%s');
+              }
+            }, 200);",
+            saved_pressure_group, input_id, saved_pressure_group, saved_pressure_group, input_id
           ))
         }
       } else {
