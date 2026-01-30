@@ -5,58 +5,11 @@
 # =============================================================================
 
 # =============================================================================
-# DATA UPLOAD TAB CONTENT
+# DASHBOARD TAB CONTENT
 # =============================================================================
-get_upload_tab_content <- function() {
+get_dashboard_tab_content <- function() {
   tagList(
-    fluidRow(
-      column(12,
-        box(
-          title = uiOutput("data_input_options_header", inline = TRUE),
-          status = "primary",
-          solidHeader = TRUE,
-          width = 12,
-
-          fluidRow(
-            # Left column - File upload
-            column(6,
-              h6(uiOutput("data_upload_option1_title", inline = TRUE)),
-              uiOutput("file_input_ui"),
-              conditionalPanel(
-                condition = "output.fileUploaded",
-                selectInput("sheet", "Select Sheet:", choices = NULL),
-                actionButton("loadData",
-                            tagList(icon("upload"), "Load Data"),
-                            class = "btn-primary btn-block")
-              )
-            ),
-
-            # Right column - Generate from vocabulary
-            column(6,
-              div(style = "min-height: 150px;",
-                uiOutput("data_upload_option2_title"),
-                uiOutput("data_option2_desc")
-              ),
-              div(class = "mb-3",
-                selectInput("data_scenario_template",
-                           "Select environmental scenario:",
-                           choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
-                           selected = "")
-              ),
-              actionButton("generateMultipleControls",
-                          tagList(icon("seedling"), "Generate Data"),
-                          class = "btn-success btn-block"),
-              conditionalPanel(
-                condition = "output.envDataGenerated",
-                downloadButton("downloadSample",
-                              tagList(icon("download"), "Download"),
-                              class = "btn-success btn-block mt-2")
-              )
-            )
-          )
-        )
-      )
-    ),
+    h2(tagList(icon("dashboard"), "Dashboard"), class = "mb-4"),
 
     fluidRow(
       column(4,
@@ -87,58 +40,117 @@ get_upload_tab_content <- function() {
       ),
 
       column(4,
-        box(
-          title = tagList(icon("database"), "Vocabulary Statistics"),
-          status = "success",
-          solidHeader = TRUE,
-          width = 12,
+        h6(tagList(icon("database"), "Vocabulary Statistics"), class = "mb-3"),
 
-          h6(tagList(icon("layer-group"), "Available Elements"), class = "text-center mb-3"),
-          div(class = "row text-center",
-            div(class = "col-6 mb-3",
-              div(class = "p-2 border rounded",
-                div(class = "h2 text-primary", textOutput("vocab_activities_count", inline = TRUE)),
-                div(class = "small text-muted", tagList(icon("play"), " Activities"))
-              )
-            ),
-            div(class = "col-6 mb-3",
-              div(class = "p-2 border rounded",
-                div(class = "h2 text-danger", textOutput("vocab_pressures_count", inline = TRUE)),
-                div(class = "small text-muted", tagList(icon("triangle-exclamation"), " Pressures"))
-              )
-            ),
-            div(class = "col-6 mb-3",
-              div(class = "p-2 border rounded",
-                div(class = "h2 text-success", textOutput("vocab_controls_count", inline = TRUE)),
-                div(class = "small text-muted", tagList(icon("shield-halved"), " Controls"))
-              )
-            ),
-            div(class = "col-6 mb-3",
-              div(class = "p-2 border rounded",
-                div(class = "h2 text-warning", textOutput("vocab_consequences_count", inline = TRUE)),
-                div(class = "small text-muted", tagList(icon("burst"), " Consequences"))
-              )
-            )
-          ),
-          tags$div(class = "alert alert-info mt-2 mb-0 py-2",
-            tags$small(
-              tagList(icon("info-circle"), " "),
-              strong("Total Elements: "),
-              textOutput("vocab_total_count", inline = TRUE)
-            )
-          )
-        )
+        # Activities InfoBox
+        uiOutput("vocab_activities_infobox"),
+
+        # Pressures InfoBox
+        uiOutput("vocab_pressures_infobox"),
+
+        # Controls InfoBox
+        uiOutput("vocab_controls_infobox"),
+
+        # Consequences InfoBox
+        uiOutput("vocab_consequences_infobox")
       ),
 
       column(4,
         conditionalPanel(
           condition = "output.dataLoaded",
+          h6(tagList(icon("chart-bar"), "Loaded Data Statistics"), class = "mb-3"),
+
+          # Total Scenarios InfoBox
+          uiOutput("data_scenarios_infobox"),
+
+          # Elements Used InfoBox
+          uiOutput("data_elements_infobox")
+        ),
+
+        conditionalPanel(
+          condition = "!output.dataLoaded",
           box(
-            title = tagList(icon("chart-bar"), "Data Summary"),
-            status = "secondary",
+            title = tagList(icon("info-circle"), "Getting Started"),
+            status = "warning",
             solidHeader = TRUE,
             width = 12,
-            verbatimTextOutput("dataInfo")
+
+            tags$p("Welcome to the Environmental Bowtie Risk Analysis application!"),
+            tags$hr(),
+            tags$h6(tagList(icon("upload"), " Quick Start:")),
+            tags$ul(
+              tags$li("Upload your Excel data via the ", tags$strong("Data Upload"), " tab"),
+              tags$li("Or generate sample data using ", tags$strong("Environmental Scenarios")),
+              tags$li("Create a new analysis with the ", tags$strong("Guided Creation"), " wizard")
+            ),
+            tags$div(class = "text-center mt-3",
+              actionButton("dashboard_goto_upload",
+                          tagList(icon("arrow-right"), " Go to Data Upload"),
+                          class = "btn-primary",
+                          `data-toggle` = "tooltip",
+                          title = "Navigate to the Data Upload page to get started")
+            )
+          )
+        )
+      )
+    )
+  )
+}
+
+# =============================================================================
+# DATA UPLOAD TAB CONTENT
+# =============================================================================
+get_upload_tab_content <- function() {
+  tagList(
+    h2(tagList(icon("upload"), "Data Upload & Generation"), class = "mb-4"),
+
+    fluidRow(
+      column(12,
+        box(
+          title = uiOutput("data_input_options_header", inline = TRUE),
+          status = "primary",
+          solidHeader = TRUE,
+          width = 12,
+
+          fluidRow(
+            # Left column - File upload (Option 1)
+            column(6,
+              h6(uiOutput("data_upload_option1_title", inline = TRUE)),
+              uiOutput("file_input_ui"),
+              conditionalPanel(
+                condition = "output.fileUploaded",
+                selectInput("sheet", "Select Sheet:", choices = NULL),
+                actionButton("loadData",
+                            tagList(icon("upload"), "Load Data"),
+                            class = "btn-primary btn-block")
+              )
+            ),
+
+            # Right column - Generate from vocabulary (Option 2)
+            column(6,
+              div(style = "min-height: 150px;",
+                uiOutput("data_upload_option2_title"),
+                uiOutput("data_option2_desc")
+              ),
+              div(class = "mb-3",
+                selectInput("data_scenario_template",
+                           "Select environmental scenario:",
+                           choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
+                           selected = "")
+              ),
+              actionButton("generateMultipleControls",
+                          tagList(icon("seedling"), "Generate Data"),
+                          class = "btn-success btn-block",
+                          `data-toggle` = "tooltip",
+                          `data-placement` = "top",
+                          title = "Generate sample environmental data based on selected scenario"),
+              conditionalPanel(
+                condition = "output.envDataGenerated",
+                downloadButton("downloadSample",
+                              tagList(icon("download"), "Download"),
+                              class = "btn-success btn-block mt-2")
+              )
+            )
           )
         )
       )
@@ -170,6 +182,7 @@ get_upload_tab_content <- function() {
         status = "success",
         solidHeader = TRUE,
         width = 12,
+        maximizable = TRUE,
 
         withSpinner(DT::dataTableOutput("preview")),
         br(),
@@ -197,7 +210,7 @@ get_bowtie_tab_content <- function() {
     h2(tagList(icon("project-diagram"), "Bowtie Diagram"), class = "mb-4"),
 
     box(
-      title = tagList(icon("sliders-h"), "Visualization Options"),
+      title = tagList(icon("sliders-h"), "Diagram Configuration"),
       status = "primary",
       solidHeader = TRUE,
       collapsible = TRUE,
@@ -205,28 +218,31 @@ get_bowtie_tab_content <- function() {
 
       fluidRow(
         column(3,
-          selectInput("layout_algorithm", "Layout Algorithm:",
-                     choices = c("Hierarchical (Default)" = "hierarchical",
-                               "Physics-based" = "physics",
-                               "Circular" = "circular",
-                               "Grid" = "grid"),
-                     selected = "hierarchical")
+          selectInput("selectedProblem", "Select Central Problem:",
+                     choices = NULL,
+                     selected = NULL)
+        ),
+        column(2,
+          selectInput("nodeSize", "Node Size:",
+                     choices = c("Small" = "small",
+                               "Medium" = "medium",
+                               "Large" = "large"),
+                     selected = "medium")
+        ),
+        column(2,
+          sliderInput("fontSize", "Font Size:",
+                     min = 8, max = 24, value = 12, step = 1,
+                     post = "px")
+        ),
+        column(2,
+          checkboxInput("showRiskLevels", "Show Risk Levels", value = TRUE),
+          checkboxInput("showBarriers", "Show Barriers", value = TRUE)
         ),
         column(3,
-          sliderInput("node_spacing", "Node Spacing:",
-                     min = 50, max = 300, value = 150, step = 10)
-        ),
-        column(3,
-          sliderInput("level_separation", "Level Separation:",
-                     min = 100, max = 500, value = 200, step = 50)
-        ),
-        column(3,
-          selectInput("color_scheme", "Color Scheme:",
-                     choices = c("Environmental (Default)" = "default",
-                               "High Contrast" = "contrast",
-                               "Colorblind Safe" = "colorblind",
-                               "Monochrome" = "mono"),
-                     selected = "default")
+          checkboxInput("editMode", "Edit Mode", value = FALSE),
+          actionButton("resetFontSize", "Reset Font",
+                      class = "btn-outline-secondary btn-sm mt-1",
+                      icon = icon("undo"))
         )
       )
     ),
@@ -236,12 +252,46 @@ get_bowtie_tab_content <- function() {
       status = "success",
       solidHeader = TRUE,
       width = 12,
+      maximizable = TRUE,
+      elevation = 2,
+      dropdownMenu = boxDropdown(
+        icon = icon("bars"),
+        boxDropdownItem("Refresh Diagram", id = "refresh_bowtie_menu", icon = icon("sync")),
+        boxDropdownItem("Export PNG", id = "export_bowtie_png_menu", icon = icon("image")),
+        boxDropdownItem("Export SVG", id = "export_bowtie_svg_menu", icon = icon("file-code")),
+        boxDropdownItem("Fit to Screen", id = "fit_bowtie_menu", icon = icon("expand"))
+      ),
 
       div(class = "network-container",
         withSpinner(visNetworkOutput("bowtieNetwork", height = "700px"))
       ),
 
       hr(),
+
+      # Export options
+      div(class = "export-options p-3 bg-light rounded mb-3",
+        h6(tagList(icon("download"), " Export Diagram"), class = "mb-3"),
+        fluidRow(
+          column(4,
+            downloadButton("downloadBowtie",
+                          tagList(icon("code"), " HTML (Interactive)"),
+                          class = "btn-info btn-sm w-100"),
+            tags$small(class = "text-muted d-block mt-1", "Full interactivity, larger file")
+          ),
+          column(4,
+            downloadButton("downloadBowtieJPEG",
+                          tagList(icon("image"), " JPEG (Image)"),
+                          class = "btn-success btn-sm w-100"),
+            tags$small(class = "text-muted d-block mt-1", "White background, best for documents")
+          ),
+          column(4,
+            downloadButton("downloadBowtiePNG",
+                          tagList(icon("image"), " PNG (Image)"),
+                          class = "btn-secondary btn-sm w-100"),
+            tags$small(class = "text-muted d-block mt-1", "White background, good quality")
+          )
+        )
+      ),
 
       div(class = "enhanced-legend p-3",
         h5(tagList(icon("info-circle"), "Legend"), class = "mb-3"),
@@ -302,84 +352,115 @@ get_bowtie_tab_content <- function() {
 # =============================================================================
 get_bayesian_tab_content <- function() {
   tagList(
-    h2(tagList(icon("brain"), "Bayesian Network Analysis"), class = "mb-4"),
+    h2(tagList(icon("brain"), "Bayesian Network Analysis"), class = "mb-3"),
 
-    box(
-      title = tagList(icon("cogs"), "Network Configuration"),
-      status = "primary",
-      solidHeader = TRUE,
-      collapsible = TRUE,
-      width = 12,
-
-      fluidRow(
-        column(4,
-          selectInput("bn_structure", "Network Structure:",
-                     choices = c("Auto from Bowtie" = "auto",
-                               "Custom Structure" = "custom"),
-                     selected = "auto")
-        ),
-        column(4,
-          selectInput("bn_learning_algorithm", "Learning Algorithm:",
-                     choices = c("Constraint-based (PC)" = "pc",
-                               "Score-based (Hill-Climbing)" = "hc",
-                               "Hybrid (MMHC)" = "mmhc"),
-                     selected = "hc")
-        ),
-        column(4,
-          actionButton("learnBN", tagList(icon("brain"), "Learn Network"),
-                      class = "btn-primary btn-block")
-        )
-      )
-    ),
-
-    box(
-      title = tagList(icon("project-diagram"), "Bayesian Network Structure"),
-      status = "success",
-      solidHeader = TRUE,
-      width = 12,
-
-      div(class = "bayesian-panel",
-        withSpinner(visNetworkOutput("bnNetwork", height = "600px"))
-      )
-    ),
-
+    # Row 1: Configuration + Inference Controls + Results (3 columns)
     fluidRow(
-      column(6,
+      # Left: Network Configuration
+      column(3,
         box(
-          title = tagList(icon("calculator"), "Probability Inference"),
+          title = tagList(icon("cogs"), "Network Setup"),
+          status = "primary",
+          solidHeader = TRUE,
+          collapsible = FALSE,
+          width = 12,
+
+          selectInput("bayesianProblem", "Central Problem:",
+                     choices = NULL,
+                     selected = NULL),
+
+          div(class = "d-grid",
+            actionButton("createBayesianNetwork",
+                        tagList(icon("brain"), " Create Network"),
+                        class = "btn-success")
+          )
+        )
+      ),
+
+      # Middle: Probabilistic Inference Controls
+      column(5,
+        box(
+          title = tagList(icon("calculator"), "Probabilistic Inference"),
           status = "info",
           solidHeader = TRUE,
+          collapsible = FALSE,
           width = 12,
 
           uiOutput("bayesian_evidence_ui"),
 
-          actionButton("runInference",
-                      tagList(icon("play"), "Run Inference"),
-                      class = "btn-info btn-block mt-3")
+          hr(),
+          div(class = "d-grid",
+            actionButton("runInference",
+                        tagList(icon("play-circle"), " Run Inference"),
+                        class = "btn-primary btn-lg")
+          )
         )
       ),
 
-      column(6,
+      # Right: Inference Results
+      column(4,
         box(
           title = tagList(icon("chart-bar"), "Inference Results"),
           status = "warning",
           solidHeader = TRUE,
+          collapsible = FALSE,
           width = 12,
 
-          withSpinner(uiOutput("inferenceResults"))
+          conditionalPanel(
+            condition = "!output.inferenceCompleted",
+            div(class = "text-center p-3 text-muted",
+              icon("calculator", class = "fa-2x mb-2"),
+              p(class = "small mb-0", "Click 'Run Inference' to see predictions")
+            )
+          ),
+
+          conditionalPanel(
+            condition = "output.inferenceCompleted",
+            uiOutput("inferenceResults")
+          ),
+
+          hr(),
+
+          # Risk Interpretation inline
+          conditionalPanel(
+            condition = "output.inferenceCompleted",
+            uiOutput("riskInterpretation")
+          )
         )
       )
     ),
 
-    box(
-      title = tagList(icon("table"), "Conditional Probability Tables (CPTs)"),
-      status = "secondary",
-      solidHeader = TRUE,
-      collapsible = TRUE,
-      collapsed = TRUE,
-      width = 12,
+    # Row 2: Network Visualization + CPTs
+    fluidRow(
+      # Network visualization (larger)
+      column(8,
+        box(
+          title = tagList(icon("project-diagram"), "Bayesian Network Structure"),
+          status = "success",
+          solidHeader = TRUE,
+          width = 12,
+          maximizable = TRUE,
 
-      withSpinner(uiOutput("cptTables"))
+          # Legend is now provided by native visNetwork (left side)
+          withSpinner(visNetworkOutput("bayesianNetworkVis", height = "500px"))
+        )
+      ),
+
+      # CPT Tables (smaller, on right)
+      column(4,
+        box(
+          title = tagList(icon("table"), "CPT Tables"),
+          status = "secondary",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          collapsed = TRUE,
+          width = 12,
+          maximizable = TRUE,
+          style = "max-height: 580px; overflow-y: auto;",
+
+          withSpinner(uiOutput("cptTables"))
+        )
+      )
     )
   )
 }
@@ -396,6 +477,15 @@ get_table_tab_content <- function() {
       status = "primary",
       solidHeader = TRUE,
       width = 12,
+      maximizable = TRUE,
+      elevation = 2,
+      dropdownMenu = boxDropdown(
+        icon = icon("bars"),
+        boxDropdownItem("Refresh Table", id = "refresh_data_table_menu", icon = icon("sync")),
+        boxDropdownItem("Export CSV", id = "export_csv_menu", icon = icon("file-csv")),
+        boxDropdownItem("Export Excel", id = "export_excel_menu", icon = icon("file-excel")),
+        boxDropdownItem("Table Settings", id = "table_settings_menu", icon = icon("cog"))
+      ),
 
       withSpinner(DT::dataTableOutput("data_table")),
 
@@ -405,17 +495,23 @@ get_table_tab_content <- function() {
         column(4,
           downloadButton("downloadData",
                         tagList(icon("download"), "Download CSV"),
-                        class = "btn-success btn-block")
+                        class = "btn-success btn-block",
+                        `data-toggle` = "tooltip",
+                        title = "Export current data to CSV format")
         ),
         column(4,
           downloadButton("downloadExcel",
                         tagList(icon("file-excel"), "Download Excel"),
-                        class = "btn-info btn-block")
+                        class = "btn-info btn-block",
+                        `data-toggle` = "tooltip",
+                        title = "Export current data to Excel format (.xlsx)")
         ),
         column(4,
           actionButton("refreshTable",
                       tagList(icon("refresh"), "Refresh Table"),
-                      class = "btn-secondary btn-block")
+                      class = "btn-secondary btn-block",
+                      `data-toggle` = "tooltip",
+                      title = "Reload and refresh the data table")
         )
       )
     )
@@ -454,7 +550,9 @@ get_matrix_tab_content <- function() {
         column(4,
           actionButton("updateMatrix",
                       tagList(icon("refresh"), "Update Matrix"),
-                      class = "btn-primary btn-block")
+                      class = "btn-primary btn-block",
+                      `data-toggle` = "tooltip",
+                      title = "Regenerate risk matrix with current settings")
         )
       )
     ),
@@ -464,6 +562,8 @@ get_matrix_tab_content <- function() {
       status = "danger",
       solidHeader = TRUE,
       width = 12,
+      maximizable = TRUE,
+      elevation = 2,
 
       withSpinner(plotlyOutput("riskMatrix", height = "600px")),
 
@@ -494,6 +594,8 @@ get_link_risk_tab_content <- function() {
       status = "primary",
       solidHeader = TRUE,
       width = 12,
+      maximizable = TRUE,
+      elevation = 2,
 
       p("This section analyzes the connections and dependencies between risk elements."),
 
@@ -557,6 +659,14 @@ get_vocabulary_tab_content <- function() {
       solidHeader = TRUE,
       collapsible = TRUE,
       width = 12,
+      maximizable = TRUE,
+      dropdownMenu = boxDropdown(
+        icon = icon("bars"),
+        boxDropdownItem("Refresh Data", id = "refresh_vocabulary_menu", icon = icon("sync")),
+        boxDropdownItem("Export Results", id = "export_vocabulary_menu", icon = icon("download")),
+        boxDropdownItem("Clear Filters", id = "clear_vocab_filters_menu", icon = icon("filter-circle-xmark")),
+        boxDropdownItem("View Statistics", id = "vocab_stats_menu", icon = icon("chart-bar"))
+      ),
 
       fluidRow(
         column(8,
@@ -624,17 +734,23 @@ get_report_tab_content <- function() {
         column(4,
           downloadButton("downloadPDF",
                         tagList(icon("file-pdf"), "Download PDF"),
-                        class = "btn-danger btn-block btn-lg")
+                        class = "btn-danger btn-block btn-lg",
+                        `data-toggle` = "tooltip",
+                        title = "Generate and download a comprehensive PDF report")
         ),
         column(4,
           downloadButton("downloadWord",
                         tagList(icon("file-word"), "Download Word"),
-                        class = "btn-primary btn-block btn-lg")
+                        class = "btn-primary btn-block btn-lg",
+                        `data-toggle` = "tooltip",
+                        title = "Generate and download an editable Word document")
         ),
         column(4,
           downloadButton("downloadHTML",
                         tagList(icon("file-code"), "Download HTML"),
-                        class = "btn-info btn-block btn-lg")
+                        class = "btn-info btn-block btn-lg",
+                        `data-toggle` = "tooltip",
+                        title = "Generate and download an interactive HTML report")
         )
       ),
 
