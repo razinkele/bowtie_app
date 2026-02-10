@@ -1,7 +1,7 @@
 # =============================================================================
 # Guided Workflow System - Step-by-Step Bowtie Creation
-# Version: 5.1.0
-# Date: September 2025
+# Version: 5.4.0
+# Date: January 2026
 # Description: Comprehensive wizard-based system for guided bowtie diagram creation
 #              with progress tracking, validation, and expert guidance
 # =============================================================================
@@ -12,7 +12,7 @@
 
 # Validate and load required dependencies
 validate_guided_workflow_dependencies <- function() {
-  cat("🔍 Validating guided workflow dependencies...\n")
+  log_debug("Validating guided workflow dependencies...")
 
   required_packages <- c("shiny", "bslib", "dplyr", "DT")
   optional_packages <- c("ggplot2", "plotly", "openxlsx", "jsonlite", "digest")
@@ -41,14 +41,14 @@ validate_guided_workflow_dependencies <- function() {
 
   # Report results
   if (length(missing_required) > 0) {
-    cat("❌ Missing required packages:", paste(missing_required, collapse = ", "), "\n")
-    cat("   Install with: install.packages(c(", paste(paste0("'", missing_required, "'"), collapse = ", "), "))\n")
+    log_error(paste("Missing required packages:", paste(missing_required, collapse = ", ")))
+    log_info(paste("Install with: install.packages(c(", paste(paste0("'", missing_required, "'"), collapse = ", "), "))"))
     return(FALSE)
   }
 
   if (length(missing_optional) > 0) {
-    cat("⚠️ Missing optional packages:", paste(missing_optional, collapse = ", "), "\n")
-    cat("   Some features may be limited. Install with: install.packages(c(", paste(paste0("'", missing_optional, "'"), collapse = ", "), "))\n")
+    log_warning(paste("Missing optional packages:", paste(missing_optional, collapse = ", ")))
+    log_info(paste("Some features may be limited. Install with: install.packages(c(", paste(paste0("'", missing_optional, "'"), collapse = ", "), "))"))
   }
 
   # Validate function availability
@@ -64,11 +64,11 @@ validate_guided_workflow_dependencies <- function() {
   }
 
   if (length(missing_functions) > 0) {
-    cat("❌ Missing required functions:", paste(missing_functions, collapse = ", "), "\n")
+    log_error(paste("Missing required functions:", paste(missing_functions, collapse = ", ")))
     return(FALSE)
   }
 
-  cat("✅ All dependencies validated successfully!\n")
+  log_success("All dependencies validated successfully")
   return(TRUE)
 }
 
@@ -77,359 +77,175 @@ if (!validate_guided_workflow_dependencies()) {
   stop("❌ Guided Workflow System: Dependency validation failed")
 }
 
-cat("🧙 GUIDED WORKFLOW SYSTEM v1.1.0\n")
-cat("=================================\n")
-cat("Step-by-step bowtie creation with expert guidance\n\n")
+# =============================================================================
+# LOAD MODULAR COMPONENTS
+# =============================================================================
+log_debug("Loading guided workflow modules...")
+
+# Load configuration and state management
+if (file.exists("guided_workflow_config.R")) {
+  source("guided_workflow_config.R")
+} else {
+  stop("❌ Missing required module: guided_workflow_config.R")
+}
+
+# Load validation functions
+if (file.exists("guided_workflow_validation.R")) {
+  source("guided_workflow_validation.R")
+} else {
+  stop("❌ Missing required module: guided_workflow_validation.R")
+}
+
+# Load data conversion functions
+if (file.exists("guided_workflow_conversion.R")) {
+  source("guided_workflow_conversion.R")
+} else {
+  stop("❌ Missing required module: guided_workflow_conversion.R")
+}
+
+# =============================================================================
+# UTILITY HELPER FUNCTIONS
+# =============================================================================
+
+#' Create a simple DataTable for displaying a list of items
+#' Reduces code duplication across multiple renderDT calls
+#' @param items Character vector of items to display
+#' @param column_name Name of the column to display
+#' @param page_length Number of rows per page (default 5)
+#' @param show_search Whether to show search box (default FALSE)
+#' @param selection Selection mode: 'none', 'single', 'multiple' (default 'none')
+#' @return DT::datatable object
+create_simple_datatable <- function(items, column_name, page_length = 5,
+                                    show_search = FALSE, selection = "none") {
+  # Handle empty or NULL items
+  if (is.null(items) || length(items) == 0) {
+    dt_data <- setNames(data.frame(character(0), stringsAsFactors = FALSE), column_name)
+  } else {
+    dt_data <- setNames(data.frame(as.character(items), stringsAsFactors = FALSE), column_name)
+  }
+
+  # Determine DOM string based on options
+  dom_string <- if (show_search) "ftp" else "t"
+
+  DT::datatable(
+    dt_data,
+    options = list(
+      pageLength = page_length,
+      searching = show_search,
+      lengthChange = FALSE,
+      info = show_search,
+      dom = dom_string,
+      language = list(emptyTable = "No items added yet")
+    ),
+    rownames = FALSE,
+    selection = selection,
+    class = "cell-border stripe compact"
+  )
+}
+
+#' Create a DataTable for connections/links with multiple columns
+#' @param data Data frame with connection data
+#' @param page_length Number of rows per page (default 10)
+#' @return DT::datatable object
+create_connection_datatable <- function(data, page_length = 10) {
+  if (is.null(data) || nrow(data) == 0) {
+    data <- data.frame(matrix(ncol = 0, nrow = 0))
+  }
+
+  DT::datatable(
+    data,
+    options = list(
+      pageLength = page_length,
+      searching = TRUE,
+      lengthChange = FALSE,
+      info = TRUE,
+      dom = "tp",
+      language = list(emptyTable = "No connections defined")
+    ),
+    rownames = FALSE,
+    selection = "none",
+    class = "cell-border stripe compact"
+  )
+}
+
+# =============================================================================
+# SECURITY HELPER FUNCTIONS
+# =============================================================================
+
+#' Safely escape a string for use in regex patterns
+#' Safe regex escape utility - Prevents ReDoS attacks
+#'
+#' NOTE: This is a security utility function available for use in regex operations.
+#' Use this when building regex patterns from user input to prevent ReDoS attacks.
+#' Example: grepl(safe_regex_escape(user_input), text)
+#'
+#' @param x String to escape
+#' @param max_length Maximum allowed string length (default 100)
+#' @return Safely escaped string for regex use
+safe_regex_escape <- function(x, max_length = 100) {
+  # Validate input
+
+  if (is.null(x) || !is.character(x) || length(x) != 1) {
+    return("")
+  }
+
+  # Truncate to max length to prevent resource exhaustion
+  if (nchar(x) > max_length) {
+    x <- substr(x, 1, max_length)
+  }
+
+  # Escape all regex special characters
+  # This includes: . \ | ( ) [ ] { } ^ $ + * ?
+  escaped <- gsub("([.|\\\\()\\[\\]{}^$+*?])", "\\\\\\1", x)
+
+  return(escaped)
+}
+
+#' Get children of a vocabulary item by ID prefix matching
+#' Uses fixed string matching instead of regex for security
+#' @param data Data frame with 'id' and 'name' columns
+#' @param parent_id Parent ID to match (e.g., "1.1")
+#' @return Data frame of children items
+get_vocabulary_children <- function(data, parent_id) {
+  if (is.null(data) || nrow(data) == 0 || is.null(parent_id) || nchar(parent_id) == 0) {
+    return(data.frame(id = character(0), name = character(0), stringsAsFactors = FALSE))
+  }
+
+  # Use fixed string matching (startsWith) instead of regex for security
+  prefix <- paste0(parent_id, ".")
+  children <- data[startsWith(data$id, prefix), ]
+
+  return(children)
+}
+
+log_info("GUIDED WORKFLOW SYSTEM v1.1.0 - Step-by-step bowtie creation with expert guidance")
 
 # Load AI suggestions module
-cat("🤖 Loading AI-powered suggestions...\n")
+log_debug("Loading AI-powered suggestions...")
 # AI suggestions available but controlled by user settings (gear icon)
 if (file.exists("guided_workflow_ai_suggestions.R")) {
   tryCatch({
     source("guided_workflow_ai_suggestions.R")
     WORKFLOW_AI_AVAILABLE <- TRUE
-    cat("✅ AI suggestions module loaded (controlled by user settings)\n")
-    cat("   ⚙️  Enable in Settings → AI Suggestions Settings\n")
-    cat("   ⚠️  Warning: May cause 2-3 second delays when enabled\n\n")
+    log_success("AI suggestions module loaded (controlled by user settings)")
+    log_debug("   Enable in Settings -> AI Suggestions Settings")
+    log_debug("   Warning: May cause 2-3 second delays when enabled")
   }, error = function(e) {
     WORKFLOW_AI_AVAILABLE <- FALSE
-    cat("⚠️ AI suggestions unavailable:", e$message, "\n\n")
+    log_warning(paste("AI suggestions unavailable:", e$message))
   })
 } else {
   WORKFLOW_AI_AVAILABLE <- FALSE
-  cat("ℹ️ AI suggestions module not found\n\n")
+  log_info("AI suggestions module not found")
 }
 
 # =============================================================================
-# WORKFLOW CONFIGURATION
+# WORKFLOW CONFIGURATION - MOVED TO MODULE
 # =============================================================================
-
-WORKFLOW_CONFIG <- list(
-  steps = list(
-    step1 = list(
-      id = "project_setup",
-      title = "Project Setup",
-      description = "gw_step1_desc",
-      icon = "clipboard-list",
-      estimated_time = "gw_step8_time"
-    ),
-    step2 = list(
-      id = "central_problem",
-      title = "Central Problem Definition",
-      description = "gw_step2_desc",
-      icon = "bullseye",
-      estimated_time = "gw_step7_time"
-    ),
-    step3 = list(
-      id = "threats_causes",
-      title = "Threats & Causes",
-      description = "gw_step3_desc",
-      icon = "exclamation-triangle",
-      estimated_time = "gw_step3_time"
-    ),
-    step4 = list(
-      id = "preventive_controls",
-      title = "Preventive Controls",
-      description = "gw_step4_desc",
-      icon = "shield-alt",
-      estimated_time = "gw_step6_time"
-    ),
-    step5 = list(
-      id = "consequences",
-      title = "Consequences",
-      description = "gw_step5_desc",
-      icon = "exclamation",
-      estimated_time = "gw_step7_time"
-    ),
-    step6 = list(
-      id = "protective_controls",
-      title = "Protective Controls",
-      description = "gw_step6_desc",
-      icon = "life-ring",
-      estimated_time = "gw_step6_time"
-    ),
-    step7 = list(
-      id = "review_validate",
-      title = "Review & Validate",
-      description = "gw_step7_desc",
-      icon = "check-circle",
-      estimated_time = "gw_step7_time"
-    ),
-    step8 = list(
-      id = "finalize_export",
-      title = "Finalize & Export",
-      description = "gw_step8_desc",
-      icon = "download",
-      estimated_time = "gw_step8_time"
-    )
-  ),
-  templates = list(
-    marine_pollution = list(
-      name = "Marine Pollution Assessment",
-      project_name = "Marine Pollution Risk Assessment",
-      project_location = "Coastal and Marine Environment",
-      project_type = "marine",
-      project_description = "Comprehensive assessment of marine pollution from shipping operations, coastal activities, and industrial discharge impacting marine ecosystems and biodiversity.",
-      central_problem = "Marine pollution from shipping and coastal activities",
-      problem_category = "pollution",
-      problem_details = "Assessment of chemical contaminants, oil spills, nutrient loading, and marine debris from shipping operations, port activities, and coastal industrial discharge affecting water quality, marine biodiversity, and ecosystem health.",
-      problem_scale = "regional",
-      problem_urgency = "high",
-      example_activities = c("Industrial discharge", "Shipping operations", "Urban runoff"),
-      example_pressures = c("Chemical contamination", "Oil spills", "Nutrient loading"),
-      category = "Marine Environment"
-    ),
-    industrial_contamination = list(
-      name = "Industrial Contamination Assessment",
-      project_name = "Industrial Chemical Discharge Risk Assessment",
-      project_location = "Industrial Zone / Coastal Area",
-      project_type = "marine",
-      project_description = "Risk analysis of chemical pollutants from industrial processes, waste discharge, and manufacturing operations affecting water quality and ecosystems.",
-      central_problem = "Industrial contamination through chemical discharge",
-      problem_category = "pollution",
-      problem_details = "Analysis of toxic chemical releases, heavy metal contamination, pH alterations, and industrial wastewater discharge from manufacturing processes affecting water bodies, soil quality, and ecosystem health.",
-      problem_scale = "local",
-      problem_urgency = "critical",
-      example_activities = c("Chemical manufacturing", "Industrial wastewater", "Process discharge"),
-      example_pressures = c("Heavy metal contamination", "Toxic chemical release", "pH alteration"),
-      category = "Industrial Impact"
-    ),
-    oil_spills = list(
-      name = "Oil Spill Risk Assessment",
-      project_name = "Maritime Oil Spill Risk Assessment",
-      project_location = "Maritime Routes and Coastal Waters",
-      project_type = "marine",
-      project_description = "Assessment of petroleum-based contamination scenarios from tanker operations, pipeline leaks, and offshore drilling activities.",
-      central_problem = "Oil spills from maritime transportation",
-      problem_category = "pollution",
-      problem_details = "Evaluation of crude oil and refined product contamination from tanker accidents, pipeline leaks, offshore drilling operations, and bunkering activities affecting marine ecosystems, coastal habitats, and wildlife.",
-      problem_scale = "regional",
-      problem_urgency = "critical",
-      example_activities = c("Tanker operations", "Offshore drilling", "Pipeline transport"),
-      example_pressures = c("Crude oil contamination", "Refined product spills", "Persistent pollutants"),
-      category = "Maritime Safety"
-    ),
-    agricultural_runoff = list(
-      name = "Agricultural Runoff Assessment",
-      project_name = "Agricultural Nutrient Pollution Risk Assessment",
-      project_location = "Agricultural Watershed / Coastal Zone",
-      project_type = "freshwater",
-      project_description = "Analysis of nutrient pollution and water quality impacts from fertilizer use, livestock operations, and agricultural irrigation affecting water bodies.",
-      central_problem = "Agricultural runoff causing eutrophication",
-      problem_category = "pollution",
-      problem_details = "Assessment of nitrogen and phosphorus loading, pesticide contamination, and sediment pollution from fertilizer application, livestock operations, and irrigation practices leading to eutrophication, algal blooms, and water quality degradation.",
-      problem_scale = "regional",
-      problem_urgency = "high",
-      example_activities = c("Fertilizer application", "Livestock farming", "Irrigation"),
-      example_pressures = c("Nitrogen loading", "Phosphorus pollution", "Pesticide runoff"),
-      category = "Agricultural Impact"
-    ),
-    overfishing = list(
-      name = "Overfishing Impact Assessment",
-      project_name = "Commercial Fishing Stock Depletion Assessment",
-      project_location = "Marine Fishing Grounds",
-      project_type = "marine",
-      project_description = "Evaluation of marine resource depletion and ecosystem impacts from commercial fishing practices, bycatch, and habitat destruction.",
-      central_problem = "Overfishing and commercial stock depletion",
-      problem_category = "resource_depletion",
-      problem_details = "Analysis of fish stock depletion, bycatch mortality, seafloor habitat destruction, and ecosystem imbalance from trawl fishing, longline operations, purse seine fishing, and unsustainable harvest practices affecting marine biodiversity and food security.",
-      problem_scale = "international",
-      problem_urgency = "critical",
-      example_activities = c("Trawl fishing", "Longline fishing", "Purse seine operations"),
-      example_pressures = c("Stock depletion", "Bycatch mortality", "Habitat destruction"),
-      category = "Fisheries Management"
-    ),
-    climate_impact = list(
-      name = "Climate Change Impact",
-      project_name = "Climate Change Ecosystem Impact Assessment",
-      project_location = "Regional / Global",
-      project_type = "climate",
-      project_description = "Comprehensive assessment of ecosystem disruption from climate change including temperature rise, sea level changes, and extreme weather events.",
-      central_problem = "Ecosystem disruption from climate change",
-      problem_category = "climate_impacts",
-      problem_details = "Comprehensive analysis of temperature increases, sea level rise, extreme weather events, ocean acidification, and altered precipitation patterns from greenhouse gas emissions affecting ecosystems, biodiversity, and human communities globally.",
-      problem_scale = "global",
-      problem_urgency = "critical",
-      example_activities = c("Greenhouse gas emissions", "Land use change", "Energy production"),
-      example_pressures = c("Temperature increase", "Sea level rise", "Extreme weather"),
-      category = "Climate & Weather"
-    ),
-    biodiversity_loss = list(
-      name = "Biodiversity Loss Assessment",
-      project_name = "Biodiversity Decline Risk Assessment",
-      project_location = "Ecosystem / Protected Area",
-      project_type = "terrestrial",
-      project_description = "Assessment of species population decline and biodiversity loss from habitat destruction, invasive species, and overexploitation of natural resources.",
-      central_problem = "Species population decline and habitat loss",
-      problem_category = "habitat_loss",
-      problem_details = "Evaluation of habitat fragmentation, species competition from invasive species, overharvesting of wildlife, ecosystem degradation, and loss of genetic diversity from deforestation, urbanization, and unsustainable resource extraction threatening biodiversity.",
-      problem_scale = "national",
-      problem_urgency = "high",
-      example_activities = c("Habitat destruction", "Invasive species", "Overexploitation"),
-      example_pressures = c("Habitat fragmentation", "Species competition", "Overharvesting"),
-      category = "Biodiversity"
-    ),
-    martinique_coastal_erosion = list(
-      name = "Martinique Coastal Erosion",
-      project_name = "Martinique Coastal Erosion and Beach Degradation Assessment",
-      project_location = "Martinique - Caribbean and Atlantic Coastlines",
-      project_type = "marine",
-      project_description = "Assessment of coastal erosion from sea level rise, storm surge, infrastructure development, and sand mining affecting beaches and coastal ecosystems in Martinique.",
-      central_problem = "Coastal erosion and beach degradation in Martinique",
-      problem_category = "habitat_loss",
-      problem_details = "Analysis of beach erosion, coastal habitat loss, and infrastructure vulnerability from sea level rise, storm surge, wave action, coastal development, sand mining, and climate change impacts on Martinique's Caribbean and Atlantic coastlines.",
-      problem_scale = "regional",
-      problem_urgency = "high",
-      example_activities = c("Coastal development", "Sand mining", "Storm impacts"),
-      example_pressures = c("Beach erosion", "Habitat loss", "Infrastructure damage"),
-      category = "Coastal Management"
-    ),
-    martinique_sargassum = list(
-      name = "Martinique Sargassum Impact",
-      project_name = "Martinique Sargassum Seaweed Influx Impact Assessment",
-      project_location = "Martinique - Coastal Waters and Beaches",
-      project_type = "marine",
-      project_description = "Risk analysis of massive Sargassum seaweed arrivals affecting beaches, tourism, marine life, and coastal water quality with hydrogen sulfide emissions.",
-      central_problem = "Sargassum seaweed influx impacts on coastal ecosystems",
-      problem_category = "ecosystem_services",
-      problem_details = "Assessment of massive Sargassum seaweed arrivals, hydrogen sulfide emissions from decomposition, oxygen depletion in coastal waters, beach contamination, tourism disruption, and marine ecosystem degradation affecting Martinique's coastline.",
-      problem_scale = "regional",
-      problem_urgency = "high",
-      example_activities = c("Sargassum influx", "Beach accumulation", "Decomposition"),
-      example_pressures = c("Hydrogen sulfide emission", "Oxygen depletion", "Tourism impacts"),
-      category = "Marine Nuisance"
-    ),
-    martinique_coral_degradation = list(
-      name = "Martinique Coral Degradation",
-      project_name = "Martinique Coral Reef Degradation and Bleaching Assessment",
-      project_location = "Martinique - Caribbean Coral Reefs",
-      project_type = "marine",
-      project_description = "Assessment of coral reef ecosystem degradation including bleaching from rising temperatures, pollution, overfishing, and physical damage from tourism.",
-      central_problem = "Coral reef degradation and bleaching events",
-      problem_category = "climate_impacts",
-      problem_details = "Evaluation of coral bleaching from rising sea temperatures, physical damage from tourism and anchoring, disease outbreaks, pollution runoff, overfishing impacts, and ecosystem degradation threatening Caribbean coral reef biodiversity and fisheries.",
-      problem_scale = "regional",
-      problem_urgency = "critical",
-      example_activities = c("Tourism activities", "Coastal pollution", "Climate warming"),
-      example_pressures = c("Coral bleaching", "Physical damage", "Disease outbreak"),
-      category = "Reef Conservation"
-    ),
-    martinique_watershed_pollution = list(
-      name = "Martinique Watershed Pollution",
-      project_name = "Martinique Agricultural Watershed Pollution Assessment",
-      project_location = "Martinique - Agricultural Watersheds",
-      project_type = "freshwater",
-      project_description = "Analysis of agricultural chemical contamination including chlordecone pesticide legacy, nutrient runoff from plantations, and sediment pollution.",
-      central_problem = "Watershed pollution from agricultural chemicals",
-      problem_category = "pollution",
-      problem_details = "Assessment of persistent chlordecone pesticide contamination, nutrient runoff from banana plantations, sediment pollution from soil erosion, and impacts on rivers, coastal waters, drinking water sources, and aquatic ecosystems in Martinique.",
-      problem_scale = "local",
-      problem_urgency = "critical",
-      example_activities = c("Pesticide application", "Banana cultivation", "Soil erosion"),
-      example_pressures = c("Chlordecone contamination", "Nutrient runoff", "Sediment pollution"),
-      category = "Agricultural Contamination"
-    ),
-    martinique_mangrove_loss = list(
-      name = "Martinique Mangrove Loss",
-      project_name = "Martinique Mangrove Forest Degradation Assessment",
-      project_location = "Martinique - Mangrove Areas (Baie de Fort-de-France)",
-      project_type = "marine",
-      project_description = "Assessment of mangrove ecosystem loss from coastal development, marina construction, pollution, and climate impacts affecting biodiversity.",
-      central_problem = "Mangrove forest degradation and loss",
-      problem_category = "habitat_loss",
-      problem_details = "Analysis of mangrove habitat destruction from marina construction, urban development, pollution discharge, water quality decline, and species loss affecting fish nurseries, coastal protection, and biodiversity in Baie de Fort-de-France and other key areas.",
-      problem_scale = "local",
-      problem_urgency = "high",
-      example_activities = c("Marina construction", "Urban development", "Pollution discharge"),
-      example_pressures = c("Habitat destruction", "Water quality decline", "Species loss"),
-      category = "Wetland Conservation"
-    ),
-    martinique_hurricane_impacts = list(
-      name = "Martinique Hurricane Impacts",
-      project_name = "Martinique Hurricane and Tropical Storm Impact Assessment",
-      project_location = "Martinique - Island-wide",
-      project_type = "climate",
-      project_description = "Comprehensive risk assessment of hurricane effects including infrastructure damage, coastal flooding, ecosystem disruption, and pollution mobilization.",
-      central_problem = "Hurricane and tropical storm environmental impacts",
-      problem_category = "climate_impacts",
-      problem_details = "Comprehensive assessment of hurricane and tropical storm impacts including infrastructure damage, coastal flooding, physical destruction, pollution mobilization, habitat disruption, ecosystem damage, and emergency response challenges across Martinique.",
-      problem_scale = "regional",
-      problem_urgency = "critical",
-      example_activities = c("Storm events", "Coastal flooding", "Infrastructure damage"),
-      example_pressures = c("Physical destruction", "Pollution mobilization", "Habitat disruption"),
-      category = "Climate Hazards"
-    ),
-    martinique_marine_tourism = list(
-      name = "Martinique Marine Tourism",
-      project_name = "Martinique Marine Tourism Environmental Pressure Assessment",
-      project_location = "Martinique - Coastal and Marine Tourism Areas",
-      project_type = "marine",
-      project_description = "Analysis of environmental impacts from cruise ships, yacht anchoring, diving activities, beach recreation, and tourism infrastructure on marine ecosystems.",
-      central_problem = "Marine tourism environmental pressures",
-      problem_category = "ecosystem_services",
-      problem_details = "Evaluation of environmental impacts from cruise ship operations, yacht anchoring damage to coral reefs and seagrass beds, diving tourism pressures, water pollution from vessels, reef trampling, and beach recreation affecting marine ecosystems and coastal water quality.",
-      problem_scale = "regional",
-      problem_urgency = "medium",
-      example_activities = c("Cruise ship operations", "Yacht anchoring", "Diving tourism"),
-      example_pressures = c("Anchor damage", "Water pollution", "Reef trampling"),
-      category = "Tourism Management"
-    )
-  )
-)
-
+# NOTE: WORKFLOW_CONFIG, init_workflow_state(), and update_workflow_progress()
+# have been moved to guided_workflow_config.R for better maintainability.
+# These are loaded via source() at the top of this file.
 # =============================================================================
-# WORKFLOW STATE MANAGEMENT
-# =============================================================================
-
-# Initialize workflow state with complete structure
-init_workflow_state <- function() {
-  list(
-    current_step = 1,
-    total_steps = length(WORKFLOW_CONFIG$steps),
-    completed_steps = numeric(0),
-    project_data = list(
-      # Template system compatibility
-      template_applied = NULL,
-      project_type = NULL,
-      project_location = NULL,
-      project_description = NULL,
-      analysis_scope = NULL,
-      # Example data for templates
-      example_activities = character(0),
-      example_pressures = character(0)
-    ),
-    validation_status = list(),
-    progress_percentage = 0,
-    start_time = Sys.time(),
-    step_times = list(),
-    # Core integration properties
-    project_name = "",
-    central_problem = "",
-    # Additional workflow metadata
-    workflow_complete = FALSE,
-    converted_main_data = NULL,
-    last_saved = NULL
-  )
-}
-
-# Update workflow progress
-update_workflow_progress <- function(state, step_number = NULL, data = NULL) {
-  if (!is.null(step_number)) {
-    state$current_step <- step_number
-    if (!step_number %in% state$completed_steps && step_number < state$current_step) {
-      state$completed_steps <- c(state$completed_steps, step_number)
-    }
-  }
-  
-  if (!is.null(data)) {
-    state$project_data <- append(state$project_data, data)
-  }
-  
-  # Update progress percentage
-  state$progress_percentage <- (length(state$completed_steps) / state$total_steps) * 100
-  
-  return(state)
-}
 
 # =============================================================================
 # UI COMPONENTS
@@ -633,9 +449,9 @@ guided_workflow_ui <- function(id, current_lang = "en") {
                      ),
                      actionButton(ns("workflow_help"), tagList(icon("question-circle"), t("gw_help", current_lang)), class = "btn-light btn-sm"),
                     actionButton(ns("workflow_load_btn"), tagList(icon("folder-open"), t("gw_load_progress", current_lang)), class = "btn-light btn-sm"),
-                    # Hidden file input for load functionality
+                    # Hidden file input for load functionality (accepts JSON and legacy RDS)
                     tags$div(style = "display: none;",
-                        fileInput(ns("workflow_load_file_hidden"), NULL, accept = ".rds")
+                        fileInput(ns("workflow_load_file_hidden"), NULL, accept = c(".json", ".rds"))
                     ),
                      downloadButton(ns("workflow_download"), tagList(icon("save"), t("gw_save_progress", current_lang)), class = "btn-light btn-sm")
                  )
@@ -1015,7 +831,6 @@ generate_step3_ui <- function(vocabulary_data = NULL, session = NULL, current_la
              # AI-powered suggestions for activities (always render, controlled by availability)
              {
                if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE && exists("create_ai_suggestions_ui")) {
-                 cat("✅ [UI DEBUG] Creating activity suggestions UI panel\n")
                  create_ai_suggestions_ui(
                    ns,
                    "activity",
@@ -1592,18 +1407,19 @@ generate_step7_ui <- function(session = NULL, current_lang = "en") {
 # Step 8: Review & Finalize
 generate_step8_ui <- function(session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
-  
+
   tagList(
+    # Review Summary Header
     div(class = "alert alert-success",
         h5(t("gw_step8_review_finalize_title", current_lang)),
         p(t("gw_review_desc", current_lang))
     ),
-    
+
+    # Review Cards
     fluidRow(
       column(12,
              h4(t("gw_complete_bowtie_review_title", current_lang)),
-             p(t("gw_verify_components", current_lang)),
-             
+
              div(class = "card mb-3",
                  div(class = "card-header bg-primary text-white",
                      h6(t("gw_central_event", current_lang), style = "margin: 0;")
@@ -1612,7 +1428,7 @@ generate_step8_ui <- function(session = NULL, current_lang = "en") {
                      uiOutput(ns("review_central_problem"))
                  )
              ),
-             
+
              fluidRow(
                column(6,
                       div(class = "card mb-3",
@@ -1624,10 +1440,7 @@ generate_step8_ui <- function(session = NULL, current_lang = "en") {
                               uiOutput(ns("review_activities_pressures")),
                               hr(),
                               h6(t("gw_preventive_controls_label", current_lang)),
-                              uiOutput(ns("review_preventive_controls")),
-                              hr(),
-                              h6(t("gw_escalation_prevention", current_lang)),
-                              uiOutput(ns("review_escalation_preventive"))
+                              uiOutput(ns("review_preventive_controls"))
                           )
                       )
                ),
@@ -1641,50 +1454,20 @@ generate_step8_ui <- function(session = NULL, current_lang = "en") {
                               uiOutput(ns("review_consequences")),
                               hr(),
                               h6(t("gw_protective_controls_label", current_lang)),
-                              uiOutput(ns("review_protective_controls")),
-                              hr(),
-                              h6(t("gw_escalation_protection", current_lang)),
-                              uiOutput(ns("review_escalation_protective"))
+                              uiOutput(ns("review_protective_controls"))
                           )
                       )
                )
              )
       )
     ),
-    
+
     br(),
+
+    # Finalize & Export Section - ONE BUTTON DOES ALL
     fluidRow(
-      column(6,
-             h4(t("gw_assessment_summary_title", current_lang)),
-             div(class = "card",
-                 div(class = "card-body",
-                     uiOutput(ns("assessment_statistics"))
-                 )
-             )
-      ),
-      
-      column(6,
-             h4(t("gw_export_options_title", current_lang)),
-             
-             div(class = "d-grid gap-2",
-                 actionButton(ns("export_excel"), 
-                            tagList(icon("file-excel"), t("gw_export_excel", current_lang)),
-                            class = "btn-success"),
-                 
-                 actionButton(ns("export_pdf"), 
-                            tagList(icon("file-pdf"), t("gw_export_pdf", current_lang)),
-                            class = "btn-danger"),
-                 
-                 actionButton(ns("load_to_main"), 
-                            tagList(icon("arrow-right"), t("gw_load_main", current_lang)),
-                            class = "btn-primary")
-             ),
-             
-             br(),
-             div(class = "alert alert-warning",
-                 h6(t("gw_note_title", current_lang)),
-                 p(t("gw_load_note", current_lang))
-             )
+      column(12,
+             uiOutput(ns("finalize_export_section"))
       )
     )
   )
@@ -1767,7 +1550,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
       return(hash_value)
     }, error = function(e) {
-      cat("⚠️ Hash computation failed:", e$message, "\n")
+      log_warning(paste("Hash computation failed:", e$message))
       return(NULL)
     })
   }
@@ -1802,10 +1585,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
             ))
 
             last_saved_hash(current_hash)
-            cat("✅ Autosaved at", timestamp, "(hash:", substr(current_hash, 1, 8), ")\n")
+            log_debug(paste("Autosaved at", timestamp, "(hash:", substr(current_hash, 1, 8), ")"))
           }
         }, error = function(e) {
-          cat("❌ Autosave failed:", e$message, "\n")
+          log_error(paste("Autosave failed:", e$message))
         })
       }
     })
@@ -1891,7 +1674,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         }
       }
     }, error = function(e) {
-      cat("⚠️ Error processing restored state:", e$message, "\n")
+      log_warning(paste("Error processing restored state:", e$message))
     })
   }, once = TRUE, ignoreNULL = TRUE)
 
@@ -1920,20 +1703,20 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         last_saved_hash(compute_state_hash(restored_state))
 
         showNotification(
-          paste("✅ Session restored successfully! Resuming at Step", restored_state$current_step),
+          paste("Session restored successfully! Resuming at Step", restored_state$current_step),
           type = "message",
           duration = 5
         )
 
-        cat("✅ Workflow session restored from autosave\n")
+        log_success("Workflow session restored from autosave")
       }
     }, error = function(e) {
       showNotification(
-        paste("❌ Error restoring session:", e$message),
+        paste("Error restoring session:", e$message),
         type = "error",
         duration = 10
       )
-      cat("❌ Error restoring session:", e$message, "\n")
+      log_error(paste("Error restoring session:", e$message))
     })
 
     removeModal()
@@ -1958,20 +1741,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
 
   # Initialize AI suggestion handlers if available
-  cat("🔍 [SERVER DEBUG] Checking AI suggestions availability...\n")
-  cat("🔍 [SERVER DEBUG] WORKFLOW_AI_AVAILABLE exists?", exists("WORKFLOW_AI_AVAILABLE"), "\n")
-  if (exists("WORKFLOW_AI_AVAILABLE")) {
-    cat("🔍 [SERVER DEBUG] WORKFLOW_AI_AVAILABLE value:", WORKFLOW_AI_AVAILABLE, "\n")
-  }
-
   if (exists("WORKFLOW_AI_AVAILABLE") && WORKFLOW_AI_AVAILABLE) {
-    cat("🔧 [SERVER DEBUG] AI suggestions enabled - initializing...\n")
     tryCatch({
       # Source the server-side suggestion handlers
       if (file.exists("guided_workflow_ai_suggestions_server.R")) {
-        cat("🔧 [SERVER DEBUG] Sourcing AI suggestions server file...\n")
         source("guided_workflow_ai_suggestions_server.R", local = TRUE)
-        cat("✅ [SERVER DEBUG] AI suggestions server file sourced\n")
 
         # Initialize handlers with workflow state and vocabulary data
         init_ai_suggestion_handlers(
@@ -1985,10 +1759,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           ai_max_suggestions = ai_max_suggestions  # Max number of suggestions
         )
 
-        cat("✅ AI suggestions module ready (controlled by settings)\n")
+        log_success("AI suggestions module ready (controlled by settings)")
       }
     }, error = function(e) {
-      cat("⚠️ Failed to initialize AI suggestions:", e$message, "\n")
+      log_warning(paste("Failed to initialize AI suggestions:", e$message))
     })
   }
 
@@ -2047,19 +1821,25 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   output$workflow_navigation <- renderUI({
     state <- workflow_state()
     req(state)
-    
+
     ns <- session$ns  # Get namespace function
-    
-    tagList(
-      if (state$current_step > 1) {
-        actionButton(ns("prev_step"), t("gw_previous", lang()), icon = icon("arrow-left"), class = "btn-secondary")
-      },
-      if (state$current_step < state$total_steps) {
+
+    # On Step 8, only show Previous button - the finalize button is in the step content
+    if (state$current_step == state$total_steps) {
+      tagList(
+        if (state$current_step > 1) {
+          actionButton(ns("prev_step"), t("gw_previous", lang()), icon = icon("arrow-left"), class = "btn-secondary")
+        }
+      )
+    } else {
+      # For steps 1-7, show normal navigation
+      tagList(
+        if (state$current_step > 1) {
+          actionButton(ns("prev_step"), t("gw_previous", lang()), icon = icon("arrow-left"), class = "btn-secondary")
+        },
         actionButton(ns("next_step"), t("gw_next", lang()), icon = icon("arrow-right"), class = "btn-primary")
-      } else {
-        actionButton(ns("finalize_workflow"), t("gw_step8_title", lang()), icon = icon("check-circle"), class = "btn-success")
-      }
-    )
+      )
+    }
   })
   
   # =============================================================================
@@ -2077,21 +1857,21 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     current_step_num <- if (!is.null(state)) state$current_step else 0
     previous_step <- last_processed_step()
 
-    cat("🔍 [VOCAB CHOICES] Observer triggered. Current step:", current_step_num, "| Previous:", previous_step, "\n")
+    log_debug(paste("[VOCAB CHOICES] Observer triggered. Current step:", current_step_num, "| Previous:", previous_step))
 
     # Only update if step has ACTUALLY CHANGED
     if (current_step_num != previous_step) {
-      cat("🔍 [VOCAB CHOICES] Step changed from", previous_step, "to", current_step_num, "\n")
+      log_debug(paste("[VOCAB CHOICES] Step changed from", previous_step, "to", current_step_num))
       last_processed_step(current_step_num)
 
       if (current_step_num == 3) {
-        cat("🔍 [VOCAB CHOICES] Entering Step 3 - updating vocabulary choices\n")
+        log_debug("[VOCAB CHOICES] Entering Step 3 - updating vocabulary choices")
 
         # Update activity choices
         if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
           activity_choices <- vocabulary_data$activities$name
           if (length(activity_choices) > 0) {
-            cat("📝 [VOCAB CHOICES] Updating activity_search with", length(activity_choices), "choices\n")
+            log_debug(paste("[VOCAB CHOICES] Updating activity_search with", length(activity_choices), "choices"))
             updateSelectizeInput(session, "activity_search",
                                choices = activity_choices,
                                server = TRUE,
@@ -2103,7 +1883,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures)) {
           pressure_choices <- vocabulary_data$pressures$name
           if (length(pressure_choices) > 0) {
-            cat("📝 [VOCAB CHOICES] Updating pressure_search with", length(pressure_choices), "choices\n")
+            log_debug(paste("[VOCAB CHOICES] Updating pressure_search with", length(pressure_choices), "choices"))
             updateSelectizeInput(session, "pressure_search",
                                choices = pressure_choices,
                                server = TRUE,
@@ -2111,10 +1891,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           }
         }
 
-        cat("📝 [VOCAB CHOICES] Vocabulary choices updated.\n")
+        log_debug("[VOCAB CHOICES] Vocabulary choices updated.")
       }
     } else {
-      cat("🔍 [VOCAB CHOICES] Step unchanged (still", current_step_num, ") - skipping vocab update\n")
+      log_debug(paste("[VOCAB CHOICES] Step unchanged (still", current_step_num, ") - skipping vocab update"))
     }
   })
   
@@ -2192,20 +1972,12 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # HIERARCHICAL SELECTION: Update item choices when group is selected
   # =============================================================================
 
-  # DEBUG: Track when activity_group input changes
-  observe({
-    cat("🔍 [ACTIVITY_GROUP DEBUG] activity_group value changed to:",
-        if(is.null(input$activity_group)) "NULL" else if(nchar(input$activity_group)==0) "EMPTY" else input$activity_group, "\n")
-  })
-
   # Update activity items when group is selected
   observeEvent(input$activity_group, {
     req(input$activity_group)
     if (nchar(input$activity_group) > 0 && !is.null(vocabulary_data$activities)) {
-      # Get children of selected group
-      children <- vocabulary_data$activities[
-        grepl(paste0("^", gsub("\\.", "\\\\.", input$activity_group), "\\."), vocabulary_data$activities$id),
-      ]
+      # Get children of selected group using secure helper function
+      children <- get_vocabulary_children(vocabulary_data$activities, input$activity_group)
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
         updateSelectizeInput(session, "activity_item",
@@ -2219,10 +1991,8 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   observeEvent(input$pressure_group, {
     req(input$pressure_group)
     if (nchar(input$pressure_group) > 0 && !is.null(vocabulary_data$pressures)) {
-      # Get children of selected group
-      children <- vocabulary_data$pressures[
-        grepl(paste0("^", gsub("\\.", "\\\\.", input$pressure_group), "\\."), vocabulary_data$pressures$id),
-      ]
+      # Get children of selected group using secure helper function
+      children <- get_vocabulary_children(vocabulary_data$pressures, input$pressure_group)
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
         updateSelectizeInput(session, "pressure_item",
@@ -2236,10 +2006,8 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   observeEvent(input$preventive_control_group, {
     req(input$preventive_control_group)
     if (nchar(input$preventive_control_group) > 0 && !is.null(vocabulary_data$controls)) {
-      # Get children of selected group
-      children <- vocabulary_data$controls[
-        grepl(paste0("^", gsub("\\.", "\\\\.", input$preventive_control_group), "\\."), vocabulary_data$controls$id),
-      ]
+      # Get children of selected group using secure helper function
+      children <- get_vocabulary_children(vocabulary_data$controls, input$preventive_control_group)
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
         updateSelectizeInput(session, "preventive_control_item",
@@ -2253,10 +2021,8 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   observeEvent(input$consequence_group, {
     req(input$consequence_group)
     if (nchar(input$consequence_group) > 0 && !is.null(vocabulary_data$consequences)) {
-      # Get children of selected group
-      children <- vocabulary_data$consequences[
-        grepl(paste0("^", gsub("\\.", "\\\\.", input$consequence_group), "\\."), vocabulary_data$consequences$id),
-      ]
+      # Get children of selected group using secure helper function
+      children <- get_vocabulary_children(vocabulary_data$consequences, input$consequence_group)
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
         updateSelectizeInput(session, "consequence_item",
@@ -2270,10 +2036,8 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   observeEvent(input$protective_control_group, {
     req(input$protective_control_group)
     if (nchar(input$protective_control_group) > 0 && !is.null(vocabulary_data$controls)) {
-      # Get children of selected group
-      children <- vocabulary_data$controls[
-        grepl(paste0("^", gsub("\\.", "\\\\.", input$protective_control_group), "\\."), vocabulary_data$controls$id),
-      ]
+      # Get children of selected group using secure helper function
+      children <- get_vocabulary_children(vocabulary_data$controls, input$protective_control_group)
       if (nrow(children) > 0) {
         item_choices <- setNames(children$name, children$name)
         updateSelectizeInput(session, "protective_control_item",
@@ -2287,16 +2051,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   observe({
     state <- workflow_state()
     if (!is.null(state) && state$current_step == 3) {
-      cat("\n🔄 [STATE SYNC] Step 3 state sync triggered\n")
+      log_debug("[STATE SYNC] Step 3 state sync triggered")
 
       # Load activities from state if available
       if (!is.null(state$project_data$activities) && length(state$project_data$activities) > 0) {
         # Ensure it's a character vector
         activities <- as.character(state$project_data$activities)
-        cat("🔄 [STATE SYNC] Loading", length(activities), "activities from state:", paste(activities, collapse = ", "), "\n")
+        log_debug(paste("[STATE SYNC] Loading", length(activities), "activities from state:", paste(activities, collapse = ", ")))
         selected_activities(activities)
       } else {
-        cat("🔄 [STATE SYNC] No activities in state - clearing list\n")
+        log_debug("[STATE SYNC] No activities in state - clearing list")
         selected_activities(list())
       }
 
@@ -2304,22 +2068,22 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       if (!is.null(state$project_data$pressures) && length(state$project_data$pressures) > 0) {
         # Ensure it's a character vector
         pressures <- as.character(state$project_data$pressures)
-        cat("🔄 [STATE SYNC] Loading", length(pressures), "pressures from state:", paste(pressures, collapse = ", "), "\n")
+        log_debug(paste("[STATE SYNC] Loading", length(pressures), "pressures from state:", paste(pressures, collapse = ", ")))
         selected_pressures(pressures)
       } else {
-        cat("🔄 [STATE SYNC] No pressures in state - clearing list\n")
+        log_debug("[STATE SYNC] No pressures in state - clearing list")
         selected_pressures(list())
       }
 
-      cat("🔄 [STATE SYNC] State sync completed. NOT touching input fields.\n")
+      log_debug("[STATE SYNC] State sync completed. NOT touching input fields.")
     }
   })
   
   # Handle "Add Activity" button
   observeEvent(input$add_activity, {
-    cat("\n📝 [ADD ACTIVITY] Button clicked!\n")
-    cat("📝 [ADD ACTIVITY] Current activity_group input:", input$activity_group, "\n")
-    cat("📝 [ADD ACTIVITY] Current activity_item input:", input$activity_item, "\n")
+    log_debug("[ADD ACTIVITY] Button clicked!")
+    log_debug(paste("[ADD ACTIVITY] Current activity_group input:", input$activity_group))
+    log_debug(paste("[ADD ACTIVITY] Current activity_item input:", input$activity_item))
 
     # Determine if using custom entry or hierarchical selection
     activity_name <- NULL
@@ -2329,11 +2093,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       # Custom entry mode
       activity_name <- input$activity_custom_text
       is_custom <- TRUE
-      cat("📝 [ADD ACTIVITY] Using CUSTOM entry mode:", activity_name, "\n")
+      log_debug(paste("[ADD ACTIVITY] Using CUSTOM entry mode:", activity_name))
     } else {
       # Hierarchical selection mode
       activity_name <- input$activity_item
-      cat("📝 [ADD ACTIVITY] Using HIERARCHICAL selection mode:", activity_name, "\n")
+      log_debug(paste("[ADD ACTIVITY] Using HIERARCHICAL selection mode:", activity_name))
     }
 
     # Validate: not NULL, not NA, not empty after trimming
@@ -2341,38 +2105,48 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         nchar(trimws(activity_name)) > 0) {
       # Get current list
       current <- selected_activities()
-      cat("📝 [ADD ACTIVITY] Current activities list:", paste(current, collapse = ", "), "\n")
+      log_debug(paste("[ADD ACTIVITY] Current activities list:", paste(current, collapse = ", ")))
 
       # Check if already added
       if (!activity_name %in% current) {
         current <- c(current, activity_name)
         selected_activities(current)
-        cat("📝 [ADD ACTIVITY] Updated activities list:", paste(current, collapse = ", "), "\n")
+        log_debug(paste("[ADD ACTIVITY] Updated activities list:", paste(current, collapse = ", ")))
 
         # Track custom entries
         if (is_custom) {
           custom_list <- custom_entries()
           custom_list$activities <- c(custom_list$activities, activity_name)
           custom_entries(custom_list)
-          showNotification(paste("✅ Added custom activity:", activity_name, "(marked for review)"), type = "message", duration = 3)
+
+          # Persist to file storage for admin review
+          tryCatch({
+            state <- workflow_state()
+            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
+            add_custom_term("activities", activity_name, "default", project_name)
+          }, error = function(e) {
+            log_warning(paste("Failed to persist custom term:", e$message))
+          })
+
+          showNotification(paste("Added custom activity:", activity_name, "(marked for review)"), type = "message", duration = 3)
         } else {
           showNotification(paste(t("gw_added_activity", lang()), activity_name), type = "message", duration = 2)
         }
 
-        cat("📝 [ADD ACTIVITY] Updating workflow state...\n")
+        log_debug("[ADD ACTIVITY] Updating workflow state...")
         # Update workflow state
         state <- workflow_state()
         state$project_data$activities <- current
         state$project_data$custom_entries <- custom_entries()
         workflow_state(state)
-        cat("📝 [ADD ACTIVITY] Workflow state updated successfully\n")
+        log_debug("[ADD ACTIVITY] Workflow state updated successfully")
 
         # Save the current activity_group selection BEFORE clearing activity_item
         # (Clearing child can trigger parent clearing in Selectize.js)
         saved_group <- input$activity_group
-        cat("📝 [ADD ACTIVITY] Saving activity_group:", saved_group, "\n")
+        log_debug(paste("[ADD ACTIVITY] Saving activity_group:", saved_group))
 
-        cat("📝 [ADD ACTIVITY] Clearing activity_item input...\n")
+        log_debug("[ADD ACTIVITY] Clearing activity_item input...")
         # Clear inputs
         updateSelectizeInput(session, session$ns("activity_item"), selected = character(0))
         if (is_custom) {
@@ -2382,7 +2156,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         # Restore activity_group using JavaScript setTimeout with Selectize API
         # Direct JS approach ensures execution after Selectize.js completes clearing
         if (!is.null(saved_group) && nchar(saved_group) > 0) {
-          cat("📝 [ADD ACTIVITY] Scheduling JS-based delayed restore of activity_group to:", saved_group, "\n")
+          log_debug(paste("[ADD ACTIVITY] Scheduling JS-based delayed restore of activity_group to:", saved_group))
           # Create properly namespaced input ID for module context
           input_id <- session$ns("activity_group")
           # Use runjs to execute after 200ms delay with Selectize API
@@ -2401,14 +2175,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           ))
         }
 
-        cat("📝 [ADD ACTIVITY] Input cleared, activity_group restore scheduled.\n")
-        cat("📝 [ADD ACTIVITY] Completed successfully!\n")
+        log_debug("[ADD ACTIVITY] Input cleared, activity_group restore scheduled.")
+        log_debug("[ADD ACTIVITY] Completed successfully!")
       } else {
-        cat("📝 [ADD ACTIVITY] Activity already exists:", activity_name, "\n")
+        log_debug(paste("[ADD ACTIVITY] Activity already exists:", activity_name))
         showNotification(t("gw_activity_exists", lang()), type = "warning", duration = 2)
       }
     } else {
-      cat("📝 [ADD ACTIVITY] Validation failed - empty or invalid input\n")
+      log_debug("[ADD ACTIVITY] Validation failed - empty or invalid input")
       showNotification("Please select an activity or enter a custom name", type = "warning", duration = 2)
     }
   })
@@ -2444,6 +2218,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           custom_list <- custom_entries()
           custom_list$pressures <- c(custom_list$pressures, pressure_name)
           custom_entries(custom_list)
+
+          # Persist to file storage for admin review
+          tryCatch({
+            state <- workflow_state()
+            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
+            add_custom_term("pressures", pressure_name, "default", project_name)
+          }, error = function(e) {
+            log_warning(paste("Failed to persist custom term:", e$message))
+          })
+
           showNotification(paste("✅ Added custom pressure:", pressure_name, "(marked for review)"), type = "message", duration = 3)
         } else {
           showNotification(paste(t("gw_added_pressure", lang()), pressure_name), type = "message", duration = 2)
@@ -2489,60 +2273,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     }
   })
   
-  # Render selected activities table
+  # Render selected activities table (uses helper function for consistency)
   output$selected_activities_table <- renderDT({
-    activities <- selected_activities()
-    
-    if (length(activities) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Activity = character(0), stringsAsFactors = FALSE)
-    } else {
-      # Create data frame with activities
-      dt_data <- data.frame(Activity = activities, stringsAsFactors = FALSE)
-    }
-    
-    # Render with DT package - explicitly use DT::datatable
-    DT::datatable(
-      dt_data,
-      options = list(
-        pageLength = 5,
-        searching = FALSE,
-        lengthChange = FALSE,
-        info = FALSE,
-        dom = 't'
-      ),
-      rownames = FALSE,
-      selection = 'none',
-      class = 'cell-border stripe'
-    )
+    create_simple_datatable(selected_activities(), "Activity")
   })
-  
-  # Render selected pressures table
+
+  # Render selected pressures table (uses helper function for consistency)
   output$selected_pressures_table <- renderDT({
-    pressures <- selected_pressures()
-    
-    if (length(pressures) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Pressure = character(0), stringsAsFactors = FALSE)
-    } else {
-      # Create data frame with pressures
-      dt_data <- data.frame(Pressure = pressures, stringsAsFactors = FALSE)
-    }
-    
-    # Render with DT package - explicitly use DT::datatable
-    DT::datatable(
-      dt_data,
-      options = list(
-        pageLength = 5,
-        searching = FALSE,
-        lengthChange = FALSE,
-        info = FALSE,
-        dom = 't'
-      ),
-      rownames = FALSE,
-      selection = 'none',
-      class = 'cell-border stripe'
-    )
+    create_simple_datatable(selected_pressures(), "Pressure")
   })
   
   # Render activity-pressure connections table
@@ -2607,7 +2345,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
         control_choices <- vocabulary_data$controls$name
         if (length(control_choices) > 0) {
-          cat("📝 Updating preventive_control_search with", length(control_choices), "choices\n")
+          log_debug(paste("Updating preventive_control_search with", length(control_choices), "choices"))
           updateSelectizeInput(session, "preventive_control_search", 
                              choices = control_choices,
                              server = TRUE,
@@ -2656,6 +2394,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           custom_list <- custom_entries()
           custom_list$preventive_controls <- c(custom_list$preventive_controls, control_name)
           custom_entries(custom_list)
+
+          # Persist to file storage for admin review
+          tryCatch({
+            state <- workflow_state()
+            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
+            add_custom_term("preventive_controls", control_name, "default", project_name)
+          }, error = function(e) {
+            log_warning(paste("Failed to persist custom term:", e$message))
+          })
+
           showNotification(paste("✅ Added custom preventive control:", control_name, "(marked for review)"), type = "message", duration = 3)
         } else {
           showNotification(paste(t("gw_added_control", lang()), control_name), type = "message", duration = 2)
@@ -2791,7 +2539,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences)) {
         consequence_choices <- vocabulary_data$consequences$name
         if (length(consequence_choices) > 0) {
-          cat("📝 Updating consequence_search with", length(consequence_choices), "choices\n")
+          log_debug(paste("Updating consequence_search with", length(consequence_choices), "choices"))
           updateSelectizeInput(session, "consequence_search", 
                              choices = consequence_choices,
                              server = TRUE,
@@ -2840,6 +2588,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           custom_list <- custom_entries()
           custom_list$consequences <- c(custom_list$consequences, consequence_name)
           custom_entries(custom_list)
+
+          # Persist to file storage for admin review
+          tryCatch({
+            state <- workflow_state()
+            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
+            add_custom_term("consequences", consequence_name, "default", project_name)
+          }, error = function(e) {
+            log_warning(paste("Failed to persist custom term:", e$message))
+          })
+
           showNotification(paste("✅ Added custom consequence:", consequence_name, "(marked for review)"), type = "message", duration = 3)
         } else {
           showNotification(paste(t("gw_added_consequence", lang()), consequence_name), type = "message", duration = 2)
@@ -2943,7 +2701,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
         protective_control_choices <- vocabulary_data$controls$name
         if (length(protective_control_choices) > 0) {
-          cat("📝 Updating protective_control_search with", length(protective_control_choices), "choices\n")
+          log_debug(paste("Updating protective_control_search with", length(protective_control_choices), "choices"))
           updateSelectizeInput(session, "protective_control_search", 
                              choices = protective_control_choices,
                              server = TRUE,
@@ -2992,6 +2750,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           custom_list <- custom_entries()
           custom_list$protective_controls <- c(custom_list$protective_controls, control_name)
           custom_entries(custom_list)
+
+          # Persist to file storage for admin review
+          tryCatch({
+            state <- workflow_state()
+            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
+            add_custom_term("protective_controls", control_name, "default", project_name)
+          }, error = function(e) {
+            log_warning(paste("Failed to persist custom term:", e$message))
+          })
+
           showNotification(paste("✅ Added custom protective control:", control_name, "(marked for review)"), type = "message", duration = 3)
         } else {
           showNotification(paste(t("gw_added_protective", lang()), control_name), type = "message", duration = 2)
@@ -3126,51 +2894,55 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   output$custom_entries_review_table <- renderDT({
     custom_list <- custom_entries()
 
-    # Create a data frame with all custom entries
-    entries_data <- data.frame(
-      Category = character(0),
-      Item = character(0),
-      stringsAsFactors = FALSE
-    )
+    # Create a data frame with all custom entries (optimized - single rbind)
+    # Collect all non-empty categories in a list, then rbind once
+    entries_list <- list()
 
     if (length(custom_list$activities) > 0) {
-      entries_data <- rbind(entries_data, data.frame(
+      entries_list$activities <- data.frame(
         Category = rep("Activity", length(custom_list$activities)),
         Item = custom_list$activities,
         stringsAsFactors = FALSE
-      ))
+      )
     }
 
     if (length(custom_list$pressures) > 0) {
-      entries_data <- rbind(entries_data, data.frame(
+      entries_list$pressures <- data.frame(
         Category = rep("Pressure", length(custom_list$pressures)),
         Item = custom_list$pressures,
         stringsAsFactors = FALSE
-      ))
+      )
     }
 
     if (length(custom_list$preventive_controls) > 0) {
-      entries_data <- rbind(entries_data, data.frame(
+      entries_list$preventive_controls <- data.frame(
         Category = rep("Preventive Control", length(custom_list$preventive_controls)),
         Item = custom_list$preventive_controls,
         stringsAsFactors = FALSE
-      ))
+      )
     }
 
     if (length(custom_list$consequences) > 0) {
-      entries_data <- rbind(entries_data, data.frame(
+      entries_list$consequences <- data.frame(
         Category = rep("Consequence", length(custom_list$consequences)),
         Item = custom_list$consequences,
         stringsAsFactors = FALSE
-      ))
+      )
     }
 
     if (length(custom_list$protective_controls) > 0) {
-      entries_data <- rbind(entries_data, data.frame(
+      entries_list$protective_controls <- data.frame(
         Category = rep("Protective Control", length(custom_list$protective_controls)),
         Item = custom_list$protective_controls,
         stringsAsFactors = FALSE
-      ))
+      )
+    }
+
+    # Single rbind operation at the end
+    if (length(entries_list) > 0) {
+      entries_data <- do.call(rbind, entries_list)
+    } else {
+      entries_data <- data.frame(Category = character(0), Item = character(0), stringsAsFactors = FALSE)
     }
 
     if (nrow(entries_data) == 0) {
@@ -3671,11 +3443,101 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
              consequences_count + protective_count + escalation_count)
     )
   })
-  
+
+  # =============================================================================
+  # STEP 8: FINALIZE & EXPORT SECTION
+  # =============================================================================
+
+  # Render the finalize/export section based on workflow completion status
+  output$finalize_export_section <- renderUI({
+    state <- workflow_state()
+    is_complete <- isTRUE(state$workflow_complete)
+
+    if (!is_complete) {
+      # Workflow NOT complete - show single Finalize button
+      tagList(
+        div(class = "card border-success",
+            div(class = "card-header bg-success text-white",
+                h5(icon("flag-checkered"), " ", t("gw_finalize_workflow", lang()), style = "margin: 0;")
+            ),
+            div(class = "card-body text-center",
+                p(class = "mb-3",
+                  t("gw_finalize_description", lang())
+                ),
+                actionButton(
+                  session$ns("finalize_workflow_btn"),
+                  label = tagList(icon("check-double"), " ", t("gw_finalize_workflow", lang())),
+                  class = "btn btn-success btn-lg",
+                  style = "font-size: 1.25rem; padding: 15px 40px;"
+                ),
+                div(class = "mt-3 text-muted",
+                    tags$small(t("gw_finalize_note", lang()))
+                )
+            )
+        )
+      )
+    } else {
+      # Workflow IS complete - show export options
+      tagList(
+        div(class = "alert alert-success mb-4",
+            icon("check-circle"), " ",
+            strong(t("gw_workflow_complete_title", lang())),
+            " - ", t("gw_export_ready", lang())
+        ),
+
+        div(class = "card border-primary",
+            div(class = "card-header bg-primary text-white",
+                h5(icon("download"), " ", t("gw_export_options", lang()), style = "margin: 0;")
+            ),
+            div(class = "card-body",
+                fluidRow(
+                  column(4,
+                         div(class = "text-center p-3",
+                             icon("file-excel", class = "fa-3x text-success mb-2"),
+                             h6(t("gw_export_excel", lang())),
+                             p(class = "text-muted small", t("gw_export_excel_desc", lang())),
+                             actionButton(
+                               session$ns("export_excel"),
+                               label = tagList(icon("file-excel"), " ", t("gw_export_excel_btn", lang())),
+                               class = "btn btn-success"
+                             )
+                         )
+                  ),
+                  column(4,
+                         div(class = "text-center p-3",
+                             icon("file-pdf", class = "fa-3x text-danger mb-2"),
+                             h6(t("gw_export_pdf", lang())),
+                             p(class = "text-muted small", t("gw_export_pdf_desc", lang())),
+                             actionButton(
+                               session$ns("export_pdf"),
+                               label = tagList(icon("file-pdf"), " ", t("gw_generate_pdf", lang())),
+                               class = "btn btn-danger"
+                             )
+                         )
+                  ),
+                  column(4,
+                         div(class = "text-center p-3",
+                             icon("diagram-project", class = "fa-3x text-info mb-2"),
+                             h6(t("gw_view_diagram", lang())),
+                             p(class = "text-muted small", t("gw_view_diagram_desc", lang())),
+                             actionButton(
+                               session$ns("load_to_main"),
+                               label = tagList(icon("diagram-project"), " ", t("gw_view_diagram_btn", lang())),
+                               class = "btn btn-info"
+                             )
+                         )
+                  )
+                )
+            )
+        )
+      )
+    }
+  })
+
   # =============================================================================
   # TEMPLATE & DATA HANDLING
   # =============================================================================
-  
+
   # Apply template data when selected
   observeEvent(input$problem_template, {
     req(input$problem_template)
@@ -3773,8 +3635,69 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   # FINALIZATION & EXPORT
   # =============================================================================
-  
-  # Handle workflow finalization
+
+  # Finalization status output
+  output$finalization_status <- renderUI({
+    state <- workflow_state()
+
+    if (isTRUE(state$workflow_complete)) {
+      div(class = "d-flex align-items-center",
+        span(class = "badge bg-success fs-6 me-2",
+             tagList(icon("check-circle"), " Finalized")),
+        span(class = "text-success",
+             paste("Ready to export -",
+                   if (!is.null(state$converted_main_data)) nrow(state$converted_main_data) else 0,
+                   "scenarios"))
+      )
+    } else {
+      span(class = "text-muted fst-italic", "Not yet finalized")
+    }
+  })
+
+  # Handle workflow finalization from Step 8 button
+  observeEvent(input$finalize_workflow_btn, {
+    state <- workflow_state()
+
+    # Final validation
+    validation_result <- validate_current_step(state, input)
+    if (!validation_result$is_valid) {
+      showNotification(validation_result$message, type = "error")
+      return()
+    }
+
+    # Save final step data
+    state <- save_step_data(state, input)
+
+    # Mark step 8 as complete
+    if (!8 %in% state$completed_steps) {
+      state$completed_steps <- c(state$completed_steps, 8)
+    }
+
+    # Update progress to 100%
+    state$progress_percentage <- 100
+
+    # Mark workflow as complete
+    state$workflow_complete <- TRUE
+
+    # Convert workflow data to main application format
+    converted_data <- convert_to_main_data_format(state$project_data)
+    state$converted_main_data <- converted_data
+
+    log_success(paste("Workflow finalized! Data rows:", nrow(converted_data)))
+
+    workflow_state(state)
+
+    # Clear autosave - workflow is complete, no need to keep autosave
+    session$sendCustomMessage("clearAutosave", list())
+
+    showNotification(
+      tagList(icon("check-circle"), " Workflow finalized successfully! You can now export or view the diagram."),
+      type = "message",
+      duration = 5
+    )
+  })
+
+  # Handle workflow finalization from navigation button (legacy)
   observeEvent(input$finalize_workflow, {
     state <- workflow_state()
 
@@ -3800,7 +3723,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # Clear autosave - workflow is complete, no need to keep autosave
     session$sendCustomMessage("clearAutosave", list())
 
-    showNotification("🎉 Workflow complete! Data is ready for visualization.", type = "message")
+    showNotification(
+      tagList(icon("check-circle"), " Workflow finalized! You can now export or view the diagram."),
+      type = "message",
+      duration = 5
+    )
   })
 
   # =============================================================================
@@ -4032,14 +3959,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     })
   })
 
-  # Handler for Load to Main Application
+  # Handler for Load to Main Application (View Bowtie Diagram)
   observeEvent(input$load_to_main, {
     state <- workflow_state()
 
     # Check if workflow is complete
     if (!isTRUE(state$workflow_complete)) {
       showNotification(
-        "Please complete the workflow first by clicking 'Complete Workflow'.",
+        tagList(icon("exclamation-triangle"), " Please finalize the workflow first by clicking 'Finalize Workflow'."),
         type = "warning",
         duration = 4
       )
@@ -4047,46 +3974,67 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     }
 
     tryCatch({
-      # Get or create converted data
-      converted_data <- state$converted_main_data
-
-      if (is.null(converted_data) || nrow(converted_data) == 0) {
-        converted_data <- convert_to_main_data_format(state$project_data)
-        state$converted_main_data <- converted_data
-        workflow_state(state)
-      }
+      # Always regenerate converted data to ensure fresh state trigger
+      log_info("Preparing bowtie data for main application...")
+      converted_data <- convert_to_main_data_format(state$project_data)
 
       # Validate data
-      if (is.null(converted_data) || nrow(converted_data) == 0) {
+      if (is.null(converted_data) || !is.data.frame(converted_data) || nrow(converted_data) == 0) {
         showNotification(
-          "❌ No data available to load. Please ensure your workflow is complete.",
+          tagList(icon("times-circle"), " No data available to load. Please ensure your workflow has data."),
           type = "error",
           duration = 5
         )
         return()
       }
 
+      log_info(paste("Generated", nrow(converted_data), "bowtie scenarios"))
+      log_debug(paste("Columns:", paste(names(converted_data), collapse = ", ")))
+
       # Success notification
       showNotification(
-        paste("✅ Loading", nrow(converted_data), "scenarios into main application..."),
+        tagList(icon("check-circle"), paste(" Loading", nrow(converted_data), "scenarios...")),
+        type = "message",
+        duration = 2
+      )
+
+      # Update state with fresh data and trigger timestamp to force reactive update
+      state$converted_main_data <- converted_data
+      state$data_load_timestamp <- Sys.time()
+      state$navigate_to_bowtie <- TRUE
+      workflow_state(state)
+
+      log_success("State updated with converted data")
+
+      # Small delay to allow reactive to propagate, then navigate
+      shinyjs::delay(500, {
+        shinyjs::runjs("
+          // Try multiple selectors for bs4Dash compatibility
+          var bowtieLink = $('a[href=\"#shiny-tab-bowtie\"]');
+          if (bowtieLink.length > 0) {
+            bowtieLink.click();
+          } else {
+            bowtieLink = $('a[data-value=\"bowtie\"]');
+            if (bowtieLink.length > 0) {
+              bowtieLink.click();
+            }
+          }
+          // Also ensure tab content is shown
+          $('#shiny-tab-bowtie').addClass('active show');
+          $('.tab-pane').not('#shiny-tab-bowtie').removeClass('active show');
+        ")
+      })
+
+      # Show success message
+      showNotification(
+        tagList(icon("diagram-project"), " Opening Bowtie Diagram..."),
         type = "message",
         duration = 3
       )
 
-      # The actual loading is handled by the observer in server.R
-      # which watches for changes to guided_workflow_state()$converted_main_data
-      # That observer is around line 2025 in server.R
-
-      # Additional notification
-      showNotification(
-        "🎉 Data will be loaded automatically. Switch to the 'Bowtie Diagram' tab to view.",
-        type = "message",
-        duration = 8
-      )
-
     }, error = function(e) {
       showNotification(
-        paste("❌ Failed to load data:", e$message),
+        paste("Failed to load data:", e$message),
         type = "error",
         duration = 5
       )
@@ -4099,17 +4047,88 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   
   # Trigger hidden file input for loading
   observeEvent(input$workflow_load_btn, {
-    # Use shinyjs to trigger the namespaced file input click
-    shinyjs::runjs("$('#guided_workflow-workflow_load_file_hidden').click();")
+    # Check if user has selected local folder storage mode
+    storage_mode <- session$input$storage_mode
+    local_path <- session$input$local_folder_path
+    
+    if (!is.null(storage_mode) && storage_mode == "local" && 
+        !is.null(local_path) && nchar(local_path) > 0 && dir.exists(local_path)) {
+      # Show modal to select from local files
+      files <- list.files(local_path, pattern = "_workflow_.*\\.rds$", full.names = FALSE)
+      
+      if (length(files) == 0) {
+        showNotification("No workflow files found in local folder", type = "warning")
+        # Fall back to file picker
+        shinyjs::runjs("$('#guided_workflow-workflow_load_file_hidden').click();")
+      } else {
+        # Show file selection modal
+        showModal(modalDialog(
+          title = tagList(icon("folder-open"), " Load Workflow from Local Folder"),
+          selectInput(ns("local_workflow_file"), 
+                      "Select workflow file:",
+                      choices = files,
+                      selected = files[1]),
+          footer = tagList(
+            modalButton("Cancel"),
+            actionButton(ns("load_local_workflow_confirm"), 
+                        "Load", 
+                        class = "btn-primary",
+                        icon = icon("upload"))
+          ),
+          easyClose = TRUE
+        ))
+      }
+    } else {
+      # Use standard file picker
+      shinyjs::runjs("$('#guided_workflow-workflow_load_file_hidden').click();")
+    }
   })
   
-  # Handle file loading
+  # Handle loading from local folder selection
+  observeEvent(input$load_local_workflow_confirm, {
+    local_path <- session$input$local_folder_path
+    selected_file <- input$local_workflow_file
+    
+    if (!is.null(local_path) && !is.null(selected_file)) {
+      filepath <- file.path(local_path, selected_file)
+      
+      tryCatch({
+        loaded_state <- readRDS(filepath)
+        removeModal()
+        
+        # Basic validation and load (same as regular file load)
+        if (is.list(loaded_state) && "current_step" %in% names(loaded_state)) {
+          workflow_state(loaded_state)
+          showNotification(
+            paste("✅ Loaded workflow from local folder:", selected_file),
+            type = "message"
+          )
+        } else {
+          showNotification("❌ Invalid workflow file.", type = "error")
+        }
+        
+      }, error = function(e) {
+        removeModal()
+        showNotification(paste("❌ Failed to load:", e$message), type = "error")
+      })
+    }
+  })
+  
+  # Handle file loading from file picker (supports JSON and legacy RDS)
   observeEvent(input$workflow_load_file_hidden, {
     file <- input$workflow_load_file_hidden
     req(file)
-    
+
     tryCatch({
-      loaded_state <- readRDS(file$datapath)
+      # Detect file format and load accordingly
+      if (grepl("\\.json$", file$name, ignore.case = TRUE)) {
+        # Load JSON format (new default)
+        json_content <- readLines(file$datapath, warn = FALSE)
+        loaded_state <- jsonlite::fromJSON(paste(json_content, collapse = "\n"), simplifyVector = FALSE)
+      } else {
+        # Load RDS format (legacy support)
+        loaded_state <- readRDS(file$datapath)
+      }
       
       # Basic validation of loaded state
       if (is.list(loaded_state) && "current_step" %in% names(loaded_state)) {
@@ -4239,28 +4258,56 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     })
   })
   
-  # Handle file download (saving)
+  # Handle file download (saving) - Uses JSON format for browser compatibility
   output$workflow_download <- downloadHandler(
     filename = function() {
       project_name <- workflow_state()$project_data$project_name %||% "untitled"
-      paste0(gsub(" ", "_", project_name), "_workflow_", Sys.Date(), ".rds")
+      # Use .json extension - browsers recognize this as safe
+      paste0(gsub(" ", "_", project_name), "_bowtie_", Sys.Date(), ".json")
     },
     content = function(file) {
       state_to_save <- workflow_state()
-      state_to_save$last_saved <- Sys.time()
-      saveRDS(state_to_save, file)
+      state_to_save$last_saved <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      state_to_save$app_version <- APP_CONFIG$VERSION %||% "5.4.0"
+      state_to_save$file_format <- "bowtie_workflow_v1"
 
-      # Optionally clear autosave after successful manual save
-      # (User has a manual copy now, so autosave is less critical)
-      # session$sendCustomMessage("clearAutosave", list())
+      # Convert to JSON for browser-safe download
+      json_content <- jsonlite::toJSON(state_to_save, auto_unbox = TRUE, pretty = TRUE)
+      writeLines(json_content, file)
+
+      # Check if local storage mode is selected - save backup copy
+      storage_mode <- session$input$storage_mode
+      local_path <- session$input$local_folder_path
+
+      # Additionally save to local folder if that mode is selected
+      if (!is.null(storage_mode) && storage_mode == "local" &&
+          !is.null(local_path) && nchar(local_path) > 0 && dir.exists(local_path)) {
+        tryCatch({
+          project_name <- state_to_save$project_data$project_name %||% "untitled"
+          local_filename <- paste0(gsub(" ", "_", project_name), "_bowtie_", Sys.Date(), ".json")
+          local_filepath <- file.path(local_path, local_filename)
+          writeLines(json_content, local_filepath)
+
+          showNotification(
+            paste("Also saved to local folder:", local_filename),
+            type = "message",
+            duration = 3
+          )
+        }, error = function(e) {
+          showNotification(
+            paste("Could not save to local folder:", e$message),
+            type = "warning"
+          )
+        })
+      }
 
       showNotification(
-        "✅ Workflow saved successfully! Autosave will continue protecting your work.",
+        "Workflow saved successfully!",
         type = "message",
         duration = 3
       )
     },
-    contentType = "application/octet-stream"  # Proper MIME type to avoid browser warnings
+    contentType = "application/json"  # JSON MIME type - browsers trust this
   )
   
   # =============================================================================
@@ -4274,339 +4321,23 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 }  # End of guided_workflow_server
 
 # =============================================================================
-# UTILITY FUNCTIONS
+# UTILITY FUNCTIONS - MOVED TO MODULES
+# =============================================================================
+# NOTE: The following functions have been moved to separate modules:
+#
+# guided_workflow_validation.R:
+#   - %||% operator
+#   - estimate_remaining_time()
+#   - validate_step(), validate_current_step()
+#   - validate_step1() through validate_step8()
+#   - save_step_data()
+#
+# guided_workflow_conversion.R:
+#   - convert_to_main_data_format()
+#   - create_guided_workflow_tab()
+#
+# These modules are loaded via source() at the top of this file.
 # =============================================================================
 
-# Helper operator for default values
-`%||%` <- function(x, y) {
-  if (is.null(x) || length(x) == 0 || (is.character(x) && all(nchar(x) == 0))) y else x
-}
-
-# Estimate remaining time based on progress
-estimate_remaining_time <- function(state) {
-  step_durations <- c(2.5, 4, 7.5, 6.5, 4, 6.5, 4, 2.5)  # Average minutes per step
-  remaining_steps <- setdiff(1:state$total_steps, state$completed_steps)
-  sum(step_durations[remaining_steps])
-}
-
-# Validate step completion
-validate_step <- function(step_number, data) {
-  switch(step_number,
-         "1" = validate_step1(data),
-         "2" = validate_step2(data),
-         "3" = validate_step3(data),
-         "4" = validate_step4(data),
-         "5" = validate_step5(data),
-         "6" = validate_step6(data),
-         "7" = validate_step7(data),
-         "8" = validate_step8(data)
-  )
-}
-
-# Validate current step before proceeding
-validate_current_step <- function(state, input) {
-  step <- state$current_step
-  
-  # Basic validation based on step number
-  validation <- switch(as.character(step),
-    "1" = {
-      # Step 1: Project Setup
-      project_name <- input$project_name
-      if (is.null(project_name) || nchar(trimws(project_name)) == 0) {
-        list(is_valid = FALSE, message = t("gw_enter_project_name", current_lang))
-      } else {
-        list(is_valid = TRUE, message = "")
-      }
-    },
-    "2" = {
-      # Step 2: Central Problem
-      problem <- input$problem_statement
-      if (is.null(problem) || nchar(trimws(problem)) == 0) {
-        list(is_valid = FALSE, message = t("gw_define_central_problem", current_lang))
-      } else {
-        list(is_valid = TRUE, message = "")
-      }
-    },
-    "3" = {
-      # Step 3: Activities and Pressures
-      # Optional validation - can proceed without entries
-      list(is_valid = TRUE, message = "")
-    },
-    # Steps 4-7 have no mandatory fields (placeholders)
-    "4" = list(is_valid = TRUE, message = ""),
-    "5" = list(is_valid = TRUE, message = ""),
-    "6" = list(is_valid = TRUE, message = ""),
-    "7" = list(is_valid = TRUE, message = ""),
-    "8" = list(is_valid = TRUE, message = ""),
-    # Default
-    list(is_valid = TRUE, message = "")
-  )
-  
-  return(validation)
-}
-
-# Save step data to workflow state
-save_step_data <- function(state, input) {
-  step <- state$current_step
-  
-  # Save data based on current step
-  if (step == 1) {
-    # Save project setup data
-    state$project_data$project_name <- input$project_name
-    state$project_data$project_location <- input$project_location
-    state$project_data$project_type <- input$project_type
-    state$project_data$project_description <- input$project_description
-    state$project_name <- input$project_name  # Also save at top level
-  } else if (step == 2) {
-    # Save central problem data
-    state$project_data$problem_statement <- input$problem_statement
-    state$project_data$problem_category <- input$problem_category
-    state$project_data$problem_details <- input$problem_details
-    state$project_data$problem_scale <- input$problem_scale
-    state$project_data$problem_urgency <- input$problem_urgency
-    state$central_problem <- input$problem_statement  # Also save at top level
-  } else if (step == 3) {
-    # Save activities and pressures data
-    # Note: The data is already being saved in real-time by the Add Activity/Pressure handlers
-    # We just need to ensure it's preserved in the state
-    # Don't overwrite with empty values
-    if (is.null(state$project_data$activities)) {
-      state$project_data$activities <- list()
-    }
-    if (is.null(state$project_data$pressures)) {
-      state$project_data$pressures <- list()
-    }
-  } else if (step == 4) {
-    # Save preventive controls data
-    # Note: The data is already being saved in real-time by the Add Control handler
-    # We just need to ensure it's preserved in the state
-    if (is.null(state$project_data$preventive_controls)) {
-      state$project_data$preventive_controls <- list()
-    }
-  } else if (step == 5) {
-    # Save consequences data
-    # Note: The data is already being saved in real-time by the Add Consequence handler
-    # We just need to ensure it's preserved in the state
-    if (is.null(state$project_data$consequences)) {
-      state$project_data$consequences <- list()
-    }
-  } else if (step == 6) {
-    # Save protective controls data
-    # Note: The data is already being saved in real-time by the Add Protective Control handler
-    # We just need to ensure it's preserved in the state
-    if (is.null(state$project_data$protective_controls)) {
-      state$project_data$protective_controls <- list()
-    }
-  } else if (step == 7) {
-    # Save escalation factors data
-    # Note: The data is already being saved in real-time by the Add Escalation Factor handler
-    # We just need to ensure it's preserved in the state
-    if (is.null(state$project_data$escalation_factors)) {
-      state$project_data$escalation_factors <- list()
-    }
-  }
-  # Step 8 is review only - no data to save
-  
-  # Record timestamp for this step
-  state$step_times[[paste0("step_", step)]] <- Sys.time()
-  
-  return(state)
-}
-
-# Convert workflow data to main application format
-convert_to_main_data_format <- function(project_data) {
-  # Create a comprehensive bowtie data frame from workflow data
-  # NOTE: Escalation factors in bow-tie methodology affect CONTROLS, not the central event
-  # The data structure uses a single Escalation_Factor column for simplicity,
-  # but these factors represent threats to control effectiveness
-  
-  tryCatch({
-    # Extract all components
-    central_problem <- project_data$problem_statement %||% "Unnamed Problem"
-    project_name <- project_data$project_name %||% "Unnamed Project"
-    
-    activities <- project_data$activities %||% list()
-    pressures <- project_data$pressures %||% list()
-    preventive_controls <- project_data$preventive_controls %||% list()
-    consequences <- project_data$consequences %||% list()
-    protective_controls <- project_data$protective_controls %||% list()
-    escalation_factors <- project_data$escalation_factors %||% list()
-    
-    # Convert to character vectors if needed
-    activities <- as.character(activities)
-    pressures <- as.character(pressures)
-    preventive_controls <- as.character(preventive_controls)
-    consequences <- as.character(consequences)
-    protective_controls <- as.character(protective_controls)
-    escalation_factors <- as.character(escalation_factors)
-    
-    # If no escalation factors, create dummy ones
-    if (length(escalation_factors) == 0) {
-      escalation_factors <- c(
-        "Budget constraints reducing monitoring",
-        "Staff turnover affecting expertise",
-        "Equipment maintenance delays",
-        "Regulatory changes creating gaps",
-        "Extreme weather overwhelming systems",
-        "Human error during critical operations"
-      )
-      cat("ℹ️ No escalation factors defined - using dummy examples\n")
-    }
-    
-    # Create bow-tie rows
-    # Structure: Activity → Pressure → Preventive_Control → Central_Problem → Protective_Mitigation → Consequence
-    # Escalation_Factor: Represents threats to control effectiveness (assigned to each control pathway)
-    
-    bowtie_rows <- list()
-    
-    # If we have complete data, create proper combinations
-    if (length(activities) > 0 && length(pressures) > 0 && 
-        length(preventive_controls) > 0 && length(consequences) > 0 && 
-        length(protective_controls) > 0) {
-      
-      # Create multiple rows representing different pathways through the bow-tie
-      # Limit combinations to avoid explosion of rows
-      
-      for (activity in activities[1:min(3, length(activities))]) {
-        for (pressure in pressures[1:min(2, length(pressures))]) {
-          for (preventive in preventive_controls[1:min(2, length(preventive_controls))]) {
-            for (consequence in consequences[1:min(2, length(consequences))]) {
-              for (protective in protective_controls[1:min(2, length(protective_controls))]) {
-                
-                # Select an escalation factor for this pathway
-                # In reality, each escalation factor threatens specific controls
-                # Here we randomly assign one to represent the control vulnerability
-                escalation <- sample(escalation_factors, 1)
-                
-                bowtie_rows[[length(bowtie_rows) + 1]] <- data.frame(
-                  Activity = activity,
-                  Pressure = pressure,
-                  Preventive_Control = preventive,
-                  Escalation_Factor = escalation,  # Threatens the controls, not the central problem
-                  Central_Problem = central_problem,
-                  Protective_Mitigation = protective,
-                  Consequence = consequence,
-                  Likelihood = sample(1:5, 1),
-                  Severity = sample(1:5, 1),
-                  stringsAsFactors = FALSE
-                )
-              }
-            }
-          }
-        }
-      }
-      
-    } else {
-      # Create sample rows if data is incomplete
-      cat("ℹ️ Incomplete workflow data - creating sample bow-tie structure\n")
-      
-      # Create at least one row per escalation factor to show they threaten controls
-      for (i in 1:min(3, max(1, length(escalation_factors)))) {
-        bowtie_rows[[i]] <- data.frame(
-          Activity = if(length(activities) > 0) activities[min(i, length(activities))] else "Sample Activity",
-          Pressure = if(length(pressures) > 0) pressures[min(i, length(pressures))] else "Sample Pressure",
-          Preventive_Control = if(length(preventive_controls) > 0) preventive_controls[min(i, length(preventive_controls))] else "Sample Preventive Control",
-          Escalation_Factor = if(i <= length(escalation_factors)) escalation_factors[i] else escalation_factors[1],
-          Central_Problem = central_problem,
-          Protective_Mitigation = if(length(protective_controls) > 0) protective_controls[min(i, length(protective_controls))] else "Sample Protective Control",
-          Consequence = if(length(consequences) > 0) consequences[min(i, length(consequences))] else "Sample Consequence",
-          Likelihood = 3L,
-          Severity = 3L,
-          stringsAsFactors = FALSE
-        )
-      }
-    }
-    
-    # Combine all rows
-    bowtie_data <- do.call(rbind, bowtie_rows)
-    
-    # Calculate risk level
-    bowtie_data$Risk_Level <- ifelse(
-      bowtie_data$Likelihood * bowtie_data$Severity > 15, "High",
-      ifelse(bowtie_data$Likelihood * bowtie_data$Severity > 8, "Medium", "Low")
-    )
-    
-    # Add metadata
-    attr(bowtie_data, "project_name") <- project_name
-    attr(bowtie_data, "created_from") <- "guided_workflow"
-    attr(bowtie_data, "created_at") <- Sys.time()
-    attr(bowtie_data, "escalation_factors_count") <- length(unique(escalation_factors))
-    attr(bowtie_data, "note") <- "Escalation factors threaten control effectiveness, not the central problem directly"
-    
-    cat("✅ Generated", nrow(bowtie_data), "bow-tie pathway(s)\n")
-    cat("📊 Components: ", 
-        length(unique(bowtie_data$Activity)), "activities, ",
-        length(unique(bowtie_data$Preventive_Control)), "preventive controls, ",
-        length(unique(bowtie_data$Protective_Mitigation)), "protective controls, ",
-        length(unique(bowtie_data$Consequence)), "consequences, ",
-        length(unique(bowtie_data$Escalation_Factor)), "escalation factors\n")
-    
-    return(bowtie_data)
-    
-  }, error = function(e) {
-    cat("❌ Error converting workflow data:", e$message, "\n")
-    # Return minimal valid data frame
-    data.frame(
-      Activity = "Error in conversion",
-      Pressure = "Error in conversion",
-      Preventive_Control = "Error in conversion",
-      Escalation_Factor = "System error (threatens controls)",
-      Central_Problem = "Error in conversion",
-      Protective_Mitigation = "Error in conversion",
-      Consequence = "Error in conversion",
-      Likelihood = 1L,
-      Severity = 1L,
-      Risk_Level = "Low",
-      stringsAsFactors = FALSE
-    )
-  })
-}
-
-# Step validation functions (to be implemented)
-validate_step1 <- function(data) {
-  list(valid = !is.null(data$project_name) && nchar(data$project_name) > 0,
-       message = "Project name is required")
-}
-
-validate_step2 <- function(data) {
-  list(valid = !is.null(data$central_problem) && nchar(data$central_problem) > 0,
-       message = "Central problem definition is required")
-}
-
-# Integration helper - create guided workflow tab
-create_guided_workflow_tab <- function() {
-  tryCatch({
-    # Check if bslib nav_panel function is available
-    if (exists("nav_panel", mode = "function")) {
-      nav_panel(
-        title = tagList(icon("magic"), "Guided Creation"),
-        icon = icon("magic"),
-        value = "guided_workflow",
-        guided_workflow_ui()
-      )
-    } else {
-      # Fallback for older Shiny versions
-      tabPanel(
-        title = tagList(icon("magic"), "Guided Creation"),
-        value = "guided_workflow",
-        guided_workflow_ui()
-      )
-    }
-  }, error = function(e) {
-    cat("Warning: Error creating guided workflow tab:", e$message, "\n")
-    # Return basic tabPanel as fallback
-    tabPanel(
-      title = "Guided Creation",
-      value = "guided_workflow",
-      guided_workflow_ui()
-    )
-  })
-}
-
-cat("✅ Guided Workflow System Ready!\n")
-cat("📋 Available functions:\n")
-cat("   - guided_workflow_ui(): Main workflow UI\n")
-cat("   - guided_workflow_server(): Server logic\n")
-cat("   - create_guided_workflow_tab(): Integration helper\n")
-cat("   - init_workflow_state(): Initialize workflow\n")
-cat("\n🎯 Add to your app with create_guided_workflow_tab()!\n")
+log_success("Guided Workflow System Ready!")
+log_debug("Available functions: guided_workflow_ui(), guided_workflow_server(), create_guided_workflow_tab(), init_workflow_state()")

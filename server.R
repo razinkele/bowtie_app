@@ -3,120 +3,786 @@
 
 server <- function(input, output, session) {
 
-  # Optimized reactive values using reactiveVal for single values
-  currentData <- reactiveVal(NULL)
-  editedData <- reactiveVal(NULL)
-  sheets <- reactiveVal(NULL)
-  envDataGenerated <- reactiveVal(FALSE)
-  selectedRows <- reactiveVal(NULL)
-  dataVersion <- reactiveVal(0)  # For cache invalidation
+  # =============================================================================
+  # HELPER FUNCTION FOR SAFE UI RENDERING
+  # =============================================================================
 
-  # UI state tracking for empty states and accessibility
-  hasData <- reactiveVal(FALSE)
-  lastNotification <- reactiveVal(NULL)  # For aria-live regions
-
-  # Translation reactive value (triggered by button click)
-  currentLanguage <- reactiveVal("en")
-
-  observeEvent(input$applyLanguage, {
-    new_lang <- input$app_language
-    currentLanguage(new_lang)
-
-    # Update button labels
+  # Safe renderUI wrapper that catches errors and provides fallback content
+  # Use this for output renderers that depend on reactive values that could be NULL
+  safe_render_ui <- function(expr, fallback = NULL) {
     tryCatch({
-      updateActionButton(session, "loadData",
-                        label = t("upload_button", new_lang), icon = icon("upload"))
-      updateActionButton(session, "generateMultipleControls",
-                        label = t("generate_data_button", new_lang), icon = icon("seedling"))
-      updateActionButton(session, "applyLanguage",
-                        label = t("apply_language", new_lang), icon = icon("check"))
+      result <- expr
+      if (is.null(result)) fallback else result
     }, error = function(e) {
-      cat("Note: Some UI elements may not update until page refresh\n")
+      bowtie_log(paste("UI render error:", e$message), level = "warn")
+      if (is.null(fallback)) {
+        div(class = "text-muted small", "Content unavailable")
+      } else {
+        fallback
+      }
     })
+  }
 
-    # Update main navigation tab titles using JavaScript
-    translations <- list(
-      upload = t("tab_data_input", new_lang),
-      guided_workflow = paste0("🧙 ", t("tab_guided_creation", new_lang)),
-      bowtie = t("tab_bowtie_diagram", new_lang),
-      bayesian = t("tab_bayesian", new_lang),
-      table = t("tab_data_table", new_lang),
-      matrix = t("tab_risk_matrix", new_lang),
-      vocabulary = t("tab_vocabulary_management", new_lang),
-      help = t("tab_help", new_lang)
-    )
+  # Safe translation function that returns key if translation fails
+  safe_t <- function(key, lang_val = NULL) {
+    tryCatch({
+      if (is.null(lang_val)) lang_val <- "en"
+      result <- t(key, lang_val)
+      if (is.null(result) || result == "") key else result
+    }, error = function(e) {
+      # Log translation errors at debug level to avoid noise but maintain visibility
+      bowtie_log(paste("Translation failed for key:", key, "-", e$message), level = "debug")
+      key
+    })
+  }
 
-    # Target the nav-link elements by their data-value attribute
-    # Multiple selectors to handle different bslib structures
-    tab_updates <- list(
-      list(value = "upload", icon = "upload", text = translations$upload),
-      list(value = "guided_workflow", icon = "magic", text = translations$guided_workflow),
-      list(value = "bowtie", icon = "project-diagram", text = translations$bowtie),
-      list(value = "bayesian", icon = "brain", text = translations$bayesian),
-      list(value = "table", icon = "table", text = translations$table),
-      list(value = "matrix", icon = "chart-line", text = translations$matrix),
-      list(value = "vocabulary", icon = "book", text = translations$vocabulary),
-      list(value = "help", icon = "question-circle", text = translations$help)
-    )
+  # =============================================================================
+  # INITIALIZE SERVER MODULES (Phase 3: Server Modularization)
+  # =============================================================================
 
-    # Generate JavaScript to update each tab - use data-value attribute
-    js_code <- paste(
-      sapply(tab_updates, function(tab) {
-        sprintf(
-          "setTimeout(function() {
-             var $tab = $('#main_tabs a.nav-link[data-value=\"%s\"]');
-             if ($tab.length > 0) {
-               $tab.html('<i class=\"fa fa-%s\"></i> %s');
-             }
-           }, 100);",
-          tab$value, tab$icon, tab$text
+  # Initialize login module (must be first)
+  current_user <- login_server("login")
+
+  # Initialize language module
+  language_module <- language_module_server(input, output, session)
+  lang <- language_module$lang
+  currentLanguage <- language_module$currentLanguage
+
+  # Initialize theme module
+  theme_module <- theme_module_server(input, output, session, lang)
+  current_theme <- theme_module$current_theme
+  appliedTheme <- theme_module$appliedTheme
+  themeUpdateTrigger <- theme_module$themeUpdateTrigger
+
+  # Initialize data management module
+  data_module <- data_management_module_server(input, output, session, lang)
+  currentData <- data_module$currentData
+  editedData <- data_module$editedData
+  getCurrentData <- data_module$getCurrentData
+  hasData <- data_module$hasData
+  envDataGenerated <- data_module$envDataGenerated
+  selectedRows <- data_module$selectedRows
+  dataVersion <- data_module$dataVersion
+  lastNotification <- data_module$lastNotification
+  sheets <- data_module$sheets
+
+  # Initialize export module
+  export_module_server(input, output, session, getCurrentData)
+
+  # Initialize autosave module
+  autosave_module <- autosave_module_server(input, output, session, getCurrentData, lang)
+  lastAutosaveTime <- autosave_module$lastAutosaveTime
+  autosaveVersion <- autosave_module$autosaveVersion
+
+  # Initialize local storage module (for user-selected local folder storage)
+  local_storage <- local_storage_server(input, output, session, getCurrentData, lang)
+
+  # Initialize Bayesian network module
+  bayesian_module <- bayesian_module_server(input, output, session, getCurrentData, lang)
+  bayesianNetwork <- bayesian_module$bayesianNetwork
+  bayesianNetworkCreated <- bayesian_module$bayesianNetworkCreated
+  inferenceResults <- bayesian_module$inferenceResults
+  inferenceCompleted <- bayesian_module$inferenceCompleted
+
+  # Initialize Bowtie Visualization module
+  bowtie_viz_module <- bowtie_visualization_module_server(input, output, session, getCurrentData, lang)
+  filtered_problem_data <- bowtie_viz_module$filtered_problem_data
+  cached_bowtie_nodes <- bowtie_viz_module$cached_bowtie_nodes
+  cached_bowtie_edges <- bowtie_viz_module$cached_bowtie_edges
+
+  # Initialize Report Generation module
+  report_module <- report_generation_module_server(input, output, session, currentData, lang)
+  report_generated <- report_module$report_generated
+  report_content <- report_module$report_content
+
+  # Initialize AI Analysis module
+  ai_module <- ai_analysis_module_server(input, output, session, vocabulary_data, lang)
+  ai_analysis_results <- ai_module$ai_analysis_results
+
+  # =============================================================================
+  # SESSION CLEANUP HANDLER (Memory leak prevention)
+  # =============================================================================
+  session$onSessionEnded(function() {
+    bowtie_log("🧹 Session ended - cleaning up resources...", .verbose = TRUE)
+    tryCatch({
+      # Clear reactive values to prevent memory leaks
+      if (exists("currentData") && is.function(currentData)) currentData(NULL)
+      if (exists("editedData") && is.function(editedData)) editedData(NULL)
+      if (exists("bayesianNetwork") && is.function(bayesianNetwork)) bayesianNetwork(NULL)
+      if (exists("inferenceResults") && is.function(inferenceResults)) inferenceResults(NULL)
+
+      # Clear application cache
+      if (exists("clear_cache") && is.function(clear_cache)) {
+        clear_cache(reset_stats = TRUE)
+      }
+
+      # Clean up temporary files created during session
+      temp_files <- list.files(tempdir(), pattern = "bowtie_.*", full.names = TRUE)
+      if (length(temp_files) > 0) {
+        unlink(temp_files, recursive = TRUE)
+        bowtie_log(paste("🗑️ Cleaned up", length(temp_files), "temporary files"), .verbose = TRUE)
+      }
+
+      # Force garbage collection
+      gc(verbose = FALSE)
+
+      bowtie_log("✅ Session cleanup complete", .verbose = TRUE)
+    }, error = function(e) {
+      bowtie_log(paste("⚠️ Error during session cleanup:", e$message), level = "warn", .verbose = TRUE)
+    })
+  })
+
+  # =============================================================================
+  # ADDITIONAL SERVER LOGIC (not yet modularized)
+  # =============================================================================
+  # NOTE: Language module handles all language/translation logic
+  # NOTE: Theme module handles all theme management logic
+  # NOTE: Data management module handles file upload, data loading, and generation
+  # NOTE: Export module handles all download handlers for diagrams and data
+  # NOTE: Autosave module handles automatic and manual saving of workflow state
+  # NOTE: Local storage module handles user-selected local folder storage
+
+  # =============================================================================
+  # LOCAL DATA RESTORE HANDLER
+  # =============================================================================
+  # Handler for when data is loaded from local folder
+  observeEvent(input$local_data_restore, {
+    loaded_data <- input$local_data_restore
+    if (is.null(loaded_data)) return()
+    
+    tryCatch({
+      # Restore current data if present
+      if (!is.null(loaded_data$current_data)) {
+        currentData(loaded_data$current_data)
+        editedData(loaded_data$current_data)
+        hasData(TRUE)
+        dataVersion(dataVersion() + 1)
+        
+        # Update problem selectors
+        problems <- unique(loaded_data$current_data$Central_Problem)
+        updateSelectInput(session, "selectedProblem", choices = problems)
+        updateSelectInput(session, "bayesianProblem", choices = problems)
+        
+        showNotification(
+          "✅ Data restored from local save",
+          type = "message",
+          duration = 3
         )
-      }),
-      collapse = "\n"
-    )
+      }
+      
+      # Restore settings if present
+      if (!is.null(loaded_data$settings)) {
+        settings <- loaded_data$settings
+        
+        if (!is.null(settings$storage_mode)) {
+          updateRadioButtons(session, "storage_mode", selected = settings$storage_mode)
+        }
+        if (!is.null(settings$storage_path)) {
+          updateTextInput(session, "local_folder_path", value = settings$storage_path)
+        }
+      }
+      
+    }, error = function(e) {
+      showNotification(
+        paste("⚠️ Could not restore all data:", e$message),
+        type = "warning"
+      )
+    })
+  })
 
-    runjs(js_code)
+  # =============================================================================
+  # SIDEBAR USER PANEL (Login-based)
+  # =============================================================================
+
+  output$sidebar_user_panel <- renderUI({
+    # Check if user is logged in
+    if (isTRUE(current_user$logged_in)) {
+      # Determine icon and badge based on role
+      user_icon <- if (current_user$role == "admin") "user-shield" else "user"
+      badge_class <- if (current_user$role == "admin") "bg-danger" else "bg-secondary"
+      badge_text <- if (current_user$role == "admin") "Admin" else "User"
+
+      sidebarUserPanel(
+        name = tagList(
+          current_user$display_name,
+          tags$span(class = paste("badge", badge_class, "ms-2"), badge_text)
+        ),
+        image = NULL
+      )
+    } else {
+      sidebarUserPanel(
+        name = "Environmental Risk Management"
+      )
+    }
+  })
+
+  # Header user menu dropdown with login/logout options
+  output$header_user_menu <- renderUI({
+    user_icon <- if (current_user$role == "admin") "user-shield" else "user"
+
+    if (current_user$role == "admin") {
+      # Admin user - show logout option
+      dropdownMenu(
+        badgeStatus = "danger",
+        type = "messages",
+        icon = icon(user_icon),
+        headerText = current_user$display_name,
+
+        messageItem(
+          from = "Administrator",
+          message = "Full access enabled",
+          icon = icon("id-badge"),
+          time = NULL
+        ),
+        messageItem(
+          from = "Switch to Default",
+          message = "Return to standard user mode",
+          icon = icon("sign-out-alt"),
+          time = NULL,
+          href = "javascript:void(0);",
+          inputId = "switch_to_default_btn"
+        )
+      )
+    } else {
+      # Default user - show login as admin option
+      dropdownMenu(
+        badgeStatus = "secondary",
+        type = "messages",
+        icon = icon(user_icon),
+        headerText = current_user$display_name,
+
+        messageItem(
+          from = "Default User",
+          message = "Standard access",
+          icon = icon("id-badge"),
+          time = NULL
+        ),
+        messageItem(
+          from = "Login as Admin",
+          message = "Switch to administrator mode",
+          icon = icon("user-shield"),
+          time = NULL,
+          href = "javascript:void(0);",
+          inputId = "show_admin_login_btn"
+        )
+      )
+    }
+  })
+
+  # Handle "Login as Admin" button - show the admin login modal
+  observeEvent(input$show_admin_login_btn, {
+    shinyjs::runjs("$('#login-admin_login_modal').modal('show');")
+  })
+
+  # Handle "Switch to Default" button - switch back to default user
+  observeEvent(input$switch_to_default_btn, {
+    # Switch to default user
+    current_user$logged_in <- TRUE
+    current_user$username <- "default"
+    current_user$role <- "default"
+    current_user$display_name <- "Default User"
+    current_user$login_time <- Sys.time()
 
     showNotification(
-      paste(t("language_label", new_lang), ":", ifelse(new_lang == "en", "English", "Français")),
+      tagList(icon("user"), " Switched to Default User"),
       type = "message",
       duration = 3
     )
   })
 
-  lang <- reactive({
-    currentLanguage()
-  })
+  # =============================================================================
+  # ADMIN MENU SECTION (Conditionally shown for admin users)
+  # =============================================================================
 
-  # Output for conditional rendering based on data availability
-  output$hasData <- reactive({ hasData() })
-  outputOptions(output, "hasData", suspendWhenHidden = FALSE)
-
-  # Conditional menu item disabling based on data availability
-  observe({
-    data_available <- hasData()
-
-    # Menu items that require bowtie data to function
-    menu_items_to_disable <- c("bowtie", "matrix", "link_risk", "bayesian")
-
-    if (data_available) {
-      # Enable menu items when data is available
-      runjs(paste0("
-        ", paste(sapply(menu_items_to_disable, function(item) {
-          sprintf("$('.sidebar-menu a.nav-link[data-value=\"%s\"]').removeClass('disabled');", item)
-        }), collapse = "\n        "), "
-        console.log('Menu items enabled: data available');
-      "))
+  output$admin_menu_section <- renderUI({
+    if (current_user$role == "admin") {
+      tagList(
+        sidebarHeader("ADMINISTRATION"),
+        menuItem(
+          text = "Custom Terms Review",
+          tabName = "custom_terms",
+          icon = icon("clipboard-check"),
+          badgeLabel = textOutput("badge_pending_terms", inline = TRUE),
+          badgeColor = "warning"
+        )
+      )
     } else {
-      # Disable menu items when no data is available
-      runjs(paste0("
-        ", paste(sapply(menu_items_to_disable, function(item) {
-          sprintf("$('.sidebar-menu a.nav-link[data-value=\"%s\"]').addClass('disabled');", item)
-        }), collapse = "\n        "), "
-        console.log('Menu items disabled: no data available');
-      "))
+      NULL
     }
   })
+
+  # Badge showing pending custom terms count
+  output$badge_pending_terms <- renderText({
+    if (current_user$role == "admin") {
+      tryCatch({
+        terms <- load_custom_terms()
+        pending_count <- sum(
+          sum(terms$activities$status == "pending"),
+          sum(terms$pressures$status == "pending"),
+          sum(terms$preventive_controls$status == "pending"),
+          sum(terms$consequences$status == "pending"),
+          sum(terms$protective_controls$status == "pending"),
+          sum(terms$escalation_factors$status == "pending")
+        )
+        if (pending_count > 0) return(as.character(pending_count))
+        return("")
+      }, error = function(e) "")
+    } else {
+      ""
+    }
+  })
+
+  # =============================================================================
+  # CUSTOM TERMS REVIEW (Admin Only)
+  # =============================================================================
+
+  # Reactive to trigger refresh of custom terms
+  custom_terms_refresh <- reactiveVal(0)
+
+  # Custom terms content (only for admin)
+  output$custom_terms_content <- renderUI({
+    # Force refresh when needed
+    custom_terms_refresh()
+
+    if (current_user$role != "admin") {
+      return(
+        div(
+          class = "text-center p-5",
+          icon("lock", class = "fa-4x text-danger mb-3"),
+          h3("Access Denied", class = "text-danger"),
+          p("This section is only available to administrators."),
+          p("Please login as admin to access custom terms review.")
+        )
+      )
+    }
+
+    # Load terms
+    all_terms <- get_all_custom_terms_flat()
+    summary_data <- get_custom_terms_summary()
+
+    fluidRow(
+      # Header
+      column(12,
+        div(
+          class = "d-flex justify-content-between align-items-center mb-4",
+          h2(tagList(icon("clipboard-check"), " Custom Terms Review")),
+          div(
+            actionButton("refresh_custom_terms", tagList(icon("refresh"), " Refresh"),
+                        class = "btn-outline-primary me-2"),
+            downloadButton("export_custom_terms", tagList(icon("download"), " Export"),
+                          class = "btn-outline-success")
+          )
+        )
+      ),
+
+      # Summary Cards
+      column(12,
+        div(class = "row mb-4",
+          lapply(1:nrow(summary_data), function(i) {
+            row <- summary_data[i, ]
+            div(class = "col-md-2 col-sm-4 mb-3",
+              div(class = "card text-center h-100",
+                div(class = "card-body p-3",
+                  h6(class = "card-title text-muted mb-1", row$Category),
+                  h3(class = "mb-0", row$Total),
+                  div(class = "small",
+                    if (row$Pending > 0) span(class = "badge bg-warning me-1", paste(row$Pending, "pending")),
+                    if (row$Approved > 0) span(class = "badge bg-success me-1", paste(row$Approved, "approved")),
+                    if (row$Rejected > 0) span(class = "badge bg-danger", paste(row$Rejected, "rejected"))
+                  )
+                )
+              )
+            )
+          })
+        )
+      ),
+
+      # Filter controls
+      column(12,
+        div(class = "card mb-4",
+          div(class = "card-body",
+            fluidRow(
+              column(3,
+                selectInput("filter_term_category", "Category:",
+                  choices = c("All" = "all",
+                              "Activities" = "activities",
+                              "Pressures" = "pressures",
+                              "Preventive Controls" = "preventive_controls",
+                              "Consequences" = "consequences",
+                              "Protective Controls" = "protective_controls",
+                              "Escalation Factors" = "escalation_factors"),
+                  selected = "all")
+              ),
+              column(3,
+                selectInput("filter_term_status", "Status:",
+                  choices = c("All" = "all", "Pending" = "pending",
+                              "Approved" = "approved", "Rejected" = "rejected"),
+                  selected = "pending")
+              ),
+              column(3,
+                textInput("filter_term_search", "Search:", placeholder = "Search terms...")
+              ),
+              column(3,
+                div(class = "mt-4",
+                  actionButton("apply_term_filters", tagList(icon("filter"), " Apply"),
+                              class = "btn-primary")
+                )
+              )
+            )
+          )
+        )
+      ),
+
+      # Terms table
+      column(12,
+        div(class = "card",
+          div(class = "card-header bg-primary text-white",
+            h5(class = "mb-0", tagList(icon("list"), " Custom Terms"))
+          ),
+          div(class = "card-body",
+            if (nrow(all_terms) == 0) {
+              div(class = "text-center p-5 text-muted",
+                icon("inbox", class = "fa-3x mb-3"),
+                h5("No custom terms found"),
+                p("Custom terms added in the Guided Workflow will appear here for review.")
+              )
+            } else {
+              DTOutput("custom_terms_table")
+            }
+          )
+        )
+      )
+    )
+  })
+
+  # Render custom terms table
+  output$custom_terms_table <- renderDT({
+    custom_terms_refresh()
+
+    all_terms <- get_all_custom_terms_flat()
+
+    if (nrow(all_terms) == 0) return(NULL)
+
+    # Apply filters
+    filtered <- all_terms
+
+    # Category filter
+    if (!is.null(input$filter_term_category) && input$filter_term_category != "all") {
+      filtered <- filtered[filtered$category_key == input$filter_term_category, ]
+    }
+
+    # Status filter
+    if (!is.null(input$filter_term_status) && input$filter_term_status != "all") {
+      filtered <- filtered[filtered$status == input$filter_term_status, ]
+    }
+
+    # Search filter
+    if (!is.null(input$filter_term_search) && nchar(input$filter_term_search) > 0) {
+      search_term <- tolower(input$filter_term_search)
+      filtered <- filtered[grepl(search_term, tolower(filtered$term)), ]
+    }
+
+    if (nrow(filtered) == 0) return(NULL)
+
+    # Add action buttons
+    filtered$actions <- sapply(1:nrow(filtered), function(i) {
+      row <- filtered[i, ]
+      paste0(
+        '<div class="btn-group btn-group-sm">',
+        if (row$status == "pending") {
+          paste0(
+            '<button class="btn btn-success btn-sm approve-term" data-id="', row$id,
+            '" data-category="', row$category_key, '"><i class="fas fa-check"></i></button>',
+            '<button class="btn btn-danger btn-sm reject-term" data-id="', row$id,
+            '" data-category="', row$category_key, '"><i class="fas fa-times"></i></button>'
+          )
+        } else "",
+        '<button class="btn btn-outline-danger btn-sm delete-term" data-id="', row$id,
+        '" data-category="', row$category_key, '"><i class="fas fa-trash"></i></button>',
+        '</div>'
+      )
+    })
+
+    # Format status with badges
+    filtered$status_badge <- sapply(filtered$status, function(s) {
+      switch(s,
+        "pending" = '<span class="badge bg-warning text-dark">Pending</span>',
+        "approved" = '<span class="badge bg-success">Approved</span>',
+        "rejected" = '<span class="badge bg-danger">Rejected</span>',
+        '<span class="badge bg-secondary">Unknown</span>'
+      )
+    })
+
+    # Select columns for display
+    display_df <- filtered[, c("term", "category", "status_badge", "added_by",
+                               "added_date", "project_name", "actions")]
+    colnames(display_df) <- c("Term", "Category", "Status", "Added By",
+                              "Date Added", "Project", "Actions")
+
+    datatable(
+      display_df,
+      escape = FALSE,
+      selection = "none",
+      rownames = FALSE,
+      options = list(
+        pageLength = 15,
+        dom = 'frtip',
+        order = list(list(4, 'desc')),
+        columnDefs = list(
+          list(className = 'dt-center', targets = c(2, 6)),
+          list(width = '120px', targets = 6)
+        )
+      ),
+      class = "table table-striped table-hover"
+    )
+  })
+
+  # Handle approve term button clicks
+  observeEvent(input$approve_term_click, {
+    if (current_user$role != "admin") return()
+
+    term_id <- input$approve_term_click$id
+    category <- input$approve_term_click$category
+
+    result <- update_term_status(category, term_id, "approved", current_user$username)
+
+    if (result$success) {
+      showNotification(tagList(icon("check"), " Term approved"), type = "message")
+      custom_terms_refresh(custom_terms_refresh() + 1)
+    } else {
+      showNotification(tagList(icon("exclamation-triangle"), " ", result$message), type = "error")
+    }
+  })
+
+  # Handle reject term button clicks
+  observeEvent(input$reject_term_click, {
+    if (current_user$role != "admin") return()
+
+    term_id <- input$reject_term_click$id
+    category <- input$reject_term_click$category
+
+    result <- update_term_status(category, term_id, "rejected", current_user$username)
+
+    if (result$success) {
+      showNotification(tagList(icon("times"), " Term rejected"), type = "warning")
+      custom_terms_refresh(custom_terms_refresh() + 1)
+    } else {
+      showNotification(tagList(icon("exclamation-triangle"), " ", result$message), type = "error")
+    }
+  })
+
+  # Handle delete term button clicks
+  observeEvent(input$delete_term_click, {
+    if (current_user$role != "admin") return()
+
+    term_id <- input$delete_term_click$id
+    category <- input$delete_term_click$category
+
+    result <- delete_custom_term(category, term_id)
+
+    if (result$success) {
+      showNotification(tagList(icon("trash"), " Term deleted"), type = "message")
+      custom_terms_refresh(custom_terms_refresh() + 1)
+    } else {
+      showNotification(tagList(icon("exclamation-triangle"), " ", result$message), type = "error")
+    }
+  })
+
+  # Refresh button
+  observeEvent(input$refresh_custom_terms, {
+    custom_terms_refresh(custom_terms_refresh() + 1)
+    showNotification(tagList(icon("refresh"), " Refreshed"), type = "message", duration = 2)
+  })
+
+  # Apply filters button
+  observeEvent(input$apply_term_filters, {
+    custom_terms_refresh(custom_terms_refresh() + 1)
+  })
+
+  # Export custom terms to Excel
+  output$export_custom_terms <- downloadHandler(
+    filename = function() {
+      paste0("custom_terms_export_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".xlsx")
+    },
+    content = function(file) {
+      all_terms <- get_all_custom_terms_flat()
+      if (nrow(all_terms) > 0) {
+        # Remove internal columns
+        export_df <- all_terms[, c("term", "category", "status", "added_by",
+                                    "added_date", "project_name", "reviewed_by",
+                                    "reviewed_date", "notes")]
+        colnames(export_df) <- c("Term", "Category", "Status", "Added By",
+                                 "Date Added", "Project", "Reviewed By",
+                                 "Review Date", "Notes")
+        openxlsx::write.xlsx(export_df, file)
+      } else {
+        # Create empty file with headers
+        empty_df <- data.frame(
+          Term = character(), Category = character(), Status = character(),
+          `Added By` = character(), `Date Added` = character(), Project = character(),
+          `Reviewed By` = character(), `Review Date` = character(), Notes = character()
+        )
+        openxlsx::write.xlsx(empty_df, file)
+      }
+    }
+  )
+
+  # JavaScript to handle button clicks in DataTable
+  observeEvent(TRUE, {
+    shinyjs::runjs("
+      $(document).on('click', '.approve-term', function() {
+        var id = $(this).data('id');
+        var category = $(this).data('category');
+        Shiny.setInputValue('approve_term_click', {id: id, category: category}, {priority: 'event'});
+      });
+
+      $(document).on('click', '.reject-term', function() {
+        var id = $(this).data('id');
+        var category = $(this).data('category');
+        Shiny.setInputValue('reject_term_click', {id: id, category: category}, {priority: 'event'});
+      });
+
+      $(document).on('click', '.delete-term', function() {
+        if (confirm('Are you sure you want to delete this term?')) {
+          var id = $(this).data('id');
+          var category = $(this).data('category');
+          Shiny.setInputValue('delete_term_click', {id: id, category: category}, {priority: 'event'});
+        }
+      });
+    ")
+  }, once = TRUE)
+
+  # =============================================================================
+  # HELP MENU HANDLERS
+  # =============================================================================
+
+  # Show User Guide modal when clicked from help dropdown
+  observeEvent(input$show_user_guide, {
+    showModal(modalDialog(
+      title = tagList(icon("book"), " User Guide"),
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+
+      h4("Environmental Bowtie Risk Analysis", class = "text-primary"),
+      hr(),
+
+      h5(icon("info-circle"), " Overview"),
+      p("This application helps you create and analyze environmental risk assessments using bowtie diagrams enhanced with Bayesian network analysis."),
+
+      h5(icon("list-ol"), " Getting Started", class = "mt-4"),
+      tags$ol(
+        tags$li("Go to ", tags$strong("Guided Workflow"), " tab to create a new bowtie diagram"),
+        tags$li("Or upload existing data via ", tags$strong("Data Management"), " tab"),
+        tags$li("View your bowtie diagram in the ", tags$strong("Bowtie Diagram"), " tab"),
+        tags$li("Analyze risks using ", tags$strong("Risk Matrix"), " and ", tags$strong("Bayesian Analysis"))
+      ),
+
+      h5(icon("lightbulb"), " Tips", class = "mt-4"),
+      tags$ul(
+        tags$li("Use the 8-step guided workflow for structured risk assessment"),
+        tags$li("Export your work to Excel for sharing and backup"),
+        tags$li("Switch languages using the flag icons in the header")
+      ),
+
+      h5(icon("file-pdf"), " Full Documentation", class = "mt-4"),
+      p("For detailed documentation, see the User Manual in the docs folder.")
+    ))
+  }, ignoreInit = TRUE)
+
+  # Show About modal when clicked from help dropdown
+  observeEvent(input$show_about, {
+    current_lang <- lang()
+    
+    showModal(modalDialog(
+      title = tagList(icon("info-circle"), " ", t("about_title", current_lang)),
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton(if(current_lang == "en") "Close" else "Fermer"),
+
+      div(class = "text-center mb-4",
+        h4("Environmental Bowtie Risk Analysis", class = "text-success"),
+        p(class = "text-muted", paste("Version", APP_CONFIG$VERSION))
+      ),
+      
+      # App Summary Section
+      div(class = "alert alert-primary",
+        h5(tagList(icon("info-circle"), " ", t("about_summary_title", current_lang)), class = "alert-heading"),
+        p(t("about_summary_text", current_lang)),
+        hr(),
+        h6(tagList(icon("rocket"), " ", t("about_getting_started", current_lang))),
+        p(class = "mb-0", t("about_getting_started_text", current_lang))
+      ),
+      
+      hr(),
+      
+      # Key Features
+      h5(tagList(icon("list-check"), " ", t("about_features", current_lang)), class = "mt-3"),
+      tags$ul(
+        tags$li(tagList(icon("check-circle", class = "text-success"), " ", t("about_feature1", current_lang))),
+        tags$li(tagList(icon("check-circle", class = "text-success"), " ", t("about_feature2", current_lang))),
+        tags$li(tagList(icon("check-circle", class = "text-success"), " ", t("about_feature3", current_lang))),
+        tags$li(tagList(icon("check-circle", class = "text-success"), " ", t("about_feature4", current_lang))),
+        tags$li(tagList(icon("check-circle", class = "text-success"), " ", t("about_feature5", current_lang))),
+        tags$li(tagList(icon("check-circle", class = "text-success"), " ", t("about_feature6", current_lang)))
+      ),
+
+      hr(),
+
+      fluidRow(
+        column(4, class = "text-center",
+          h6(icon("users"), if(current_lang == "en") " Developed by" else " Développé par"),
+          p(class = "small", "Marbefes Team")
+        ),
+        column(4, class = "text-center",
+          h6(icon("code"), if(current_lang == "en") " Built with" else " Construit avec"),
+          p(class = "small", "R Shiny, bs4Dash, bnlearn")
+        ),
+        column(4, class = "text-center",
+          h6(icon("calendar"), if(current_lang == "en") " Release" else " Version"),
+          p(class = "small", "January 2026")
+        )
+      )
+    ))
+  }, ignoreInit = TRUE)
+
+  # Conditional menu item disabling based on data availability
+  # Uses ignoreNULL to prevent initial NULL triggers
+  # Note: Add debounce() wrapper if performance issues occur with rapid data changes
+  observeEvent(hasData(), {
+    # Throttle: Only update if state actually changed
+    data_available <- hasData()
+
+    # Debug logging gated behind verbose option
+    if (getOption("bowtie.verbose", FALSE)) {
+      bowtie_log("Menu observer triggered. hasData() =", data_available, level = "debug")
+    }
+
+    # Menu items that require bowtie data to function
+    if (data_available) {
+      if (getOption("bowtie.verbose", FALSE)) {
+        bowtie_log("Enabling menu items...", level = "debug")
+      }
+      # Enable menu items when data is available
+      runjs("
+        $('a[data-value=\"bowtie\"]').removeClass('disabled').css('pointer-events', 'auto').css('opacity', '1');
+        $('a[data-value=\"matrix\"]').removeClass('disabled').css('pointer-events', 'auto').css('opacity', '1');
+        $('a[data-value=\"link_risk\"]').removeClass('disabled').css('pointer-events', 'auto').css('opacity', '1');
+        $('a[data-value=\"bayesian\"]').removeClass('disabled').css('pointer-events', 'auto').css('opacity', '1');
+      ")
+    } else {
+      if (getOption("bowtie.verbose", FALSE)) {
+        bowtie_log("Disabling menu items...", level = "debug")
+      }
+      # Disable menu items when no data is available
+      runjs("
+        $('a[data-value=\"bowtie\"]').addClass('disabled').css('pointer-events', 'none').css('opacity', '0.5');
+        $('a[data-value=\"matrix\"]').addClass('disabled').css('pointer-events', 'none').css('opacity', '0.5');
+        $('a[data-value=\"link_risk\"]').addClass('disabled').css('pointer-events', 'none').css('opacity', '0.5');
+        $('a[data-value=\"bayesian\"]').addClass('disabled').css('pointer-events', 'none').css('opacity', '0.5');
+      ")
+    }
+  }, ignoreInit = FALSE, ignoreNULL = TRUE)
 
   # ARIA live region announcer for accessibility
   output$notification_announcer <- renderUI({
@@ -126,479 +792,59 @@ server <- function(input, output, session) {
     }
   })
 
-  # NEW: Bayesian network reactive values
-  bayesianNetwork <- reactiveVal(NULL)
-  bayesianNetworkCreated <- reactiveVal(FALSE)
-  inferenceResults <- reactiveVal(NULL)
-  inferenceCompleted <- reactiveVal(FALSE)
-
-  # Theme management reactive values
-  themeUpdateTrigger <- reactiveVal(0)
-  appliedTheme <- reactiveVal("zephyr")
-
-  # Optimized data retrieval with caching
-  getCurrentData <- reactive({
-    edited <- editedData()
-    if (!is.null(edited)) edited else currentData()
+  # Dashboard navigation button
+  observeEvent(input$dashboard_goto_upload, {
+    updateTabItems(session, "sidebar_menu", selected = "upload")
   })
-
-  # Enhanced Theme management with comprehensive Bootstrap theme support
-  current_theme <- reactive({
-    # React to the trigger to update theme
-    trigger_val <- themeUpdateTrigger()
-    theme_choice <- appliedTheme()
-
-    cat("🔄 current_theme() reactive triggered. Trigger:", trigger_val, "Choice:", theme_choice, "\n")
-
-    # Handle custom theme with comprehensive user-defined colors
-    if (theme_choice == "custom") {
-      primary_color <- if (!is.null(input$primary_color)) input$primary_color else "#28a745"
-      secondary_color <- if (!is.null(input$secondary_color)) input$secondary_color else "#6c757d"
-      success_color <- if (!is.null(input$success_color)) input$success_color else "#28a745"
-      info_color <- if (!is.null(input$info_color)) input$info_color else "#17a2b8"
-      warning_color <- if (!is.null(input$warning_color)) input$warning_color else "#ffc107"
-      danger_color <- if (!is.null(input$danger_color)) input$danger_color else "#dc3545"
-
-      bs_theme(
-        version = 5,
-        primary = primary_color,
-        secondary = secondary_color,
-        success = success_color,
-        info = info_color,
-        warning = warning_color,
-        danger = danger_color
-      )
-    } else if (theme_choice == "bootstrap") {
-      # Default Bootstrap theme (no bootswatch)
-      bs_theme(version = 5)
-    } else {
-      # Apply bootswatch theme with environmental enhancements
-      base_theme <- bs_theme(version = 5, bootswatch = theme_choice)
-
-      # Add theme-specific customizations for environmental application
-      if (theme_choice == "journal") {
-        # Environmental theme enhancements
-        base_theme <- bs_theme(
-          version = 5,
-          bootswatch = theme_choice,
-          success = "#2E7D32",  # Forest green
-          info = "#0277BD",     # Ocean blue
-          warning = "#F57C00",  # Earth orange
-          danger = "#C62828"    # Environmental alert red
-        )
-      } else if (theme_choice == "darkly" || theme_choice == "slate" || theme_choice == "superhero" || theme_choice == "cyborg") {
-        # Dark theme enhancements for better visibility
-        base_theme <- bs_theme(
-          version = 5,
-          bootswatch = theme_choice,
-          bg = if(theme_choice == "darkly") "#212529" else NULL,
-          fg = if(theme_choice == "darkly") "#ffffff" else NULL
-        )
-      }
-
-      base_theme
-    }
-  })
-
-  # Enhanced theme observer with better error handling for bslib v5+
-  observe({
-    theme <- current_theme()
-    tryCatch({
-      # Use bs_themer() for dynamic theme switching in bslib 0.4+
-      if (exists("bs_themer") && packageVersion("bslib") >= "0.4.0") {
-        # For newer bslib versions, use reactive theme updating
-        if (exists("session$setCurrentTheme")) {
-          session$setCurrentTheme(theme)
-        }
-      }
-    }, error = function(e) {
-      # Silent error handling - theme functionality is working
-    })
-  })
-
-  observeEvent(input$toggleTheme, {
-    runjs('$("#themePanel").collapse("toggle");')
-  })
-
-  # Toggle controls panel
-  observeEvent(input$toggleControls, {
-    if (input$toggleControls %% 2 == 1) {
-      # Hide controls, expand diagram
-      updateActionButton(session, "toggleControls",
-                        label = HTML('<i class="fa fa-chevron-right"></i> Show Controls'))
-      runjs("
-        $('#controlsPanel').hide();
-        $('#diagramPanel').removeClass('col-sm-8').addClass('col-sm-12');
-      ")
-    } else {
-      # Show controls, normal layout
-      updateActionButton(session, "toggleControls",
-                        label = HTML('<i class="fa fa-chevron-left"></i> Hide Controls'))
-      runjs("
-        $('#controlsPanel').show();
-        $('#diagramPanel').removeClass('col-sm-12').addClass('col-sm-8');
-      ")
-    }
-  })
-
-  # File upload handling
-  observeEvent(input$file, {
-    req(input$file)
-    tryCatch({
-      sheet_names <- excel_sheets(input$file$datapath)
-      sheets(sheet_names)
-      updateSelectInput(session, "sheet", choices = sheet_names, selected = sheet_names[1])
-    }, error = function(e) {
-      showNotification(t("notify_error_reading_file", lang()), type = "error")
-    })
-  })
-
-  output$fileUploaded <- reactive(!is.null(input$file))
-  outputOptions(output, "fileUploaded", suspendWhenHidden = FALSE)
-
-  # Enhanced data loading with validation
-  observeEvent(input$loadData, {
-    req(input$file, input$sheet)
-
-    tryCatch({
-      data <- read_excel(input$file$datapath, sheet = input$sheet)
-      validation <- validateDataColumns(data)
-
-      if (!validation$valid) {
-        showNotification(paste("Missing required columns:",
-                              paste(validation$missing, collapse = ", ")), type = "error")
-        return()
-      }
-
-      data <- addDefaultColumns(data)
-      currentData(data)
-      editedData(data)
-      dataVersion(dataVersion() + 1)
-      hasData(TRUE)  # Track that data is loaded
-      clear_cache()  # Clear cache when new data is loaded
-
-      updateSelectInput(session, "selectedProblem", choices = unique(data$Central_Problem))
-      updateSelectInput(session, "bayesianProblem", choices = unique(data$Central_Problem))
-
-      # Improved success notification
-      lastNotification(paste("✅", t("notify_data_loaded", lang())))
-      showNotification(paste("✅", t("notify_data_loaded", lang())), type = "message", duration = 3)
-
-    }, error = function(e) {
-      hasData(FALSE)
-      lastNotification(paste("❌ Error loading data:", e$message))
-      showNotification(paste("❌ Error loading data:", e$message), type = "error", duration = 8)
-    })
-  })
-
-  # Generate data using standardized vocabularies with multiple controls
-  observeEvent(input$generateMultipleControls, {
-    scenario_key <- input$data_scenario_template
-    
-    scenario_msg <- if (!is.null(scenario_key) && scenario_key != "") {
-      paste0("🔄 Generating data with MULTIPLE CONTROLS for scenario: ", scenario_key)
-    } else {
-      "🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure..."
-    }
-    
-    showNotification(scenario_msg, type = "default", duration = 3)
-
-    tryCatch({
-      multiple_controls_data <- generateEnvironmentalDataWithMultipleControls(scenario_key)
-      currentData(multiple_controls_data)
-      editedData(multiple_controls_data)
-      envDataGenerated(TRUE)
-      dataVersion(dataVersion() + 1)
-      clear_cache()
-
-      problem_choices <- unique(multiple_controls_data$Central_Problem)
-      updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
-      updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
-
-      # Show detailed statistics
-      unique_pressures <- length(unique(multiple_controls_data$Pressure))
-      unique_controls <- length(unique(multiple_controls_data$Preventive_Control))
-      total_entries <- nrow(multiple_controls_data)
-
-      showNotification(
-        paste("✅ Generated", total_entries, "entries with", unique_controls,
-              "preventive controls across", unique_pressures, "environmental pressures!"),
-        type = "default", duration = 5)
-
-    }, error = function(e) {
-      showNotification(paste("❌ Error generating multiple controls data:", e$message), type = "error", duration = 5)
-    })
-  })
-
-  output$envDataGenerated <- reactive(envDataGenerated())
-  outputOptions(output, "envDataGenerated", suspendWhenHidden = FALSE)
-
-  # Optimized data loading check
-  output$dataLoaded <- reactive({
-    data <- getCurrentData()
-    !is.null(data) && nrow(data) > 0
-  })
-  outputOptions(output, "dataLoaded", suspendWhenHidden = FALSE)
-
-  # Enhanced data info with details
-  output$dataInfo <- renderText({
-    data <- getCurrentData()
-    req(data)
-    
-    # Count unique elements in the bowtie
-    counts <- list(
-      activities = length(unique(data$Activity)),
-      pressures = length(unique(data$Pressure)),
-      controls = length(unique(data$Preventive_Control)),
-      escalations = if("Escalation_Factor" %in% names(data)) length(unique(data$Escalation_Factor)) else 0,
-      problems = length(unique(data$Central_Problem)),
-      mitigations = length(unique(data$Protective_Mitigation)),
-      consequences = length(unique(data$Consequence)),
-      total_rows = nrow(data)
-    )
-    
-    sprintf("Total Scenarios: %d\nActivities: %d | Pressures: %d | Controls: %d\nEscalations: %d | Problems: %d | Mitigations: %d | Consequences: %d",
-            counts$total_rows, counts$activities, counts$pressures, counts$controls,
-            counts$escalations, counts$problems, counts$mitigations, counts$consequences)
-  })
-
-  # Enhanced download handler
-  output$downloadSample <- downloadHandler(
-    filename = function() paste("enhanced_environmental_bowtie_", Sys.Date(), ".xlsx", sep = ""),
-    content = function(file) {
-      data <- getCurrentData()
-      req(data)
-      openxlsx::write.xlsx(data, file, rowNames = FALSE)
-    }
-  )
 
   # =============================================================================
-  # NEW: BAYESIAN NETWORK ANALYSIS SERVER LOGIC
+  # BAYESIAN NETWORK (Handled by bayesian_module)
   # =============================================================================
+  # NOTE: Bayesian network analysis is now handled by bayesian_module.R
+  # Available from module:
+  # - bayesianNetwork() - Reactive Bayesian network object
+  # - bayesianNetworkCreated() - Network creation flag
+  # - inferenceResults() - Inference results
+  # - inferenceCompleted() - Inference completion flag
 
-  # Create Bayesian Network
-  observeEvent(input$createBayesianNetwork, {
-    data <- getCurrentData()
-    req(data, input$bayesianProblem)
+  # =============================================================================
+  # THEME MANAGEMENT (Handled by theme_module)
+  # =============================================================================
+  # NOTE: All theme logic is now in theme_module.R
+  # Available from module:
+  # - current_theme() - Reactive theme object
+  # - appliedTheme() - Currently applied theme name
+  # - themeUpdateTrigger() - Theme change trigger
+  # - All theme observers and handlers
 
-    showNotification(paste("🧠", t("notify_bayesian_creating", lang())), type = "default", duration = 3)
+  # =============================================================================
+  # DATA MANAGEMENT (Handled by data_management_module)
+  # =============================================================================
+  # NOTE: All file upload, data loading, and generation logic is now in
+  # data_management_module.R. The following functionality is handled by the module:
+  # - File upload and sheet selection
+  # - Data loading with validation
+  # - Environmental data generation
+  # - Data info outputs
+  # - Sample data download
+  #
+  # Removed duplicate code (lines 200-351) that was conflicting with module
 
-    tryCatch({
-      # Convert bowtie to Bayesian network
-      bn_result <- bowtie_to_bayesian(
-        data,
-        central_problem = input$bayesianProblem,
-        learn_from_data = FALSE,
-        visualize = TRUE
-      )
-
-      bayesianNetwork(bn_result)
-      bayesianNetworkCreated(TRUE)
-
-      showNotification(paste("✅", t("notify_bayesian_success", lang())), type = "message", duration = 3)
-
-    }, error = function(e) {
-      showNotification(paste("❌", t("notify_bayesian_error", lang()), e$message), type = "error")
-      cat("Bayesian network error:", e$message, "\n")
-    })
-  })
-
-  # Bayesian network created flag
-  output$bayesianNetworkCreated <- reactive({
-    bayesianNetworkCreated()
-  })
-  outputOptions(output, "bayesianNetworkCreated", suspendWhenHidden = FALSE)
-
-  # Bayesian network visualization
-  output$bayesianNetworkVis <- renderVisNetwork({
-    bn_result <- bayesianNetwork()
-    req(bn_result, bn_result$visualization)
-
-    bn_result$visualization
-  })
-
-  # Network information
-  output$networkInfo <- renderPrint({
-    bn_result <- bayesianNetwork()
-    req(bn_result)
-
-    structure <- bn_result$structure
-    cat("Network Structure:\n")
-    cat("  Nodes:", nrow(structure$nodes), "\n")
-    cat("  Edges:", nrow(structure$edges), "\n")
-    cat("  Node types:\n")
-    node_types <- table(structure$nodes$node_type)
-    for (i in 1:length(node_types)) {
-      cat("    ", names(node_types)[i], ":", node_types[i], "\n")
-    }
-  })
-
-  # Run Bayesian inference
-  observeEvent(input$runInference, {
-    bn_result <- bayesianNetwork()
-    req(bn_result, input$queryNodes)
-
-    showNotification("🔮 Running Bayesian inference...", type = "default", duration = 2)
-
-    tryCatch({
-      # Prepare evidence
-      evidence <- list()
-
-      if (!is.null(input$evidenceActivity) && input$evidenceActivity != "") {
-        evidence$Activity <- input$evidenceActivity
-      }
-      if (!is.null(input$evidencePressure) && input$evidencePressure != "") {
-        evidence$Pressure_Level <- input$evidencePressure
-      }
-      if (!is.null(input$evidenceControl) && input$evidenceControl != "") {
-        evidence$Control_Effect <- input$evidenceControl
-      }
-
-      # Run inference
-      if (exists("perform_inference_simple")) {
-        results <- perform_inference_simple(evidence, input$queryNodes)
-      } else {
-        # Fallback simplified inference for demo
-        results <- list(
-          Consequence_Level = c(Low = 0.3, Medium = 0.4, High = 0.3),
-          Problem_Severity = c(Low = 0.2, Medium = 0.5, High = 0.3),
-          Escalation_Level = c(Low = 0.4, Medium = 0.4, High = 0.2)
-        )
-      }
-
-      inferenceResults(results)
-      inferenceCompleted(TRUE)
-
-      showNotification("✅ Inference completed!", type = "message", duration = 2)
-
-    }, error = function(e) {
-      showNotification(paste("❌ Error in inference:", e$message), type = "error")
-      cat("Inference error:", e$message, "\n")
-    })
-  })
-
-  # Inference results output
-  output$inferenceResults <- renderPrint({
-    results <- inferenceResults()
-    req(results)
-
-    cat("Probabilistic Predictions:\n\n")
-    for (node in names(results)) {
-      cat(node, ":\n")
-      node_results <- results[[node]]
-      for (state in names(node_results)) {
-        cat("  ", state, ": ", sprintf("%.1f%%", node_results[state] * 100), "\n")
-      }
-      cat("\n")
-    }
-  })
-
-  # Risk interpretation
-  output$riskInterpretation <- renderUI({
-    results <- inferenceResults()
-    req(results)
-
-    interpretations <- list()
-
-    # Analyze consequence level
-    if ("Consequence_Level" %in% names(results)) {
-      cons_results <- results$Consequence_Level
-      if ("High" %in% names(cons_results) && cons_results["High"] > 0.5) {
-        interpretations <- append(interpretations,
-          div(class = "alert alert-danger",
-              tagList(icon("exclamation-triangle"), " "),
-              strong("High Risk: "), sprintf("%.1f%% probability of severe consequences", cons_results["High"] * 100)))
-      } else if ("Medium" %in% names(cons_results) && cons_results["Medium"] > 0.4) {
-        interpretations <- append(interpretations,
-          div(class = "alert alert-warning",
-              tagList(icon("exclamation"), " "),
-              strong("Medium Risk: "), sprintf("%.1f%% probability of moderate consequences", cons_results["Medium"] * 100)))
-      } else {
-        interpretations <- append(interpretations,
-          div(class = "alert alert-success",
-              tagList(icon("check-circle"), " "),
-              strong("Low Risk: "), "Consequences likely to be manageable"))
-      }
-    }
-
-    # Analyze problem severity
-    if ("Problem_Severity" %in% names(results)) {
-      prob_results <- results$Problem_Severity
-      if ("High" %in% names(prob_results) && prob_results["High"] > 0.4) {
-        interpretations <- append(interpretations,
-          div(class = "alert alert-info",
-              tagList(icon("info-circle"), " "),
-              strong("Problem Analysis: "), "Central problem likely to be severe - enhanced monitoring recommended"))
-      }
-    }
-
-    if (length(interpretations) == 0) {
-      interpretations <- list(div(class = "alert alert-secondary", "Run inference to see risk interpretation"))
-    }
-
-    return(tagList(interpretations))
-  })
-
-  # Inference completed flag
-  output$inferenceCompleted <- reactive({
-    inferenceCompleted()
-  })
-  outputOptions(output, "inferenceCompleted", suspendWhenHidden = FALSE)
-
-  # Scenario buttons
-  observeEvent(input$scenarioWorstCase, {
-    updateSelectInput(session, "evidenceActivity", selected = "Present")
-    updateSelectInput(session, "evidencePressure", selected = "High")
-    updateSelectInput(session, "evidenceControl", selected = "Failed")
-    showNotification("🔴 Worst case scenario set", type = "warning", duration = 2)
-  })
-
-  observeEvent(input$scenarioBestCase, {
-    updateSelectInput(session, "evidenceActivity", selected = "Absent")
-    updateSelectInput(session, "evidencePressure", selected = "Low")
-    updateSelectInput(session, "evidenceControl", selected = "Effective")
-    showNotification("🟢 Best case scenario set", type = "message", duration = 2)
-  })
-
-  observeEvent(input$scenarioControlFailure, {
-    updateSelectInput(session, "evidenceActivity", selected = "Present")
-    updateSelectInput(session, "evidencePressure", selected = "Medium")
-    updateSelectInput(session, "evidenceControl", selected = "Failed")
-    showNotification("🟡 Control failure scenario set", type = "warning", duration = 2)
-  })
-
-  observeEvent(input$scenarioBaseline, {
-    updateSelectInput(session, "evidenceActivity", selected = "")
-    updateSelectInput(session, "evidencePressure", selected = "")
-    updateSelectInput(session, "evidenceControl", selected = "")
-    showNotification("ℹ️ Baseline scenario set (no evidence)", type = "message", duration = 2)
-  })
-
-  # Download Bayesian results
-  output$downloadBayesianResults <- downloadHandler(
-    filename = function() paste("bayesian_analysis_", Sys.Date(), ".html", sep = ""),
-    content = function(file) {
-      bn_result <- bayesianNetwork()
-      results <- inferenceResults()
-      req(bn_result)
-
-      # Create HTML report
-      html_content <- paste(
-        "<html><head><title>Bayesian Network Analysis Report</title></head>",
-        "<body>",
-        "<h1>Environmental Bowtie Bayesian Network Analysis</h1>",
-        "<h2>Network Structure</h2>",
-        paste("<p>Nodes:", nrow(bn_result$structure$nodes), "</p>"),
-        paste("<p>Edges:", nrow(bn_result$structure$edges), "</p>"),
-        "<h2>Analysis Date</h2>",
-        paste("<p>", Sys.Date(), "</p>"),
-        "</body></html>",
-        sep = ""
-      )
-
-      writeLines(html_content, file)
-    }
-  )
+  # =============================================================================
+  # BAYESIAN NETWORK ANALYSIS - MOVED TO MODULE
+  # =============================================================================
+  # NOTE: All Bayesian network functionality has been moved to bayesian_module.R
+  # The module handles:
+  # - Network creation (observeEvent input$createBayesianNetwork)
+  # - Network visualization (output$bayesianNetworkVis)
+  # - Network info (output$networkInfo)
+  # - Inference (observeEvent input$runInference)
+  # - Inference results (output$inferenceResults)
+  # - Risk interpretation (output$riskInterpretation)
+  # - CPT tables (output$cptTables)
+  # - Scenario presets (worst/best case, control failure, baseline)
+  # - Download handler (output$downloadBayesianResults)
+  # =============================================================================
 
   # =============================================================================
   # EXISTING FUNCTIONALITY (keeping all original features)
@@ -629,6 +875,25 @@ server <- function(input, output, session) {
     data <- getCurrentData()
     req(data)
 
+    # Build columnDefs dynamically based on available columns
+    ncols <- ncol(data)
+    col_defs <- list()
+
+    # Only add column definitions for columns that exist
+    if (ncols > 0) {
+      # Center alignment for numeric-like columns (if they exist)
+      center_targets <- intersect(c(7, 8, 9), seq(0, ncols - 1))
+      if (length(center_targets) > 0) {
+        col_defs[[length(col_defs) + 1]] <- list(className = 'dt-center', targets = center_targets)
+      }
+
+      # Width for text columns
+      text_targets <- intersect(seq(0, 6), seq(0, ncols - 1))
+      if (length(text_targets) > 0) {
+        col_defs[[length(col_defs) + 1]] <- list(width = '100px', targets = text_targets)
+      }
+    }
+
     DT::datatable(
       data,
       options = list(
@@ -637,12 +902,7 @@ server <- function(input, output, session) {
         selection = 'multiple',
         processing = TRUE,
         deferRender = TRUE,
-        columnDefs = list(
-          list(className = 'dt-center', targets = c(7, 8, 9)),
-          list(width = '100px', targets = c(0, 1, 2, 3, 4, 5, 6)),
-          list(width = '60px', targets = c(7, 8)),
-          list(width = '80px', targets = c(9))
-        ),
+        columnDefs = if (length(col_defs) > 0) col_defs else NULL,
         autoWidth = FALSE,
         dom = 'Blfrtip',
         buttons = c('copy', 'csv', 'excel'),
@@ -687,14 +947,14 @@ server <- function(input, output, session) {
 
     editedData(data)
     dataVersion(dataVersion() + 1)
-    clear_cache()
+    clear_similarity_cache(confirm = FALSE)  # Non-interactive cache clear
 
     # Reset Bayesian network when data changes
     bayesianNetworkCreated(FALSE)
     inferenceCompleted(FALSE)
 
     if (runif(1) < 0.3) {
-      showNotification("✓ Cell updated - Bayesian network ready for recreation", type = "default", duration = 1)
+      showNotification("✓ Cell updated - Bayesian network ready for recreation", type = "message", duration = 1)
     }
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
@@ -710,13 +970,15 @@ server <- function(input, output, session) {
 
       # Initialize data if none exists
       if (is.null(data) || nrow(data) == 0) {
-        cat("🔄 Initializing data for addRow operation...\n")
+        if (getOption("bowtie.verbose", FALSE)) {
+          bowtie_log("Initializing data for addRow operation...", level = "debug")
+        }
         initial_data <- generateEnvironmentalDataFixed()
         # Take only the structure but remove all rows to start fresh
         data <- initial_data[0, , drop = FALSE]
         currentData(data)
         editedData(data)
-        showNotification("📊 Initialized new dataset for editing", type = "default", duration = 2)
+        showNotification("📊 Initialized new dataset for editing", type = "message", duration = 2)
       }
 
       selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk"
@@ -747,12 +1009,12 @@ server <- function(input, output, session) {
 
       editedData(updated_data)
       dataVersion(dataVersion() + 1)
-      clear_cache()
+      clear_similarity_cache(confirm = FALSE)  # Non-interactive cache clear
       bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-      showNotification("✅ New row added with Bayesian support!", type = "default", duration = 2)
+      showNotification("✅ New row added with Bayesian support!", type = "message", duration = 2)
 
     }, error = function(e) {
-      cat("Error in addRow:", e$message, "\n")
+      bowtie_log("Error in addRow:", e$message, level = "error")
       showNotification(paste("❌ Error adding row:", e$message), type = "error", duration = 5)
     })
   })
@@ -764,7 +1026,7 @@ server <- function(input, output, session) {
       updated_data <- data[-rows, ]
       editedData(updated_data)
       dataVersion(dataVersion() + 1)
-      clear_cache()
+      clear_similarity_cache(confirm = FALSE)  # Non-interactive cache clear
       bayesianNetworkCreated(FALSE)  # Reset Bayesian network
       showNotification(paste("🗑️ Deleted", length(rows), "row(s) - Bayesian network reset"), type = "warning", duration = 2)
     } else {
@@ -776,7 +1038,7 @@ server <- function(input, output, session) {
     edited <- editedData()
     if (!is.null(edited)) {
       currentData(edited)
-      showNotification("💾 Changes saved with Bayesian network support!", type = "default", duration = 2)
+      showNotification("💾 Changes saved with Bayesian network support!", type = "message", duration = 2)
     }
   })
 
@@ -808,14 +1070,14 @@ server <- function(input, output, session) {
     updated_data <- rbind(data, new_row)
     editedData(updated_data)
     dataVersion(dataVersion() + 1)
-    clear_cache()
+    clear_similarity_cache(confirm = FALSE)  # Non-interactive cache clear
     bayesianNetworkCreated(FALSE)  # Reset Bayesian network
 
     updateTextInput(session, "newActivity", value = "")
     updateTextInput(session, "newPressure", value = "")
     updateTextInput(session, "newConsequence", value = "")
 
-    showNotification("🔗 Activity chain added with Bayesian network support!", type = "default", duration = 3)
+    showNotification("🔗 Activity chain added with Bayesian network support!", type = "message", duration = 3)
   })
 
   # Enhanced debug info
@@ -828,291 +1090,30 @@ server <- function(input, output, session) {
     }
   })
 
-  # Bowtie network visualization
-  output$bowtieNetwork <- renderVisNetwork({
-    data <- getCurrentData()
-    req(data, input$selectedProblem)
+  # =============================================================================
+  # BOWTIE VISUALIZATION (Handled by bowtie_visualization_module)
+  # =============================================================================
+  # NOTE: All bowtie visualization code has been moved to server_modules/bowtie_visualization_module.R:
+  # - filtered_problem_data reactive
+  # - cached_bowtie_nodes reactive
+  # - cached_bowtie_edges reactive
+  # - output$bowtieNetwork (visNetwork visualization)
+  # - output$riskMatrix (plotly risk matrix)
+  # - output$riskStats (risk statistics table)
+  #
+  # Reactive values are available via: filtered_problem_data, cached_bowtie_nodes, cached_bowtie_edges
 
-    problem_data <- data[data$Central_Problem == input$selectedProblem, ]
-    if (nrow(problem_data) == 0) {
-      showNotification("⚠️ No data for selected central problem", type = "warning")
-      return(NULL)
-    }
-
-    nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, input$nodeSize,
-                                   input$showRiskLevels, input$showBarriers)
-    edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
-
-    visNetwork(nodes, edges,
-               main = input$selectedProblem,
-               submain = if(input$showBarriers) "Complete risk pathway analysis" else "Direct causal relationships",
-               width = "100%", height = "800px") %>%
-      visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
-               font = list(color = "#2C3E50", face = "Arial", multi = "html", bold = "12px Arial #000000")) %>%
-      visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
-               smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)) %>%
-      visLayout(randomSeed = 123, improvedLayout = FALSE) %>%
-      visPhysics(enabled = FALSE, stabilization = FALSE) %>%
-      visOptions(highlightNearest = list(enabled = TRUE, degree = 1),
-                nodesIdSelection = TRUE, collapse = FALSE,
-                manipulation = if(input$editMode) list(enabled = TRUE, addNode = TRUE, addEdge = TRUE,
-                                                      editNode = TRUE, editEdge = TRUE, deleteNode = TRUE,
-                                                      deleteEdge = TRUE) else list(enabled = FALSE)) %>%
-      visInteraction(navigationButtons = TRUE, dragNodes = TRUE, dragView = TRUE, zoomView = TRUE) %>%
-      visLegend(useGroups = FALSE, addNodes = list(
-        list(label = "Activities (Human Actions)",
-             color = "#8E44AD", shape = "square", size = 15),
-        list(label = "Pressures (Environmental Threats)",
-             color = "#E74C3C", shape = "triangle", size = 15),
-        list(label = "Preventive Controls",
-             color = "#27AE60", shape = "square", size = 15),
-        list(label = "Escalation Factors",
-             color = "#F39C12", shape = "triangleDown", size = 15),
-        list(label = "Central Problem (Main Risk)",
-             color = "#C0392B", shape = "diamond", size = 18),
-        list(label = "Protective Mitigation",
-             color = "#3498DB", shape = "square", size = 15),
-        list(label = "Consequences (Impacts)",
-             color = "#E67E22", shape = "hexagon", size = 15)
-      ), position = "right", width = 0.25, ncol = 1)
-  })
-
-  # Enhanced risk matrix with comprehensive error handling
-  output$riskMatrix <- renderPlotly({
-    data <- getCurrentData()
-    req(data, nrow(data) > 0)
-
-    # Ensure Risk_Level column exists and is properly formatted
-    if (!"Risk_Level" %in% names(data)) {
-      # Calculate risk level based on likelihood and severity
-      likelihood_col <- if ("Likelihood" %in% names(data)) data$Likelihood else data$Overall_Likelihood
-      severity_col <- if ("Severity" %in% names(data)) data$Severity else data$Overall_Severity
-
-      risk_scores <- likelihood_col * severity_col
-      data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
-                               ifelse(risk_scores <= 15, "Medium", "High"))
-    }
-
-    # Ensure Risk_Level is character and has valid values
-    if (is.numeric(data$Risk_Level)) {
-      # Convert numeric risk level to categorical
-      data$Risk_Level <- ifelse(data$Risk_Level <= 6, "Low",
-                               ifelse(data$Risk_Level <= 15, "Medium", "High"))
-    }
-
-    # Validate Risk_Level values and set defaults for invalid ones
-    valid_levels <- c("Low", "Medium", "High")
-    data$Risk_Level[!data$Risk_Level %in% valid_levels] <- "Medium"
-
-    # Ensure Likelihood and Severity columns exist
-    if (!"Likelihood" %in% names(data)) {
-      data$Likelihood <- data$Overall_Likelihood
-    }
-    if (!"Severity" %in% names(data)) {
-      data$Severity <- data$Overall_Severity
-    }
-
-    # Create the risk matrix plot
-    tryCatch({
-      risk_plot <- ggplot(data, aes(x = Likelihood, y = Severity)) +
-        geom_point(aes(color = Risk_Level, text = paste(
-          "Central Problem:", Central_Problem,
-          "<br>Activity:", Activity,
-          "<br>Pressure:", Pressure,
-          "<br>Protective Mitigation:", Protective_Mitigation,
-          "<br>Consequence:", Consequence,
-          "<br>Risk Level:", Risk_Level,
-          "<br>Risk Score:", Likelihood * Severity,
-          "<br>Bayesian Networks: ✅"
-        )), size = 4, alpha = 0.7) +
-        scale_color_manual(values = RISK_COLORS, name = "Risk Level") +
-        scale_x_continuous(breaks = 1:5, limits = c(0.5, 5.5),
-                          name = "Likelihood (1=Very Low, 5=Very High)") +
-        scale_y_continuous(breaks = 1:5, limits = c(0.5, 5.5),
-                          name = "Severity (1=Negligible, 5=Catastrophic)") +
-        labs(title = "🌟 Enhanced Environmental Risk Matrix with Bayesian Networks",
-             subtitle = paste("✅ Analyzing", nrow(data), "risk scenarios - Ready for probabilistic modeling")) +
-        theme_minimal() +
-        theme(legend.position = "bottom",
-              plot.title = element_text(color = "#2C3E50", size = 14),
-              plot.subtitle = element_text(color = "#007bff", size = 10))
-
-      ggplotly(risk_plot, tooltip = "text")
-
-    }, error = function(e) {
-      cat("❌ Error in risk matrix generation:", e$message, "\n")
-
-      # Create a simple fallback plot
-      fallback_plot <- ggplot() +
-        geom_text(aes(x = 3, y = 3),
-                  label = paste("Risk Matrix Error\nData issue detected:\n", e$message),
-                  size = 4, color = "#dc3545") +
-        xlim(1, 5) + ylim(1, 5) +
-        labs(title = "⚠️ Risk Matrix Generation Error",
-             x = "Likelihood", y = "Severity") +
-        theme_minimal()
-
-      ggplotly(fallback_plot)
-    })
-  })
-
-  # Enhanced risk statistics
-  output$riskStats <- renderTable({
-    data <- getCurrentData()
-    req(data, nrow(data) > 0)
-
-    risk_summary <- data %>%
-      count(Risk_Level) %>%
-      mutate(Percentage = round(n / sum(n) * 100, 1)) %>%
-      mutate(Icon = case_when(
-        Risk_Level == "High" ~ "🔴",
-        Risk_Level == "Medium" ~ "🟡",
-        TRUE ~ "🟢"
-      )) %>%
-      select(Icon, Risk_Level, Count = n, Percentage)
-
-    names(risk_summary) <- c("Icon", "Risk Level", "Count", "Percentage (%)")
-
-    footer_row <- data.frame(
-      Icon = "🧠",
-      `Risk Level` = "Bayesian",
-      Count = nrow(data),
-      `Percentage (%)` = 100.0,
-      stringsAsFactors = FALSE,
-      check.names = FALSE
-    )
-
-    names(footer_row) <- names(risk_summary)
-
-    rbind(risk_summary, footer_row)
-  }, sanitize.text.function = function(x) x)
-
-  # Enhanced download bowtie diagram
-  output$downloadBowtie <- downloadHandler(
-    filename = function() paste("enhanced_bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
-    content = function(file) {
-      data <- getCurrentData()
-      req(data, input$selectedProblem)
-
-      problem_data <- data[data$Central_Problem == input$selectedProblem, ]
-      nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, 50, FALSE, TRUE)
-      edges <- createBowtieEdgesFixed(problem_data, TRUE)
-
-      network <- visNetwork(nodes, edges,
-                          main = paste("🌟 Enhanced Environmental Bowtie Analysis with Bayesian Networks:", input$selectedProblem),
-                          submain = paste("Generated on", Sys.Date(), "- with Bayesian network support"),
-                          footer = "🔧 ENHANCED: Activities → Pressures → Controls → Escalation → Central Problem → Mitigation → Consequences + Bayesian Networks") %>%
-        visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
-                font = list(color = "#2C3E50", face = "Arial")) %>%
-        visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
-                smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)) %>%
-        visLayout(randomSeed = 123, improvedLayout = FALSE) %>%
-        visPhysics(enabled = FALSE, stabilization = FALSE) %>%
-        visLegend(useGroups = FALSE, addNodes = list(
-          list(label = "Activities (Human Actions)",
-               color = "#8E44AD", shape = "box", size = 15),
-          list(label = "Pressures (Environmental Threats)",
-               color = "#E74C3C", shape = "triangle", size = 15),
-          list(label = "Preventive Controls",
-               color = "#27AE60", shape = "square", size = 15),
-          list(label = "Escalation Factors",
-               color = "#F39C12", shape = "triangleDown", size = 15),
-          list(label = "Central Problem (Main Risk)",
-               color = "#C0392B", shape = "diamond", size = 18),
-          list(label = "Protective Mitigation",
-               color = "#3498DB", shape = "square", size = 15),
-          list(label = "Consequences (Impacts)",
-               color = "#E67E22", shape = "hexagon", size = 15)
-        ), position = "right", width = 0.25, ncol = 1)
-
-      visSave(network, file, selfcontained = TRUE)
-    },
-    contentType = "text/html"
-  )
-
-  # Download bowtie as JPEG with white background
-  output$downloadBowtieJPEG <- downloadHandler(
-    filename = function() paste("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".jpeg"),
-    content = function(file) {
-      data <- getCurrentData()
-      req(data, input$selectedProblem)
-
-      problem_data <- data[data$Central_Problem == input$selectedProblem, ]
-      nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, input$nodeSize,
-                                     input$showRiskLevels, input$showBarriers)
-      edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
-
-      # Create network
-      network <- visNetwork(nodes, edges,
-                          main = paste("Environmental Bowtie Analysis:", input$selectedProblem),
-                          height = "800px", width = "100%") %>%
-        visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
-                font = list(color = "#2C3E50", face = "Arial", size = 14)) %>%
-        visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
-                smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)) %>%
-        visLayout(randomSeed = 123, improvedLayout = FALSE) %>%
-        visPhysics(enabled = FALSE, stabilization = FALSE) %>%
-        visInteraction(navigationButtons = FALSE, dragNodes = FALSE,
-                      dragView = FALSE, zoomView = FALSE) %>%
-        visExport(type = "jpeg", name = paste0("bowtie_", input$selectedProblem),
-                 float = "left", label = "Export JPEG",
-                 background = "#FFFFFF",  # White background for readability
-                 style = "position: absolute; top: 0; left: 0;")
-
-      # Save to temp HTML first
-      temp_html <- tempfile(fileext = ".html")
-      visSave(network, temp_html, selfcontained = TRUE)
-
-      # Note: visSave with visExport will create export button in the HTML
-      # For server-side export, we'll use the HTML with export functionality
-      file.copy(temp_html, file)
-
-      showNotification("JPEG export: Click the 'Export JPEG' button in the opened diagram",
-                      type = "message", duration = 10)
-    },
-    contentType = "text/html"
-  )
-
-  # Download bowtie as PNG with transparent background
-  output$downloadBowtiePNG <- downloadHandler(
-    filename = function() paste("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".png"),
-    content = function(file) {
-      data <- getCurrentData()
-      req(data, input$selectedProblem)
-
-      problem_data <- data[data$Central_Problem == input$selectedProblem, ]
-      nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, input$nodeSize,
-                                     input$showRiskLevels, input$showBarriers)
-      edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
-
-      # Create network with export button
-      network <- visNetwork(nodes, edges,
-                          main = paste("Environmental Bowtie Analysis:", input$selectedProblem),
-                          height = "800px", width = "100%") %>%
-        visNodes(borderWidth = 2, shadow = list(enabled = TRUE, size = 5),
-                font = list(color = "#2C3E50", face = "Arial", size = 14)) %>%
-        visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 1)),
-                smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)) %>%
-        visLayout(randomSeed = 123, improvedLayout = FALSE) %>%
-        visPhysics(enabled = FALSE, stabilization = FALSE) %>%
-        visInteraction(navigationButtons = FALSE, dragNodes = FALSE,
-                      dragView = FALSE, zoomView = FALSE) %>%
-        visExport(type = "png", name = paste0("bowtie_", input$selectedProblem),
-                 float = "left", label = "Export PNG",
-                 background = "transparent",  # Transparent background (standard PNG)
-                 style = "position: absolute; top: 0; left: 0;")
-
-      # Save to temp HTML
-      temp_html <- tempfile(fileext = ".html")
-      visSave(network, temp_html, selfcontained = TRUE)
-
-      file.copy(temp_html, file)
-
-      showNotification("PNG export: Click the 'Export PNG' button in the opened diagram",
-                      type = "message", duration = 10)
-    },
-    contentType = "text/html"
-  )
+  # =============================================================================
+  # EXPORT HANDLERS (Handled by export_module)
+  # =============================================================================
+  # NOTE: All download handlers for bowtie diagrams are now in export_module.R:
+  # - downloadBowtie (HTML)
+  # - downloadBowtieJPEG
+  # - downloadBowtiePNG
+  # - downloadData (CSV)
+  # - downloadExcel
+  #
+  # Removed duplicate code that was conflicting with module
 
   # =============================================================================
   # Link Risk Assessment Server Logic
@@ -1417,7 +1418,7 @@ server <- function(input, output, session) {
       updateSliderInput(session, "protection_consequence_severity", value = row$Mitigation_to_Consequence_Severity)
     }
     
-    showNotification("↩️ Reset to current values", type = "default", duration = 2)
+    showNotification("↩️ Reset to current values", type = "message", duration = 2)
   })
 
   # =============================================================================
@@ -1679,7 +1680,7 @@ server <- function(input, output, session) {
 
   # Refresh vocabulary
   observeEvent(input$refresh_vocab, {
-    showNotification("Refreshing vocabulary data...", type = "default", duration = 2)
+    showNotification("Refreshing vocabulary data...", type = "message", duration = 2)
     tryCatch({
       vocabulary_data <<- load_vocabulary()
       vocab_search_results(data.frame())
@@ -1691,405 +1692,21 @@ server <- function(input, output, session) {
   })
 
   # =============================================================================
-  # AI-Powered Vocabulary Analysis (keeping existing functionality)
+  # AI-Powered Vocabulary Analysis
+  # --- MOVED TO: server_modules/ai_analysis_module.R ---
+  # Module initialized at top of server function as: ai_module
+  # All outputs handled by module:
+  # - output$aiAnalysisComplete, output$ai_summary, output$ai_connections_table
+  # - output$ai_network, output$ai_connection_summary, output$ai_connection_plot
+  # - output$ai_recommendations, output$causal_paths, output$causal_structure
+  # - output$key_drivers, output$key_outcomes
   # =============================================================================
 
-  # Reactive values for AI analysis
-  ai_analysis_results <- reactiveVal(NULL)
-
-  # Run AI analysis
-  observeEvent(input$run_ai_analysis, {
-    showNotification("🤖 Starting AI analysis...", type = "default", duration = 2)
-
-    tryCatch({
-      if (exists("find_vocabulary_links")) {
-        results <- find_vocabulary_links(
-          vocabulary_data,
-          similarity_threshold = input$similarity_threshold,
-          max_links_per_item = input$max_links_per_item,
-          methods = input$ai_methods
-        )
-
-        ai_analysis_results(results)
-
-        # Handle both list and dataframe results
-        link_count <- if (is.list(results) && !is.null(results$links)) {
-          nrow(results$links)
-        } else if (is.data.frame(results)) {
-          nrow(results)
-        } else {
-          0
-        }
-
-        showNotification(
-          paste("✅ AI analysis complete! Found", link_count, "connections"),
-          type = "message",
-          duration = 3
-        )
-      } else if (exists("find_basic_connections")) {
-        # Fall back to basic connections
-        basic_links <- find_basic_connections(
-          vocabulary_data,
-          max_links_per_item = input$max_links_per_item
-        )
-
-        results <- list(
-          links = basic_links,
-          summary = data.frame(),
-          capabilities = list(basic_only = TRUE)
-        )
-        ai_analysis_results(results)
-
-        showNotification(
-          paste("ℹ️ Using basic analysis (AI linker not available). Found", nrow(basic_links), "connections"),
-          type = "warning",
-          duration = 3
-        )
-      } else {
-        showNotification(
-          "⚠️ No linking functions available. Please ensure vocabulary_ai_linker.R is loaded.",
-          type = "error",
-          duration = 5
-        )
-      }
-    }, error = function(e) {
-      showNotification(
-        paste("❌ Error in AI analysis:", e$message),
-        type = "error"
-      )
-    })
-  })
-
-  # AI analysis complete flag
-  output$aiAnalysisComplete <- reactive({
-    !is.null(ai_analysis_results())
-  })
-  outputOptions(output, "aiAnalysisComplete", suspendWhenHidden = FALSE)
-
-  # AI summary
-  output$ai_summary <- renderPrint({
-    results <- ai_analysis_results()
-    if (!is.null(results)) {
-      cat("Total connections found:", nrow(results$links), "\n")
-      cat("Analysis methods used:", paste(unique(results$links$method), collapse = ", "), "\n")
-      cat("Average similarity score:", round(mean(results$links$similarity), 3), "\n")
-
-      if (length(results$keyword_connections) > 0) {
-        cat("\nKeyword themes identified:", paste(names(results$keyword_connections), collapse = ", "))
-      }
-
-      if (!is.null(results$causal_summary) && nrow(results$causal_summary) > 0) {
-        cat("\n\nCausal relationships found:\n")
-        causal_count <- sum(results$causal_summary$count)
-        cat("  Total causal links:", causal_count, "\n")
-        cat("  Activity → Pressure:",
-            sum(results$causal_summary$count[results$causal_summary$from_type == "Activity" &
-                                            results$causal_summary$to_type == "Pressure"]), "\n")
-        cat("  Pressure → Consequence:",
-            sum(results$causal_summary$count[results$causal_summary$from_type == "Pressure" &
-                                            results$causal_summary$to_type == "Consequence"]), "\n")
-        cat("  Control interventions:",
-            sum(results$causal_summary$count[results$causal_summary$from_type == "Control"]), "\n")
-      }
-    }
-  })
-
-  # AI connections table
-  output$ai_connections_table <- DT::renderDataTable({
-    results <- ai_analysis_results()
-    if (!is.null(results) && nrow(results$links) > 0) {
-      display_data <- results$links %>%
-        select(
-          `From Type` = from_type,
-          `From` = from_name,
-          `To Type` = to_type,
-          `To` = to_name,
-          `Similarity` = similarity,
-          `Method` = method
-        ) %>%
-        mutate(
-          Similarity = round(Similarity, 3),
-          Method = gsub("_", " ", Method)
-        )
-
-      DT::datatable(
-        display_data,
-        options = list(
-          pageLength = 10,
-          order = list(list(4, 'desc'))
-        ),
-        rownames = FALSE
-      ) %>%
-        formatStyle("Similarity",
-                   background = styleColorBar(display_data$Similarity, "lightblue"),
-                   backgroundSize = '100% 90%',
-                   backgroundRepeat = 'no-repeat',
-                   backgroundPosition = 'center')
-    }
-  })
-
-  # AI network visualization
-  output$ai_network <- renderVisNetwork({
-    results <- ai_analysis_results()
-    if (!is.null(results) && nrow(results$links) > 0) {
-      tryCatch({
-        all_nodes <- unique(c(
-          paste(results$links$from_type, results$links$from_id, results$links$from_name, sep = "|"),
-          paste(results$links$to_type, results$links$to_id, results$links$to_name, sep = "|")
-        ))
-
-        nodes_df <- data.frame(
-          id = sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[1], x[2], sep = "_")),
-          group = sapply(strsplit(all_nodes, "\\|"), `[`, 1),
-          label = sapply(strsplit(all_nodes, "\\|"), function(x) {
-            name <- paste(x[3:length(x)], collapse = "|")
-            if (nchar(name) > 30) paste0(substr(name, 1, 27), "...") else name
-          }),
-          title = sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[3:length(x)], collapse = "|")),
-          stringsAsFactors = FALSE
-        )
-
-        if (length(unique(nodes_df$id)) != nrow(nodes_df)) {
-          nodes_df$id <- paste(nodes_df$id, seq_len(nrow(nodes_df)), sep = "_")
-        }
-
-      type_colors <- list(
-        activities = "#8E44AD",
-        pressures = "#E74C3C",
-        consequences = "#E67E22",
-        controls = "#27AE60"
-      )
-
-      nodes_df$color <- sapply(nodes_df$group, function(g) type_colors[[g]])
-
-      edges_df <- results$links %>%
-        mutate(
-          from = paste(from_type, from_id, sep = "_"),
-          to = paste(to_type, to_id, sep = "_"),
-          width = similarity * 5,
-          title = paste("Similarity:", round(similarity, 3))
-        ) %>%
-        select(from, to, width, title)
-
-      if (length(unique(sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[1], x[2], sep = "_")))) != nrow(nodes_df)) {
-        id_mapping <- setNames(nodes_df$id, sapply(strsplit(all_nodes, "\\|"), function(x) paste(x[1], x[2], sep = "_")))
-        edges_df$from <- id_mapping[edges_df$from]
-        edges_df$to <- id_mapping[edges_df$to]
-      }
-
-      visNetwork(nodes_df, edges_df) %>%
-        visNodes(
-          shape = "dot",
-          size = 20,
-          font = list(size = 12)
-        ) %>%
-        visEdges(
-          smooth = TRUE,
-          color = list(opacity = 0.5)
-        ) %>%
-        visGroups(groupname = "activities", color = "#8E44AD") %>%
-        visGroups(groupname = "pressures", color = "#E74C3C") %>%
-        visGroups(groupname = "consequences", color = "#E67E22") %>%
-        visGroups(groupname = "controls", color = "#27AE60") %>%
-        visLegend(width = 0.2, position = "right") %>%
-        visPhysics(
-          stabilization = TRUE,
-          barnesHut = list(
-            gravitationalConstant = -2000,
-            springConstant = 0.04
-          )
-        ) %>%
-        visOptions(
-          highlightNearest = TRUE,
-          nodesIdSelection = FALSE
-        ) %>%
-        visInteraction(
-          navigationButtons = TRUE,
-          dragNodes = TRUE,
-          dragView = TRUE,
-          zoomView = TRUE
-        )
-      }, error = function(e) {
-        showNotification(paste("❌ Error creating network visualization:", e$message), type = "error")
-        return(NULL)
-      })
-    } else {
-      return(NULL)
-    }
-  })
-
-  # Connection summary
-  output$ai_connection_summary <- renderTable({
-    results <- ai_analysis_results()
-    if (!is.null(results) && !is.null(results$summary) && nrow(results$summary) > 0) {
-      results$summary %>%
-        mutate(
-          avg_similarity = round(avg_similarity, 3),
-          max_similarity = round(max_similarity, 3),
-          min_similarity = round(min_similarity, 3)
-        ) %>%
-        rename(
-          `From Type` = from_type,
-          `To Type` = to_type,
-          `Method` = method,
-          `Count` = count,
-          `Avg Similarity` = avg_similarity,
-          `Max Similarity` = max_similarity,
-          `Min Similarity` = min_similarity
-        )
-    }
-  })
-
-  # Connection plot
-  output$ai_connection_plot <- renderPlot({
-    results <- ai_analysis_results()
-    if (!is.null(results) && nrow(results$links) > 0) {
-      connection_summary <- results$links %>%
-        mutate(connection_type = paste(from_type, "→", to_type)) %>%
-        group_by(connection_type) %>%
-        summarise(count = n(), .groups = 'drop') %>%
-        arrange(desc(count))
-
-      ggplot(connection_summary, aes(x = reorder(connection_type, count), y = count)) +
-        geom_bar(stat = "identity", fill = "#3498DB") +
-        coord_flip() +
-        labs(
-          title = "AI-Discovered Connection Types",
-          x = "Connection Type",
-          y = "Number of Connections"
-        ) +
-        theme_minimal() +
-        theme(
-          plot.title = element_text(size = 14, face = "bold"),
-          axis.text = element_text(size = 10)
-        )
-    }
-  })
-
-  # AI recommendations
-  output$ai_recommendations <- DT::renderDataTable({
-    results <- ai_analysis_results()
-    if (!is.null(results) && exists("generate_link_recommendations")) {
-      recommendations <- generate_link_recommendations(vocabulary_data, focus = "causal")
-
-      if (nrow(recommendations) > 0) {
-        display_recs <- recommendations %>%
-          select(
-            `From` = from_name,
-            `To` = to_name,
-            `Type` = method,
-            `Score` = recommendation_score,
-            `Reasoning` = reasoning
-          ) %>%
-          mutate(
-            Score = round(Score, 3),
-            Type = gsub("causal_", "", Type)
-          )
-
-        DT::datatable(
-          display_recs,
-          options = list(
-            pageLength = 10,
-            dom = 't'
-          ),
-          rownames = FALSE
-        )
-      }
-    }
-  })
-
-  # Causal pathways output
-  output$causal_paths <- renderPrint({
-    results <- ai_analysis_results()
-    if (!is.null(results) && exists("find_causal_paths")) {
-      causal_links <- results$links %>% filter(grepl("causal", method))
-
-      if (nrow(causal_links) > 0) {
-        paths <- find_causal_paths(causal_links, max_length = 5)
-
-        if (length(paths) > 0) {
-          cat("Top 10 Causal Pathways:\n\n")
-          for (i in 1:min(10, length(paths))) {
-            path <- paths[[i]]
-            cat(sprintf("%d. %s\n", i, path$path_string))
-            cat(sprintf("   Strength: %.3f (avg: %.3f)\n\n",
-                       path$total_similarity, path$avg_similarity))
-          }
-        } else {
-          cat("No complete causal pathways found.")
-        }
-      }
-    }
-  })
-
-  # Causal structure analysis
-  output$causal_structure <- renderTable({
-    results <- ai_analysis_results()
-    if (!is.null(results) && exists("analyze_causal_structure")) {
-      causal_analysis <- analyze_causal_structure(results$links)
-
-      if (!is.null(causal_analysis$link_types)) {
-        causal_analysis$link_types %>%
-          mutate(avg_strength = round(avg_strength, 3)) %>%
-          rename(
-            `From` = from_type,
-            `To` = to_type,
-            `Count` = count,
-            `Avg Strength` = avg_strength
-          )
-      }
-    }
-  })
-
-  # Key drivers table
-  output$key_drivers <- renderTable({
-    results <- ai_analysis_results()
-    if (!is.null(results) && exists("analyze_causal_structure")) {
-      causal_analysis <- analyze_causal_structure(results$links)
-
-      if (!is.null(causal_analysis$key_drivers)) {
-        causal_analysis$key_drivers %>%
-          select(-from_id) %>%
-          mutate(
-            avg_impact = round(avg_impact, 3),
-            impact_score = round(outgoing_links * avg_impact, 2)
-          ) %>%
-          rename(
-            `Driver` = from_name,
-            `Type` = from_type,
-            `Links` = outgoing_links,
-            `Avg Impact` = avg_impact,
-            `Score` = impact_score
-          ) %>%
-          head(5)
-      }
-    }
-  })
-
-  # Key outcomes table
-  output$key_outcomes <- renderTable({
-    results <- ai_analysis_results()
-    if (!is.null(results) && exists("analyze_causal_structure")) {
-      causal_analysis <- analyze_causal_structure(results$links)
-
-      if (!is.null(causal_analysis$key_outcomes)) {
-        causal_analysis$key_outcomes %>%
-          select(-to_id) %>%
-          mutate(
-            avg_impact = round(avg_impact, 3),
-            impact_score = round(incoming_links * avg_impact, 2)
-          ) %>%
-          rename(
-            `Outcome` = to_name,
-            `Type` = to_type,
-            `Links` = incoming_links,
-            `Avg Impact` = avg_impact,
-            `Score` = impact_score
-          ) %>%
-          head(5)
-      }
-    }
-  })
+  # NOTE: The following code has been removed (400+ lines moved to module):
+  # - ai_analysis_results reactiveVal
+  # - observeEvent(input$run_ai_analysis) handler
+  # - All 13 output renderers for AI analysis
+  # See ai_analysis_module.R for full implementation
 
   # Guided Workflow Server Logic
   guided_workflow_state <- guided_workflow_server(
@@ -2100,7 +1717,9 @@ server <- function(input, output, session) {
       # Explicitly check - only TRUE if checkbox is checked
       # NULL, NA, FALSE all treated as disabled
       result <- !is.null(input$ai_suggestions_enabled) && isTRUE(input$ai_suggestions_enabled)
-      cat("⚙️ [SERVER] AI enabled reactive called. input$ai_suggestions_enabled =", input$ai_suggestions_enabled, "→ result =", result, "\n")
+      if (getOption("bowtie.verbose", FALSE)) {
+        bowtie_log("[SERVER] AI enabled reactive:", input$ai_suggestions_enabled, "→", result, level = "debug")
+      }
       result
     }),
     ai_methods = reactive({
@@ -2127,197 +1746,92 @@ server <- function(input, output, session) {
         length(state$completed_steps) >= 7) {  # Must have completed at least 7 steps
 
       showNotification("🎉 Bowtie workflow completed successfully!",
-                      type = "default", duration = 5)
+                      type = "message", duration = 5)
 
-      # Auto-switch to visualization tab
-      nav_select("main_tabs", selected = "bowtie", session = session)
+      # Auto-switch to visualization tab (bs4Dash uses updateTabItems)
+      updateTabItems(session, "sidebar_menu", selected = "bowtie")
 
-      cat("✅ Genuine workflow completion triggered from step", state$current_step, "\n")
-      cat("   Completed steps:", paste(state$completed_steps, collapse = ", "), "\n")
+      if (getOption("bowtie.verbose", FALSE)) {
+        bowtie_log("Genuine workflow completion triggered from step", state$current_step, level = "debug")
+        bowtie_log("  Completed steps:", paste(state$completed_steps, collapse = ", "), level = "debug")
+      }
     } else {
-      cat("⚠️ Prevented premature workflow completion trigger:\n")
-      cat("   Step:", state$current_step %||% "unknown", "\n")
-      cat("   Complete flag:", state$workflow_complete %||% "unknown", "\n")
-      cat("   Completed steps:", length(state$completed_steps %||% c()), "\n")
+      if (getOption("bowtie.verbose", FALSE)) {
+        bowtie_log("Prevented premature workflow completion trigger:", level = "debug")
+        bowtie_log("  Step:", state$current_step %||% "unknown", level = "debug")
+        bowtie_log("  Complete flag:", state$workflow_complete %||% "unknown", level = "debug")
+        bowtie_log("  Completed steps:", length(state$completed_steps %||% c()), level = "debug")
+      }
     }
   }, ignoreInit = TRUE)  # Ignore initial reactive trigger
 
   # Automatic data integration: Watch for exported workflow data
+  # Use ignoreNULL=FALSE to ensure trigger fires even when value changes from NULL
   observeEvent(guided_workflow_state()$converted_main_data, {
     workflow_state <- guided_workflow_state()
     exported_data <- workflow_state$converted_main_data
 
-    if (!is.null(exported_data) && nrow(exported_data) > 0) {
-      cat("🔄 Loading guided workflow data into main application...\n")
-      cat("📊 Data rows:", nrow(exported_data), "\n")
+    if (!is.null(exported_data) && is.data.frame(exported_data) && nrow(exported_data) > 0) {
+      log_info("Loading guided workflow data into main application...")
+      log_debug(paste("Data rows:", nrow(exported_data)))
+      log_debug(paste("Data columns:", paste(names(exported_data), collapse = ", ")))
 
       # Load the converted data into main application reactive values
       currentData(exported_data)
       editedData(exported_data)
       envDataGenerated(TRUE)
+      hasData(TRUE)  # Enable menu items
 
       # Update data version for reactive triggers
       dataVersion(dataVersion() + 1)
 
       # Update problem selection choices for bowtie diagram
       problem_choices <- unique(exported_data$Central_Problem)
+      log_debug(paste("Central problems:", paste(problem_choices, collapse = ", ")))
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
 
       showNotification(
-        paste("✅ Successfully loaded", nrow(exported_data),
+        paste("Successfully loaded", nrow(exported_data),
               "bowtie scenarios from guided workflow!"),
         type = "message", duration = 5
       )
 
-      # Auto-switch to the bowtie visualization tab
-      nav_select("main_tabs", selected = "bowtie", session = session)
+      # Auto-switch to the bowtie visualization tab (bs4Dash uses updateTabItems)
+      updateTabItems(session, "sidebar_menu", selected = "bowtie")
 
-      cat("✅ Guided workflow data integration complete\n")
+      log_success("Guided workflow data integration complete")
     }
-  })
+  }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
-  # Enhanced Theme Apply Button Handlers with CSS-based theme switching
-  observeEvent(input$applyTheme, {
-    cat("🎨 Apply Theme button pressed. Selected theme:", input$theme_preset, "\n")
+  # Additional watcher for workflow completion to ensure data loads
+  observeEvent(guided_workflow_state()$workflow_complete, {
+    state <- guided_workflow_state()
+    if (isTRUE(state$workflow_complete) && !is.null(state$converted_main_data)) {
+      exported_data <- state$converted_main_data
+      if (is.data.frame(exported_data) && nrow(exported_data) > 0) {
+        # Ensure data is loaded even if the converted_main_data observer didn't fire
+        if (is.null(currentData()) || nrow(currentData()) == 0) {
+          log_info("[Backup] Loading workflow data on completion...")
+          currentData(exported_data)
+          editedData(exported_data)
+          envDataGenerated(TRUE)
+          hasData(TRUE)  # Enable menu items
+          dataVersion(dataVersion() + 1)
 
-    # Update reactive values
-    appliedTheme(input$theme_preset)
-    old_trigger <- themeUpdateTrigger()
-    new_trigger <- old_trigger + 1
-    themeUpdateTrigger(new_trigger)
-
-    cat("📊 Theme trigger updated from", old_trigger, "to", new_trigger, "\n")
-
-    # Apply theme using CSS injection (more reliable approach)
-    tryCatch({
-      # Get the bootswatch CDN URL for the selected theme
-      theme_name <- input$theme_preset
-      if (theme_name != "custom" && theme_name != "bootstrap") {
-        css_url <- paste0("https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/", theme_name, "/bootstrap.min.css")
-
-        # Inject the new theme CSS
-        runjs(paste0("
-          // Remove existing bootswatch theme
-          $('link[href*=\"bootswatch\"]').remove();
-          $('link[href*=\"bootstrap\"]').last().remove();
-
-          // Add new theme
-          $('<link>').attr({
-            rel: 'stylesheet',
-            type: 'text/css',
-            href: '", css_url, "'
-          }).appendTo('head');
-        "))
-
-        cat("✅ Theme CSS injected successfully\n")
-      } else if (theme_name == "bootstrap") {
-        # Switch to default Bootstrap
-        runjs("
-          $('link[href*=\"bootswatch\"]').remove();
-          $('<link>').attr({
-            rel: 'stylesheet',
-            type: 'text/css',
-            href: 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'
-          }).appendTo('head');
-        ")
-        cat("✅ Default Bootstrap theme applied\n")
-      }
-    }, error = function(e) {
-      cat("❌ Theme CSS injection failed:", e$message, "\n")
-    })
-
-    # Show theme name mapping
-    theme_names <- c(
-      "🌿 Environmental (Default)" = "journal",
-      "🌙 Dark Mode" = "darkly",
-      "☀️ Light & Clean" = "flatly",
-      "🌊 Ocean Blue" = "cosmo",
-      "🌲 Forest Green" = "materia",
-      "🔵 Corporate Blue" = "cerulean",
-      "🎯 Minimal Clean" = "minty",
-      "📊 Dashboard" = "lumen",
-      "🎨 Creative Purple" = "pulse",
-      "🧪 Science Lab" = "sandstone",
-      "🌌 Space Dark" = "slate",
-      "🏢 Professional" = "united",
-      "🎭 Modern Contrast" = "superhero",
-      "🌅 Sunset Orange" = "solar",
-      "📈 Analytics" = "spacelab",
-      "🎪 Vibrant" = "sketchy",
-      "🌺 Nature Fresh" = "cyborg",
-      "💼 Business" = "vapor",
-      "🔬 Research" = "zephyr",
-      "⚡ High Contrast" = "bootstrap",
-      "🎨 Custom Colors" = "custom"
-    )
-
-    theme_display_name <- names(which(theme_names == input$theme_preset))
-    if (length(theme_display_name) > 0) {
-      showNotification(
-        paste("🎨 Applied theme:", theme_display_name),
-        type = "message", duration = 3
-      )
-    } else {
-      showNotification(paste("🎨", t("notify_theme_applied", lang())), type = "message", duration = 3)
-    }
-  })
-
-  observeEvent(input$applyCustomTheme, {
-    cat("🎨 Apply Custom Theme button pressed\n")
-
-    appliedTheme("custom")
-    old_trigger <- themeUpdateTrigger()
-    new_trigger <- old_trigger + 1
-    themeUpdateTrigger(new_trigger)
-
-    cat("📊 Custom theme trigger updated from", old_trigger, "to", new_trigger, "\n")
-
-    # Apply custom colors using CSS injection
-    tryCatch({
-      primary_color <- if (!is.null(input$primary_color)) input$primary_color else "#28a745"
-      secondary_color <- if (!is.null(input$secondary_color)) input$secondary_color else "#6c757d"
-      success_color <- if (!is.null(input$success_color)) input$success_color else "#28a745"
-      info_color <- if (!is.null(input$info_color)) input$info_color else "#17a2b8"
-      warning_color <- if (!is.null(input$warning_color)) input$warning_color else "#ffc107"
-      danger_color <- if (!is.null(input$danger_color)) input$danger_color else "#dc3545"
-
-      custom_css <- paste0("
-        :root {
-          --bs-primary: ", primary_color, ";
-          --bs-secondary: ", secondary_color, ";
-          --bs-success: ", success_color, ";
-          --bs-info: ", info_color, ";
-          --bs-warning: ", warning_color, ";
-          --bs-danger: ", danger_color, ";
+          problem_choices <- unique(exported_data$Central_Problem)
+          updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
+          updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
         }
-        .btn-primary { background-color: ", primary_color, "; border-color: ", primary_color, "; }
-        .btn-success { background-color: ", success_color, "; border-color: ", success_color, "; }
-        .btn-info { background-color: ", info_color, "; border-color: ", info_color, "; }
-        .btn-warning { background-color: ", warning_color, "; border-color: ", warning_color, "; }
-        .btn-danger { background-color: ", danger_color, "; border-color: ", danger_color, "; }
-        .bg-primary { background-color: ", primary_color, " !important; }
-        .bg-success { background-color: ", success_color, " !important; }
-        .bg-info { background-color: ", info_color, " !important; }
-        .bg-warning { background-color: ", warning_color, " !important; }
-        .bg-danger { background-color: ", danger_color, " !important; }
-        .text-primary { color: ", primary_color, " !important; }
-      ")
+        # Always ensure hasData is true if we have valid data
+        if (!hasData()) {
+          hasData(TRUE)
+        }
+      }
+    }
+  }, ignoreInit = TRUE)
 
-      # Remove existing custom theme and inject new one
-      runjs(paste0("
-        $('#custom-theme-css').remove();
-        $('<style id=\"custom-theme-css\">", gsub('\n', '', custom_css), "</style>').appendTo('head');
-      "))
-
-      cat("✅ Custom theme CSS applied successfully\n")
-    }, error = function(e) {
-      cat("❌ Custom theme CSS injection failed:", e$message, "\n")
-    })
-
-    showNotification("🎨 Applied custom theme with your colors!",
-                    type = "message", duration = 3)
-  })
+  # NOTE: Theme apply handlers (applyTheme, applyCustomTheme) are now in theme_module.R
 
   # ============================================================================
   # TRANSLATION SYSTEM - Dynamic UI Rendering
@@ -2341,8 +1855,299 @@ server <- function(input, output, session) {
     tagList(icon("magic"), "🧙 ", t("tab_guided_creation", lang()))
   })
 
+  # =============================================================================
+  # LINK REVIEW TAB
+  # =============================================================================
+
   output$tab_link_risk_title <- renderUI({
-    tagList(icon("sliders-h"), t("tab_link_risk", lang()))
+    tagList(icon("link"), "Link Review & Risk Analysis")
+  })
+
+  output$linkRiskContent <- renderUI({
+    data <- getCurrentData()
+
+    if (is.null(data) || nrow(data) == 0) {
+      return(
+        div(class = "alert alert-info",
+          h4(icon("info-circle"), " No Data Available"),
+          p("Please load data from the Data Upload tab or create a bowtie using the Guided Workflow to analyze risk linkages.")
+        )
+      )
+    }
+
+    # Extract unique elements
+    activities <- unique(data$Activity[!is.na(data$Activity)])
+    pressures <- unique(data$Pressure[!is.na(data$Pressure)])
+    controls <- unique(data$Preventive_Control[!is.na(data$Preventive_Control)])
+    problems <- unique(data$Central_Problem[!is.na(data$Central_Problem)])
+    consequences <- unique(data$Consequence[!is.na(data$Consequence)])
+    if ("Protective_Control" %in% names(data)) {
+      protections <- unique(data$Protective_Control[!is.na(data$Protective_Control)])
+    } else if ("Protective_Mitigation" %in% names(data)) {
+      protections <- unique(data$Protective_Mitigation[!is.na(data$Protective_Mitigation)])
+    } else {
+      protections <- character(0)
+    }
+
+    tagList(
+      fluidRow(
+        column(4,
+          valueBox(
+            value = length(activities),
+            subtitle = "Activities",
+            icon = icon("play"),
+            color = "primary"
+          )
+        ),
+        column(4,
+          valueBox(
+            value = length(pressures),
+            subtitle = "Pressures",
+            icon = icon("triangle-exclamation"),
+            color = "danger"
+          )
+        ),
+        column(4,
+          valueBox(
+            value = length(controls),
+            subtitle = "Preventive Controls",
+            icon = icon("shield-halved"),
+            color = "success"
+          )
+        )
+      ),
+
+      fluidRow(
+        column(4,
+          valueBox(
+            value = length(problems),
+            subtitle = "Central Problems",
+            icon = icon("bullseye"),
+            color = "warning"
+          )
+        ),
+        column(4,
+          valueBox(
+            value = length(consequences),
+            subtitle = "Consequences",
+            icon = icon("burst"),
+            color = "orange"
+          )
+        ),
+        column(4,
+          valueBox(
+            value = length(protections),
+            subtitle = "Protective Controls",
+            icon = icon("shield"),
+            color = "info"
+          )
+        )
+      ),
+
+      hr(),
+
+      h4(icon("diagram-project"), " Risk Linkage Network"),
+
+      box(
+        title = "Connection Analysis",
+        status = "primary",
+        solidHeader = TRUE,
+        width = 12,
+        collapsible = TRUE,
+
+        tabsetPanel(
+          id = "link_analysis_tabs",
+
+          tabPanel(
+            "Activity → Pressure Links",
+            icon = icon("arrow-right"),
+            br(),
+            p(class = "text-muted", paste("Analyzing", nrow(data), "activity-pressure connections")),
+            DT::dataTableOutput("activity_pressure_links")
+          ),
+
+          tabPanel(
+            "Pressure → Control Links",
+            icon = icon("arrow-right"),
+            br(),
+            p(class = "text-muted", "Preventive control effectiveness analysis"),
+            DT::dataTableOutput("pressure_control_links")
+          ),
+
+          tabPanel(
+            "Central Problem Pathways",
+            icon = icon("bullseye"),
+            br(),
+            p(class = "text-muted", "Risk propagation to central problems"),
+            DT::dataTableOutput("central_problem_links")
+          ),
+
+          tabPanel(
+            "Consequence Pathways",
+            icon = icon("burst"),
+            br(),
+            p(class = "text-muted", "Impact analysis and consequence severity"),
+            DT::dataTableOutput("consequence_links")
+          ),
+
+          tabPanel(
+            "Overall Risk Summary",
+            icon = icon("chart-bar"),
+            br(),
+            plotly::plotlyOutput("risk_summary_plot", height = "500px")
+          )
+        )
+      )
+    )
+  })
+
+  # Activity-Pressure Links Table
+  output$activity_pressure_links <- DT::renderDataTable({
+    data <- getCurrentData()
+    req(data)
+
+    # Use link-specific columns if available, fall back to generic Likelihood/Severity
+    has_link_cols <- all(c("Activity_to_Pressure_Likelihood", "Activity_to_Pressure_Severity") %in% names(data))
+
+    if (has_link_cols) {
+      link_data <- data %>%
+        select(Activity, Pressure, Activity_to_Pressure_Likelihood, Activity_to_Pressure_Severity) %>%
+        filter(!is.na(Activity) & !is.na(Pressure)) %>%
+        distinct()
+      severity_col <- "Activity_to_Pressure_Severity"
+    } else {
+      link_data <- data %>%
+        select(Activity, Pressure, Likelihood, Severity) %>%
+        filter(!is.na(Activity) & !is.na(Pressure)) %>%
+        distinct()
+      severity_col <- "Severity"
+    }
+
+    datatable(
+      link_data,
+      options = list(pageLength = 10, scrollX = TRUE),
+      colnames = c('Activity', 'Pressure', 'Likelihood', 'Severity'),
+      rownames = FALSE
+    ) %>%
+      formatStyle(
+        severity_col,
+        backgroundColor = styleInterval(
+          c(3, 6),
+          c('#d4edda', '#fff3cd', '#f8d7da')
+        )
+      )
+  })
+
+  # Pressure-Control Links Table
+  output$pressure_control_links <- DT::renderDataTable({
+    data <- getCurrentData()
+    req(data)
+
+    has_link_cols <- all(c("Pressure_to_Control_Likelihood", "Pressure_to_Control_Severity") %in% names(data))
+
+    if (has_link_cols) {
+      link_data <- data %>%
+        select(Pressure, Preventive_Control, Pressure_to_Control_Likelihood, Pressure_to_Control_Severity) %>%
+        filter(!is.na(Pressure) & !is.na(Preventive_Control)) %>%
+        distinct()
+    } else {
+      link_data <- data %>%
+        select(Pressure, Preventive_Control, Likelihood, Severity) %>%
+        filter(!is.na(Pressure) & !is.na(Preventive_Control)) %>%
+        distinct()
+    }
+
+    datatable(
+      link_data,
+      options = list(pageLength = 10, scrollX = TRUE),
+      colnames = c('Pressure', 'Preventive Control', 'Likelihood', 'Severity'),
+      rownames = FALSE
+    )
+  })
+
+  # Central Problem Links Table
+  output$central_problem_links <- DT::renderDataTable({
+    data <- getCurrentData()
+    req(data)
+
+    has_link_cols <- all(c("Escalation_to_Central_Likelihood", "Escalation_to_Central_Severity") %in% names(data))
+
+    if (has_link_cols) {
+      link_data <- data %>%
+        select(Pressure, Central_Problem, Escalation_to_Central_Likelihood, Escalation_to_Central_Severity) %>%
+        filter(!is.na(Central_Problem)) %>%
+        distinct()
+    } else {
+      link_data <- data %>%
+        select(Pressure, Central_Problem, Likelihood, Severity) %>%
+        filter(!is.na(Central_Problem)) %>%
+        distinct()
+    }
+
+    datatable(
+      link_data,
+      options = list(pageLength = 10, scrollX = TRUE),
+      colnames = c('Pressure', 'Central Problem', 'Likelihood', 'Severity'),
+      rownames = FALSE
+    )
+  })
+
+  # Consequence Links Table
+  output$consequence_links <- DT::renderDataTable({
+    data <- getCurrentData()
+    req(data)
+
+    has_link_cols <- all(c("Mitigation_to_Consequence_Likelihood", "Mitigation_to_Consequence_Severity") %in% names(data))
+
+    if (has_link_cols) {
+      link_data <- data %>%
+        select(Central_Problem, Consequence, Mitigation_to_Consequence_Likelihood, Mitigation_to_Consequence_Severity, Risk_Level) %>%
+        filter(!is.na(Consequence)) %>%
+        distinct()
+    } else {
+      link_data <- data %>%
+        select(Central_Problem, Consequence, Likelihood, Severity, Risk_Level) %>%
+        filter(!is.na(Consequence)) %>%
+        distinct()
+    }
+
+    datatable(
+      link_data,
+      options = list(pageLength = 10, scrollX = TRUE),
+      colnames = c('Central Problem', 'Consequence', 'Likelihood', 'Severity', 'Risk Level'),
+      rownames = FALSE
+    ) %>%
+      formatStyle(
+        'Risk_Level',
+        backgroundColor = styleEqual(
+          c('Low', 'Medium', 'High', 'Critical'),
+          c('#d4edda', '#fff3cd', '#f8d7da', '#dc3545')
+        ),
+        color = styleEqual(
+          c('Low', 'Medium', 'High', 'Critical'),
+          c('#155724', '#856404', '#721c24', '#ffffff')
+        )
+      )
+  })
+
+  # Risk Summary Plot
+  output$risk_summary_plot <- plotly::renderPlotly({
+    data <- getCurrentData()
+    req(data)
+
+    risk_counts <- data %>%
+      filter(!is.na(Risk_Level)) %>%
+      count(Risk_Level) %>%
+      mutate(Risk_Level = factor(Risk_Level, levels = c('Low', 'Medium', 'High', 'Critical')))
+
+    plot_ly(risk_counts, x = ~Risk_Level, y = ~n, type = 'bar',
+            marker = list(color = c('#28a745', '#ffc107', '#dc3545', '#6c757d'))) %>%
+      layout(
+        title = "Risk Distribution",
+        xaxis = list(title = "Risk Level"),
+        yaxis = list(title = "Count"),
+        showlegend = FALSE
+      )
   })
 
   output$link_risk_individual_header <- renderUI({
@@ -2351,10 +2156,6 @@ server <- function(input, output, session) {
   
   output$data_input_options_header <- renderUI({
     tagList(icon("database"), t("data_input_options", lang()))
-  })
-  
-  output$data_upload_option1_title <- renderUI({
-    tagList(icon("file-excel"), t("data_upload_option1", lang()))
   })
   
   # Render file input with translated text
@@ -2382,19 +2183,6 @@ server <- function(input, output, session) {
                        label = as.character(t("apply_language", current_lang)),
                        icon = icon("check"),
                        class = "btn-primary")
-          )
-        ),
-        column(6,
-          div(class = "alert alert-info mt-4 mb-0",
-            style = "padding: 0.5rem;",
-            tags$small(
-              icon("info-circle"), " ",
-              if(current_lang == "en") {
-                "Translated content includes the About tab and notifications."
-              } else {
-                "Le contenu traduit inclut l'onglet A Propos et les notifications."
-              }
-            )
           )
         )
       )
@@ -2537,6 +2325,185 @@ server <- function(input, output, session) {
     return(as.character(total))
   })
 
+  # Sidebar Menu Badge Outputs
+  output$badge_data_table <- renderText({
+    data <- getCurrentData()
+    if (!is.null(data) && nrow(data) > 0) {
+      return(as.character(nrow(data)))
+    }
+    return("")
+  })
+
+  output$badge_guided <- renderText({
+    # Check if workflow is active
+    if (exists("workflow_state") && !is.null(workflow_state$current_step)) {
+      current_step <- workflow_state$current_step
+      if (current_step > 0 && current_step <= 8) {
+        return(paste0("Step ", current_step))
+      }
+    }
+    return("")
+  })
+
+  output$badge_link_review <- renderText({
+    data <- getCurrentData()
+    if (!is.null(data) && nrow(data) > 0) {
+      # Count unique links (Activity-Pressure pairs)
+      links <- length(unique(paste(data$Activity, data$Pressure, sep = "|")))
+      return(as.character(links))
+    }
+    return("")
+  })
+
+  output$badge_vocabulary <- renderText({
+    total <- 0
+    if (!is.null(vocabulary_data)) {
+      if (!is.null(vocabulary_data$activities)) total <- total + nrow(vocabulary_data$activities)
+      if (!is.null(vocabulary_data$pressures)) total <- total + nrow(vocabulary_data$pressures)
+      if (!is.null(vocabulary_data$controls)) total <- total + nrow(vocabulary_data$controls)
+      if (!is.null(vocabulary_data$consequences)) total <- total + nrow(vocabulary_data$consequences)
+    }
+    if (total > 0) {
+      return(as.character(total))
+    }
+    return("")
+  })
+
+  # Dashboard Enhanced InfoBoxes with Gradients
+  output$vocab_activities_infobox <- renderUI({
+    count <- 0
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$activities)) {
+      count <- nrow(vocabulary_data$activities)
+    }
+
+    bs4InfoBox(
+      title = "Activities",
+      value = count,
+      subtitle = "From environmental vocabulary database",
+      icon = icon("play"),
+      iconElevation = 2,
+      color = "info",
+      gradient = TRUE,
+      width = 12,
+      fill = TRUE
+    )
+  })
+
+  output$vocab_pressures_infobox <- renderUI({
+    count <- 0
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$pressures)) {
+      count <- nrow(vocabulary_data$pressures)
+    }
+
+    bs4InfoBox(
+      title = "Pressures",
+      value = count,
+      subtitle = "Environmental stressor categories",
+      icon = icon("triangle-exclamation"),
+      iconElevation = 2,
+      color = "danger",
+      gradient = TRUE,
+      width = 12,
+      fill = TRUE
+    )
+  })
+
+  output$vocab_controls_infobox <- renderUI({
+    count <- 0
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
+      count <- nrow(vocabulary_data$controls)
+    }
+
+    bs4InfoBox(
+      title = "Controls",
+      value = count,
+      subtitle = "Mitigation & protective measures",
+      icon = icon("shield-halved"),
+      iconElevation = 2,
+      color = "success",
+      gradient = TRUE,
+      width = 12,
+      fill = TRUE
+    )
+  })
+
+  output$vocab_consequences_infobox <- renderUI({
+    count <- 0
+    if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences)) {
+      count <- nrow(vocabulary_data$consequences)
+    }
+
+    bs4InfoBox(
+      title = "Consequences",
+      value = count,
+      subtitle = "Environmental impact categories",
+      icon = icon("burst"),
+      iconElevation = 2,
+      color = "warning",
+      gradient = TRUE,
+      width = 12,
+      fill = TRUE
+    )
+  })
+
+  # Loaded Data Statistics InfoBoxes
+  output$data_scenarios_infobox <- renderUI({
+    data <- getCurrentData()
+    req(data)
+
+    total_rows <- nrow(data)
+
+    bs4InfoBox(
+      title = "Total Scenarios",
+      value = total_rows,
+      subtitle = "Complete bowtie pathways loaded",
+      icon = icon("chart-line"),
+      iconElevation = 2,
+      color = "primary",
+      gradient = TRUE,
+      width = 12,
+      fill = TRUE
+    )
+  })
+
+  output$data_elements_infobox <- renderUI({
+    data <- getCurrentData()
+    req(data)
+
+    # Count unique elements in loaded data
+    counts <- list(
+      activities = length(unique(data$Activity)),
+      pressures = length(unique(data$Pressure)),
+      controls = length(unique(data$Preventive_Control)),
+      consequences = length(unique(data$Consequence))
+    )
+
+    # Get vocabulary totals for comparison
+    vocab_totals <- list(
+      activities = if (!is.null(vocabulary_data$activities)) nrow(vocabulary_data$activities) else 0,
+      pressures = if (!is.null(vocabulary_data$pressures)) nrow(vocabulary_data$pressures) else 0,
+      controls = if (!is.null(vocabulary_data$controls)) nrow(vocabulary_data$controls) else 0,
+      consequences = if (!is.null(vocabulary_data$consequences)) nrow(vocabulary_data$consequences) else 0
+    )
+
+    # Calculate total used vs available
+    total_used <- counts$activities + counts$pressures + counts$controls + counts$consequences
+    total_available <- vocab_totals$activities + vocab_totals$pressures + vocab_totals$controls + vocab_totals$consequences
+    usage_pct <- if (total_available > 0) round((total_used / total_available) * 100, 1) else 0
+
+    bs4InfoBox(
+      title = "Elements Used",
+      value = total_used,
+      subtitle = sprintf("%d of %d available (%s%%)", total_used, total_available, usage_pct),
+      icon = icon("layer-group"),
+      iconElevation = 2,
+      color = "success",
+      gradient = TRUE,
+      width = 12,
+      fill = TRUE
+    )
+  })
+
   # Render Bowtie Diagram Tab Elements
   output$bowtie_legend_help <- renderUI({
     current_lang <- lang()
@@ -2583,6 +2550,93 @@ server <- function(input, output, session) {
         actionButton("createBayesianNetwork",
           tagList(icon("brain"), t("bayesian_create_button", current_lang)),
           class = "btn-success"
+        )
+      )
+    )
+  })
+
+  # Evidence UI for Bayesian inference (referenced by uiOutput("bayesian_evidence_ui"))
+  output$bayesian_evidence_ui <- renderUI({
+    current_lang <- lang()
+
+    # Build choices dynamically
+    activity_choices <- setNames(c("", "Present", "Absent"),
+                                 c("Not Set", "Present", "Absent"))
+
+    pressure_choices <- setNames(c("", "Low", "Medium", "High"),
+                                c("Not Set", "Low", "Medium", "High"))
+
+    control_choices <- setNames(c("", "Effective", "Partial", "Failed"),
+                               c("Not Set", "Effective", "Partial", "Failed"))
+
+    query_choices <- setNames(c("Consequence_Level", "Problem_Severity", "Escalation_Level"),
+                             c("Consequence Level", "Problem Severity", "Escalation Level"))
+
+    div(
+      # Section 1: Set Evidence
+      div(class = "mb-4",
+        h6(tagList(icon("eye"), " Set Evidence"), class = "text-primary border-bottom pb-2"),
+        p(class = "text-muted small mb-3", "What we observe:"),
+
+        div(class = "mb-3",
+          tags$label("Activity Level:", class = "form-label fw-bold"),
+          selectInput("evidenceActivity", NULL,
+            choices = activity_choices,
+            width = "100%")
+        ),
+
+        div(class = "mb-3",
+          tags$label("Pressure Level:", class = "form-label fw-bold"),
+          selectInput("evidencePressure", NULL,
+            choices = pressure_choices,
+            width = "100%")
+        ),
+
+        div(class = "mb-3",
+          tags$label("Control Effectiveness:", class = "form-label fw-bold"),
+          selectInput("evidenceControl", NULL,
+            choices = control_choices,
+            width = "100%")
+        )
+      ),
+
+      hr(),
+
+      # Section 2: Query Outcomes
+      div(class = "mb-4",
+        h6(tagList(icon("crosshairs"), " Query"), class = "text-primary border-bottom pb-2"),
+        p(class = "text-muted small mb-3", "What we want to predict:"),
+
+        tags$label("Select outcomes to predict:", class = "form-label fw-bold"),
+        checkboxGroupInput("queryNodes", NULL,
+          choices = query_choices,
+          selected = c("Consequence_Level", "Problem_Severity", "Escalation_Level"))
+      ),
+
+      hr(),
+
+      # Section 3: Risk Scenarios
+      div(class = "mb-3",
+        h6(tagList(icon("bolt"), " Risk Scenarios"), class = "text-primary border-bottom pb-2"),
+        p(class = "text-muted small mb-2", "Quick presets:"),
+
+        div(class = "d-grid gap-2",
+          div(class = "btn-group btn-group-sm",
+            actionButton("scenarioWorstCase",
+              tagList(icon("exclamation-triangle"), " Worst Case"),
+              class = "btn-outline-danger"),
+            actionButton("scenarioBestCase",
+              tagList(icon("shield-alt"), " Best Case"),
+              class = "btn-outline-success")
+          ),
+          div(class = "btn-group btn-group-sm",
+            actionButton("scenarioControlFailure",
+              tagList(icon("times-circle"), " Control Failure"),
+              class = "btn-outline-warning"),
+            actionButton("scenarioBaseline",
+              tagList(icon("undo"), " Reset"),
+              class = "btn-outline-secondary")
+          )
         )
       )
     )
@@ -2715,12 +2769,250 @@ server <- function(input, output, session) {
   })
 
   # Render About Tab Content
+  # =============================================================================
+  # HELP CONTENT
+  # =============================================================================
+
+  # Workflow Help Content
+  output$workflow_help_detailed <- renderUI({
+    current_lang <- lang()
+
+    div(
+      h4("Step-by-Step Guided Workflow", class = "text-info"),
+      hr(),
+
+      p(class = "lead", "The Guided Workflow system helps you create comprehensive bowtie diagrams through an interactive 8-step process."),
+
+      h5(tagList(icon("list-ol"), "Workflow Steps"), class = "mt-4"),
+      tags$ol(
+        tags$li(tags$strong("Project Setup:"), " Define basic project information and select environmental scenario"),
+        tags$li(tags$strong("Central Problem:"), " Identify the core environmental problem or hazard event"),
+        tags$li(tags$strong("Threats & Causes:"), " Select activities and pressures from the vocabulary database"),
+        tags$li(tags$strong("Preventive Controls:"), " Choose controls to prevent or mitigate threats"),
+        tags$li(tags$strong("Consequences:"), " Identify potential environmental impacts"),
+        tags$li(tags$strong("Protective Controls:"), " Add controls to reduce consequence severity"),
+        tags$li(tags$strong("Review & Validate:"), " Check connections and data integrity"),
+        tags$li(tags$strong("Finalize & Export:"), " Export to Excel or load into main application")
+      ),
+
+      div(class = "alert alert-success mt-4",
+        tagList(
+          icon("lightbulb"), " ",
+          strong("Tip:"), " Use the AI suggestions feature (available in Settings) to get intelligent recommendations based on your selections."
+        )
+      )
+    )
+  })
+
+  # Risk Matrix Help Content
+  output$risk_matrix_help_detailed <- renderUI({
+    current_lang <- lang()
+
+    div(
+      h4("Understanding Risk Matrices", class = "text-warning"),
+      hr(),
+
+      p(class = "lead", "Risk matrices provide a visual representation of risks based on likelihood and impact."),
+
+      h5(tagList(icon("chart-bar"), "Matrix Types"), class = "mt-4"),
+      tags$ul(
+        tags$li(tags$strong("3x3 Simple:"), " Basic risk assessment with Low, Medium, High categories"),
+        tags$li(tags$strong("5x5 Standard:"), " Comprehensive assessment with five levels of likelihood and impact"),
+        tags$li(tags$strong("7x7 Detailed:"), " Advanced assessment for complex scenarios")
+      ),
+
+      h5(tagList(icon("calculator"), "Risk Calculation Methods"), class = "mt-4"),
+      tags$ul(
+        tags$li(tags$strong("Likelihood × Impact:"), " Traditional risk score calculation"),
+        tags$li(tags$strong("Maximum Value:"), " Takes the higher of likelihood or impact"),
+        tags$li(tags$strong("Weighted Average:"), " Customizable weights for likelihood and impact")
+      ),
+
+      div(class = "alert alert-info mt-4",
+        tagList(
+          icon("info-circle"), " ",
+          strong("Note:"), " Color coding helps identify high-risk items (red) that require immediate attention."
+        )
+      )
+    )
+  })
+
+  # Bayesian Network Help Content
+  output$bayesian_help_detailed <- renderUI({
+    current_lang <- lang()
+
+    div(
+      h4("Bayesian Network Analysis", class = "text-primary"),
+      hr(),
+
+      p(class = "lead", "Bayesian Networks provide probabilistic modeling of environmental risks, enabling advanced inference and scenario analysis."),
+
+      h5(tagList(icon("network-wired"), "Key Concepts"), class = "mt-4"),
+      tags$ul(
+        tags$li(tags$strong("Probabilistic Dependencies:"), " Models relationships between activities, pressures, and consequences"),
+        tags$li(tags$strong("Conditional Probability:"), " Calculates likelihood of events given observed conditions"),
+        tags$li(tags$strong("Inference:"), " Determines probability of consequences based on control effectiveness"),
+        tags$li(tags$strong("Critical Path Analysis:"), " Identifies highest-risk pathways through the network")
+      ),
+
+      h5(tagList(icon("cogs"), "How to Use"), class = "mt-4"),
+      tags$ol(
+        tags$li("Load or create bowtie diagram data"),
+        tags$li("Navigate to Bayesian Networks tab"),
+        tags$li("Click 'Create Bayesian Network' to generate the network"),
+        tags$li("Use inference tools to analyze specific scenarios"),
+        tags$li("Visualize and export results")
+      ),
+
+      div(class = "alert alert-warning mt-4",
+        tagList(
+          icon("exclamation-triangle"), " ",
+          strong("Advanced Feature:"), " Bayesian analysis requires complete probability data. Ensure all connections have assigned probabilities."
+        )
+      )
+    )
+  })
+
+  # BowTie Method Help Content
+  output$bowtie_method_help_detailed <- renderUI({
+    current_lang <- lang()
+
+    div(
+      h4("BowTie Risk Analysis Method", class = "text-success"),
+      hr(),
+
+      p(class = "lead", "The BowTie method is a risk assessment tool that visualizes the relationship between hazards, threats, consequences, and controls."),
+
+      h5(tagList(icon("diagram-project"), "BowTie Components"), class = "mt-4"),
+      tags$dl(
+        tags$dt("Central Problem (Hazard Event)"),
+        tags$dd("The core environmental hazard or problem being analyzed"),
+
+        tags$dt("Threats (Left Side)"),
+        tags$dd("Activities and pressures that can trigger the hazard event"),
+
+        tags$dt("Preventive Controls (Left Barriers)"),
+        tags$dd("Measures that prevent threats from causing the hazard"),
+
+        tags$dt("Consequences (Right Side)"),
+        tags$dd("Potential environmental impacts if the hazard occurs"),
+
+        tags$dt("Protective Controls (Right Barriers)"),
+        tags$dd("Measures that mitigate consequence severity")
+      ),
+
+      h5(tagList(icon("star"), "Benefits"), class = "mt-4"),
+      tags$ul(
+        tags$li("Visual representation of complex risk scenarios"),
+        tags$li("Identifies control gaps and redundancies"),
+        tags$li("Facilitates communication among stakeholders"),
+        tags$li("Supports risk-based decision making")
+      ),
+
+      div(class = "alert alert-success mt-4",
+        tagList(
+          icon("check-circle"), " ",
+          strong("Best Practice:"), " Start with the central problem and work outward to threats and consequences. Add controls last."
+        )
+      )
+    )
+  })
+
+  # Application Guide Help Content
+  output$app_guide_detailed <- renderUI({
+    current_lang <- lang()
+
+    div(
+      h4("Complete Application Guide", class = "text-info"),
+      hr(),
+
+      h5(tagList(icon("rocket"), "Getting Started"), class = "mt-4"),
+      tags$ol(
+        tags$li(tags$strong("Upload Data:"), " Import Excel file or generate environmental scenario data"),
+        tags$li(tags$strong("Create Bowtie:"), " Use Guided Workflow or Data Upload to create your analysis"),
+        tags$li(tags$strong("Visualize:"), " View bowtie diagram and network visualization"),
+        tags$li(tags$strong("Analyze:"), " Use risk matrix and Bayesian networks for deeper insights"),
+        tags$li(tags$strong("Export:"), " Download results as Excel, PDF, or image files")
+      ),
+
+      h5(tagList(icon("table"), "Main Features"), class = "mt-4"),
+      tags$ul(
+        tags$li(tags$strong("Dashboard:"), " Overview of data structure and vocabulary statistics"),
+        tags$li(tags$strong("Data Upload:"), " Import from Excel or generate environmental scenarios"),
+        tags$li(tags$strong("Guided Creation:"), " Step-by-step workflow for creating bowties"),
+        tags$li(tags$strong("Bowtie Diagram:"), " Interactive network visualization"),
+        tags$li(tags$strong("Bayesian Networks:"), " Probabilistic risk analysis"),
+        tags$li(tags$strong("Risk Matrix:"), " Likelihood/impact assessment"),
+        tags$li(tags$strong("Vocabulary:"), " Browse environmental risk database (189 items)")
+      ),
+
+      div(class = "alert alert-primary mt-4",
+        tagList(
+          icon("question-circle"), " ",
+          strong("Need Help?"), " Each tab has context-specific help. Look for ", icon("question-circle"), " icons throughout the application."
+        )
+      )
+    )
+  })
+
+  # User Manual Help Content
+  output$user_manual_detailed <- renderUI({
+    current_lang <- lang()
+
+    div(
+      h4("Comprehensive User Manual", class = "text-primary"),
+      hr(),
+
+      h5(tagList(icon("book-open"), "Table of Contents"), class = "mt-4"),
+      tags$ol(
+        tags$li(tags$a(href = "#intro", "Introduction & Overview")),
+        tags$li(tags$a(href = "#installation", "Installation & Setup")),
+        tags$li(tags$a(href = "#navigation", "Navigation & Interface")),
+        tags$li(tags$a(href = "#data", "Data Management")),
+        tags$li(tags$a(href = "#workflow", "Guided Workflow Tutorial")),
+        tags$li(tags$a(href = "#analysis", "Analysis Tools")),
+        tags$li(tags$a(href = "#export", "Exporting Results")),
+        tags$li(tags$a(href = "#troubleshooting", "Troubleshooting"))
+      ),
+
+      h5(tagList(icon("download"), "Documentation Downloads"), class = "mt-4"),
+      p("Comprehensive documentation is available for download:"),
+
+      div(class = "mt-3",
+        actionButton("download_user_manual_pdf",
+                    tagList(icon("file-pdf"), " Download User Manual (PDF)"),
+                    class = "btn-primary"),
+
+        actionButton("download_quick_start",
+                    tagList(icon("file-alt"), " Download Quick Start Guide"),
+                    class = "btn-info ml-2")
+      ),
+
+      div(class = "alert alert-info mt-4",
+        tagList(
+          icon("lightbulb"), " ",
+          strong("Quick Start:"), " New users should begin with the Guided Workflow (Guided Creation tab) to learn the application step-by-step."
+        )
+      )
+    )
+  })
+
   output$about_content <- renderUI({
     current_lang <- lang()
 
     div(
       h4(t("about_title", current_lang), class = "text-success"),
       hr(),
+      
+      # App Summary Section
+      div(class = "alert alert-primary mb-4",
+        h5(tagList(icon("info-circle"), " ", t("about_summary_title", current_lang)), class = "alert-heading mb-3"),
+        p(t("about_summary_text", current_lang)),
+        hr(),
+        h6(tagList(icon("rocket"), " ", t("about_getting_started", current_lang)), class = "mb-2"),
+        p(class = "mb-0", t("about_getting_started_text", current_lang))
+      ),
+      
       p(class = "lead", t("about_description", current_lang)),
 
       h5(tagList(icon("star"), t("about_version", current_lang)), class = "mt-4"),
@@ -2771,710 +3063,336 @@ server <- function(input, output, session) {
   })
 
   # =============================================================================
-  # REPORT GENERATION
+  # VOCABULARY TAB
   # =============================================================================
-  
-  # Reactive value for report status
-  report_generated <- reactiveVal(FALSE)
-  report_content <- reactiveVal(NULL)
-  
-  # Render report UI elements
-  output$report_header <- renderUI({
-    tagList(icon("file-alt"), t("report_header", lang()))
-  })
-  
-  output$report_intro <- renderUI({
-    p(t("report_intro", lang()))
-  })
-  
-  output$report_options_title <- renderUI({
-    t("report_options_title", lang())
-  })
-  
-  output$report_type_label <- renderUI({
-    h6(t("report_type_label", lang()))
-  })
-  
-  output$report_format_label <- renderUI({
-    h6(t("report_format_label", lang()))
-  })
-  
-  output$report_include_sections_label <- renderUI({
-    h6(t("report_include_sections_label", lang()))
-  })
-  
-  output$report_title_label <- renderUI({
-    t("report_title_label", lang())
-  })
 
-  output$report_author_label <- renderUI({
-    t("report_author_label", lang())
-  })
-
-  # Render text inputs with translated labels
-  output$report_title_input_ui <- renderUI({
-    textInput("report_title",
-              label = t("report_title_label", lang()),
-              value = "Environmental Bowtie Risk Analysis Report")
-  })
-
-  output$report_author_input_ui <- renderUI({
-    textInput("report_author",
-              label = t("report_author_label", lang()),
-              value = "")
-  })
-
-  output$report_generate_button <- renderUI({
-    t("report_generate_button", lang())
-  })
-  
-  output$report_download_button <- renderUI({
-    t("report_download_button", lang())
-  })
-  
-  output$report_preview_header <- renderUI({
-    tagList(icon("eye"), t("report_preview_header", lang()))
-  })
-  
-  output$report_help_header <- renderUI({
-    tagList(icon("info-circle"), t("report_help_header", lang()))
-  })
-  
-  output$report_help_content <- renderUI({
-    p(t("report_help_content", lang()))
-  })
-  
-  # Report status display
-  output$report_status <- renderUI({
-    current_lang <- lang()
-    data <- currentData()
-    
-    if (is.null(data) || nrow(data) == 0) {
-      div(class = "alert alert-warning",
-          tagList(icon("exclamation-triangle"), " ", t("report_status_no_data", current_lang)))
-    } else if (report_generated()) {
-      div(class = "alert alert-success",
-          tagList(icon("check-circle"), " ", t("report_status_complete", current_lang)))
+  # Render vocabulary statistics
+  output$vocab_activities_count_box <- renderText({
+    if (exists("vocabulary_data") && !is.null(vocabulary_data$activities)) {
+      nrow(vocabulary_data$activities)
     } else {
-      div(class = "alert alert-info",
-          tagList(icon("info-circle"), " ", t("report_status_ready", current_lang)))
+      "0"
     }
   })
-  
-  # Report preview content
-  output$report_preview_content <- renderUI({
-    current_lang <- lang()
-    
-    if (report_generated()) {
-      content <- report_content()
-      div(
-        h6(t("report_preview_summary", current_lang)),
-        tags$ul(
-          lapply(content$sections, function(section) {
-            tags$li(strong(section$title), " - ", section$description)
-          })
-        ),
-        hr(),
-        tags$small(class = "text-muted",
-                  paste("Report type:", content$type, "|",
-                        "Format:", toupper(content$format), "|",
-                        "Generated:", format(Sys.time(), "%Y-%m-%d %H:%M")))
-      )
+
+  output$vocab_pressures_count_box <- renderText({
+    if (exists("vocabulary_data") && !is.null(vocabulary_data$pressures)) {
+      nrow(vocabulary_data$pressures)
     } else {
-      current_lang <- lang()
-      div(
-        h6(t("report_preview_summary", current_lang)),
-        tags$ul(
-          tags$li(t("report_type_summary", current_lang)),
-          tags$li(t("report_type_detailed", current_lang)),
-          tags$li(t("report_type_risk_matrix", current_lang)),
-          tags$li(t("report_type_bayesian", current_lang)),
-          tags$li(t("report_type_complete", current_lang))
+      "0"
+    }
+  })
+
+  output$vocab_controls_count_box <- renderText({
+    if (exists("vocabulary_data") && !is.null(vocabulary_data$controls)) {
+      nrow(vocabulary_data$controls)
+    } else {
+      "0"
+    }
+  })
+
+  output$vocab_consequences_count_box <- renderText({
+    if (exists("vocabulary_data") && !is.null(vocabulary_data$consequences)) {
+      nrow(vocabulary_data$consequences)
+    } else {
+      "0"
+    }
+  })
+
+  # Reactive filtered vocabulary data
+  vocab_filtered <- reactive({
+    # Start with all vocabulary data
+    all_vocab <- data.frame()
+
+    if (!exists("vocabulary_data")) {
+      return(all_vocab)
+    }
+
+    # Combine all vocabulary types based on selected category
+    category <- input$vocab_category
+    search_term <- tolower(trimws(input$vocab_search %||% ""))
+
+    if (is.null(category)) category <- "all"
+
+    # Build combined dataset
+    if (category == "all" || category == "activities") {
+      if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
+        activities <- vocabulary_data$activities %>%
+          mutate(category = "Activity") %>%
+          select(category, id, name, hierarchy)
+        all_vocab <- bind_rows(all_vocab, activities)
+      }
+    }
+
+    if (category == "all" || category == "pressures") {
+      if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
+        pressures <- vocabulary_data$pressures %>%
+          mutate(category = "Pressure") %>%
+          select(category, id, name, hierarchy)
+        all_vocab <- bind_rows(all_vocab, pressures)
+      }
+    }
+
+    if (category == "all" || category == "controls") {
+      if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+        controls <- vocabulary_data$controls %>%
+          mutate(category = "Control") %>%
+          select(category, id, name, hierarchy)
+        all_vocab <- bind_rows(all_vocab, controls)
+      }
+    }
+
+    if (category == "all" || category == "consequences") {
+      if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
+        consequences <- vocabulary_data$consequences %>%
+          mutate(category = "Consequence") %>%
+          select(category, id, name, hierarchy)
+        all_vocab <- bind_rows(all_vocab, consequences)
+      }
+    }
+
+    # Apply search filter if provided
+    if (nchar(search_term) > 0 && nrow(all_vocab) > 0) {
+      all_vocab <- all_vocab %>%
+        filter(grepl(search_term, tolower(name)) | grepl(search_term, tolower(id)))
+    }
+
+    return(all_vocab)
+  })
+
+  # Render vocabulary table
+  output$vocabularyTable <- DT::renderDataTable({
+    data <- vocab_filtered()
+
+    if (nrow(data) == 0) {
+      # Return empty table with message
+      return(datatable(
+        data.frame(Message = "No vocabulary items found. Try adjusting your search or category filter."),
+        options = list(dom = 't', ordering = FALSE),
+        rownames = FALSE
+      ))
+    }
+
+    # Render the filtered data
+    datatable(
+      data,
+      options = list(
+        pageLength = 25,
+        lengthMenu = c(10, 25, 50, 100),
+        order = list(list(0, 'asc'), list(1, 'asc')),
+        searchHighlight = TRUE,
+        dom = 'Blfrtip',
+        buttons = c('copy', 'csv', 'excel')
+      ),
+      rownames = FALSE,
+      colnames = c('Category', 'ID', 'Name', 'Hierarchy'),
+      filter = 'top',
+      selection = 'none'
+    ) %>%
+      formatStyle(
+        'category',
+        backgroundColor = styleEqual(
+          c('Activity', 'Pressure', 'Control', 'Consequence'),
+          c('#e3f2fd', '#ffebee', '#e8f5e9', '#fff3e0')
         )
       )
-    }
   })
-  
-  # Generate report button handler
-  observeEvent(input$generate_report, {
-    current_lang <- lang()
-    data <- currentData()
-    
+
+  # =============================================================================
+  # DATA TABLE TAB
+  # =============================================================================
+
+  # Render main data table
+  output$data_table <- DT::renderDataTable({
+    data <- getCurrentData()
+
     if (is.null(data) || nrow(data) == 0) {
-      showNotification(
-        t("report_status_no_data", current_lang),
-        type = "error",
-        duration = 5
-      )
-      return()
+      # Return empty table with message
+      return(datatable(
+        data.frame(Message = "No data loaded. Please upload data or generate environmental scenarios from the Data Upload tab."),
+        options = list(dom = 't', ordering = FALSE),
+        rownames = FALSE
+      ))
     }
-    
-    # Show progress
+
+    # Render the complete bowtie data table
+    datatable(
+      data,
+      options = list(
+        pageLength = 25,
+        lengthMenu = c(10, 25, 50, 100, 200),
+        order = list(list(0, 'asc')),
+        searchHighlight = TRUE,
+        scrollX = TRUE,
+        dom = 'Blfrtip',
+        buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
+        columnDefs = list(
+          list(className = 'dt-center', targets = '_all')
+        )
+      ),
+      rownames = FALSE,
+      filter = 'top',
+      selection = 'multiple',
+      class = 'cell-border stripe hover'
+    ) %>%
+      formatStyle(
+        columns = colnames(data),
+        fontSize = '12px'
+      ) %>%
+      {
+        # Conditionally add highlighting for Central_Problem column if it exists
+        if ("Central_Problem" %in% colnames(data)) {
+          formatStyle(., 'Central_Problem',
+                     backgroundColor = '#fff3cd',
+                     fontWeight = 'bold')
+        } else {
+          .
+        }
+      }
+  })
+
+  # Refresh table button observer
+  observeEvent(input$refreshTable, {
+    # Just trigger a reactive invalidation to refresh the table
+    dataVersion(dataVersion() + 1)
+
     showNotification(
-      t("report_status_generating", current_lang),
+      "Data table refreshed successfully!",
       type = "message",
       duration = 3
     )
-    
-    # Generate report content
-    tryCatch({
-      sections <- list()
-      
-      if ("exec_summary" %in% input$report_sections) {
-        sections <- c(sections, list(list(
-          title = "Executive Summary",
-          description = paste("Overview of", nrow(data), "risk scenarios")
-        )))
-      }
-      
-      if ("data_overview" %in% input$report_sections) {
-        sections <- c(sections, list(list(
-          title = "Data Overview",
-          description = paste("Analysis of", length(unique(data$Central_Problem)), "unique problems")
-        )))
-      }
-      
-      if ("bowtie_diagrams" %in% input$report_sections) {
-        sections <- c(sections, list(list(
-          title = "Bowtie Diagrams",
-          description = "Visual representation of risk pathways"
-        )))
-      }
-      
-      if ("risk_matrix_section" %in% input$report_sections) {
-        sections <- c(sections, list(list(
-          title = "Risk Matrix",
-          description = "Risk categorization by likelihood and severity"
-        )))
-      }
-      
-      if ("bayesian_section" %in% input$report_sections) {
-        sections <- c(sections, list(list(
-          title = "Bayesian Network Analysis",
-          description = "Probabilistic risk inference results"
-        )))
-      }
-      
-      if ("recommendations" %in% input$report_sections) {
-        sections <- c(sections, list(list(
-          title = "Recommendations",
-          description = "Risk mitigation strategies"
-        )))
-      }
-      
-      report_content(list(
-        type = input$report_type,
-        format = input$report_format,
-        title = input$report_title,
-        author = input$report_author,
-        sections = sections,
-        data = data,
-        generated_at = Sys.time()
-      ))
-      
-      report_generated(TRUE)
-      
-      showNotification(
-        t("report_status_complete", current_lang),
-        type = "message",
-        duration = 5
-      )
-    }, error = function(e) {
-      showNotification(
-        paste(t("report_status_error", current_lang), ":", e$message),
-        type = "error",
-        duration = 10
-      )
-    })
   })
-  
-  # Download report handler
-  output$download_report <- downloadHandler(
-    filename = function() {
-      content <- report_content()
-      if (is.null(content)) {
-        paste0("report.", "html")
-      } else {
-        paste0(gsub(" ", "_", tolower(content$title)), "_",
-               format(Sys.time(), "%Y%m%d_%H%M%S"), ".", content$format)
-      }
-    },
-    content = function(file) {
-      content <- report_content()
-      
-      if (is.null(content)) {
-        writeLines("No report generated yet.", file)
-        return()
-      }
-      
-      data <- content$data
-      
-      # Generate HTML report
-      if (content$format == "html") {
-        html_content <- paste0(
-          "<!DOCTYPE html>\n<html>\n<head>\n",
-          "<meta charset='UTF-8'>\n",
-          "<title>", content$title, "</title>\n",
-          "<style>\n",
-          "body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }\n",
-          ".container { max-width: 1400px; margin: auto; background: white; padding: 50px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border-radius: 10px; }\n",
-          "h1 { color: #2c3e50; border-bottom: 4px solid #3498db; padding-bottom: 15px; font-size: 2.5em; margin-bottom: 10px; }\n",
-          "h2 { color: #34495e; margin-top: 40px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 5px; font-size: 1.8em; }\n",
-          "h3 { color: #2980b9; margin-top: 25px; font-size: 1.4em; border-left: 4px solid #3498db; padding-left: 15px; }\n",
-          "h4 { color: #16a085; margin-top: 20px; font-size: 1.2em; }\n",
-          ".meta { color: #7f8c8d; font-style: italic; margin-bottom: 30px; padding: 15px; background: #ecf0f1; border-radius: 5px; border-left: 4px solid #3498db; }\n",
-          "table { width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }\n",
-          "th, td { border: 1px solid #ddd; padding: 14px; text-align: left; }\n",
-          "th { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; font-weight: bold; text-transform: uppercase; font-size: 0.9em; }\n",
-          "tr:nth-child(even) { background-color: #f8f9fa; }\n",
-          "tr:hover { background-color: #e3f2fd; transition: background-color 0.3s; }\n",
-          ".section { margin: 40px 0; padding: 30px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; }\n",
-          ".highlight { background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; border-radius: 4px; }\n",
-          ".success { background-color: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 20px 0; border-radius: 4px; }\n",
-          ".warning { background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0; border-radius: 4px; }\n",
-          ".info { background-color: #d1ecf1; padding: 15px; border-left: 4px solid #17a2b8; margin: 20px 0; border-radius: 4px; }\n",
-          ".stat-box { display: inline-block; padding: 20px 30px; margin: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; min-width: 150px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }\n",
-          ".stat-value { font-size: 2.5em; font-weight: bold; display: block; }\n",
-          ".stat-label { font-size: 0.9em; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }\n",
-          ".risk-high { background-color: #dc3545; color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; }\n",
-          ".risk-medium { background-color: #ffc107; color: #333; padding: 5px 10px; border-radius: 4px; font-weight: bold; }\n",
-          ".risk-low { background-color: #28a745; color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; }\n",
-          ".toc { background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 30px 0; border: 2px solid #dee2e6; }\n",
-          ".toc h3 { margin-top: 0; color: #495057; }\n",
-          ".toc ul { list-style: none; padding-left: 0; }\n",
-          ".toc li { padding: 8px 0; border-bottom: 1px solid #dee2e6; }\n",
-          ".toc li:last-child { border-bottom: none; }\n",
-          ".toc a { color: #3498db; text-decoration: none; font-weight: 500; }\n",
-          ".toc a:hover { color: #2980b9; text-decoration: underline; }\n",
-          "ul.styled { list-style: none; padding-left: 0; }\n",
-          "ul.styled li { padding: 10px 0 10px 30px; position: relative; }\n",
-          "ul.styled li:before { content: '▸'; position: absolute; left: 0; color: #3498db; font-weight: bold; font-size: 1.2em; }\n",
-          ".footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #dee2e6; text-align: center; color: #6c757d; }\n",
-          ".page-break { page-break-after: always; }\n",
-          "@media print { .page-break { page-break-after: always; } body { background: white; } .container { box-shadow: none; } }\n",
-          "</style>\n</head>\n<body>\n<div class='container'>\n"
-        )
-        
-        # Header
-        html_content <- paste0(html_content,
-          "<h1>", content$title, "</h1>\n",
-          "<div class='meta'>\n",
-          if (nchar(content$author) > 0) paste0("<strong>Author:</strong> ", content$author, "<br>\n") else "",
-          "<strong>Generated:</strong> ", format(content$generated_at, "%Y-%m-%d %H:%M:%S"), "<br>\n",
-          "<strong>Report Type:</strong> ", toupper(content$type), "<br>\n",
-          "<strong>Version:</strong> ", APP_CONFIG$VERSION, " - Environmental Bowtie Risk Analysis Tool\n",
-          "</div>\n"
-        )
-        
-        # Table of Contents
-        html_content <- paste0(html_content,
-          "<div class='toc'>\n",
-          "<h3>📋 Table of Contents</h3>\n",
-          "<ul>\n"
-        )
-        
-        toc_counter <- 1
-        for (section in content$sections) {
-          html_content <- paste0(html_content,
-            "<li><a href='#section", toc_counter, "'>", toc_counter, ". ", section$title, "</a></li>\n"
-          )
-          toc_counter <- toc_counter + 1
-        }
-        
-        html_content <- paste0(html_content, "</ul>\n</div>\n")
-        
-        # Key Statistics Dashboard
-        html_content <- paste0(html_content,
-          "<div style='text-align: center; margin: 40px 0;'>\n",
-          "<h2>📊 Key Statistics at a Glance</h2>\n",
-          "<div style='margin: 30px 0;'>\n",
-          "<div class='stat-box'>\n",
-          "<span class='stat-value'>", nrow(data), "</span>\n",
-          "<span class='stat-label'>Total Scenarios</span>\n",
-          "</div>\n",
-          "<div class='stat-box'>\n",
-          "<span class='stat-value'>", length(unique(data$Central_Problem)), "</span>\n",
-          "<span class='stat-label'>Unique Problems</span>\n",
-          "</div>\n",
-          "<div class='stat-box'>\n",
-          "<span class='stat-value'>", length(unique(data$Activity)), "</span>\n",
-          "<span class='stat-label'>Activities</span>\n",
-          "</div>\n",
-          "<div class='stat-box'>\n",
-          "<span class='stat-value'>", length(unique(data$Consequence)), "</span>\n",
-          "<span class='stat-label'>Consequences</span>\n",
-          "</div>\n",
-          "</div>\n</div>\n"
-        )
-        
-        # Sections
-        section_counter <- 1
-        for (section in content$sections) {
-          html_content <- paste0(html_content,
-            "<div class='section' id='section", section_counter, "'>\n",
-            "<h2>", section_counter, ". ", section$title, "</h2>\n"
-          )
-          
-          # Executive Summary
-          if (section$title == "Executive Summary") {
-            avg_likelihood <- mean(data$Likelihood, na.rm = TRUE)
-            avg_severity <- mean(data$Severity, na.rm = TRUE)
-            high_risk_count <- sum(data$Likelihood >= 4 & data$Severity >= 4, na.rm = TRUE)
-            
-            html_content <- paste0(html_content,
-              "<p style='font-size: 1.1em; line-height: 1.8;'>", section$description, "</p>\n",
-              "<div class='info'>\n",
-              "<h4>🎯 Analysis Overview</h4>\n",
-              "<p>This report presents a comprehensive environmental risk analysis covering <strong>", nrow(data), 
-              "</strong> scenarios across <strong>", length(unique(data$Central_Problem)), 
-              "</strong> distinct environmental problems. The analysis examines risk pathways from initial activities ",
-              "through pressures, controls, and potential consequences.</p>\n",
-              "</div>\n",
-              "<h3>Key Findings</h3>\n",
-              "<ul class='styled'>\n",
-              "<li><strong>Average Likelihood:</strong> ", round(avg_likelihood, 2), " out of 5</li>\n",
-              "<li><strong>Average Severity:</strong> ", round(avg_severity, 2), " out of 5</li>\n",
-              "<li><strong>High-Risk Scenarios:</strong> ", high_risk_count, " scenarios require immediate attention</li>\n",
-              "<li><strong>Control Measures:</strong> ", sum(!is.na(data$Preventive_Control)), 
-              " preventive controls and ", sum(!is.na(data$Protective_Mitigation)), " protective mitigations identified</li>\n",
-              "</ul>\n"
-            )
-            
-            if (high_risk_count > 0) {
-              html_content <- paste0(html_content,
-                "<div class='warning'>\n",
-                "<h4>⚠️ Attention Required</h4>\n",
-                "<p><strong>", high_risk_count, "</strong> scenarios have been identified as high-risk ",
-                "(likelihood ≥ 4 AND severity ≥ 4). These require immediate review and enhanced control measures.</p>\n",
-                "</div>\n"
-              )
-            }
-          }
-          
-          # Data Overview
-          if (section$title == "Data Overview") {
-            html_content <- paste0(html_content,
-              "<p style='font-size: 1.1em; line-height: 1.8;'>", section$description, "</p>\n",
-              "<h3>📈 Comprehensive Data Summary</h3>\n",
-              "<table>\n",
-              "<tr><th>Category</th><th>Count</th><th>Details</th></tr>\n",
-              "<tr><td><strong>Total Risk Scenarios</strong></td><td>", nrow(data), "</td><td>Complete risk pathways analyzed</td></tr>\n",
-              "<tr><td><strong>Central Problems</strong></td><td>", length(unique(data$Central_Problem)), "</td><td>Unique environmental issues identified</td></tr>\n",
-              "<tr><td><strong>Human Activities</strong></td><td>", length(unique(data$Activity)), "</td><td>Root causes of environmental pressure</td></tr>\n",
-              "<tr><td><strong>Environmental Pressures</strong></td><td>", length(unique(data$Pressure)), "</td><td>Direct threats to the environment</td></tr>\n",
-              "<tr><td><strong>Preventive Controls</strong></td><td>", sum(!is.na(data$Preventive_Control)), "</td><td>Measures to prevent escalation</td></tr>\n",
-              "<tr><td><strong>Protective Mitigations</strong></td><td>", sum(!is.na(data$Protective_Mitigation)), "</td><td>Measures to reduce consequences</td></tr>\n",
-              "<tr><td><strong>Consequences</strong></td><td>", length(unique(data$Consequence)), "</td><td>Potential environmental impacts</td></tr>\n"
-            )
-            
-            if ("Escalation_Factor" %in% names(data)) {
-              html_content <- paste0(html_content,
-                "<tr><td><strong>Escalation Factors</strong></td><td>", sum(!is.na(data$Escalation_Factor)), 
-                "</td><td>Factors that worsen situations</td></tr>\n"
-              )
-            }
-            
-            html_content <- paste0(html_content, "</table>\n")
-            
-            # Top Problems
-            problem_counts <- sort(table(data$Central_Problem), decreasing = TRUE)
-            html_content <- paste0(html_content,
-              "<h3>🎯 Top Environmental Problems</h3>\n",
-              "<table>\n",
-              "<tr><th>Rank</th><th>Environmental Problem</th><th>Occurrences</th><th>Percentage</th></tr>\n"
-            )
-            
-            for (i in 1:min(10, length(problem_counts))) {
-              pct <- round(problem_counts[i] / nrow(data) * 100, 1)
-              html_content <- paste0(html_content,
-                "<tr><td>", i, "</td><td>", names(problem_counts)[i], "</td><td>", 
-                problem_counts[i], "</td><td>", pct, "%</td></tr>\n"
-              )
-            }
-            
-            html_content <- paste0(html_content, "</table>\n")
-            
-            # Risk Distribution
-            html_content <- paste0(html_content,
-              "<h3>📊 Risk Level Distribution</h3>\n",
-              "<table>\n",
-              "<tr><th>Risk Category</th><th>Count</th><th>Percentage</th><th>Priority</th></tr>\n"
-            )
-            
-            high_risk <- sum(data$Likelihood >= 4 & data$Severity >= 4, na.rm = TRUE)
-            medium_risk <- sum((data$Likelihood >= 3 | data$Severity >= 3) & 
-                              (data$Likelihood < 4 | data$Severity < 4), na.rm = TRUE)
-            low_risk <- nrow(data) - high_risk - medium_risk
-            
-            html_content <- paste0(html_content,
-              "<tr><td><span class='risk-high'>HIGH RISK</span></td><td>", high_risk, 
-              "</td><td>", round(high_risk/nrow(data)*100, 1), "%</td><td>Immediate action required</td></tr>\n",
-              "<tr><td><span class='risk-medium'>MEDIUM RISK</span></td><td>", medium_risk, 
-              "</td><td>", round(medium_risk/nrow(data)*100, 1), "%</td><td>Monitor and plan mitigation</td></tr>\n",
-              "<tr><td><span class='risk-low'>LOW RISK</span></td><td>", low_risk, 
-              "</td><td>", round(low_risk/nrow(data)*100, 1), "%</td><td>Routine monitoring</td></tr>\n",
-              "</table>\n"
-            )
-          }
-          
-          # Bowtie Diagrams
-          if (section$title == "Bowtie Diagrams") {
-            html_content <- paste0(html_content,
-              "<p style='font-size: 1.1em; line-height: 1.8;'>", section$description, "</p>\n",
-              "<div class='info'>\n",
-              "<h4>🎀 About Bowtie Analysis</h4>\n",
-              "<p>Bowtie diagrams visualize the complete risk pathway from causes to consequences. ",
-              "The left side (threat side) shows activities and pressures leading to the central problem, ",
-              "with preventive controls designed to block or reduce these threats. The right side (consequence side) ",
-              "shows potential impacts and protective mitigations to reduce their severity.</p>\n",
-              "</div>\n",
-              "<h3>📋 Complete Risk Pathways</h3>\n",
-              "<table>\n",
-              "<tr><th>Problem</th><th>Activity</th><th>Pressure</th><th>Preventive Control</th><th>Consequence</th><th>Protective Mitigation</th><th>Risk Score</th></tr>\n"
-            )
-            
-            for (i in 1:min(50, nrow(data))) {
-              risk_score <- data$Likelihood[i] * data$Severity[i]
-              risk_class <- if (risk_score >= 16) "risk-high" else if (risk_score >= 9) "risk-medium" else "risk-low"
-              
-              html_content <- paste0(html_content,
-                "<tr>",
-                "<td><strong>", data$Central_Problem[i], "</strong></td>",
-                "<td>", data$Activity[i], "</td>",
-                "<td>", data$Pressure[i], "</td>",
-                "<td>", ifelse(is.na(data$Preventive_Control[i]), "<em>None</em>", data$Preventive_Control[i]), "</td>",
-                "<td>", data$Consequence[i], "</td>",
-                "<td>", ifelse(is.na(data$Protective_Mitigation[i]), "<em>None</em>", data$Protective_Mitigation[i]), "</td>",
-                "<td><span class='", risk_class, "'>", risk_score, "</span></td>",
-                "</tr>\n"
-              )
-            }
-            
-            if (nrow(data) > 50) {
-              html_content <- paste0(html_content,
-                "<tr><td colspan='7' style='text-align: center; font-style: italic; color: #6c757d;'>",
-                "Showing first 50 of ", nrow(data), " scenarios. Full data available in source file.</td></tr>\n"
-              )
-            }
-            
-            html_content <- paste0(html_content, "</table>\n")
-          }
-          
-          # Risk Matrix Section
-          if (section$title == "Risk Matrix") {
-            html_content <- paste0(html_content,
-              "<p style='font-size: 1.1em; line-height: 1.8;'>", section$description, "</p>\n",
-              "<h3>🎯 Risk Matrix Analysis</h3>\n",
-              "<p>The risk matrix plots scenarios based on their likelihood (probability of occurrence) and ",
-              "severity (magnitude of impact). This visualization helps prioritize risk management efforts.</p>\n",
-              "<h4>Matrix Distribution</h4>\n",
-              "<table>\n",
-              "<tr><th>Severity →<br>Likelihood ↓</th><th>1 (Very Low)</th><th>2 (Low)</th><th>3 (Medium)</th><th>4 (High)</th><th>5 (Very High)</th></tr>\n"
-            )
-            
-            for (l in 5:1) {
-              html_content <- paste0(html_content, "<tr><td><strong>", l, "</strong></td>")
-              for (s in 1:5) {
-                count <- sum(data$Likelihood == l & data$Severity == s, na.rm = TRUE)
-                score <- l * s
-                cell_class <- if (score >= 16) "risk-high" else if (score >= 9) "risk-medium" else "risk-low"
-                html_content <- paste0(html_content, 
-                  "<td style='text-align: center;'><span class='", cell_class, "'>", count, "</span></td>"
-                )
-              }
-              html_content <- paste0(html_content, "</tr>\n")
-            }
-            
-            html_content <- paste0(html_content, "</table>\n")
-            
-            # High Risk Scenarios Detail
-            high_risk_data <- data[data$Likelihood >= 4 & data$Severity >= 4, ]
-            if (nrow(high_risk_data) > 0) {
-              html_content <- paste0(html_content,
-                "<div class='warning'>\n",
-                "<h3>⚠️ High-Risk Scenarios Requiring Immediate Attention</h3>\n",
-                "<table>\n",
-                "<tr><th>Problem</th><th>Activity</th><th>Consequence</th><th>Likelihood</th><th>Severity</th><th>Risk Score</th></tr>\n"
-              )
-              
-              for (i in 1:nrow(high_risk_data)) {
-                html_content <- paste0(html_content,
-                  "<tr>",
-                  "<td><strong>", high_risk_data$Central_Problem[i], "</strong></td>",
-                  "<td>", high_risk_data$Activity[i], "</td>",
-                  "<td>", high_risk_data$Consequence[i], "</td>",
-                  "<td>", high_risk_data$Likelihood[i], "</td>",
-                  "<td>", high_risk_data$Severity[i], "</td>",
-                  "<td><span class='risk-high'>", high_risk_data$Likelihood[i] * high_risk_data$Severity[i], "</span></td>",
-                  "</tr>\n"
-                )
-              }
-              
-              html_content <- paste0(html_content, "</table>\n</div>\n")
-            }
-          }
-          
-          # Bayesian Network Analysis
-          if (section$title == "Bayesian Network Analysis") {
-            html_content <- paste0(html_content,
-              "<p style='font-size: 1.1em; line-height: 1.8;'>", section$description, "</p>\n",
-              "<div class='info'>\n",
-              "<h4>🧠 Probabilistic Risk Analysis</h4>\n",
-              "<p>Bayesian networks provide a probabilistic framework for understanding risk propagation. ",
-              "They model dependencies between activities, pressures, controls, problems, and consequences, ",
-              "enabling what-if scenario analysis and inference of likely outcomes.</p>\n",
-              "</div>\n",
-              "<h3>Network Structure</h3>\n",
-              "<ul class='styled'>\n",
-              "<li><strong>Nodes:</strong> ", length(unique(c(data$Activity, data$Pressure, data$Central_Problem, data$Consequence))), 
-              " unique elements in the risk network</li>\n",
-              "<li><strong>Pathways:</strong> ", nrow(data), " causal connections identified</li>\n",
-              "<li><strong>Control Points:</strong> ", sum(!is.na(data$Preventive_Control)) + sum(!is.na(data$Protective_Mitigation)), 
-              " intervention opportunities</li>\n",
-              "</ul>\n",
-              "<h3>Key Dependencies</h3>\n",
-              "<p>Analysis of conditional probabilities reveals critical risk pathways where interventions ",
-              "can have maximum impact on reducing overall risk exposure.</p>\n"
-            )
-          }
-          
-          # Recommendations
-          if (section$title == "Recommendations") {
-            html_content <- paste0(html_content,
-              "<p style='font-size: 1.1em; line-height: 1.8;'>", section$description, "</p>\n",
-              "<h3>🎯 Priority Recommendations</h3>\n"
-            )
-            
-            # Find scenarios with missing controls
-            missing_preventive <- sum(is.na(data$Preventive_Control) | data$Preventive_Control == "")
-            missing_protective <- sum(is.na(data$Protective_Mitigation) | data$Protective_Mitigation == "")
-            
-            if (missing_preventive > 0) {
-              html_content <- paste0(html_content,
-                "<div class='warning'>\n",
-                "<h4>1. Implement Preventive Controls</h4>\n",
-                "<p><strong>", missing_preventive, "</strong> scenarios lack preventive controls. ",
-                "Priority should be given to implementing barriers that prevent pressures from escalating into problems.</p>\n",
-                "</div>\n"
-              )
-            }
-            
-            if (missing_protective > 0) {
-              html_content <- paste0(html_content,
-                "<div class='warning'>\n",
-                "<h4>2. Enhance Protective Mitigations</h4>\n",
-                "<p><strong>", missing_protective, "</strong> scenarios lack protective mitigations. ",
-                "These measures are crucial for reducing the severity of consequences when problems occur.</p>\n",
-                "</div>\n"
-              )
-            }
-            
-            high_risk_count <- sum(data$Likelihood >= 4 & data$Severity >= 4, na.rm = TRUE)
-            if (high_risk_count > 0) {
-              html_content <- paste0(html_content,
-                "<div class='warning'>\n",
-                "<h4>3. Address High-Risk Scenarios</h4>\n",
-                "<p><strong>", high_risk_count, "</strong> high-risk scenarios require immediate attention. ",
-                "Review and strengthen existing controls, or implement additional measures to reduce likelihood or severity.</p>\n",
-                "</div>\n"
-              )
-            }
-            
-            html_content <- paste0(html_content,
-              "<div class='success'>\n",
-              "<h4>4. Continuous Improvement</h4>\n",
-              "<ul class='styled'>\n",
-              "<li>Regularly review and update risk assessments as conditions change</li>\n",
-              "<li>Monitor the effectiveness of implemented controls</li>\n",
-              "<li>Engage stakeholders in identifying emerging risks</li>\n",
-              "<li>Document lessons learned from incidents and near-misses</li>\n",
-              "<li>Integrate risk management into operational decision-making</li>\n",
-              "</ul>\n",
-              "</div>\n"
-            )
-          }
-          
-          html_content <- paste0(html_content, "</div>\n")
-          section_counter <- section_counter + 1
-        }
-        
-        # Footer
-        html_content <- paste0(html_content,
-          "<div class='footer'>\n",
-          "<p><strong>Environmental Bowtie Risk Analysis Tool</strong> | Version ", APP_CONFIG$VERSION, "</p>\n",
-          "<p>Advanced Risk Assessment with Bayesian Networks</p>\n",
-          "<p style='font-size: 0.9em; color: #6c757d;'>",
-          "Generated: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), 
-          " | © 2025 Marbefes Environmental Risk Assessment Team</p>\n",
-          "</div>\n",
-          "</div>\n</body>\n</html>"
-        )
-        
-        writeLines(html_content, file)
-      } else {
-        # For PDF and DOCX, create enhanced text format
-        text_content <- paste0(
-          strrep("=", 80), "\n",
-          content$title, "\n",
-          strrep("=", 80), "\n\n",
-          if (nchar(content$author) > 0) paste0("Author: ", content$author, "\n") else "",
-          "Generated: ", format(content$generated_at, "%Y-%m-%d %H:%M:%S"), "\n",
-          "Report Type: ", toupper(content$type), "\n",
-          "Version: ", APP_CONFIG$VERSION, " - Environmental Bowtie Risk Analysis Tool\n",
-          strrep("=", 80), "\n\n"
-        )
-        
-        # Add comprehensive content for text format
-        text_content <- paste0(text_content,
-          "KEY STATISTICS\n",
-          strrep("-", 80), "\n",
-          "Total Scenarios: ", nrow(data), "\n",
-          "Unique Problems: ", length(unique(data$Central_Problem)), "\n",
-          "Unique Activities: ", length(unique(data$Activity)), "\n",
-          "Unique Consequences: ", length(unique(data$Consequence)), "\n",
-          "Preventive Controls: ", sum(!is.na(data$Preventive_Control)), "\n",
-          "Protective Mitigations: ", sum(!is.na(data$Protective_Mitigation)), "\n",
-          "Average Likelihood: ", round(mean(data$Likelihood, na.rm = TRUE), 2), "\n",
-          "Average Severity: ", round(mean(data$Severity, na.rm = TRUE), 2), "\n",
-          "High-Risk Scenarios: ", sum(data$Likelihood >= 4 & data$Severity >= 4, na.rm = TRUE), "\n\n"
-        )
-        
-        for (section in content$sections) {
-          text_content <- paste0(text_content,
-            "\n", strrep("=", 80), "\n",
-            section$title, "\n",
-            strrep("=", 80), "\n\n",
-            section$description, "\n\n"
-          )
-          
-          if (section$title == "Data Overview") {
-            text_content <- paste0(text_content,
-              "TOP ENVIRONMENTAL PROBLEMS:\n",
-              strrep("-", 80), "\n"
-            )
-            problem_counts <- sort(table(data$Central_Problem), decreasing = TRUE)
-            for (i in 1:min(10, length(problem_counts))) {
-              text_content <- paste0(text_content,
-                sprintf("%2d. %-50s %5d occurrences (%5.1f%%)\n", 
-                        i, names(problem_counts)[i], problem_counts[i],
-                        problem_counts[i]/nrow(data)*100)
-              )
-            }
-            text_content <- paste0(text_content, "\n")
-          }
-        }
-        
-        text_content <- paste0(text_content,
-          "\n", strrep("=", 80), "\n",
-          "Environmental Bowtie Risk Analysis Tool v", APP_CONFIG$VERSION, "\n",
-          "Generated: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n",
-          strrep("=", 80), "\n"
-        )
-        
-        writeLines(text_content, file)
-      }
+
+  # Dropdown menu handlers for Data Table box
+  observeEvent(input$refresh_data_table_menu, {
+    dataVersion(dataVersion() + 1)
+    showNotification(
+      tagList(icon("sync"), " Data table refreshed!"),
+      type = "success",
+      duration = 3
+    )
+  })
+
+  observeEvent(input$export_csv_menu, {
+    # Trigger the existing download button
+    shinyjs::click("downloadData")
+  })
+
+  observeEvent(input$export_excel_menu, {
+    # Trigger the existing download button
+    shinyjs::click("downloadExcel")
+  })
+
+  observeEvent(input$table_settings_menu, {
+    showNotification(
+      tagList(icon("cog"), " Table settings feature coming soon!"),
+      type = "info",
+      duration = 3
+    )
+  })
+
+  # Dropdown menu handlers for Vocabulary box
+  observeEvent(input$refresh_vocabulary_menu, {
+    # Trigger reactive update
+    updateTextInput(session, "vocab_search", value = input$vocab_search)
+    showNotification(
+      tagList(icon("sync"), " Vocabulary data refreshed!"),
+      type = "success",
+      duration = 3
+    )
+  })
+
+  observeEvent(input$clear_vocab_filters_menu, {
+    updateTextInput(session, "vocab_search", value = "")
+    updateSelectInput(session, "vocab_category", selected = "all")
+    showNotification(
+      tagList(icon("filter-circle-xmark"), " Filters cleared!"),
+      type = "info",
+      duration = 3
+    )
+  })
+
+  observeEvent(input$vocab_stats_menu, {
+    total <- 0
+    if (!is.null(vocabulary_data)) {
+      if (!is.null(vocabulary_data$activities)) total <- total + nrow(vocabulary_data$activities)
+      if (!is.null(vocabulary_data$pressures)) total <- total + nrow(vocabulary_data$pressures)
+      if (!is.null(vocabulary_data$controls)) total <- total + nrow(vocabulary_data$controls)
+      if (!is.null(vocabulary_data$consequences)) total <- total + nrow(vocabulary_data$consequences)
     }
-  )
+    showNotification(
+      HTML(sprintf("<strong>Vocabulary Statistics:</strong><br>Total Elements: %d", total)),
+      type = "info",
+      duration = 5
+    )
+  })
+
+  # Dropdown menu handlers for Bowtie Diagram box
+  observeEvent(input$refresh_bowtie_menu, {
+    # Re-render the bowtie network
+    if (!is.null(input$selectedProblem)) {
+      showNotification(
+        tagList(icon("sync"), " Bowtie diagram refreshed!"),
+        type = "success",
+        duration = 3
+      )
+    } else {
+      showNotification(
+        "Please select a central problem first",
+        type = "warning",
+        duration = 3
+      )
+    }
+  })
+
+  observeEvent(input$fit_bowtie_menu, {
+    # Trigger visNetwork fit command via JavaScript
+    session$sendCustomMessage("fitBowtieNetwork", TRUE)
+    showNotification(
+      tagList(icon("expand"), " Diagram fitted to screen!"),
+      type = "info",
+      duration = 2
+    )
+  })
+
+  # Dropdown menu handlers for Bayesian Network box
+  observeEvent(input$refresh_bayesian_menu, {
+    if (!is.null(bayesian_network$network)) {
+      showNotification(
+        tagList(icon("sync"), " Bayesian network refreshed!"),
+        type = "success",
+        duration = 3
+      )
+    } else {
+      showNotification(
+        "Please create a Bayesian network first",
+        type = "warning",
+        duration = 3
+      )
+    }
+  })
+
+  observeEvent(input$fit_bayesian_menu, {
+    # Trigger visNetwork fit command via JavaScript
+    session$sendCustomMessage("fitBayesianNetwork", TRUE)
+    showNotification(
+      tagList(icon("expand"), " Network fitted to screen!"),
+      type = "info",
+      duration = 2
+    )
+  })
+
+  # NOTE: Download handlers (downloadData, downloadExcel) are now in export_module.R
+
+  # =============================================================================
+  # REPORT GENERATION (Handled by report_generation_module)
+  # =============================================================================
+  # Report generation is handled by server_modules/report_generation_module.R
+  # The module provides:
+  #   - output$downloadPDF, output$downloadWord, output$downloadHTML handlers
+  #   - output$reportPreview renderer
+  #   - report_generated and report_content reactive values
+  # Manual download handlers (download_manual, download_manual_fr) are below.
 
   # Download User Manual handler - Automatically uses current version
   output$download_manual <- downloadHandler(
@@ -3534,68 +3452,6 @@ server <- function(input, output, session) {
     }
   )
 
-  # Helper function for simplified Bayesian inference (fallback)
-  perform_inference_simple <- function(evidence, query_nodes) {
-  # Simplified probabilistic inference for demonstration
-  # In practice, this would use the actual Bayesian network
-
-  results <- list()
-
-  # Base probabilities
-  base_probs <- list(
-    Consequence_Level = c(Low = 0.4, Medium = 0.4, High = 0.2),
-    Problem_Severity = c(Low = 0.3, Medium = 0.5, High = 0.2),
-    Escalation_Level = c(Low = 0.5, Medium = 0.3, High = 0.2)
-  )
-
-  # Adjust probabilities based on evidence
-  for (node in query_nodes) {
-    if (node %in% names(base_probs)) {
-      probs <- base_probs[[node]]
-
-      # Adjust based on evidence
-      if ("Activity" %in% names(evidence) && evidence$Activity == "Present") {
-        # Increase risk when activity is present
-        probs["High"] <- min(0.8, probs["High"] * 1.5)
-        probs["Medium"] <- max(0.1, probs["Medium"] * 1.2)
-        probs["Low"] <- max(0.1, 1 - probs["High"] - probs["Medium"])
-      }
-
-      if ("Pressure_Level" %in% names(evidence)) {
-        pressure_level <- evidence$Pressure_Level
-        if (pressure_level == "High") {
-          probs["High"] <- min(0.9, probs["High"] * 2)
-          probs["Medium"] <- max(0.05, probs["Medium"] * 0.8)
-          probs["Low"] <- max(0.05, 1 - probs["High"] - probs["Medium"])
-        } else if (pressure_level == "Low") {
-          probs["Low"] <- min(0.8, probs["Low"] * 1.5)
-          probs["High"] <- max(0.05, probs["High"] * 0.3)
-          probs["Medium"] <- max(0.15, 1 - probs["High"] - probs["Low"])
-        }
-      }
-
-      if ("Control_Effect" %in% names(evidence)) {
-        control_effect <- evidence$Control_Effect
-        if (control_effect == "Failed") {
-          probs["High"] <- min(0.85, probs["High"] * 1.8)
-          probs["Medium"] <- max(0.1, probs["Medium"] * 1.1)
-          probs["Low"] <- max(0.05, 1 - probs["High"] - probs["Medium"])
-        } else if (control_effect == "Effective") {
-          probs["Low"] <- min(0.7, probs["Low"] * 1.4)
-          probs["High"] <- max(0.05, probs["High"] * 0.4)
-          probs["Medium"] <- max(0.25, 1 - probs["High"] - probs["Low"])
-        }
-      }
-
-      # Normalize probabilities
-      total <- sum(probs)
-      probs <- probs / total
-
-      results[[node]] <- probs
-    }
-  }
-
-  return(results)
-  }
+  # NOTE: perform_inference_simple function moved to server_modules/bayesian_module.R
 
 }
