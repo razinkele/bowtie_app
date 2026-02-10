@@ -1,14 +1,30 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application with Bayesian Networks
-# Version: 5.3.0 (Production-Ready Edition)
-# Date: November 2025
+# Version: 5.4.0 (Stability & Infrastructure Edition)
+# Date: January 2026
 # Author: Marbefes Team & AI Assistant
 # Description: Production-ready with comprehensive deployment framework, UI improvements, and bug fixes
 # =============================================================================
 
+# =============================================================================
+# EARLY LOADING PHASE (before logging.R - cat() is intentional here)
+# The logging system loads at line 65, so we use cat() for early startup messages
+# =============================================================================
+
+# Ensure user library is on the library path (needed when system lib is not writable)
+user_lib <- Sys.getenv("R_LIBS_USER")
+if (nzchar(user_lib)) {
+  dir.create(user_lib, recursive = TRUE, showWarnings = FALSE)
+  .libPaths(c(user_lib, .libPaths()))
+}
+
 # Load centralized configuration first
-cat("⚙️ Loading centralized configuration...\n")
+cat("[STARTUP] Loading centralized configuration...\n")
 source("config.R")
+
+# Load application constants
+cat("[STARTUP] Loading application constants...\n")
+source("constants.R")
 
 # Enhanced package loading with better error handling
 load_packages <- function() {
@@ -17,12 +33,12 @@ load_packages <- function() {
 
   required_packages <- c(
     "shiny", "bslib", "DT", "readxl", "openxlsx",
-    "ggplot2", "plotly", "dplyr", "visNetwork",
+    "ggplot2", "plotly", "dplyr", "tidyr", "visNetwork",
     "shinycssloaders", "colourpicker", "htmlwidgets", "shinyjs",
-    "bs4Dash", "shinyWidgets", "fresh"
+    "bs4Dash", "shinyWidgets", "fresh", "shinyFiles"
   )
 
-  bayesian_packages <- c("bnlearn", "gRain", "igraph", "DiagrammeR")
+  bayesian_packages <- c("bnlearn", "gRain", "gRbase", "igraph", "DiagrammeR")
 
   # Load core packages
   cat("   • Loading core Shiny and visualization packages...\n")
@@ -39,10 +55,10 @@ load_packages <- function() {
   for (pkg in bayesian_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
       cat("     Installing Bayesian package:", pkg, "\n")
-      if (pkg == "gRain" && !requireNamespace("BiocManager", quietly = TRUE)) {
+      if (pkg %in% c("gRain", "gRbase") && !requireNamespace("BiocManager", quietly = TRUE)) {
         install.packages("BiocManager")
       }
-      if (pkg == "gRain") {
+      if (pkg %in% c("gRain", "gRbase")) {
         BiocManager::install(pkg, dependencies = TRUE)
       } else {
         install.packages(pkg, dependencies = TRUE)
@@ -56,151 +72,160 @@ load_packages <- function() {
 # Load all packages
 suppressMessages(load_packages())
 
+# Load logging configuration and helpers
+cat("[STARTUP] Loading logging and error handling systems...\n")
+source("config/logging.R")
+source("helpers/error_handling.R")
+source("helpers/notifications.R")
+
+# =============================================================================
+# POST-LOGGING PHASE (logging.R is now loaded - use log_*() functions)
+# =============================================================================
+
 # Source utility functions and vocabulary management
-cat("🔧 Loading application modules...\n")
-cat("   • Loading utility functions and data management...\n")
+log_info("Loading application modules...")
+log_debug("   Loading utility functions and data management...")
 source("utils.R")
 source("ui_components.R")  # UI component library for enhanced UX
 source("vocabulary.R")
 
 # Load AI-powered vocabulary linker
-cat("   • Loading AI-powered vocabulary linker...\n")
+log_debug("   Loading AI-powered vocabulary linker...")
 tryCatch({
   source("vocabulary_ai_linker.R")
-  cat("     ✓ AI vocabulary linker loaded successfully\n")
+  log_success("   AI vocabulary linker loaded successfully")
   if (exists("AI_LINKER_CAPABILITIES")) {
     if (AI_LINKER_CAPABILITIES$basic_only) {
-      cat("     ℹ️ Running in basic mode (some optional packages unavailable)\n")
+      log_info("   Running in basic mode (some optional packages unavailable)")
     } else {
-      cat("     ✓ All advanced AI features available\n")
+      log_success("   All advanced AI features available")
     }
   }
 }, error = function(e) {
-  cat("     ⚠️ Warning: AI linker not available:", e$message, "\n")
-  cat("     ℹ️ Application will use basic linking fallback\n")
+  log_warning(paste("AI linker not available:", e$message))
+  log_info("   Application will use basic linking fallback")
 })
 
+# =============================================================================
+# EXPERIMENTAL AI/ML MODULES (Optional - app works without these)
+# These modules enhance AI linking with ML capabilities but are not required.
+# They fail gracefully if dependencies (randomForest, word2vec, etc.) are missing.
+# =============================================================================
+
 # Load suggestion feedback tracker
-cat("   • Loading suggestion feedback tracker...\n")
 tryCatch({
   source("suggestion_feedback_tracker.R")
-  cat("     ✓ Feedback tracking system loaded\n")
+  log_debug("   Feedback tracking loaded")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Feedback tracker not available:", e$message, "\n")
-  cat("     ℹ️ Suggestions will work without feedback tracking\n")
+  log_debug("   Feedback tracker unavailable (optional)")
 })
 
 # Load word embeddings for semantic similarity
-cat("   • Loading word embeddings system...\n")
 tryCatch({
   source("word_embeddings.R")
-  cat("     ✓ Word embeddings module loaded\n")
-  if (exists("EMBEDDING_CAPABILITIES")) {
-    if (EMBEDDING_CAPABILITIES$word2vec) {
-      cat("     ✓ Word2Vec embeddings available\n")
-    }
-    if (EMBEDDING_CAPABILITIES$text2vec) {
-      cat("     ✓ Text2Vec (GloVe) embeddings available\n")
-    }
-    if (EMBEDDING_CAPABILITIES$basic_embeddings && !EMBEDDING_CAPABILITIES$word2vec) {
-      cat("     ℹ️ Running with basic embeddings (Word2Vec unavailable)\n")
-    }
-  }
+  log_debug("   Word embeddings loaded")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Word embeddings not available:", e$message, "\n")
-  cat("     ℹ️ AI linker will use standard semantic similarity\n")
+  log_debug("   Word embeddings unavailable (optional)")
 })
 
 # Load ML link quality classifier
-cat("   • Loading ML link quality classifier...\n")
 tryCatch({
   source("ml_link_classifier.R")
-  cat("     ✓ ML classifier module loaded\n")
-  if (exists("ML_CLASSIFIER_CAPABILITIES")) {
-    if (ML_CLASSIFIER_CAPABILITIES$randomForest) {
-      cat("     ✓ Random Forest classifier available\n")
-      # Try to auto-load saved classifier
-      if (file.exists("models/link_classifier.rds") && exists("load_classifier")) {
-        model <- load_classifier()
-        if (!is.null(model)) {
-          cat("     ✓ Pre-trained classifier loaded\n")
-        }
-      }
-    } else {
-      cat("     ℹ️ Running without ML classifier (randomForest unavailable)\n")
-    }
-  }
+  log_debug("   ML classifier loaded")
 }, error = function(e) {
-  cat("     ⚠️ Warning: ML classifier not available:", e$message, "\n")
-  cat("     ℹ️ AI linker will use confidence scoring only\n")
+  log_debug("   ML classifier unavailable (optional)")
 })
 
-# Load ensemble predictor (Phase 3)
-cat("   • Loading ensemble predictor...\n")
+# Load ensemble predictor
 tryCatch({
   source("ml_ensemble_predictor.R")
-  cat("     ✓ Ensemble predictor module loaded\n")
-  if (exists("ENSEMBLE_CAPABILITIES") && ENSEMBLE_CAPABILITIES$ensemble_available) {
-    cat("     ✓ Ensemble methods available\n")
-    # Try to auto-load saved ensemble
-    if (file.exists("models/ensemble_predictor.rds") && exists("load_ensemble")) {
-      ensemble <- load_ensemble()
-      if (!is.null(ensemble)) {
-        cat("     ✓ Pre-trained ensemble loaded\n")
-      }
-    }
-  } else {
-    cat("     ℹ️ Ensemble unavailable (need 2+ ML packages)\n")
-  }
+  log_debug("   Ensemble predictor loaded")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Ensemble predictor not available:", e$message, "\n")
+  log_debug("   Ensemble predictor unavailable (optional)")
 })
 
-# Load explainable AI (Phase 3)
-cat("   • Loading explainable AI...\n")
+# Load explainable AI
 tryCatch({
   source("explainable_ai.R")
-  cat("     ✓ Explainable AI module loaded\n")
+  log_debug("   Explainable AI loaded")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Explainable AI not available:", e$message, "\n")
+  log_debug("   Explainable AI unavailable (optional)")
 })
+
+# =============================================================================
+# END EXPERIMENTAL MODULES
+# =============================================================================
 
 source("environmental_scenarios.R")
 
 # Load translation system from separate file
-cat("   • Loading translation system...\n")
+log_debug("   Loading translation system...")
 source("translations_data.R")
 
-cat("   • Loading Bayesian network analysis...\n")
+log_debug("   Loading Bayesian network analysis...")
 source("bowtie_bayesian_network.R")
 
-cat("   • Loading vocabulary bowtie generator...\n")
+log_debug("   Loading vocabulary bowtie generator...")
 source("vocabulary_bowtie_generator.R")
 
 # Source guided workflow system with dependency management
-cat("   • Loading guided workflow system...\n")
+log_debug("   Loading guided workflow system...")
 tryCatch({
-  # Load workflow configuration first
+  # Load workflow configuration (includes all step definitions)
   source("guided_workflow.R")
-  cat("     ✓ Guided workflow core loaded\n")
-
-  # Load step definitions (depends on WORKFLOW_CONFIG from guided_workflow.R)
-  # NOTE: guided_workflow_steps.r was removed - functionality merged into guided_workflow.R
-  # source("guided_workflow_steps.r")
-  # cat("     ✓ Workflow step definitions loaded\n")
+  log_success("   Guided workflow system loaded")
 }, error = function(e) {
-  cat("     ⚠️ Warning: Failed to load guided workflow system:", e$message, "\n")
+  log_warning(paste("Failed to load guided workflow system:", e$message))
+})
+
+# Load server modules (Phase 3 & 4: Server Modularization)
+log_debug("   Loading server modules...")
+tryCatch({
+  # Phase 3 modules
+  source("server_modules/language_module.R")
+  source("server_modules/theme_module.R")
+  source("server_modules/data_management_module.R")
+  source("server_modules/export_module.R")
+  source("server_modules/autosave_module.R")
+  source("server_modules/local_storage_module.R")  # Local folder storage support
+  # Phase 4 modules (server.R modularization)
+  source("server_modules/bayesian_module.R")
+  source("server_modules/bowtie_visualization_module.R")
+  source("server_modules/report_generation_module.R")
+  source("server_modules/ai_analysis_module.R")
+  log_success("   Server modules loaded successfully (10 modules)")
+}, error = function(e) {
+  log_warning(paste("Failed to load server modules:", e$message))
+  log_info("   Application will use legacy inline server code")
+})
+
+# Load login module
+log_debug("   Loading login module...")
+tryCatch({
+  source("login_module.R")
+  log_success("   Login module loaded successfully")
+}, error = function(e) {
+  log_warning(paste("Failed to load login module:", e$message))
+})
+
+# Load custom terms storage module
+log_debug("   Loading custom terms module...")
+tryCatch({
+  source("custom_terms_module.R")
+  log_success("   Custom terms module loaded successfully")
+}, error = function(e) {
+  log_warning(paste("Failed to load custom terms module:", e$message))
 })
 
 # Enhanced vocabulary data loading with graceful fallback
 load_app_data <- function() {
   tryCatch({
     vocabulary_data <- load_vocabulary()
-    cat("✅ Vocabulary data loaded successfully\n")
+    log_success("Vocabulary data loaded successfully")
     return(vocabulary_data)
   }, error = function(e) {
-    cat("⚠️ Warning: Could not load vocabulary data:", e$message, "\n")
-    cat("📝 Using fallback empty data structure\n")
+    log_warning(paste("Could not load vocabulary data:", e$message))
+    log_info("Using fallback empty data structure")
     return(list(
       activities = data.frame(hierarchy = character(), id = character(), name = character()),
       pressures = data.frame(hierarchy = character(), id = character(), name = character()),
@@ -211,5 +236,23 @@ load_app_data <- function() {
 }
 
 # Load vocabulary data with enhanced error handling
-cat("📊 Loading environmental vocabulary data from Excel files...\n")
+log_info("Loading environmental vocabulary data from Excel files...")
 vocabulary_data <- load_app_data()
+
+# =============================================================================
+# DEVELOPMENT TOOLS (Optional - only in development mode)
+# =============================================================================
+# Load development configuration if in development mode or interactive session
+if (Sys.getenv("SHINY_ENV") == "development" ||
+    (interactive() && Sys.getenv("SHINY_ENV") != "production")) {
+  if (file.exists("dev_config.R")) {
+    tryCatch({
+      source("dev_config.R")
+      log_debug("Development tools loaded")
+    }, error = function(e) {
+      log_warning(paste("dev_config.R available but failed to load:", e$message))
+    })
+  }
+}
+
+log_success("Global environment initialized successfully")
