@@ -1594,27 +1594,23 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     })
   }
 
-  # Helper: Trigger autosave with debouncing
+  # Helper: Trigger autosave with debouncing (no nested observers)
   trigger_autosave_debounced <- function(delay_ms = 3000) {
-    # Update debounce timer
     debounce_timer(Sys.time())
-
-    # Schedule the autosave check
-    invalidateLater(delay_ms, session)
-
-    observe({
-      timer_value <- debounce_timer()
-      req(timer_value)
-
-      time_diff <- difftime(Sys.time(), timer_value, units = "secs")
-
-      # If enough time has passed since last change, perform autosave
-      if (as.numeric(time_diff) >= (delay_ms / 1000)) {
-        perform_smart_autosave()
-        debounce_timer(NULL)  # Clear timer
-      }
-    }, priority = -1)  # Low priority to run after other observers
   }
+
+  # Single observer for debounced autosave (avoids observer leak)
+  observe({
+    timer_value <- debounce_timer()
+    req(timer_value)
+    invalidateLater(3000, session)
+
+    time_diff <- difftime(Sys.time(), timer_value, units = "secs")
+    if (as.numeric(time_diff) >= 3) {
+      perform_smart_autosave()
+      debounce_timer(NULL)
+    }
+  }, priority = -1)
 
   # Watch for workflow state changes and trigger autosave
   observe({
@@ -4045,6 +4041,31 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # SAVE & LOAD FUNCTIONALITY
   # =============================================================================
   
+  # Workflow help button - show help modal
+  observeEvent(input$workflow_help, {
+    showModal(modalDialog(
+      title = tagList(icon("question-circle"), " Guided Workflow Help"),
+      size = "l",
+      easyClose = TRUE,
+      tagList(
+        h4("How to use the Guided Workflow"),
+        tags$ol(
+          tags$li(strong("Project Setup"), " - Enter basic project information and select an environmental scenario template"),
+          tags$li(strong("Central Problem"), " - Define the core environmental problem to analyze"),
+          tags$li(strong("Threats & Causes"), " - Select activities and pressures from the vocabulary"),
+          tags$li(strong("Preventive Controls"), " - Choose mitigation measures"),
+          tags$li(strong("Consequences"), " - Identify potential environmental impacts"),
+          tags$li(strong("Protective Controls"), " - Add protective measures and recovery controls"),
+          tags$li(strong("Review & Validate"), " - Check all connections and data completeness"),
+          tags$li(strong("Finalize & Export"), " - Export your completed bowtie analysis")
+        ),
+        hr(),
+        p(icon("lightbulb"), " Tip: Use the Save/Load buttons to preserve your progress between sessions.")
+      ),
+      footer = modalButton("Close")
+    ))
+  })
+
   # Trigger hidden file input for loading
   observeEvent(input$workflow_load_btn, {
     # Check if user has selected local folder storage mode

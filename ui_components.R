@@ -25,15 +25,15 @@
 #'   icon_name = "upload",
 #'   title = "No Data Uploaded",
 #'   message = "Upload an Excel file to get started",
-#'   primary_action = actionButton("upload", "Upload File", class = "btn-primary")
+#'   primary_action = actionButton("upload", "Upload", class = "btn-primary")
 #' )
 empty_state <- function(
-    icon_name = "diagram-project",
-    title = "No Data",
-    message = "Get started by uploading data or using the guided workflow",
-    primary_action = NULL,
-    secondary_action = NULL,
-    class_modifier = ""
+  icon_name = "diagram-project",
+  title = "No Data",
+  message = "Get started by uploading data or using the guided workflow",
+  primary_action = NULL,
+  secondary_action = NULL,
+  class_modifier = ""
 ) {
   div(
     class = paste("empty-state text-center p-5", class_modifier),
@@ -57,15 +57,13 @@ empty_state <- function(
 #' @param primary_action Primary action button (optional)
 #' @param secondary_action Secondary action button (optional)
 empty_state_table <- function(
-    message = "No data available. Upload a file or generate sample data to get started.",
-    action_buttons = NULL,
-    primary_action = NULL,
-    secondary_action = NULL
+  message = "No data available. Upload a file or generate sample.",
+  action_buttons = NULL,
+  primary_action = NULL,
+  secondary_action = NULL
 ) {
-  # Handle backward compatibility - if action_buttons div is provided, extract the buttons
+  # Handle backward compatibility
   if (!is.null(action_buttons) && inherits(action_buttons, "shiny.tag")) {
-    # If action_buttons is a div with buttons inside, use the parent empty_state
-    # and pass the entire action_buttons div as children
     return(
       div(
         class = "empty-state text-center p-5",
@@ -95,13 +93,13 @@ empty_state_table <- function(
 #' @param primary_action Primary action button (optional)
 #' @param secondary_action Secondary action button (optional)
 empty_state_network <- function(
-    icon_name = "diagram-project",
-    message = "No network to display. Load data to visualize the bowtie diagram.",
-    action_buttons = NULL,
-    primary_action = NULL,
-    secondary_action = NULL
+  icon_name = "diagram-project",
+  message = "No network to display. Load data to visualize diagram.",
+  action_buttons = NULL,
+  primary_action = NULL,
+  secondary_action = NULL
 ) {
-  # Handle backward compatibility - if action_buttons div is provided
+  # Handle backward compatibility
   if (!is.null(action_buttons) && inherits(action_buttons, "shiny.tag")) {
     return(
       div(
@@ -144,6 +142,7 @@ empty_state_search <- function(query = NULL, message = NULL) {
     message = msg
   )
 }
+
 
 # =============================================================================
 # FORM VALIDATION COMPONENTS
@@ -247,283 +246,8 @@ validated_select_input <- function(
   )
 }
 
-# =============================================================================
-# ERROR DISPLAY COMPONENTS
-# =============================================================================
 
-#' Create a friendly error message display
-#'
-#' @param title Error title
-#' @param message Main error message
-#' @param details Technical details (optional, collapsible)
-#' @param suggestions List of suggested actions
-#' @param retry_button Include retry button
-#' @param retry_id ID for retry button
-#'
-#' @return Shiny UI div element
-error_display <- function(
-    title = "Something Went Wrong",
-    message = "We encountered an error while processing your request.",
-    details = NULL,
-    suggestions = NULL,
-    retry_button = FALSE,
-    retry_id = "retry_action"
-) {
-  div(
-    class = "alert alert-danger alert-dismissible fade show",
-    role = "alert",
 
-    # Header
-    h5(
-      class = "alert-heading mb-2",
-      icon("exclamation-triangle"), " ", title
-    ),
-
-    # Main message
-    p(class = "mb-2", message),
-
-    # Suggestions
-    if (!is.null(suggestions) && length(suggestions) > 0) {
-      tagList(
-        hr(),
-        p(class = "mb-1", strong("What you can do:")),
-        tags$ul(
-          class = "mb-2",
-          lapply(suggestions, function(s) tags$li(s))
-        )
-      )
-    },
-
-    # Technical details (collapsible)
-    if (!is.null(details)) {
-      tagList(
-        hr(),
-        div(
-          class = "mb-0",
-          tags$a(
-            href = "#errorDetails",
-            class = "text-decoration-none",
-            `data-bs-toggle` = "collapse",
-            icon("chevron-down"), " Show technical details"
-          ),
-          div(
-            id = "errorDetails",
-            class = "collapse mt-2",
-            div(
-              class = "bg-light p-2 rounded",
-              tags$pre(
-                class = "mb-0",
-                style = "font-size: 0.8em; max-height: 200px; overflow-y: auto;",
-                details
-              )
-            )
-          )
-        )
-      )
-    },
-
-    # Retry button
-    if (retry_button) {
-      div(
-        class = "mt-3",
-        actionButton(
-          retry_id,
-          tagList(icon("rotate-right"), " Try Again"),
-          class = "btn-warning btn-sm"
-        )
-      )
-    },
-
-    # Close button
-    tags$button(
-      type = "button",
-      class = "btn-close",
-      `data-bs-dismiss` = "alert",
-      `aria-label` = "Close"
-    )
-  )
-}
-
-#' Create a warning display
-warning_display <- function(
-    title = "Warning",
-    message,
-    dismissible = TRUE
-) {
-  div(
-    class = paste(
-      "alert alert-warning",
-      if (dismissible) "alert-dismissible fade show"
-    ),
-    role = "alert",
-    h6(
-      class = "alert-heading mb-1",
-      icon("exclamation-circle"), " ", title
-    ),
-    p(class = "mb-0", message),
-    if (dismissible) {
-      tags$button(
-        type = "button",
-        class = "btn-close",
-        `data-bs-dismiss` = "alert",
-        `aria-label` = "Close"
-      )
-    }
-  )
-}
-
-#' Create an info display
-info_display <- function(
-    title = "Information",
-    message,
-    dismissible = TRUE
-) {
-  div(
-    class = paste(
-      "alert alert-info",
-      if (dismissible) "alert-dismissible fade show"
-    ),
-    role = "alert",
-    h6(
-      class = "alert-heading mb-1",
-      icon("info-circle"), " ", title
-    ),
-    p(class = "mb-0", message),
-    if (dismissible) {
-      tags$button(
-        type = "button",
-        class = "btn-close",
-        `data-bs-dismiss` = "alert",
-        `aria-label` = "Close"
-      )
-    }
-  )
-}
-
-#' Create a success display
-success_display <- function(
-    title = "Success",
-    message,
-    dismissible = TRUE
-) {
-  div(
-    class = paste(
-      "alert alert-success",
-      if (dismissible) "alert-dismissible fade show"
-    ),
-    role = "alert",
-    h6(
-      class = "alert-heading mb-1",
-      icon("check-circle"), " ", title
-    ),
-    p(class = "mb-0", message),
-    if (dismissible) {
-      tags$button(
-        type = "button",
-        class = "btn-close",
-        `data-bs-dismiss` = "alert",
-        `aria-label` = "Close"
-      )
-    }
-  )
-}
-
-# =============================================================================
-# LOADING STATE COMPONENTS
-# =============================================================================
-
-#' Create a skeleton loader for tables
-skeleton_table <- function(rows = 5, cols = 4, height = "400px") {
-  div(
-    class = "skeleton-table",
-    style = paste0("height: ", height, "; overflow: hidden;"),
-
-    # Header
-    div(
-      class = "skeleton-table-header d-flex gap-2 mb-2 p-2",
-      lapply(1:cols, function(i) {
-        div(
-          class = "skeleton-col flex-fill",
-          style = "height: 20px; background: #e9ecef; border-radius: 4px;"
-        )
-      })
-    ),
-
-    # Rows
-    lapply(1:rows, function(i) {
-      div(
-        class = "skeleton-row d-flex gap-2 mb-2 p-2",
-        lapply(1:cols, function(j) {
-          div(
-            class = "skeleton-cell flex-fill",
-            style = "height: 16px; background: #f8f9fa; border-radius: 4px;"
-          )
-        })
-      )
-    })
-  )
-}
-
-#' Create a skeleton loader for network diagrams
-skeleton_network <- function(height = "500px") {
-  div(
-    class = "skeleton-network d-flex align-items-center justify-content-center",
-    style = paste0("height: ", height, "; background: #f8f9fa; border-radius: 8px;"),
-    div(
-      class = "text-center",
-      div(
-        class = "spinner-border text-primary mb-3",
-        role = "status",
-        style = "width: 3rem; height: 3rem;",
-        tags$span(class = "visually-hidden", "Loading...")
-      ),
-      p(class = "text-muted", "Loading network diagram...")
-    )
-  )
-}
-
-# =============================================================================
-# ACCESSIBILITY COMPONENTS
-# =============================================================================
-
-#' Create skip navigation links
-skip_links <- function() {
-  div(
-    class = "skip-links",
-    tags$a(
-      href = "#main-content",
-      class = "skip-link visually-hidden-focusable",
-      "Skip to main content"
-    ),
-    tags$a(
-      href = "#navigation",
-      class = "skip-link visually-hidden-focusable",
-      "Skip to navigation"
-    )
-  )
-}
-
-#' Create an accessible button with proper ARIA labels
-accessible_button <- function(
-    id,
-    label,
-    icon_name = NULL,
-    class = "btn-primary",
-    aria_label = NULL,
-    title = NULL
-) {
-  actionButton(
-    id,
-    label = if (!is.null(icon_name)) {
-      tagList(icon(icon_name), " ", label)
-    } else {
-      label
-    },
-    class = class,
-    `aria-label` = aria_label %||% label,
-    title = title %||% label
-  )
-}
 
 # =============================================================================
 # CSS STYLES FOR COMPONENTS
@@ -719,6 +443,115 @@ ui_components_js <- function() {
         $field.removeClass('is-valid is-invalid');
       }
     }
+
+    // Initialize Bootstrap tooltips
+    $('[data-toggle=\"tooltip\"]').tooltip({
+      trigger: 'hover',
+      delay: { show: 500, hide: 100 }
+    });
+
+    // Re-initialize tooltips after Shiny updates
+    $(document).on('shiny:value', function() {
+      $('[data-toggle=\"tooltip\"]').tooltip({
+        trigger: 'hover',
+        delay: { show: 500, hide: 100 }
+      });
+    });
+
+    // Sidebar Search Functionality
+    $('#sidebar_search').on('input', function() {
+      var searchTerm = $(this).val().toLowerCase().trim();
+
+      if (searchTerm === '') {
+        // Show all menu items and headers
+        $('.nav-sidebar .nav-item').show();
+        $('.nav-sidebar .nav-header').show();
+        $('.nav-sidebar .nav-treeview').show();
+        return;
+      }
+
+      // Hide all items initially
+      $('.nav-sidebar .nav-item').each(function() {
+        var $item = $(this);
+        var itemText = $item.find('.nav-link p').first().text().toLowerCase();
+        var $subItems = $item.find('.nav-treeview .nav-item');
+
+        // Check if main item matches
+        var mainMatch = itemText.indexOf(searchTerm) > -1;
+
+        // Check if any sub-items match
+        var subMatch = false;
+        $subItems.each(function() {
+          var subText = $(this).text().toLowerCase();
+          if (subText.indexOf(searchTerm) > -1) {
+            subMatch = true;
+            $(this).show();
+          } else {
+            $(this).hide();
+          }
+        });
+
+        // Show item if main or sub matches
+        if (mainMatch || subMatch) {
+          $item.show();
+          if (subMatch) {
+            $item.addClass('menu-open');
+            $item.find('.nav-treeview').show();
+          }
+        } else {
+          $item.hide();
+        }
+      });
+
+      // Hide/show headers based on visible items in section
+      $('.nav-sidebar .nav-header').each(function() {
+        var $header = $(this);
+        var $nextItems = $header.nextUntil('.nav-header', '.nav-item');
+        var hasVisibleItems = $nextItems.filter(':visible').length > 0;
+
+        if (hasVisibleItems) {
+          $header.show();
+        } else {
+          $header.hide();
+        }
+      });
+    });
+
+    // Clear search on Escape
+    $(document).on('keydown', '#sidebar_search', function(e) {
+      if (e.key === 'Escape') {
+        $(this).val('').trigger('input');
+      }
+    });
+
+    // Custom message handlers for network visualization actions
+    Shiny.addCustomMessageHandler('fitBowtieNetwork', function(message) {
+      if (typeof bowtieNetworkInstance !== 'undefined') {
+        bowtieNetworkInstance.fit({animation: {duration: 500, easingFunction: 'easeInOutQuad'}});
+      }
+    });
+
+    Shiny.addCustomMessageHandler('fitBayesianNetwork', function(message) {
+      if (typeof bayesianNetworkInstance !== 'undefined') {
+        bayesianNetworkInstance.fit({animation: {duration: 500, easingFunction: 'easeInOutQuad'}});
+      }
+    });
+
+    // Trigger a download button click programmatically
+    Shiny.addCustomMessageHandler('triggerDownload', function(downloadId) {
+      var link = document.getElementById(downloadId);
+      if (link) link.click();
+    });
+
+    // Store network instances when created (for fit functionality)
+    $(document).on('shiny:value', function(event) {
+      if (event.name === 'bowtieNetwork' && event.binding && event.binding.instance) {
+        window.bowtieNetworkInstance = event.binding.instance;
+      }
+      if (event.name === 'bayesianNetworkVis' && event.binding && event.binding.instance) {
+        window.bayesianNetworkInstance = event.binding.instance;
+      }
+    });
 
     // Keyboard shortcuts
     $(document).on('keydown', function(e) {

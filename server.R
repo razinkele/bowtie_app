@@ -85,19 +85,13 @@ server <- function(input, output, session) {
   inferenceCompleted <- bayesian_module$inferenceCompleted
 
   # Initialize Bowtie Visualization module
-  bowtie_viz_module <- bowtie_visualization_module_server(input, output, session, getCurrentData, lang)
-  filtered_problem_data <- bowtie_viz_module$filtered_problem_data
-  cached_bowtie_nodes <- bowtie_viz_module$cached_bowtie_nodes
-  cached_bowtie_edges <- bowtie_viz_module$cached_bowtie_edges
+  bowtie_visualization_module_server(input, output, session, getCurrentData, lang)
 
   # Initialize Report Generation module
-  report_module <- report_generation_module_server(input, output, session, currentData, lang)
-  report_generated <- report_module$report_generated
-  report_content <- report_module$report_content
+  report_generation_module_server(input, output, session, currentData, lang)
 
   # Initialize AI Analysis module
-  ai_module <- ai_analysis_module_server(input, output, session, vocabulary_data, lang)
-  ai_analysis_results <- ai_module$ai_analysis_results
+  ai_analysis_module_server(input, output, session, vocabulary_data, lang)
 
   # =============================================================================
   # SESSION CLEANUP HANDLER (Memory leak prevention)
@@ -797,6 +791,25 @@ server <- function(input, output, session) {
     updateTabItems(session, "sidebar_menu", selected = "upload")
   })
 
+  # Empty state navigation buttons
+  observeEvent(input$empty_upload, {
+    updateTabItems(session, "sidebar_menu", selected = "upload")
+  })
+
+  observeEvent(input$empty_generate, {
+    updateTabItems(session, "sidebar_menu", selected = "upload")
+    showNotification("Select an environmental scenario and click 'Generate Data'", type = "message", duration = 5)
+  })
+
+  # Risk Matrix update button
+  observeEvent(input$updateMatrix, {
+    dataVersion(dataVersion() + 1)
+    showNotification(
+      tagList(icon("refresh"), " Risk matrix updated!"),
+      type = "message", duration = 3
+    )
+  })
+
   # =============================================================================
   # BAYESIAN NETWORK (Handled by bayesian_module)
   # =============================================================================
@@ -1335,7 +1348,28 @@ server <- function(input, output, session) {
     req(data)
     
     row_idx <- as.numeric(input$link_risk_scenario)
-    
+
+    # Check if data has granular risk columns before updating
+    granular_cols <- c("Activity_to_Pressure_Likelihood", "Activity_to_Pressure_Severity",
+                       "Pressure_to_Control_Likelihood", "Pressure_to_Control_Severity",
+                       "Control_to_Escalation_Likelihood", "Control_to_Escalation_Severity",
+                       "Escalation_to_Central_Likelihood", "Escalation_to_Central_Severity",
+                       "Mitigation_to_Consequence_Likelihood", "Mitigation_to_Consequence_Severity")
+    has_granular <- all(granular_cols %in% names(data))
+
+    if (!has_granular) {
+      # Create missing granular columns with current generic values as defaults
+      for (col in granular_cols) {
+        if (!(col %in% names(data))) {
+          if (grepl("Likelihood", col)) data[[col]] <- data$Likelihood
+          else data[[col]] <- data$Severity
+        }
+      }
+      if (!("Overall_Likelihood" %in% names(data))) data$Overall_Likelihood <- data$Likelihood
+      if (!("Overall_Severity" %in% names(data))) data$Overall_Severity <- data$Severity
+      if (!("Risk_Level" %in% names(data))) data$Risk_Level <- ifelse(data$Likelihood * data$Severity <= 6, "Low", ifelse(data$Likelihood * data$Severity <= 15, "Medium", "High"))
+    }
+
     # Update the data with new values
     data[row_idx, "Activity_to_Pressure_Likelihood"] <- input$activity_pressure_likelihood
     data[row_idx, "Activity_to_Pressure_Severity"] <- input$activity_pressure_severity
@@ -1374,7 +1408,7 @@ server <- function(input, output, session) {
     editedData(data)
     dataVersion(dataVersion() + 1)
     
-    showNotification("✅ Risk assessments saved successfully!", type = "success", duration = 3)
+    showNotification("Risk assessments saved successfully!", type = "message", duration = 3)
   })
   
   # Reset to current values
@@ -3268,7 +3302,7 @@ server <- function(input, output, session) {
     dataVersion(dataVersion() + 1)
     showNotification(
       tagList(icon("sync"), " Data table refreshed!"),
-      type = "success",
+      type = "message",
       duration = 3
     )
   })
@@ -3286,7 +3320,7 @@ server <- function(input, output, session) {
   observeEvent(input$table_settings_menu, {
     showNotification(
       tagList(icon("cog"), " Table settings feature coming soon!"),
-      type = "info",
+      type = "message",
       duration = 3
     )
   })
@@ -3297,9 +3331,13 @@ server <- function(input, output, session) {
     updateTextInput(session, "vocab_search", value = input$vocab_search)
     showNotification(
       tagList(icon("sync"), " Vocabulary data refreshed!"),
-      type = "success",
+      type = "message",
       duration = 3
     )
+  })
+
+  observeEvent(input$export_vocabulary_menu, {
+    session$sendCustomMessage("triggerDownload", "download_vocab")
   })
 
   observeEvent(input$clear_vocab_filters_menu, {
@@ -3307,7 +3345,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "vocab_category", selected = "all")
     showNotification(
       tagList(icon("filter-circle-xmark"), " Filters cleared!"),
-      type = "info",
+      type = "message",
       duration = 3
     )
   })
@@ -3322,7 +3360,7 @@ server <- function(input, output, session) {
     }
     showNotification(
       HTML(sprintf("<strong>Vocabulary Statistics:</strong><br>Total Elements: %d", total)),
-      type = "info",
+      type = "message",
       duration = 5
     )
   })
@@ -3333,7 +3371,7 @@ server <- function(input, output, session) {
     if (!is.null(input$selectedProblem)) {
       showNotification(
         tagList(icon("sync"), " Bowtie diagram refreshed!"),
-        type = "success",
+        type = "message",
         duration = 3
       )
     } else {
@@ -3350,9 +3388,20 @@ server <- function(input, output, session) {
     session$sendCustomMessage("fitBowtieNetwork", TRUE)
     showNotification(
       tagList(icon("expand"), " Diagram fitted to screen!"),
-      type = "info",
+      type = "message",
       duration = 2
     )
+  })
+
+  # Bowtie diagram export menu items - trigger existing download handlers via JS
+  observeEvent(input$export_bowtie_png_menu, {
+    session$sendCustomMessage("triggerDownload", "downloadBowtiePNG")
+  })
+
+  observeEvent(input$export_bowtie_svg_menu, {
+    # SVG not directly supported - use HTML export as alternative
+    session$sendCustomMessage("triggerDownload", "downloadBowtie")
+    showNotification("SVG not available - downloading interactive HTML instead", type = "message", duration = 3)
   })
 
   # Dropdown menu handlers for Bayesian Network box
@@ -3360,7 +3409,7 @@ server <- function(input, output, session) {
     if (!is.null(bayesian_network$network)) {
       showNotification(
         tagList(icon("sync"), " Bayesian network refreshed!"),
-        type = "success",
+        type = "message",
         duration = 3
       )
     } else {
@@ -3377,7 +3426,7 @@ server <- function(input, output, session) {
     session$sendCustomMessage("fitBayesianNetwork", TRUE)
     showNotification(
       tagList(icon("expand"), " Network fitted to screen!"),
-      type = "info",
+      type = "message",
       duration = 2
     )
   })

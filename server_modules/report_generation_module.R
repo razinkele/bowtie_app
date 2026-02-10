@@ -338,14 +338,14 @@ generate_text_report <- function(content, data) {
     "KEY STATISTICS\n",
     strrep("-", 80), "\n",
     "Total Scenarios: ", nrow(data), "\n",
-    "Unique Problems: ", length(unique(data$Central_Problem)), "\n",
-    "Unique Activities: ", length(unique(data$Activity)), "\n",
-    "Unique Consequences: ", length(unique(data$Consequence)), "\n",
-    "Preventive Controls: ", sum(!is.na(data$Preventive_Control)), "\n",
-    "Protective Mitigations: ", sum(!is.na(data$Protective_Mitigation)), "\n",
-    "Average Likelihood: ", round(mean(data$Likelihood, na.rm = TRUE), 2), "\n",
-    "Average Severity: ", round(mean(data$Severity, na.rm = TRUE), 2), "\n",
-    "High-Risk Scenarios: ", sum(data$Likelihood >= 4 & data$Severity >= 4, na.rm = TRUE), "\n\n"
+    "Unique Problems: ", if ("Central_Problem" %in% names(data)) length(unique(data$Central_Problem)) else 0, "\n",
+    "Unique Activities: ", if ("Activity" %in% names(data)) length(unique(data$Activity)) else 0, "\n",
+    "Unique Consequences: ", if ("Consequence" %in% names(data)) length(unique(data$Consequence)) else 0, "\n",
+    "Preventive Controls: ", if ("Preventive_Control" %in% names(data)) sum(!is.na(data$Preventive_Control)) else 0, "\n",
+    "Protective Mitigations: ", if ("Protective_Mitigation" %in% names(data)) sum(!is.na(data$Protective_Mitigation)) else if ("Protective_Control" %in% names(data)) sum(!is.na(data$Protective_Control)) else 0, "\n",
+    "Average Likelihood: ", if ("Likelihood" %in% names(data)) round(mean(data$Likelihood, na.rm = TRUE), 2) else "N/A", "\n",
+    "Average Severity: ", if ("Severity" %in% names(data)) round(mean(data$Severity, na.rm = TRUE), 2) else "N/A", "\n",
+    "High-Risk Scenarios: ", if (all(c("Likelihood", "Severity") %in% names(data))) sum(data$Likelihood >= 4 & data$Severity >= 4, na.rm = TRUE) else 0, "\n\n"
   )
 
   for (section in content$sections) {
@@ -608,7 +608,9 @@ generate_bayesian_section <- function(section, data) {
     "<li><strong>Nodes:</strong> ", length(unique(c(data$Activity, data$Pressure, data$Central_Problem, data$Consequence))),
     " unique elements</li>\n",
     "<li><strong>Pathways:</strong> ", nrow(data), " causal connections</li>\n",
-    "<li><strong>Control Points:</strong> ", sum(!is.na(data$Preventive_Control)) + sum(!is.na(data$Protective_Mitigation)),
+    "<li><strong>Control Points:</strong> ",
+    (if ("Preventive_Control" %in% names(data)) sum(!is.na(data$Preventive_Control)) else 0) +
+    (if ("Protective_Mitigation" %in% names(data)) sum(!is.na(data$Protective_Mitigation)) else if ("Protective_Control" %in% names(data)) sum(!is.na(data$Protective_Control)) else 0),
     " intervention opportunities</li>\n",
     "</ul>\n"
   )

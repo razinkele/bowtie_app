@@ -34,6 +34,11 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
   filtered_problem_data <- reactive({
     data <- getCurrentData()
     req(data, input$selectedProblem)
+    # Normalize Central_Problem column name
+    if (!("Central_Problem" %in% names(data)) && "Problem" %in% names(data)) {
+      data$Central_Problem <- data$Problem
+    }
+    req("Central_Problem" %in% names(data))
     data[data$Central_Problem == input$selectedProblem, ]
   })
 
@@ -44,11 +49,14 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
 
     # Generate cache key based on data content and visualization options
     font_size <- if (!is.null(input$fontSize)) input$fontSize else 12
+    node_size <- if (!is.null(input$nodeSize)) input$nodeSize else "Medium"
+    show_risk <- if (!is.null(input$showRiskLevels)) input$showRiskLevels else TRUE
+    show_barriers <- if (!is.null(input$showBarriers)) input$showBarriers else TRUE
     cache_key <- paste0("bowtie_nodes_",
                        digest::digest(problem_data, algo = "xxhash32"),
-                       "_", input$nodeSize,
-                       "_", input$showRiskLevels,
-                       "_", input$showBarriers,
+                       "_", node_size,
+                       "_", show_risk,
+                       "_", show_barriers,
                        "_font", font_size)
 
     # Check cache first
@@ -58,8 +66,8 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
     }
 
     # Calculate nodes
-    nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, input$nodeSize,
-                                   input$showRiskLevels, input$showBarriers)
+    nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, node_size,
+                                   show_risk, show_barriers)
 
     # Store in cache
     set_cache(cache_key, nodes)
@@ -73,9 +81,10 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
     req(nrow(problem_data) > 0)
 
     # Generate cache key based on data content and barrier option
+    show_barriers <- if (!is.null(input$showBarriers)) input$showBarriers else TRUE
     cache_key <- paste0("bowtie_edges_",
                        digest::digest(problem_data, algo = "xxhash32"),
-                       "_", input$showBarriers)
+                       "_", show_barriers)
 
     # Check cache first
     cached <- get_cache(cache_key)
@@ -84,7 +93,7 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
     }
 
     # Calculate edges
-    edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
+    edges <- createBowtieEdgesFixed(problem_data, show_barriers)
 
     # Store in cache
     set_cache(cache_key, edges)
