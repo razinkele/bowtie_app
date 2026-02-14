@@ -85,14 +85,16 @@ setup_performance_profiler <- function() {
         round(sum(start_memory[,"used"] * c(8, 8)) / 1024 / 1024, 2), "MB\n")
   }
 
-  # Performance logging
-  performance_log <- data.frame(
-    timestamp = Sys.time(),
-    event = "app_start",
-    memory_mb = ifelse(dev_config$memory_monitoring,
-                       round(sum(gc()[,"used"] * c(8, 8)) / 1024 / 1024, 2),
-                       NA),
-    stringsAsFactors = FALSE
+  # Performance logging (list-based for efficient accumulation)
+  performance_log <- list(
+    data.frame(
+      timestamp = Sys.time(),
+      event = "app_start",
+      memory_mb = ifelse(dev_config$memory_monitoring,
+                         round(sum(gc()[,"used"] * c(8, 8)) / 1024 / 1024, 2),
+                         NA),
+      stringsAsFactors = FALSE
+    )
   )
 
   # Return logging function
@@ -109,7 +111,7 @@ setup_performance_profiler <- function() {
         stringsAsFactors = FALSE
       )
 
-      performance_log <<- rbind(performance_log, new_entry)
+      performance_log[[length(performance_log) + 1]] <<- new_entry
 
       cat("📈 Performance:", event_name,
           ifelse(is.na(current_memory), "", paste("(", current_memory, "MB)")), "\n")
@@ -210,7 +212,6 @@ validate_dependencies <- function() {
   if (length(workflow_line) == 0) {
     cat("⚠️ guided_workflow.R not loaded in global.R\n")
     return(FALSE)
-    }
   }
 
   cat("✅ Module dependencies are properly structured\n")

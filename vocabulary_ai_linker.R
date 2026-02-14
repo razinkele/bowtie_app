@@ -34,7 +34,7 @@ load_optional_package <- function(package_name, quiet = TRUE) {
   tryCatch({
     if (!requireNamespace(package_name, quietly = quiet)) {
       if (!quiet) {
-        cat("📦 Installing optional package:", package_name, "\n")
+        bowtie_log(paste("Installing optional package:", package_name), level = "info")
       }
       install.packages(package_name, quiet = quiet)
     }
@@ -42,7 +42,7 @@ load_optional_package <- function(package_name, quiet = TRUE) {
     TRUE
   }, error = function(e) {
     if (!quiet) {
-      cat("⚠️ Optional package", package_name, "not available:", e$message, "\n")
+      bowtie_log(paste("Optional package", package_name, "not available:", e$message), level = "warning")
     }
     FALSE
   })
@@ -95,6 +95,30 @@ AI_LINKER_CAPABILITIES$basic_only <- !(AI_LINKER_CAPABILITIES$text_mining ||
 # =============================================================================
 # CORE UTILITY FUNCTIONS
 # =============================================================================
+
+#' Assemble all vocabulary items into a single data frame
+#' @param vocabulary_data List containing vocabulary dataframes
+#' @return Data frame with columns: id, name, type
+assemble_all_items <- function(vocabulary_data) {
+  components <- list(
+    list(data = vocabulary_data$activities, type = "Activity"),
+    list(data = vocabulary_data$pressures, type = "Pressure"),
+    list(data = vocabulary_data$consequences, type = "Consequence"),
+    list(data = vocabulary_data$controls, type = "Control")
+  )
+
+  items_list <- lapply(components, function(comp) {
+    if (!is.null(comp$data) && nrow(comp$data) > 0) {
+      data.frame(id = comp$data$id, name = comp$data$name, type = comp$type, stringsAsFactors = FALSE)
+    } else {
+      NULL
+    }
+  })
+
+  items_list <- Filter(Negate(is.null), items_list)
+  if (length(items_list) == 0) return(data.frame(id = character(), name = character(), type = character(), stringsAsFactors = FALSE))
+  do.call(rbind, items_list)
+}
 
 #' Preprocess text for analysis
 #' @param text Character string to preprocess
@@ -364,7 +388,7 @@ PROCESS_CHAINS <- list(
 #' @param max_links_per_item Maximum number of links per vocabulary item
 #' @return Data frame of basic connections
 find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
-  cat("📌 Using basic connection method (AI features unavailable)\n")
+  bowtie_log("Using basic connection method (AI features unavailable)", level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -379,8 +403,6 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
     warning("Missing vocabulary components: ", paste(missing_components, collapse = ", "))
     return(data.frame())
   }
-
-  basic_links <- data.frame()
 
   # Helper function to find word overlap
   get_word_overlap_score <- function(text1, text2) {
@@ -400,59 +422,45 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
     return(score)
   }
 
-  # Activity → Pressure connections
+  results_list <- list()
+
+  # Activity -> Pressure connections
   if (nrow(vocabulary_data$activities) > 0 && nrow(vocabulary_data$pressures) > 0) {
     for (i in 1:nrow(vocabulary_data$activities)) {
       activity <- vocabulary_data$activities[i, ]
-
       for (j in 1:nrow(vocabulary_data$pressures)) {
         pressure <- vocabulary_data$pressures[j, ]
-
         score <- get_word_overlap_score(activity$name, pressure$name)
-
         if (score > 0.2) {
-          basic_links <- rbind(basic_links, data.frame(
-            from_id = activity$id,
-            from_name = activity$name,
-            from_type = "Activity",
-            to_id = pressure$id,
-            to_name = pressure$name,
-            to_type = "Pressure",
-            similarity = score,
-            method = "basic_word_overlap",
-            stringsAsFactors = FALSE
-          ))
+          results_list[[length(results_list) + 1]] <- data.frame(
+            from_id = activity$id, from_name = activity$name, from_type = "Activity",
+            to_id = pressure$id, to_name = pressure$name, to_type = "Pressure",
+            similarity = score, method = "basic_word_overlap", stringsAsFactors = FALSE
+          )
         }
       }
     }
   }
 
-  # Pressure → Consequence connections
+  # Pressure -> Consequence connections
   if (nrow(vocabulary_data$pressures) > 0 && nrow(vocabulary_data$consequences) > 0) {
     for (i in 1:nrow(vocabulary_data$pressures)) {
       pressure <- vocabulary_data$pressures[i, ]
-
       for (j in 1:nrow(vocabulary_data$consequences)) {
         consequence <- vocabulary_data$consequences[j, ]
-
         score <- get_word_overlap_score(pressure$name, consequence$name)
-
         if (score > 0.2) {
-          basic_links <- rbind(basic_links, data.frame(
-            from_id = pressure$id,
-            from_name = pressure$name,
-            from_type = "Pressure",
-            to_id = consequence$id,
-            to_name = consequence$name,
-            to_type = "Consequence",
-            similarity = score,
-            method = "basic_word_overlap",
-            stringsAsFactors = FALSE
-          ))
+          results_list[[length(results_list) + 1]] <- data.frame(
+            from_id = pressure$id, from_name = pressure$name, from_type = "Pressure",
+            to_id = consequence$id, to_name = consequence$name, to_type = "Consequence",
+            similarity = score, method = "basic_word_overlap", stringsAsFactors = FALSE
+          )
         }
       }
     }
   }
+
+  basic_links <- if (length(results_list) > 0) do.call(rbind, results_list) else data.frame()
 
   # Limit links per item
   if (nrow(basic_links) > 0) {
@@ -463,7 +471,7 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
       ungroup()
   }
 
-  cat("✅ Found", nrow(basic_links), "basic connections\n")
+  bowtie_log(paste("Found", nrow(basic_links), "basic connections"), level = "success")
 
   return(basic_links)
 }
@@ -477,7 +485,7 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
 #' @param use_domain_knowledge Whether to use environmental domain rules
 #' @return Data frame of detected causal relationships
 detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = TRUE) {
-  cat("🔍 Performing causal relationship analysis...\n")
+  bowtie_log("Performing causal relationship analysis...", level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -485,7 +493,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
     return(data.frame())
   }
 
-  causal_links <- data.frame()
+  causal_results <- list()
 
   # Extract vocabulary components
   all_activities <- vocabulary_data$activities
@@ -497,7 +505,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
   if (!is.null(all_activities) && !is.null(all_pressures) &&
       nrow(all_activities) > 0 && nrow(all_pressures) > 0) {
 
-    cat("  Analyzing Activity → Pressure causal links...\n")
+    bowtie_log("  Analyzing Activity -> Pressure causal links...", level = "debug")
 
     for (i in 1:nrow(all_activities)) {
       activity <- all_activities[i, ]
@@ -546,7 +554,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
 
         # Add link if score sufficient
         if (causal_score > 0.3) {
-          causal_links <- rbind(causal_links, data.frame(
+          causal_results[[length(causal_results) + 1]] <- data.frame(
             from_id = activity$id,
             from_name = activity$name,
             from_type = "Activity",
@@ -557,7 +565,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
             method = paste("causal", causal_method, sep = "_"),
             causal_type = "activity_pressure",
             stringsAsFactors = FALSE
-          ))
+          )
         }
       }
     }
@@ -567,7 +575,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
   if (!is.null(all_pressures) && !is.null(all_consequences) &&
       nrow(all_pressures) > 0 && nrow(all_consequences) > 0) {
 
-    cat("  Analyzing Pressure → Consequence causal links...\n")
+    bowtie_log("  Analyzing Pressure -> Consequence causal links...", level = "debug")
 
     for (i in 1:nrow(all_pressures)) {
       pressure <- all_pressures[i, ]
@@ -622,7 +630,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
 
         # Add link if score sufficient
         if (causal_score > 0.3) {
-          causal_links <- rbind(causal_links, data.frame(
+          causal_results[[length(causal_results) + 1]] <- data.frame(
             from_id = pressure$id,
             from_name = pressure$name,
             from_type = "Pressure",
@@ -633,7 +641,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
             method = paste("causal", causal_method, sep = "_"),
             causal_type = "pressure_consequence",
             stringsAsFactors = FALSE
-          ))
+          )
         }
       }
     }
@@ -643,7 +651,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
   if (!is.null(all_controls) && !is.null(all_pressures) &&
       nrow(all_controls) > 0 && nrow(all_pressures) > 0) {
 
-    cat("  Analyzing Control intervention relationships...\n")
+    bowtie_log("  Analyzing Control intervention relationships...", level = "debug")
 
     for (i in 1:nrow(all_controls)) {
       control <- all_controls[i, ]
@@ -694,7 +702,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
 
           # Add link if score sufficient
           if (causal_score > 0.4) {
-            causal_links <- rbind(causal_links, data.frame(
+            causal_results[[length(causal_results) + 1]] <- data.frame(
               from_id = control$id,
               from_name = control$name,
               from_type = "Control",
@@ -705,14 +713,16 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
               method = paste("causal_intervention", causal_method, sep = "_"),
               causal_type = "control_pressure",
               stringsAsFactors = FALSE
-            ))
+            )
           }
         }
       }
     }
   }
 
-  cat("✅ Found", nrow(causal_links), "causal relationships\n")
+  causal_links <- if (length(causal_results) > 0) do.call(rbind, causal_results) else data.frame()
+
+  bowtie_log(paste("Found", nrow(causal_links), "causal relationships"), level = "success")
 
   return(causal_links)
 }
@@ -726,7 +736,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
 #' @param themes List of environmental themes (default: ENVIRONMENTAL_THEMES)
 #' @return Data frame of keyword-based connections
 find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THEMES) {
-  cat("🔍 Identifying keyword-based connections...\n")
+  bowtie_log("Identifying keyword-based connections...", level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -734,42 +744,14 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
     return(data.frame())
   }
 
-  keyword_links <- data.frame()
+  keyword_results <- list()
 
   # Create combined vocabulary items
   all_items <- tryCatch({
-    rbind(
-      if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-        data.frame(id = vocabulary_data$activities$id,
-                  name = vocabulary_data$activities$name,
-                  type = "Activity",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-        data.frame(id = vocabulary_data$pressures$id,
-                  name = vocabulary_data$pressures$name,
-                  type = "Pressure",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-        data.frame(id = vocabulary_data$consequences$id,
-                  name = vocabulary_data$consequences$name,
-                  type = "Consequence",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-        data.frame(id = vocabulary_data$controls$id,
-                  name = vocabulary_data$controls$name,
-                  type = "Control",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() }
-    )
+    assemble_all_items(vocabulary_data)
   }, error = function(e) {
     warning("Error combining vocabulary items: ", e$message)
-    return(data.frame())
+    return(data.frame(id = character(), name = character(), type = character(), stringsAsFactors = FALSE))
   })
 
   if (nrow(all_items) == 0) {
@@ -781,9 +763,9 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
   use_index <- length(ls(.keyword_index)) > 0
 
   if (use_index) {
-    cat("  Using inverted keyword index (fast O(1) lookups)\n")
+    bowtie_log("  Using inverted keyword index (fast O(1) lookups)", level = "debug")
   } else {
-    cat("  Using sequential scan (slow O(n) - consider building index)\n")
+    bowtie_log("  Using sequential scan (slow O(n) - consider building index)", level = "debug")
   }
 
   # Analyze each theme
@@ -808,7 +790,7 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
         for (j in (i + 1):nrow(theme_items)) {
           # Only link different types
           if (theme_items$type[i] != theme_items$type[j]) {
-            keyword_links <- rbind(keyword_links, data.frame(
+            keyword_results[[length(keyword_results) + 1]] <- data.frame(
               from_id = theme_items$id[i],
               from_name = theme_items$name[i],
               from_type = theme_items$type[i],
@@ -818,14 +800,16 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
               similarity = theme_strength,
               method = paste("keyword", theme_name, sep = "_"),
               stringsAsFactors = FALSE
-            ))
+            )
           }
         }
       }
     }
   }
 
-  cat("✅ Found", nrow(keyword_links), "keyword-based connections\n")
+  keyword_links <- if (length(keyword_results) > 0) do.call(rbind, keyword_results) else data.frame()
+
+  bowtie_log(paste("Found", nrow(keyword_links), "keyword-based connections"), level = "success")
 
   return(keyword_links)
 }
@@ -840,7 +824,7 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
 #' @param threshold Minimum similarity threshold (0-1)
 #' @return Data frame of semantic connections
 find_semantic_connections <- function(vocabulary_data, method = "jaccard", threshold = 0.3) {
-  cat("📊 Analyzing semantic similarities using", method, "method...\n")
+  bowtie_log(paste("Analyzing semantic similarities using", method, "method..."), level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -848,42 +832,14 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
     return(data.frame())
   }
 
-  semantic_links <- data.frame()
+  semantic_results <- list()
 
   # Create combined vocabulary items
   all_items <- tryCatch({
-    rbind(
-      if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-        data.frame(id = vocabulary_data$activities$id,
-                  name = vocabulary_data$activities$name,
-                  type = "Activity",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-        data.frame(id = vocabulary_data$pressures$id,
-                  name = vocabulary_data$pressures$name,
-                  type = "Pressure",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-        data.frame(id = vocabulary_data$consequences$id,
-                  name = vocabulary_data$consequences$name,
-                  type = "Consequence",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-        data.frame(id = vocabulary_data$controls$id,
-                  name = vocabulary_data$controls$name,
-                  type = "Control",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() }
-    )
+    assemble_all_items(vocabulary_data)
   }, error = function(e) {
     warning("Error combining vocabulary items: ", e$message)
-    return(data.frame())
+    return(data.frame(id = character(), name = character(), type = character(), stringsAsFactors = FALSE))
   })
 
   if (nrow(all_items) < 2) {
@@ -893,7 +849,7 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
 
   # Calculate pairwise similarities between different types
   total_comparisons <- choose(nrow(all_items), 2)
-  cat("  Processing", total_comparisons, "pairwise comparisons...\n")
+  bowtie_log(paste("  Processing", total_comparisons, "pairwise comparisons..."), level = "debug")
 
   for (i in 1:(nrow(all_items) - 1)) {
     for (j in (i + 1):nrow(all_items)) {
@@ -916,7 +872,7 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
         }
 
         if (similarity >= threshold) {
-          semantic_links <- rbind(semantic_links, data.frame(
+          semantic_results[[length(semantic_results) + 1]] <- data.frame(
             from_id = all_items$id[i],
             from_name = all_items$name[i],
             from_type = all_items$type[i],
@@ -926,13 +882,15 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
             similarity = similarity,
             method = method,
             stringsAsFactors = FALSE
-          ))
+          )
         }
       }
     }
   }
 
-  cat("✅ Found", nrow(semantic_links), "semantic connections\n")
+  semantic_links <- if (length(semantic_results) > 0) do.call(rbind, semantic_results) else data.frame()
+
+  bowtie_log(paste("Found", nrow(semantic_links), "semantic connections"), level = "success")
 
   return(semantic_links)
 }
@@ -978,9 +936,8 @@ find_vocabulary_links <- function(vocabulary_data,
                                  methods = c("jaccard", "keyword", "causal"),
                                  use_domain_knowledge = TRUE) {
 
-  cat("\n🤖 Starting AI-powered vocabulary link analysis...\n")
-  cat("📋 Capabilities:",
-      if(AI_LINKER_CAPABILITIES$basic_only) "Basic" else "Advanced", "\n")
+  bowtie_log("Starting AI-powered vocabulary link analysis...", level = "info")
+  bowtie_log(paste("Capabilities:", if(AI_LINKER_CAPABILITIES$basic_only) "Basic" else "Advanced"), level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -1023,7 +980,8 @@ find_vocabulary_links <- function(vocabulary_data,
           threshold = similarity_threshold
         )
       }
-      all_links <- rbind(all_links, semantic_links)
+      # Use bind_rows for column-safe combining (handles causal_type mismatch)
+      all_links <- dplyr::bind_rows(all_links, semantic_links)
     }, error = function(e) {
       warning("Semantic analysis failed: ", e$message)
     })
@@ -1033,7 +991,7 @@ find_vocabulary_links <- function(vocabulary_data,
   if ("keyword" %in% methods) {
     tryCatch({
       keyword_links <- find_keyword_connections(vocabulary_data, ENVIRONMENTAL_THEMES)
-      all_links <- rbind(all_links, keyword_links)
+      all_links <- dplyr::bind_rows(all_links, keyword_links)
     }, error = function(e) {
       warning("Keyword analysis failed: ", e$message)
     })
@@ -1043,7 +1001,8 @@ find_vocabulary_links <- function(vocabulary_data,
   if ("causal" %in% methods) {
     tryCatch({
       causal_links <- detect_causal_relationships(vocabulary_data, use_domain_knowledge)
-      all_links <- rbind(all_links, causal_links)
+      # bind_rows handles the extra causal_type column gracefully
+      all_links <- dplyr::bind_rows(all_links, causal_links)
     }, error = function(e) {
       warning("Causal analysis failed: ", e$message)
     })
@@ -1051,9 +1010,9 @@ find_vocabulary_links <- function(vocabulary_data,
 
   # Fallback: Basic connections if no links found or only basic method requested
   if (nrow(all_links) == 0 || "basic" %in% methods) {
-    cat("📌 Falling back to basic connection method...\n")
+    bowtie_log("Falling back to basic connection method...", level = "info")
     basic_links <- find_basic_connections(vocabulary_data, max_links_per_item)
-    all_links <- rbind(all_links, basic_links)
+    all_links <- dplyr::bind_rows(all_links, basic_links)
   }
 
   # Post-processing: Remove duplicates and limit links per item
@@ -1066,7 +1025,7 @@ find_vocabulary_links <- function(vocabulary_data,
       ungroup()
   }
 
-  cat("✅ Total links found:", nrow(all_links), "\n\n")
+  bowtie_log(paste("Total links found:", nrow(all_links)), level = "success")
 
   # Generate summary
   summary_stats <- if (nrow(all_links) > 0) {
@@ -1184,19 +1143,19 @@ get_cache_stats <- function() {
 #'
 #' @param confirm Require confirmation (default TRUE)
 #' @return Invisible NULL
-clear_cache <- function(confirm = TRUE) {
-  if (confirm) {
-    cat("⚠️ This will clear", length(ls(.similarity_cache)), "cached similarities.\n")
+clear_similarity_cache <- function(confirm = TRUE) {
+  if (confirm && interactive()) {
+    cat("This will clear", length(ls(.similarity_cache)), "cached similarities.\n")
     cat("Type 'yes' to confirm: ")
     response <- readline()
     if (tolower(response) != "yes") {
-      cat("Cache clear cancelled.\n")
+      bowtie_log("Cache clear cancelled.", level = "info")
       return(invisible(NULL))
     }
   }
 
   rm(list = ls(.similarity_cache), envir = .similarity_cache)
-  cat("✅ Cache cleared\n")
+  bowtie_log("Similarity cache cleared", level = "success")
   invisible(NULL)
 }
 
@@ -1218,8 +1177,7 @@ save_cache <- function(file_path = "cache/similarity_cache.rds") {
     # Save to disk
     saveRDS(cache_list, file_path)
 
-    cat(sprintf("✅ Saved %d cached similarities to %s\n",
-                length(cache_list), file_path))
+    bowtie_log(sprintf("Saved %d cached similarities to %s", length(cache_list), file_path), level = "success")
   }, error = function(e) {
     warning("Failed to save cache: ", e$message)
   })
@@ -1233,7 +1191,7 @@ save_cache <- function(file_path = "cache/similarity_cache.rds") {
 #' @return Invisible NULL
 load_cache <- function(file_path = "cache/similarity_cache.rds") {
   if (!file.exists(file_path)) {
-    cat("ℹ️ No cache file found at", file_path, "\n")
+    bowtie_log(paste("No cache file found at", file_path), level = "info")
     return(invisible(NULL))
   }
 
@@ -1244,8 +1202,7 @@ load_cache <- function(file_path = "cache/similarity_cache.rds") {
     # Populate environment
     list2env(cache_list, envir = .similarity_cache)
 
-    cat(sprintf("✅ Loaded %d cached similarities from %s\n",
-                length(cache_list), file_path))
+    bowtie_log(sprintf("Loaded %d cached similarities from %s", length(cache_list), file_path), level = "success")
   }, error = function(e) {
     warning("Failed to load cache: ", e$message)
   })
@@ -1263,7 +1220,7 @@ precompute_similarity_matrix <- function(vocabulary_data,
                                         methods = c("jaccard", "cosine"),
                                         save_to_disk = TRUE) {
 
-  cat("🔄 Pre-computing similarity matrix...\n")
+  bowtie_log("Pre-computing similarity matrix...", level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -1272,50 +1229,14 @@ precompute_similarity_matrix <- function(vocabulary_data,
   }
 
   # Gather all vocabulary items
-  all_items <- data.frame()
-
-  if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$activities$id,
-      name = vocabulary_data$activities$name,
-      type = "Activity",
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$pressures$id,
-      name = vocabulary_data$pressures$name,
-      type = "Pressure",
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$consequences$id,
-      name = vocabulary_data$consequences$name,
-      type = "Consequence",
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$controls$id,
-      name = vocabulary_data$controls$name,
-      type = "Control",
-      stringsAsFactors = FALSE
-    ))
-  }
+  all_items <- assemble_all_items(vocabulary_data)
 
   if (nrow(all_items) == 0) {
     warning("No vocabulary items found")
     return(invisible(NULL))
   }
 
-  cat(sprintf("  Processing %d vocabulary items...\n", nrow(all_items)))
+  bowtie_log(sprintf("  Processing %d vocabulary items...", nrow(all_items)), level = "debug")
 
   total_comparisons <- 0
   start_time <- Sys.time()
@@ -1339,17 +1260,15 @@ precompute_similarity_matrix <- function(vocabulary_data,
 
     # Progress indicator every 10 items
     if (i %% 10 == 0) {
-      cat(sprintf("  Progress: %d/%d items processed\r", i, nrow(all_items)))
+      bowtie_log(sprintf("  Progress: %d/%d items processed", i, nrow(all_items)), level = "debug")
     }
   }
 
   elapsed <- difftime(Sys.time(), start_time, units = "secs")
 
-  cat(sprintf("\n✅ Pre-computed %d similarities in %.2f seconds\n",
-              total_comparisons, elapsed))
-  cat(sprintf("   Cache size: %d entries\n", length(ls(.similarity_cache))))
-  cat(sprintf("   Average: %.2f ms per comparison\n",
-              as.numeric(elapsed) * 1000 / max(1, total_comparisons)))
+  bowtie_log(sprintf("Pre-computed %d similarities in %.2f seconds", total_comparisons, elapsed), level = "success")
+  bowtie_log(sprintf("   Cache size: %d entries", length(ls(.similarity_cache))), level = "info")
+  bowtie_log(sprintf("   Average: %.2f ms per comparison", as.numeric(elapsed) * 1000 / max(1, total_comparisons)), level = "info")
 
   # Save to disk if requested
   if (save_to_disk) {
@@ -1376,7 +1295,7 @@ precompute_similarity_matrix <- function(vocabulary_data,
 #' @return Invisible NULL
 build_keyword_index <- function(vocabulary_data, themes = ENVIRONMENTAL_THEMES) {
 
-  cat("🔍 Building inverted keyword index...\n")
+  bowtie_log("Building inverted keyword index...", level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -1388,43 +1307,7 @@ build_keyword_index <- function(vocabulary_data, themes = ENVIRONMENTAL_THEMES) 
   rm(list = ls(.keyword_index), envir = .keyword_index)
 
   # Gather all vocabulary items
-  all_items <- data.frame()
-
-  if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$activities$id,
-      name = vocabulary_data$activities$name,
-      type = "Activity",
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$pressures$id,
-      name = vocabulary_data$pressures$name,
-      type = "Pressure",
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$consequences$id,
-      name = vocabulary_data$consequences$name,
-      type = "Consequence",
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-    all_items <- rbind(all_items, data.frame(
-      id = vocabulary_data$controls$id,
-      name = vocabulary_data$controls$name,
-      type = "Control",
-      stringsAsFactors = FALSE
-    ))
-  }
+  all_items <- assemble_all_items(vocabulary_data)
 
   if (nrow(all_items) == 0) {
     warning("No vocabulary items found")
@@ -1454,10 +1337,8 @@ build_keyword_index <- function(vocabulary_data, themes = ENVIRONMENTAL_THEMES) 
     }
   }
 
-  cat(sprintf("✅ Indexed %d themes covering %d items\n",
-              indexed_themes, total_items_indexed))
-  cat(sprintf("   Average: %.1f items per theme\n\n",
-              total_items_indexed / max(1, indexed_themes)))
+  bowtie_log(sprintf("Indexed %d themes covering %d items", indexed_themes, total_items_indexed), level = "success")
+  bowtie_log(sprintf("   Average: %.1f items per theme", total_items_indexed / max(1, indexed_themes)), level = "info")
 
   invisible(NULL)
 }
@@ -1588,7 +1469,7 @@ find_semantic_connections_parallel <- function(vocabulary_data,
                                               use_parallel = TRUE,
                                               n_cores = NULL) {
 
-  cat("📊 Analyzing semantic similarities using", method, "method...\n")
+  bowtie_log(paste("Analyzing semantic similarities using", method, "method..."), level = "info")
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
@@ -1598,38 +1479,10 @@ find_semantic_connections_parallel <- function(vocabulary_data,
 
   # Create combined vocabulary items
   all_items <- tryCatch({
-    rbind(
-      if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
-        data.frame(id = vocabulary_data$activities$id,
-                  name = vocabulary_data$activities$name,
-                  type = "Activity",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
-        data.frame(id = vocabulary_data$pressures$id,
-                  name = vocabulary_data$pressures$name,
-                  type = "Pressure",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
-        data.frame(id = vocabulary_data$consequences$id,
-                  name = vocabulary_data$consequences$name,
-                  type = "Consequence",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() },
-
-      if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
-        data.frame(id = vocabulary_data$controls$id,
-                  name = vocabulary_data$controls$name,
-                  type = "Control",
-                  stringsAsFactors = FALSE)
-      } else { data.frame() }
-    )
+    assemble_all_items(vocabulary_data)
   }, error = function(e) {
     warning("Error combining vocabulary items: ", e$message)
-    return(data.frame())
+    return(data.frame(id = character(), name = character(), type = character(), stringsAsFactors = FALSE))
   })
 
   if (nrow(all_items) < 2) {
@@ -1638,10 +1491,10 @@ find_semantic_connections_parallel <- function(vocabulary_data,
   }
 
   # Check parallel capability
-  parallel_info <- check_parallel_capability(nrow(all_items))
+  parallel_info <- check_parallel_capability(n_items = nrow(all_items))
 
   if (!use_parallel || !parallel_info$available) {
-    cat("  ℹ️ Using sequential processing:", parallel_info$reason, "\n")
+    bowtie_log(paste("Using sequential processing:", parallel_info$reason), level = "info")
     return(find_semantic_connections(vocabulary_data, method, threshold))
   }
 
@@ -1649,25 +1502,18 @@ find_semantic_connections_parallel <- function(vocabulary_data,
   if (is.null(n_cores)) {
     n_cores <- parallel_info$cores
   } else {
-    n_cores <- min(n_cores, parallel_info$total_cores)
+    n_cores <- min(n_cores, parallel_info$cores)
   }
 
-  cat(sprintf("  ⚡ Using parallel processing with %d cores (of %d available)\n",
-              n_cores, parallel_info$total_cores))
+  bowtie_log(sprintf("Using parallel processing with %d cores (of %d available)", n_cores, parallel_info$cores), level = "info")
 
-  # Create comparison pairs (only different types)
-  pairs <- data.frame()
-  for (i in 1:(nrow(all_items) - 1)) {
-    for (j in (i + 1):nrow(all_items)) {
-      if (all_items$type[i] != all_items$type[j]) {
-        pairs <- rbind(pairs, data.frame(idx1 = i, idx2 = j))
-      }
-    }
-  }
+  # Pre-compute all upper-triangle pairs of different types
+  idx <- expand.grid(idx1 = 1:(nrow(all_items) - 1), idx2 = 2:nrow(all_items))
+  idx <- idx[idx$idx1 < idx$idx2, ]
+  pairs <- idx[all_items$type[idx$idx1] != all_items$type[idx$idx2], ]
 
   total_comparisons <- nrow(pairs)
-  cat(sprintf("  Processing %d comparisons across %d cores...\n",
-              total_comparisons, n_cores))
+  bowtie_log(sprintf("Processing %d comparisons across %d cores...", total_comparisons, n_cores), level = "debug")
 
   # Setup parallel backend
   cl <- parallel::makeCluster(n_cores)
@@ -1701,7 +1547,7 @@ find_semantic_connections_parallel <- function(vocabulary_data,
 
   # Process each chunk in parallel
   results_list <- parallel::parLapply(cl, chunks, function(chunk_indices) {
-    chunk_results <- data.frame()
+    chunk_list <- list()
 
     for (idx in chunk_indices) {
       i <- pairs$idx1[idx]
@@ -1724,7 +1570,7 @@ find_semantic_connections_parallel <- function(vocabulary_data,
       }
 
       if (similarity >= threshold) {
-        chunk_results <- rbind(chunk_results, data.frame(
+        chunk_list[[length(chunk_list) + 1]] <- data.frame(
           from_id = all_items$id[i],
           from_name = all_items$name[i],
           from_type = all_items$type[i],
@@ -1734,11 +1580,11 @@ find_semantic_connections_parallel <- function(vocabulary_data,
           similarity = similarity,
           method = method,
           stringsAsFactors = FALSE
-        ))
+        )
       }
     }
 
-    return(chunk_results)
+    return(if (length(chunk_list) > 0) do.call(rbind, chunk_list) else data.frame())
   })
 
   # Combine results from all chunks
@@ -1750,12 +1596,9 @@ find_semantic_connections_parallel <- function(vocabulary_data,
 
   elapsed <- difftime(Sys.time(), start_time, units = "secs")
 
-  cat(sprintf("✅ Found %d semantic connections in %.2f seconds\n",
-              nrow(semantic_links), elapsed))
-  cat(sprintf("   Average: %.2f ms per comparison\n",
-              as.numeric(elapsed) * 1000 / max(1, total_comparisons)))
-  cat(sprintf("   Speedup estimate: %.1fx vs sequential\n",
-              min(n_cores * 0.8, n_cores)))  # Account for overhead
+  bowtie_log(sprintf("Found %d semantic connections in %.2f seconds", nrow(semantic_links), elapsed), level = "success")
+  bowtie_log(sprintf("   Average: %.2f ms per comparison", as.numeric(elapsed) * 1000 / max(1, total_comparisons)), level = "info")
+  bowtie_log(sprintf("   Speedup estimate: %.1fx vs sequential", min(n_cores * 0.8, n_cores)), level = "info")
 
   return(semantic_links)
 }
@@ -1909,21 +1752,20 @@ find_vocabulary_links_adaptive <- function(vocabulary_data,
                                           methods = c("causal", "keyword", "jaccard"),
                                           max_links_per_item = 5) {
 
-  cat("\n🎯 Finding vocabulary links with ADAPTIVE thresholds...\n")
+  bowtie_log("Finding vocabulary links with ADAPTIVE thresholds...", level = "info")
 
   # Get adaptive thresholds if not provided
   if (is.null(adaptive_thresholds)) {
-    cat("📊 Calculating adaptive thresholds from feedback...\n")
+    bowtie_log("Calculating adaptive thresholds from feedback...", level = "info")
     adaptive_thresholds <- get_adaptive_thresholds()
 
     # Report adaptive vs default
     adaptive_count <- sum(adaptive_thresholds$is_adaptive)
     if (adaptive_count > 0) {
-      cat(sprintf("   ✓ Using %d adaptive thresholds (learned from feedback)\n", adaptive_count))
-      cat(sprintf("   ℹ️ Using %d default thresholds (insufficient feedback)\n",
-                  nrow(adaptive_thresholds) - adaptive_count))
+      bowtie_log(sprintf("Using %d adaptive thresholds (learned from feedback)", adaptive_count), level = "success")
+      bowtie_log(sprintf("Using %d default thresholds (insufficient feedback)", nrow(adaptive_thresholds) - adaptive_count), level = "info")
     } else {
-      cat("   ℹ️ Using default thresholds (no feedback data available)\n")
+      bowtie_log("Using default thresholds (no feedback data available)", level = "info")
     }
   }
 
@@ -1931,7 +1773,7 @@ find_vocabulary_links_adaptive <- function(vocabulary_data,
   # For now, use average adaptive threshold as baseline
   avg_threshold <- mean(adaptive_thresholds$threshold[adaptive_thresholds$method %in% methods])
 
-  cat(sprintf("📏 Average adaptive threshold: %.2f\n", avg_threshold))
+  bowtie_log(sprintf("Average adaptive threshold: %.2f", avg_threshold), level = "info")
 
   # Generate links with adaptive threshold
   result <- find_vocabulary_links(
@@ -2156,17 +1998,17 @@ train_vocabulary_embeddings <- function(vocabulary_data,
                                        force_retrain = FALSE) {
 
   if (!AI_LINKER_CAPABILITIES$word_embeddings) {
-    cat("⚠️ Word embeddings not available\n")
+    bowtie_log("Word embeddings not available", level = "warning")
     return(NULL)
   }
 
   # Check if already trained (unless forcing retrain)
   if (!force_retrain && exists(".word2vec_model", envir = .GlobalEnv)) {
-    cat("ℹ️ Using cached Word2Vec model\n")
+    bowtie_log("Using cached Word2Vec model", level = "info")
     return(get(".word2vec_model", envir = .GlobalEnv))
   }
 
-  cat("🧠 Training Word2Vec embeddings for vocabulary...\n")
+  bowtie_log("Training Word2Vec embeddings for vocabulary...", level = "info")
 
   # Use the training function from word_embeddings.R
   if (exists("train_word2vec_embeddings")) {
@@ -2181,8 +2023,8 @@ train_vocabulary_embeddings <- function(vocabulary_data,
       # Cache globally
       assign(".word2vec_model", model, envir = .GlobalEnv)
 
-      cat("✅ Word2Vec model trained and cached\n")
-      cat(sprintf("   Embedding size: %d dimensions\n", dim))
+      bowtie_log("Word2Vec model trained and cached", level = "success")
+      bowtie_log(sprintf("   Embedding size: %d dimensions", dim), level = "info")
 
       # Try to save to disk for persistence
       if (exists("save_word2vec_model")) {
@@ -2217,12 +2059,12 @@ load_vocabulary_embeddings <- function(file_path = "models/vocabulary_embeddings
       if (!is.null(model)) {
         # Cache globally
         assign(".word2vec_model", model, envir = .GlobalEnv)
-        cat("✅ Word2Vec model loaded from disk and cached\n")
+        bowtie_log("Word2Vec model loaded from disk and cached", level = "success")
       }
 
       return(model)
     }, error = function(e) {
-      cat("ℹ️ No pre-trained model found at", file_path, "\n")
+      bowtie_log(paste("No pre-trained model found at", file_path), level = "info")
       return(NULL)
     })
   } else {
@@ -2245,7 +2087,7 @@ init_vocabulary_embeddings <- function(vocabulary_data, auto_train = FALSE) {
   model <- load_vocabulary_embeddings()
 
   if (is.null(model) && auto_train) {
-    cat("ℹ️ No cached embeddings found, training new model...\n")
+    bowtie_log("No cached embeddings found, training new model...", level = "info")
     model <- train_vocabulary_embeddings(vocabulary_data)
   }
 
@@ -2256,49 +2098,51 @@ init_vocabulary_embeddings <- function(vocabulary_data, auto_train = FALSE) {
 # INITIALIZATION MESSAGE
 # =============================================================================
 
-cat("\n🎯 Vocabulary AI Linker v3.0 loaded successfully!\n")
-cat("==================================================\n\n")
-cat("📦 Capabilities:\n")
-cat("  - Text Mining:", if(AI_LINKER_CAPABILITIES$text_mining) "✅" else "❌", "\n")
-cat("  - String Distance:", if(AI_LINKER_CAPABILITIES$string_distance) "✅" else "❌", "\n")
-cat("  - Text Analysis:", if(AI_LINKER_CAPABILITIES$text_analysis) "✅" else "❌", "\n")
-cat("  - Network Analysis:", if(AI_LINKER_CAPABILITIES$network_analysis) "✅" else "❌", "\n")
-cat("  - Word Embeddings:", if(AI_LINKER_CAPABILITIES$word_embeddings) "✅" else "❌", "\n")
-cat("  - Basic Mode:", if(AI_LINKER_CAPABILITIES$basic_only) "⚠️ Yes (limited features)" else "✅ No (all features available)", "\n\n")
+# Module initialization message - only display in interactive mode
+if (interactive()) {
+  cat("\nVocabulary AI Linker v3.0 loaded successfully!\n")
+  cat("==================================================\n\n")
+  cat("Capabilities:\n")
+  cat("  - Text Mining:", if(AI_LINKER_CAPABILITIES$text_mining) "Yes" else "No", "\n")
+  cat("  - String Distance:", if(AI_LINKER_CAPABILITIES$string_distance) "Yes" else "No", "\n")
+  cat("  - Text Analysis:", if(AI_LINKER_CAPABILITIES$text_analysis) "Yes" else "No", "\n")
+  cat("  - Network Analysis:", if(AI_LINKER_CAPABILITIES$network_analysis) "Yes" else "No", "\n")
+  cat("  - Word Embeddings:", if(AI_LINKER_CAPABILITIES$word_embeddings) "Yes" else "No", "\n")
+  cat("  - Basic Mode:", if(AI_LINKER_CAPABILITIES$basic_only) "Yes (limited features)" else "No (all features available)", "\n\n")
 
-cat("🔧 Available Functions:\n")
-cat("  - find_vocabulary_links()          : Main linking function (all methods)\n")
-cat("  - detect_causal_relationships()    : Causal relationship detection\n")
-cat("  - find_keyword_connections()       : Keyword-based thematic linking\n")
-cat("  - find_semantic_connections()      : Semantic similarity analysis\n")
-cat("  - find_basic_connections()         : Basic fallback linking\n")
-cat("  - calculate_semantic_similarity()  : Pairwise similarity calculation\n")
-cat("  - calculate_confidence_score()     : Multi-factor confidence scoring\n")
-cat("  - add_confidence_scores()          : Batch confidence calculation\n")
-cat("  - precompute_similarity_matrix()   : Pre-compute & cache similarities\n")
-cat("  - load_cache() / save_cache()      : Cache persistence\n")
-cat("  - get_cache_stats()                : Cache statistics\n")
-cat("  - build_keyword_index()            : Build inverted keyword index\n")
-cat("  - get_indexed_items()              : Fast O(1) keyword lookups\n")
-cat("  - get_index_stats()                : Index statistics\n")
-cat("  - calculate_adaptive_threshold()   : Learn optimal thresholds from feedback\n")
-cat("  - get_adaptive_thresholds()        : Get all adaptive thresholds\n")
-cat("  - find_vocabulary_links_adaptive() : Link generation with adaptive thresholds\n")
-cat("  - check_parallel_capability()      : Check multi-core availability\n")
-cat("  - find_semantic_connections_parallel() : Parallel processing (4-8x speedup)\n\n")
+  cat("Available Functions:\n")
+  cat("  - find_vocabulary_links()          : Main linking function (all methods)\n")
+  cat("  - detect_causal_relationships()    : Causal relationship detection\n")
+  cat("  - find_keyword_connections()       : Keyword-based thematic linking\n")
+  cat("  - find_semantic_connections()      : Semantic similarity analysis\n")
+  cat("  - find_basic_connections()         : Basic fallback linking\n")
+  cat("  - calculate_semantic_similarity()  : Pairwise similarity calculation\n")
+  cat("  - calculate_confidence_score()     : Multi-factor confidence scoring\n")
+  cat("  - add_confidence_scores()          : Batch confidence calculation\n")
+  cat("  - precompute_similarity_matrix()   : Pre-compute & cache similarities\n")
+  cat("  - load_cache() / save_cache()      : Cache persistence\n")
+  cat("  - get_cache_stats()                : Cache statistics\n")
+  cat("  - build_keyword_index()            : Build inverted keyword index\n")
+  cat("  - get_indexed_items()              : Fast O(1) keyword lookups\n")
+  cat("  - get_index_stats()                : Index statistics\n")
+  cat("  - calculate_adaptive_threshold()   : Learn optimal thresholds from feedback\n")
+  cat("  - get_adaptive_thresholds()        : Get all adaptive thresholds\n")
+  cat("  - find_vocabulary_links_adaptive() : Link generation with adaptive thresholds\n")
+  cat("  - check_parallel_capability()      : Check multi-core availability\n")
+  cat("  - find_semantic_connections_parallel() : Parallel processing (4-8x speedup)\n\n")
 
-cat("📚 Usage Example:\n")
-cat('  result <- find_vocabulary_links(vocab_data, \n')
-cat('                                   methods = c("jaccard", "keyword", "causal"))\n')
-cat('  links <- result$links\n')
-cat('  summary <- result$summary\n\n')
+  cat("Usage Example:\n")
+  cat('  result <- find_vocabulary_links(vocab_data, \n')
+  cat('                                   methods = c("jaccard", "keyword", "causal"))\n')
+  cat('  links <- result$links\n')
+  cat('  summary <- result$summary\n\n')
 
-cat("✅ Ready for vocabulary linking!\n")
-cat("==================================================\n\n")
+  cat("Ready for vocabulary linking!\n")
+  cat("==================================================\n\n")
+}
 
 # Automatically load cache if available
 if (file.exists("cache/similarity_cache.rds")) {
-  cat("📦 Loading similarity cache...\n")
+  bowtie_log("Loading similarity cache...", level = "info")
   load_cache()
-  cat("\n")
 }
