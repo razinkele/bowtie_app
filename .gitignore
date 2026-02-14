@@ -1,67 +1,64 @@
-# Excel lock files
-/.~lock.environmental_bowtie_data_2025-06-19.xlsx#
-.~lock.*
+# =============================================================================
+# Environmental Bowtie Risk Analysis - Git Ignore
+# =============================================================================
 
-# Archive folder (contains development history and old files)
-archive/
-
-# Environment-specific configuration (contains sensitive settings)
-.env.R
-.env.local.R
-
-# Temporary workflow files
-workflow_progress_*.rds
-
-# Log files
-*.log
-shiny_log.txt
-
-# R temporary files
+# R Session Files
+.Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+*.Rproj
 
-# Performance and quality reports
-performance_benchmark_results.*
-code_quality_report.*
-memory_usage_log.csv
-R_STYLE_GUIDE.txt
+# Logs
+logs/
+dev_logs/
+*.log
 
-# Cache directories
-cache/
-.sass-cache/
+# Cache Files
+.cache/
+__pycache__/
+.pytest_cache/
+archive/cache/
 
-# IDE files
+# User-Generated Data (workflow saves, feedback)
+data/*.rds
+data/suggestion_feedback.rds
+Bow-tie guidance/*.rds
+
+# Test Outputs
+tests/results/
+code_quality_results*.rds
+code_quality_report.txt
+test_bowtie_output.xlsx
+
+# IDE and Editor
 .vscode/
 .idea/
-*.Rproj
-.Rproj.user/
+*.swp
+*.swo
+*~
 
-# OS files
+# OS Files
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Backup files
-*_backup_*
-*.bak
-*.backup
-*~
-*.old
-*-laguna-safeBackup-*
-*-Dell-PCn.*
-
-# Temporary files
-_ul
-nul
+# Temporary Files
 *.tmp
 *.temp
+_ul
 
-# Test output files
-test_results.*
+# Deployment Artifacts
+deployment/.claude/
 
-# Archive directories (historical files)
-archivedocs/
-archivelaunchers/
-archivelogs/
-archiveprogress/
+# Environment Variables (never commit)
+.env
+.env.local
+.env.production
+
+# OneDrive sync conflict files
+*-laguna-safeBackup*
+# Editor backup files
+*.backup_*
+# Unknown sync artifacts
+_ul-*

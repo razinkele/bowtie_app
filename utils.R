@@ -193,25 +193,6 @@ get_cache_stats <- function(include_keys = FALSE) {
   return(stats)
 }
 
-# Print cache statistics in human-readable format
-print_cache_stats <- function() {
-  stats <- get_cache_stats()
-
-  app_message("📊 Cache Statistics:", level = "info")
-  app_message(sprintf("   Size: %d / %d (%.1f%% full)",
-                     stats$current_size, stats$max_size, stats$utilization * 100))
-  app_message(sprintf("   TTL: %d seconds (%.1f minutes)",
-                     stats$max_age_seconds, stats$max_age_seconds / 60))
-  app_message(sprintf("   Requests: %d total (%d hits, %d misses)",
-                     stats$total_requests, stats$hits, stats$misses))
-  app_message(sprintf("   Hit Rate: %.1f%%", stats$hit_rate * 100))
-  app_message(sprintf("   Evictions: %d (LRU), %d (TTL expired)",
-                     stats$evictions, stats$expirations))
-  app_message(sprintf("   Memory: %.2f MB", stats$memory_mb))
-
-  invisible(stats)
-}
-
 # Invalidate caches when data changes
 #' Call this when bowtie data is updated to clear related caches
 invalidate_bowtie_caches <- function() {
@@ -226,68 +207,6 @@ invalidate_bowtie_caches <- function() {
   }
 
   bowtie_log(paste("🔄 Invalidated", length(nodes_edges_keys), "bowtie-related cache entries"), .verbose = TRUE)
-}
-
-# Memoization wrapper for expensive functions
-#' @param fn Function to memoize
-#' @param key_fn Optional function to generate cache key from arguments
-#' @return Memoized version of the function
-memoize <- function(fn, key_fn = NULL) {
-  force(fn)
-  force(key_fn)
-
-  function(...) {
-    # Generate cache key
-    args <- list(...)
-    if (is.null(key_fn)) {
-      # Fallback: use simple serialization if digest not available
-      if (requireNamespace("digest", quietly = TRUE)) {
-        key <- paste0("memo_", digest::digest(list(fn, args), algo = "xxhash64"))
-      } else {
-        # Simple hash based on deparse
-        key <- paste0("memo_", paste(collapse = "_", lapply(args, function(x) substr(digest::digest(x), 1, 8))))
-      }
-    } else {
-      key <- paste0("memo_", key_fn(...))
-    }
-
-    # Check cache
-    cached_result <- get_cache(key)
-    if (!is.null(cached_result)) {
-      bowtie_log(paste("📦 Cache hit for memoized function"), .verbose = TRUE)
-      return(cached_result)
-    }
-
-    # Compute and cache
-    bowtie_log(paste("🔄 Computing and caching result"), .verbose = TRUE)
-    result <- fn(...)
-    set_cache(key, result)
-
-    return(result)
-  }
-}
-
-# Simple memoization for parameterless functions
-#' @param fn Parameterless function to memoize
-#' @param cache_key Unique key for this function's cache entry
-#' @return Memoized version of the function
-memoize_simple <- function(fn, cache_key) {
-  force(fn)
-  force(cache_key)
-
-  function() {
-    cached_result <- get_cache(cache_key)
-    if (!is.null(cached_result)) {
-      bowtie_log(paste("📦 Using cached", cache_key), .verbose = TRUE)
-      return(cached_result)
-    }
-
-    bowtie_log(paste("🔄 Generating", cache_key), .verbose = TRUE)
-    result <- fn()
-    set_cache(cache_key, result)
-
-    return(result)
-  }
 }
 
 # Performance monitoring utilities
@@ -393,49 +312,6 @@ benchmark_function <- function(fn, name = "function", iterations = 1, ...) {
   ), .verbose = TRUE)
 
   return(benchmark_result)
-}
-
-# Get benchmark history
-get_benchmark_history <- function() {
-  .benchmark$history
-}
-
-# Clear benchmark history
-clear_benchmark_history <- function() {
-  .benchmark$history <- list()
-  bowtie_log("🧹 Benchmark history cleared", .verbose = TRUE)
-}
-
-# Compare two benchmark results
-compare_benchmarks <- function(name1, name2) {
-  history <- .benchmark$history
-  bench1 <- Find(function(x) x$name == name1, history)
-  bench2 <- Find(function(x) x$name == name2, history)
-
-  if (is.null(bench1) || is.null(bench2)) {
-    bowtie_log("⚠️  One or both benchmarks not found", .verbose = TRUE)
-    return(NULL)
-  }
-
-  speedup <- bench1$mean_time / bench2$mean_time
-  memory_diff <- bench2$memory_delta_mb - bench1$memory_delta_mb
-
-  result <- list(
-    name1 = name1,
-    name2 = name2,
-    speedup = speedup,
-    speedup_percent = (speedup - 1) * 100,
-    memory_difference_mb = memory_diff,
-    faster = if(speedup > 1) name2 else name1
-  )
-
-  bowtie_log(paste0(
-    "🏁 ", result$faster, " is ", abs(round(result$speedup_percent, 1)),
-    "% ", if(speedup > 1) "faster" else "slower",
-    " | Memory diff: ", round(memory_diff, 2), " MB"
-  ), .verbose = TRUE)
-
-  return(result)
 }
 
 # Function to generate environmental management sample data with connections and granular risk values
@@ -1594,17 +1470,6 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
 # Backward compatibility function
 # Backward compatibility alias removed - use createDefaultRowFixed() directly
 
-# Detailed numeric validation (returns list) used by server
-validateNumericInputDetailed <- function(value, min_val = 1L, max_val = 5L) {
-  num_value <- suppressWarnings(as.integer(value))
-  if (is.na(num_value) || num_value < min_val || num_value > max_val) {
-    list(valid = FALSE, value = NULL,
-         message = paste("❌ Value must be between", min_val, "and", max_val))
-  } else {
-    list(valid = TRUE, value = num_value, message = NULL)
-  }
-}
-
 # Backwards-compatible simple numeric validator (used by tests)
 validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
   num_value <- suppressWarnings(as.integer(value))
@@ -1636,39 +1501,6 @@ getDataSummaryFixed <- function(data) {
 
 # Backward compatibility function
 # Backward compatibility alias removed - use getDataSummaryFixed() directly
-
-# Improved validation function for protective mitigations
-validateProtectiveMitigations <- function(data) {
-  if (is.null(data) || nrow(data) == 0) return(list(valid = TRUE, issues = character(0)))
-  
-  issues <- character(0)
-  
-  # Check for empty or too short mitigations
-  empty_mitigations <- sum(is.na(data$Protective_Mitigation) | data$Protective_Mitigation == "" | nchar(data$Protective_Mitigation) < 10)
-  if (empty_mitigations > 0) {
-    issues <- c(issues, paste("⚠️", empty_mitigations, "rows have inadequate protective mitigations"))
-  }
-  
-  # Check for duplicate consequence-mitigation pairs (should be one-to-one)
-  consequence_mitigation_pairs <- paste(data$Consequence, data$Protective_Mitigation, sep = " | ")
-  duplicate_pairs <- sum(duplicated(consequence_mitigation_pairs))
-  if (duplicate_pairs > 0) {
-    issues <- c(issues, paste("⚠️", duplicate_pairs, "duplicate consequence-mitigation pairs found"))
-  }
-  
-  # Check mapping quality
-  unique_consequences <- length(unique(data$Consequence))
-  unique_mitigations <- length(unique(data$Protective_Mitigation[data$Protective_Mitigation != ""]))
-  mapping_ratio <- unique_mitigations / unique_consequences
-  
-  if (mapping_ratio < 0.8) {
-    issues <- c(issues, paste("⚠️ Low mitigation coverage: only", round(mapping_ratio * 100, 1), "% of consequences have unique mitigations"))
-  } else {
-    issues <- c(issues, paste("✅ Good mitigation coverage:", round(mapping_ratio * 100, 1), "% - Updated quality"))
-  }
-  
-  list(valid = length(issues) == 0, issues = issues)
-}
 
 # NEW: Generate data with multiple preventive controls per pressure
 generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {

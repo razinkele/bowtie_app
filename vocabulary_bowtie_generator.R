@@ -27,12 +27,12 @@ if (file.exists("vocabulary_ai_linker.R")) {
   tryCatch({
     source("vocabulary_ai_linker.R")
     ai_linker_loaded <- TRUE
-    cat("✅ AI linker loaded successfully\n")
+    log_success("AI linker loaded successfully")
   }, error = function(e) {
-    warning("Failed to load vocabulary_ai_linker.R: ", e$message)
+    log_warning(paste("Failed to load vocabulary_ai_linker.R:", e$message))
   })
 } else {
-  warning("vocabulary_ai_linker.R not found. Will use basic linking only.")
+  log_warning("vocabulary_ai_linker.R not found. Will use basic linking only.")
 }
 
 # =============================================================================
@@ -48,22 +48,22 @@ generate_vocabulary_bowtie <- function(
   use_ai_linking = TRUE
 ) {
   
-  cat("🚀 Starting vocabulary-based bow-tie network generation...\n")
-  cat("Central problems:", paste(central_problems, collapse = ", "), "\n")
-  
+  log_info("Starting vocabulary-based bow-tie network generation...")
+  log_info(paste("Central problems:", paste(central_problems, collapse = ", ")))
+
   # Step 1: Load vocabulary data
-  cat("\n📚 Loading vocabulary data...\n")
+  log_info("Loading vocabulary data...")
   vocabulary_data <- tryCatch({
     load_vocabulary()
   }, error = function(e) {
-    cat("⚠️ Warning: Could not load vocabulary from Excel files:", e$message, "\n")
-    cat("Creating sample vocabulary data instead...\n")
+    log_warning(paste("Could not load vocabulary from Excel files:", e$message))
+    log_info("Creating sample vocabulary data instead...")
     create_sample_vocabulary_data()
   })
-  
+
   # Step 2: Generate AI-powered links between vocabulary items
-  cat("\n🤖 Generating intelligent connections between vocabulary elements...\n")
-  
+  log_info("Generating intelligent connections between vocabulary elements...")
+
   if (use_ai_linking && ai_linker_loaded && exists("find_vocabulary_links")) {
     # Use AI-powered linking with all available methods
     vocabulary_links_result <- find_vocabulary_links(
@@ -80,7 +80,7 @@ generate_vocabulary_bowtie <- function(
     }
   } else {
     # Fall back to basic linking
-    cat("Using basic connection method...\n")
+    log_info("Using basic connection method...")
     if (exists("find_basic_connections")) {
       vocabulary_links <- find_basic_connections(
         vocabulary_data,
@@ -91,35 +91,35 @@ generate_vocabulary_bowtie <- function(
       vocabulary_links <- data.frame()
     }
   }
-  
+
   # Step 3: Create bow-tie structures for each central problem
-  cat("\n🎯 Creating bow-tie networks for", length(central_problems), "central problems...\n")
-  
+  log_info(paste("Creating bow-tie networks for", length(central_problems), "central problems..."))
+
   all_bowtie_data <- data.frame()
-  
+
   for (problem in central_problems) {
-    cat("  Processing:", problem, "\n")
-    
+    log_debug(paste("  Processing:", problem))
+
     # Create bow-tie structure for this problem
     problem_bowtie <- create_problem_specific_bowtie(
-      problem, 
-      vocabulary_data, 
+      problem,
+      vocabulary_data,
       vocabulary_links,
       max_connections_per_item
     )
-    
+
     # Add to overall dataset
     all_bowtie_data <- rbind(all_bowtie_data, problem_bowtie)
-    
-    cat("    Generated", nrow(problem_bowtie), "bow-tie entries\n")
+
+    log_debug(paste("    Generated", nrow(problem_bowtie), "bow-tie entries"))
   }
-  
+
   # Step 4: Enhance with risk assessments
-  cat("\n📊 Adding risk assessments and likelihood/severity ratings...\n")
+  log_info("Adding risk assessments and likelihood/severity ratings...")
   enhanced_bowtie_data <- enhance_with_risk_data(all_bowtie_data)
-  
+
   # Step 5: Export to Excel file
-  cat("\n💾 Exporting to Excel file:", output_file, "\n")
+  log_info(paste("Exporting to Excel file:", output_file))
   # Validate output path: require directory to already exist (avoid creating arbitrary folders)
   output_dir <- dirname(output_file)
   if (nzchar(output_dir) && !dir.exists(output_dir)) {
@@ -127,9 +127,9 @@ generate_vocabulary_bowtie <- function(
   }
   export_bowtie_to_excel(enhanced_bowtie_data, output_file)
   
-  cat("\n✅ Vocabulary-based bow-tie generation completed successfully!\n")
-  cat("📁 Output file:", output_file, "\n")
-  cat("📈 Total bow-tie entries generated:", nrow(enhanced_bowtie_data), "\n")
+  log_success("Vocabulary-based bow-tie generation completed successfully!")
+  log_info(paste("Output file:", output_file))
+  log_info(paste("Total bow-tie entries generated:", nrow(enhanced_bowtie_data)))
   
   return(list(
     data = enhanced_bowtie_data,

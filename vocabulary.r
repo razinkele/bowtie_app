@@ -1,21 +1,10 @@
 # vocabulary.R
 # Reads hierarchical data from Excel files for activities, pressures, consequences, and controls
-# Version 5.1.0 - Modern framework with enhanced error handling and validation
-# Date: September 2025
-
-# Enhanced package loading with better error handling
-load_required_packages <- function() {
-  required_packages <- c("readxl", "dplyr", "tidyr")
-  for (pkg in required_packages) {
-    if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      cat("Installing required package:", pkg, "\n")
-      install.packages(pkg, dependencies = TRUE)
-      library(pkg, character.only = TRUE)
-    }
-  }
-}
-
-suppressMessages(load_required_packages())
+# Version 5.4.0 - Modern framework with enhanced error handling and validation
+# Date: January 2026
+#
+# NOTE: All packages are loaded via global.R - do not add library() calls here
+# Required packages: readxl, dplyr, tidyr
 
 # Enhanced function to read and process hierarchical data from Excel
 read_hierarchical_data <- function(file_path, sheet_name = NULL) {
@@ -49,7 +38,7 @@ read_hierarchical_data <- function(file_path, sheet_name = NULL) {
                 ". Available:", paste(available_cols, collapse = ", ")))
     }
     
-    cat("✅ Successfully read", nrow(data), "rows from", basename(file_path), "\n")
+    log_debug(paste("Successfully read", nrow(data), "rows from", basename(file_path)))
     
   }, error = function(e) {
     stop(paste("Error reading Excel file:", file_path, "-", e$message))
@@ -75,12 +64,17 @@ read_hierarchical_data <- function(file_path, sheet_name = NULL) {
 
 # Function to create a hierarchical list structure
 create_hierarchy_list <- function(data) {
+  # Handle NULL or empty data
+  if (is.null(data) || nrow(data) == 0) {
+    return(list())
+  }
+
   # Sort by ID to ensure proper hierarchical order
   data <- data %>% arrange(id)
-  
+
   # Create a nested list structure
   hierarchy_list <- list()
-  
+
   for (i in 1:nrow(data)) {
     row <- data[i, ]
     
@@ -110,46 +104,125 @@ create_hierarchy_list <- function(data) {
   return(hierarchy_list)
 }
 
+# =============================================================================
+# FILE PATH CACHE
+# =============================================================================
+# Cache resolved file paths to avoid repeated directory searches
+
+.file_path_cache <- new.env(parent = emptyenv())
+
+# Get cached file path or search and cache it
+get_cached_file_path <- function(filename, search_locations) {
+  cache_key <- filename
+
+  # Return cached path if available
+  if (exists(cache_key, envir = .file_path_cache)) {
+    cached_path <- .file_path_cache[[cache_key]]
+    # Verify file still exists
+    if (file.exists(cached_path)) {
+      return(cached_path)
+    }
+    # Clear stale cache entry
+    rm(list = cache_key, envir = .file_path_cache)
+  }
+
+  # Search for file
+  for (loc in search_locations) {
+    if (file.exists(loc)) {
+      resolved_path <- normalizePath(loc, mustWork = TRUE)
+      # Cache the result
+      .file_path_cache[[cache_key]] <- resolved_path
+      return(resolved_path)
+    }
+  }
+
+  return(filename)  # Return original if not found (will error later)
+}
+
+# Clear the file path cache (call when data files change)
+clear_file_path_cache <- function() {
+  rm(list = ls(.file_path_cache), envir = .file_path_cache)
+}
+
 # Function to load all vocabulary data
 load_vocabulary <- function(causes_file = "CAUSES.xlsx",
                           consequences_file = "CONSEQUENCES.xlsx",
                           controls_file = "CONTROLS.xlsx") {
-  
+
+  # Helper to find files in multiple locations with path validation
+  find_data_file <- function(filename) {
+    # Security: Validate filename to prevent path traversal attacks
+    if (is.null(filename) || !is.character(filename) || length(filename) != 1) {
+      stop("Invalid filename: must be a single character string")
+    }
+
+    # Security: Block path traversal attempts
+    if (grepl("\\.\\.", filename) || grepl("^/", filename) || grepl("^[A-Za-z]:", filename)) {
+      stop("Invalid filename: path traversal not allowed. Use only filenames without directory components.")
+    }
+
+    # Security: Only allow specific file extensions
+    valid_extensions <- c(".xlsx", ".xls", ".csv")
+    file_ext <- tolower(tools::file_ext(filename))
+    if (!paste0(".", file_ext) %in% valid_extensions) {
+      stop(paste("Invalid file extension:", file_ext, ". Allowed:", paste(valid_extensions, collapse = ", ")))
+    }
+
+    # Sanitize filename (remove any remaining problematic characters)
+    sanitized_filename <- basename(filename)
+
+    # Define search locations (current dir, data/, ../../data/ for tests)
+    locations <- c(
+      sanitized_filename,
+      file.path("data", sanitized_filename),
+      file.path("../../data", sanitized_filename),
+      file.path("../../", sanitized_filename)
+    )
+
+    # Use cached file path lookup for performance
+    return(get_cached_file_path(sanitized_filename, locations))
+  }
+
+  # Find the actual file paths
+  causes_file <- find_data_file(causes_file)
+  consequences_file <- find_data_file(consequences_file)
+  controls_file <- find_data_file(controls_file)
+
   vocabulary <- list()
-  
+
   # Load Activities from CAUSES file
   tryCatch({
     vocabulary$activities <- read_hierarchical_data(causes_file, sheet_name = "Activities")
-    message("✓ Loaded Activities data: ", nrow(vocabulary$activities), " items")
+    log_info(paste("Loaded Activities data:", nrow(vocabulary$activities), "items"))
   }, error = function(e) {
-    warning("Failed to load Activities: ", e$message)
+    log_warning(paste("Failed to load Activities:", e$message))
     vocabulary$activities <- data.frame()
   })
   
   # Load Pressures from CAUSES file
   tryCatch({
     vocabulary$pressures <- read_hierarchical_data(causes_file, sheet_name = "Pressures")
-    message("✓ Loaded Pressures data: ", nrow(vocabulary$pressures), " items")
+    log_info(paste("Loaded Pressures data:", nrow(vocabulary$pressures), "items"))
   }, error = function(e) {
-    warning("Failed to load Pressures: ", e$message)
+    log_warning(paste("Failed to load Pressures:", e$message))
     vocabulary$pressures <- data.frame()
   })
   
   # Load Consequences
   tryCatch({
     vocabulary$consequences <- read_hierarchical_data(consequences_file)
-    message("✓ Loaded Consequences data: ", nrow(vocabulary$consequences), " items")
+    log_info(paste("Loaded Consequences data:", nrow(vocabulary$consequences), "items"))
   }, error = function(e) {
-    warning("Failed to load Consequences: ", e$message)
+    log_warning(paste("Failed to load Consequences:", e$message))
     vocabulary$consequences <- data.frame()
   })
   
   # Load Controls
   tryCatch({
     vocabulary$controls <- read_hierarchical_data(controls_file)
-    message("✓ Loaded Controls data: ", nrow(vocabulary$controls), " items")
+    log_info(paste("Loaded Controls data:", nrow(vocabulary$controls), "items"))
   }, error = function(e) {
-    warning("Failed to load Controls: ", e$message)
+    log_warning(paste("Failed to load Controls:", e$message))
     vocabulary$controls <- data.frame()
   })
   
@@ -236,9 +309,9 @@ search_vocabulary <- function(data, search_term, search_in = c("id", "name")) {
 # Source AI linker if available
 if (file.exists("vocabulary_ai_linker.R")) {
   source("vocabulary_ai_linker.R")
-  cat("✅ AI vocabulary linker loaded\n")
+  log_success("AI vocabulary linker loaded")
 } else {
-  cat("ℹ️ AI vocabulary linker not found - basic functionality only\n")
+  log_info("AI vocabulary linker not found - basic functionality only")
 }
 
 # Function to find basic keyword connections (fallback if AI linker not available)
@@ -323,47 +396,17 @@ find_vocabulary_connections <- function(vocabulary_data, use_ai = TRUE) {
   }
 }
 
-# Example usage function
-example_usage <- function() {
-  # Load all vocabulary data
-  vocab <- load_vocabulary()
-  
-  # Example: Get all Level 1 activities
-  level1_activities <- get_items_by_level(vocab$activities, 1)
-  print("Level 1 Activities:")
-  print(level1_activities$name)
-  
-  # Example: Get children of a specific item
-  if (nrow(vocab$activities) > 0) {
-    first_item <- vocab$activities$id[1]
-    children <- get_children(vocab$activities, first_item)
-    print(paste("\nChildren of", first_item, ":"))
-    print(children %>% select(id, name))
-  }
-  
-  # Example: Search for items
-  search_results <- search_vocabulary(vocab$pressures, "biological", c("name"))
-  print("\nSearch results for 'biological':")
-  print(search_results %>% select(id, name))
-  
-  # Example: Create tree structure
-  tree <- create_tree_structure(vocab$consequences)
-  print("\nConsequences Tree (first 10 items):")
-  print(head(tree$display, 10))
-  
-  # Example: Find AI connections
-  if (exists("find_vocabulary_links")) {
-    print("\nFinding AI-powered vocabulary connections...")
-    connections <- find_vocabulary_connections(vocab, use_ai = TRUE)
-    print(paste("Found", nrow(connections$links), "connections"))
-  }
-}
+# =============================================================================
+# USAGE EXAMPLES (for documentation - run interactively if needed)
+# =============================================================================
+# vocab <- load_vocabulary()
+# level1_activities <- get_items_by_level(vocab$activities, 1)
+# children <- get_children(vocab$activities, vocab$activities$id[1])
+# search_results <- search_vocabulary(vocab$pressures, "biological", c("name"))
+# tree <- create_tree_structure(vocab$consequences)
+# =============================================================================
 
-# Make the main function available when sourced
-# This will be called when the file is sourced in the Shiny app
-if (!interactive()) {
-  # Load vocabulary when sourced non-interactively
-  vocabulary_data <- load_vocabulary()
-}
+# NOTE: Vocabulary data is loaded via global.R using load_app_data()
+# Do not load vocabulary here to avoid duplicate loading
 
-cat("✅ Vocabulary management system loaded (v5.1.0)\n")
+log_debug("Vocabulary management system loaded (v5.4.0)")

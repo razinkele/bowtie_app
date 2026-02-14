@@ -468,7 +468,7 @@ test_server <- function(input, output, session) {
       updateSelectInput(session, "test_workflow-problem_urgency", selected = data$problem_urgency)
       showNotification("Step 2 data filled", type = "message")
     } else {
-      showNotification(paste("Auto-complete not implemented for step", step), type = "info")
+      showNotification(paste("Auto-complete not implemented for step", step), type = "message")
     }
   })
   
