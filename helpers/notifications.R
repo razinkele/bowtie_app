@@ -8,21 +8,20 @@
 #' Show success notification with translation support
 #'
 #' @param message_key Translation key or direct message
-#' @param lang Language code (default: "en")
 #' @param duration Duration in seconds (uses constant if not specified)
-#' @param ... Additional parameters passed to paste()
+#' @param lang Language code (default: "en")
 #' @return NULL (invisible)
 #'
 #' @examples
 #' notify_success("notify_data_loaded", lang = "en")
 #' notify_success("Data loaded successfully")
-notify_success <- function(message_key, lang = "en", duration = NULL, ...) {
+notify_success <- function(message_key, duration = NULL, lang = "en") {
   if (is.null(duration)) {
     duration <- NOTIFICATION_DURATION_SUCCESS
   }
 
   # Check if message_key is a translation key
-  translated <- tryCatch({
+  message_text <- tryCatch({
     if (exists("t") && is.function(t)) {
       t(message_key, lang)
     } else {
@@ -32,15 +31,8 @@ notify_success <- function(message_key, lang = "en", duration = NULL, ...) {
     message_key
   })
 
-  # Format with additional parameters
-  if (length(list(...)) > 0) {
-    message_text <- paste(translated, ...)
-  } else {
-    message_text <- translated
-  }
-
   showNotification(
-    paste("✅", message_text),
+    message_text,
     type = "message",
     duration = duration
   )
@@ -81,7 +73,7 @@ notify_error <- function(error, duration = NULL, context = NULL, lang = "en") {
   }
 
   showNotification(
-    paste("❌ Error:", full_message),
+    paste("Error:", full_message),
     type = "error",
     duration = duration
   )
@@ -89,17 +81,16 @@ notify_error <- function(error, duration = NULL, context = NULL, lang = "en") {
   invisible(NULL)
 }
 
-#' Show info notification with icon
+#' Show info notification
 #'
-#' @param icon_name FontAwesome icon name (without "fa-" prefix)
 #' @param message Message text or translation key
 #' @param duration Duration in seconds (uses constant if not specified)
 #' @param lang Language code
 #' @return NULL (invisible)
 #'
 #' @examples
-#' notify_info("project-diagram", "Navigating to Bowtie Diagram...")
-notify_info <- function(icon_name, message, duration = NULL, lang = "en") {
+#' notify_info("Navigating to Bowtie Diagram...")
+notify_info <- function(message, duration = NULL, lang = "en") {
   if (is.null(duration)) {
     duration <- NOTIFICATION_DURATION_INFO
   }
@@ -116,7 +107,7 @@ notify_info <- function(icon_name, message, duration = NULL, lang = "en") {
   })
 
   showNotification(
-    tagList(icon(icon_name), " ", translated),
+    translated,
     type = "message",
     duration = duration
   )
@@ -150,7 +141,7 @@ notify_warning <- function(message, duration = NULL, lang = "en") {
   })
 
   showNotification(
-    paste("⚠️", translated),
+    translated,
     type = "warning",
     duration = duration
   )

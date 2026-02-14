@@ -40,7 +40,7 @@ bayesian_module_server <- function(input, output, session, getCurrentData, lang)
     data <- getCurrentData()
     req(data, input$bayesianProblem)
 
-    showNotification(paste("🧠", t("notify_bayesian_creating", lang())), type = "message", duration = 3)
+    notify_info(paste("🧠", t("notify_bayesian_creating", lang())), duration = 3)
 
     tryCatch({
       # Convert bowtie to Bayesian network
@@ -54,10 +54,10 @@ bayesian_module_server <- function(input, output, session, getCurrentData, lang)
       bayesianNetwork(bn_result)
       bayesianNetworkCreated(TRUE)
 
-      showNotification(paste("✅", t("notify_bayesian_success", lang())), type = "message", duration = 3)
+      notify_success(paste("✅", t("notify_bayesian_success", lang())), duration = 3)
 
     }, error = function(e) {
-      showNotification(paste("❌", t("notify_bayesian_error", lang()), e$message), type = "error")
+      notify_error(paste("❌", t("notify_bayesian_error", lang()), e$message))
       bowtie_log("Bayesian network error:", e$message, level = "error")
     })
   })
@@ -113,7 +113,7 @@ bayesian_module_server <- function(input, output, session, getCurrentData, lang)
 
     # Check if we have query nodes selected
     if (is.null(input$queryNodes) || length(input$queryNodes) == 0) {
-      showNotification("Please select at least one outcome to query", type = "warning", duration = 3)
+      notify_warning("Please select at least one outcome to query", duration = 3)
       return()
     }
 
@@ -173,11 +173,11 @@ bayesian_module_server <- function(input, output, session, getCurrentData, lang)
 
         # Remove loading notification and show success
         removeNotification(id = "inference_loading")
-        showNotification("Inference completed! See results below.", type = "message", duration = 3)
+        notify_success("Inference completed! See results below.", duration = 3)
 
       }, error = function(e) {
         removeNotification(id = "inference_loading")
-        showNotification(paste("Error in inference:", e$message), type = "error", duration = 5)
+        notify_error(paste("Error in inference:", e$message), duration = 5)
         bowtie_log(paste("Inference error:", e$message), level = "error")
       })
     })
@@ -474,28 +474,28 @@ bayesian_module_server <- function(input, output, session, getCurrentData, lang)
     updateSelectInput(session, "evidenceActivity", selected = "Present")
     updateSelectInput(session, "evidencePressure", selected = "High")
     updateSelectInput(session, "evidenceControl", selected = "Failed")
-    showNotification("Worst case scenario set", type = "warning", duration = 2)
+    notify_warning("Worst case scenario set", duration = 2)
   })
 
   observeEvent(input$scenarioBestCase, {
     updateSelectInput(session, "evidenceActivity", selected = "Absent")
     updateSelectInput(session, "evidencePressure", selected = "Low")
     updateSelectInput(session, "evidenceControl", selected = "Effective")
-    showNotification("Best case scenario set", type = "message", duration = 2)
+    notify_info("Best case scenario set", duration = 2)
   })
 
   observeEvent(input$scenarioControlFailure, {
     updateSelectInput(session, "evidenceActivity", selected = "Present")
     updateSelectInput(session, "evidencePressure", selected = "Medium")
     updateSelectInput(session, "evidenceControl", selected = "Failed")
-    showNotification("Control failure scenario set", type = "warning", duration = 2)
+    notify_warning("Control failure scenario set", duration = 2)
   })
 
   observeEvent(input$scenarioBaseline, {
     updateSelectInput(session, "evidenceActivity", selected = "")
     updateSelectInput(session, "evidencePressure", selected = "")
     updateSelectInput(session, "evidenceControl", selected = "")
-    showNotification("Baseline scenario set (no evidence)", type = "message", duration = 2)
+    notify_info("Baseline scenario set (no evidence)", duration = 2)
   })
 
   # ===========================================================================

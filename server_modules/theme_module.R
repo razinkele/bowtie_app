@@ -175,12 +175,9 @@ theme_module_server <- function(input, output, session, lang = reactive("en")) {
 
     theme_display_name <- names(which(theme_names == input$theme_preset))
     if (length(theme_display_name) > 0) {
-      showNotification(
-        paste("🎨 Applied theme:", theme_display_name),
-        type = "message", duration = 3
-      )
+      notify_info(paste("🎨 Applied theme:", theme_display_name), duration = 3)
     } else {
-      showNotification(paste("🎨", t("notify_theme_applied", lang())), type = "message", duration = 3)
+      notify_info(paste("🎨", t("notify_theme_applied", lang())), duration = 3)
     }
   })
 
@@ -237,8 +234,7 @@ theme_module_server <- function(input, output, session, lang = reactive("en")) {
       log_error(paste("Custom theme CSS injection failed:", e$message))
     })
 
-    showNotification("🎨 Applied custom theme with your colors!",
-                    type = "message", duration = 3)
+    notify_info("🎨 Applied custom theme with your colors!", duration = 3)
   })
 
   # Controls panel toggle (UI control, placed here for organizational purposes)

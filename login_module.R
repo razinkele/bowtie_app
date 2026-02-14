@@ -182,11 +182,7 @@ login_server <- function(id) {
         updateTextInput(session, "admin_password", value = "")
 
         # Show welcome notification
-        showNotification(
-          tagList(icon("user-shield"), " Logged in as Administrator"),
-          type = "message",
-          duration = 3
-        )
+        notify_info("Logged in as Administrator", duration = 3)
       } else {
         # Incorrect password
         shinyjs::runjs(sprintf("$('#%s').show();", ns("password_error")))

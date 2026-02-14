@@ -119,7 +119,7 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
     # Use cached filtered data and nodes/edges for better performance
     problem_data <- filtered_problem_data()
     if (is.null(problem_data) || nrow(problem_data) == 0) {
-      showNotification("Warning: No data for selected central problem", type = "warning")
+      notify_warning("No data for selected central problem")
       return(NULL)
     }
 

@@ -36,7 +36,7 @@ ai_analysis_module_server <- function(input, output, session, vocabulary_data, l
   # ===========================================================================
 
   observeEvent(input$run_ai_analysis, {
-    showNotification("Starting AI analysis...", type = "message", duration = 2)
+    notify_info("Starting AI analysis...", duration = 2)
 
     tryCatch({
       if (exists("find_vocabulary_links")) {
@@ -58,11 +58,7 @@ ai_analysis_module_server <- function(input, output, session, vocabulary_data, l
           0
         }
 
-        showNotification(
-          paste("AI analysis complete! Found", link_count, "connections"),
-          type = "message",
-          duration = 3
-        )
+        notify_success(paste("AI analysis complete! Found", link_count, "connections"), duration = 3)
       } else if (exists("find_basic_connections")) {
         # Fall back to basic connections
         basic_links <- find_basic_connections(
@@ -77,23 +73,12 @@ ai_analysis_module_server <- function(input, output, session, vocabulary_data, l
         )
         ai_analysis_results(results)
 
-        showNotification(
-          paste("Using basic analysis (AI linker not available). Found", nrow(basic_links), "connections"),
-          type = "warning",
-          duration = 3
-        )
+        notify_warning(paste("Using basic analysis (AI linker not available). Found", nrow(basic_links), "connections"), duration = 3)
       } else {
-        showNotification(
-          "No linking functions available. Please ensure vocabulary_ai_linker.R is loaded.",
-          type = "error",
-          duration = 5
-        )
+        notify_error("No linking functions available. Please ensure vocabulary_ai_linker.R is loaded.", duration = 5)
       }
     }, error = function(e) {
-      showNotification(
-        paste("Error in AI analysis:", e$message),
-        type = "error"
-      )
+      notify_error(paste("Error in AI analysis:", e$message))
     })
   })
 
@@ -259,7 +244,7 @@ ai_analysis_module_server <- function(input, output, session, vocabulary_data, l
             zoomView = TRUE
           )
       }, error = function(e) {
-        showNotification(paste("Error creating network visualization:", e$message), type = "error")
+        notify_error(paste("Error creating network visualization:", e$message))
         return(NULL)
       })
     } else {

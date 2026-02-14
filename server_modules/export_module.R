@@ -97,8 +97,7 @@ export_module_server <- function(input, output, session, getCurrentData) {
       # For server-side export, we'll use the HTML with export functionality
       file.copy(temp_html, file)
 
-      showNotification("JPEG export: Click the 'Export JPEG' button in the opened diagram",
-                      type = "message", duration = 10)
+      notify_info("JPEG export: Click the 'Export JPEG' button in the opened diagram", duration = 10)
     },
     contentType = "text/html"
   )
@@ -140,8 +139,7 @@ export_module_server <- function(input, output, session, getCurrentData) {
 
       file.copy(temp_html, file)
 
-      showNotification("PNG export: Click 'Save as PNG' button in the opened file",
-                      type = "message", duration = 8)
+      notify_info("PNG export: Click 'Save as PNG' button in the opened file", duration = 8)
     },
     contentType = "text/html"
   )

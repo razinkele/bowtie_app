@@ -157,11 +157,7 @@ server <- function(input, output, session) {
         updateSelectInput(session, "selectedProblem", choices = problems)
         updateSelectInput(session, "bayesianProblem", choices = problems)
         
-        showNotification(
-          "✅ Data restored from local save",
-          type = "message",
-          duration = 3
-        )
+        notify_success("✅ Data restored from local save", duration = 3)
       }
       
       # Restore settings if present
@@ -177,10 +173,7 @@ server <- function(input, output, session) {
       }
       
     }, error = function(e) {
-      showNotification(
-        paste("⚠️ Could not restore all data:", e$message),
-        type = "warning"
-      )
+      notify_warning(paste("⚠️ Could not restore all data:", e$message))
     })
   })
 
@@ -277,11 +270,7 @@ server <- function(input, output, session) {
     current_user$display_name <- "Default User"
     current_user$login_time <- Sys.time()
 
-    showNotification(
-      tagList(icon("user"), " Switched to Default User"),
-      type = "message",
-      duration = 3
-    )
+    notify_info("Switched to Default User", duration = 3)
   })
 
   # =============================================================================
@@ -541,10 +530,10 @@ server <- function(input, output, session) {
     result <- update_term_status(category, term_id, "approved", current_user$username)
 
     if (result$success) {
-      showNotification(tagList(icon("check"), " Term approved"), type = "message")
+      notify_info("Term approved")
       custom_terms_refresh(custom_terms_refresh() + 1)
     } else {
-      showNotification(tagList(icon("exclamation-triangle"), " ", result$message), type = "error")
+      notify_error(result$message)
     }
   })
 
@@ -558,10 +547,10 @@ server <- function(input, output, session) {
     result <- update_term_status(category, term_id, "rejected", current_user$username)
 
     if (result$success) {
-      showNotification(tagList(icon("times"), " Term rejected"), type = "warning")
+      notify_warning("Term rejected")
       custom_terms_refresh(custom_terms_refresh() + 1)
     } else {
-      showNotification(tagList(icon("exclamation-triangle"), " ", result$message), type = "error")
+      notify_error(result$message)
     }
   })
 
@@ -575,17 +564,17 @@ server <- function(input, output, session) {
     result <- delete_custom_term(category, term_id)
 
     if (result$success) {
-      showNotification(tagList(icon("trash"), " Term deleted"), type = "message")
+      notify_info("Term deleted")
       custom_terms_refresh(custom_terms_refresh() + 1)
     } else {
-      showNotification(tagList(icon("exclamation-triangle"), " ", result$message), type = "error")
+      notify_error(result$message)
     }
   })
 
   # Refresh button
   observeEvent(input$refresh_custom_terms, {
     custom_terms_refresh(custom_terms_refresh() + 1)
-    showNotification(tagList(icon("refresh"), " Refreshed"), type = "message", duration = 2)
+    notify_info("Refreshed", duration = 2)
   })
 
   # Apply filters button
@@ -798,16 +787,13 @@ server <- function(input, output, session) {
 
   observeEvent(input$empty_generate, {
     updateTabItems(session, "sidebar_menu", selected = "upload")
-    showNotification("Select an environmental scenario and click 'Generate Data'", type = "message", duration = 5)
+    notify_info("Select an environmental scenario and click 'Generate Data'", duration = 5)
   })
 
   # Risk Matrix update button
   observeEvent(input$updateMatrix, {
     dataVersion(dataVersion() + 1)
-    showNotification(
-      tagList(icon("refresh"), " Risk matrix updated!"),
-      type = "message", duration = 3
-    )
+    notify_info("Risk matrix updated!", duration = 3)
   })
 
   # =============================================================================
@@ -936,7 +922,7 @@ server <- function(input, output, session) {
 
     # Validate row and column indices
     if (info$row > nrow(data) || info$col > ncol(data)) {
-      showNotification("❌ Invalid cell reference", type = "error")
+      notify_error("❌ Invalid cell reference")
       return()
     }
 
@@ -949,7 +935,7 @@ server <- function(input, output, session) {
     if (col_name %in% numeric_columns) {
       validation <- validate_numeric_input(info$value)
       if (!validation$valid) {
-        showNotification(validation$message, type = "error", duration = 3)
+        notify_error(validation$message, duration = 3)
         return()
       }
       data[info$row, info$col] <- validation$value
@@ -967,7 +953,7 @@ server <- function(input, output, session) {
     inferenceCompleted(FALSE)
 
     if (runif(1) < 0.3) {
-      showNotification("✓ Cell updated - Bayesian network ready for recreation", type = "message", duration = 1)
+      notify_info("✓ Cell updated - Bayesian network ready for recreation", duration = 1)
     }
   }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
@@ -991,7 +977,7 @@ server <- function(input, output, session) {
         data <- initial_data[0, , drop = FALSE]
         currentData(data)
         editedData(data)
-        showNotification("📊 Initialized new dataset for editing", type = "message", duration = 2)
+        notify_info("📊 Initialized new dataset for editing", duration = 2)
       }
 
       selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk"
@@ -1024,11 +1010,11 @@ server <- function(input, output, session) {
       dataVersion(dataVersion() + 1)
       clear_similarity_cache(confirm = FALSE)  # Non-interactive cache clear
       bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-      showNotification("✅ New row added with Bayesian support!", type = "message", duration = 2)
+      notify_success("✅ New row added with Bayesian support!", duration = 2)
 
     }, error = function(e) {
       bowtie_log("Error in addRow:", e$message, level = "error")
-      showNotification(paste("❌ Error adding row:", e$message), type = "error", duration = 5)
+      notify_error(paste("❌ Error adding row:", e$message), duration = 5)
     })
   })
 
@@ -1041,9 +1027,9 @@ server <- function(input, output, session) {
       dataVersion(dataVersion() + 1)
       clear_similarity_cache(confirm = FALSE)  # Non-interactive cache clear
       bayesianNetworkCreated(FALSE)  # Reset Bayesian network
-      showNotification(paste("🗑️ Deleted", length(rows), "row(s) - Bayesian network reset"), type = "warning", duration = 2)
+      notify_warning(paste("🗑️ Deleted", length(rows), "row(s) - Bayesian network reset"), duration = 2)
     } else {
-      showNotification(paste("❌", t("notify_no_rows_selected", lang())), type = "error", duration = 2)
+      notify_error(paste("❌", t("notify_no_rows_selected", lang())), duration = 2)
     }
   })
 
@@ -1051,7 +1037,7 @@ server <- function(input, output, session) {
     edited <- editedData()
     if (!is.null(edited)) {
       currentData(edited)
-      showNotification("💾 Changes saved with Bayesian network support!", type = "message", duration = 2)
+      notify_success("💾 Changes saved with Bayesian network support!", duration = 2)
     }
   })
 
@@ -1060,7 +1046,7 @@ server <- function(input, output, session) {
     req(input$selectedProblem, input$newActivity, input$newPressure, input$newConsequence)
 
     if (trimws(input$newActivity) == "" || trimws(input$newPressure) == "" || trimws(input$newConsequence) == "") {
-      showNotification("❌ Please enter activity, pressure, and consequence", type = "error")
+      notify_error("❌ Please enter activity, pressure, and consequence")
       return()
     }
 
@@ -1090,7 +1076,7 @@ server <- function(input, output, session) {
     updateTextInput(session, "newPressure", value = "")
     updateTextInput(session, "newConsequence", value = "")
 
-    showNotification("🔗 Activity chain added with Bayesian network support!", type = "message", duration = 3)
+    notify_success("🔗 Activity chain added with Bayesian network support!", duration = 3)
   })
 
   # Enhanced debug info
@@ -1408,7 +1394,7 @@ server <- function(input, output, session) {
     editedData(data)
     dataVersion(dataVersion() + 1)
     
-    showNotification("Risk assessments saved successfully!", type = "message", duration = 3)
+    notify_success("Risk assessments saved successfully!", duration = 3)
   })
   
   # Reset to current values
@@ -1452,7 +1438,7 @@ server <- function(input, output, session) {
       updateSliderInput(session, "protection_consequence_severity", value = row$Mitigation_to_Consequence_Severity)
     }
     
-    showNotification("↩️ Reset to current values", type = "message", duration = 2)
+    notify_info("↩️ Reset to current values", duration = 2)
   })
 
   # =============================================================================
@@ -1714,14 +1700,14 @@ server <- function(input, output, session) {
 
   # Refresh vocabulary
   observeEvent(input$refresh_vocab, {
-    showNotification("Refreshing vocabulary data...", type = "message", duration = 2)
+    notify_info("Refreshing vocabulary data...", duration = 2)
     tryCatch({
       vocabulary_data <<- load_vocabulary()
       vocab_search_results(data.frame())
       selected_vocab_item(NULL)
-      showNotification("✅ Vocabulary refreshed successfully!", type = "message", duration = 3)
+      notify_success("✅ Vocabulary refreshed successfully!", duration = 3)
     }, error = function(e) {
-      showNotification(paste("❌ Error refreshing vocabulary:", e$message), type = "error")
+      notify_error(paste("❌ Error refreshing vocabulary:", e$message))
     })
   })
 
@@ -1779,8 +1765,7 @@ server <- function(input, output, session) {
         state$current_step >= 8 &&
         length(state$completed_steps) >= 7) {  # Must have completed at least 7 steps
 
-      showNotification("🎉 Bowtie workflow completed successfully!",
-                      type = "message", duration = 5)
+      notify_success("🎉 Bowtie workflow completed successfully!", duration = 5)
 
       # Auto-switch to visualization tab (bs4Dash uses updateTabItems)
       updateTabItems(session, "sidebar_menu", selected = "bowtie")
@@ -1825,11 +1810,8 @@ server <- function(input, output, session) {
       updateSelectInput(session, "selectedProblem", choices = problem_choices, selected = problem_choices[1])
       updateSelectInput(session, "bayesianProblem", choices = problem_choices, selected = problem_choices[1])
 
-      showNotification(
-        paste("Successfully loaded", nrow(exported_data),
-              "bowtie scenarios from guided workflow!"),
-        type = "message", duration = 5
-      )
+      notify_success(paste("Successfully loaded", nrow(exported_data),
+              "bowtie scenarios from guided workflow!"), duration = 5)
 
       # Auto-switch to the bowtie visualization tab (bs4Dash uses updateTabItems)
       updateTabItems(session, "sidebar_menu", selected = "bowtie")
@@ -3290,21 +3272,13 @@ server <- function(input, output, session) {
     # Just trigger a reactive invalidation to refresh the table
     dataVersion(dataVersion() + 1)
 
-    showNotification(
-      "Data table refreshed successfully!",
-      type = "message",
-      duration = 3
-    )
+    notify_info("Data table refreshed successfully!", duration = 3)
   })
 
   # Dropdown menu handlers for Data Table box
   observeEvent(input$refresh_data_table_menu, {
     dataVersion(dataVersion() + 1)
-    showNotification(
-      tagList(icon("sync"), " Data table refreshed!"),
-      type = "message",
-      duration = 3
-    )
+    notify_info("Data table refreshed!", duration = 3)
   })
 
   observeEvent(input$export_csv_menu, {
@@ -3318,22 +3292,14 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$table_settings_menu, {
-    showNotification(
-      tagList(icon("cog"), " Table settings feature coming soon!"),
-      type = "message",
-      duration = 3
-    )
+    notify_info("Table settings feature coming soon!", duration = 3)
   })
 
   # Dropdown menu handlers for Vocabulary box
   observeEvent(input$refresh_vocabulary_menu, {
     # Trigger reactive update
     updateTextInput(session, "vocab_search", value = input$vocab_search)
-    showNotification(
-      tagList(icon("sync"), " Vocabulary data refreshed!"),
-      type = "message",
-      duration = 3
-    )
+    notify_info("Vocabulary data refreshed!", duration = 3)
   })
 
   observeEvent(input$export_vocabulary_menu, {
@@ -3343,11 +3309,7 @@ server <- function(input, output, session) {
   observeEvent(input$clear_vocab_filters_menu, {
     updateTextInput(session, "vocab_search", value = "")
     updateSelectInput(session, "vocab_category", selected = "all")
-    showNotification(
-      tagList(icon("filter-circle-xmark"), " Filters cleared!"),
-      type = "message",
-      duration = 3
-    )
+    notify_info("Filters cleared!", duration = 3)
   })
 
   observeEvent(input$vocab_stats_menu, {
@@ -3358,39 +3320,23 @@ server <- function(input, output, session) {
       if (!is.null(vocabulary_data$controls)) total <- total + nrow(vocabulary_data$controls)
       if (!is.null(vocabulary_data$consequences)) total <- total + nrow(vocabulary_data$consequences)
     }
-    showNotification(
-      HTML(sprintf("<strong>Vocabulary Statistics:</strong><br>Total Elements: %d", total)),
-      type = "message",
-      duration = 5
-    )
+    notify_info(paste("Vocabulary Statistics: Total Elements:", total), duration = 5)
   })
 
   # Dropdown menu handlers for Bowtie Diagram box
   observeEvent(input$refresh_bowtie_menu, {
     # Re-render the bowtie network
     if (!is.null(input$selectedProblem)) {
-      showNotification(
-        tagList(icon("sync"), " Bowtie diagram refreshed!"),
-        type = "message",
-        duration = 3
-      )
+      notify_info("Bowtie diagram refreshed!", duration = 3)
     } else {
-      showNotification(
-        "Please select a central problem first",
-        type = "warning",
-        duration = 3
-      )
+      notify_warning("Please select a central problem first", duration = 3)
     }
   })
 
   observeEvent(input$fit_bowtie_menu, {
     # Trigger visNetwork fit command via JavaScript
     session$sendCustomMessage("fitBowtieNetwork", TRUE)
-    showNotification(
-      tagList(icon("expand"), " Diagram fitted to screen!"),
-      type = "message",
-      duration = 2
-    )
+    notify_info("Diagram fitted to screen!", duration = 2)
   })
 
   # Bowtie diagram export menu items - trigger existing download handlers via JS
@@ -3401,34 +3347,22 @@ server <- function(input, output, session) {
   observeEvent(input$export_bowtie_svg_menu, {
     # SVG not directly supported - use HTML export as alternative
     session$sendCustomMessage("triggerDownload", "downloadBowtie")
-    showNotification("SVG not available - downloading interactive HTML instead", type = "message", duration = 3)
+    notify_info("SVG not available - downloading interactive HTML instead", duration = 3)
   })
 
   # Dropdown menu handlers for Bayesian Network box
   observeEvent(input$refresh_bayesian_menu, {
     if (!is.null(bayesian_network$network)) {
-      showNotification(
-        tagList(icon("sync"), " Bayesian network refreshed!"),
-        type = "message",
-        duration = 3
-      )
+      notify_info("Bayesian network refreshed!", duration = 3)
     } else {
-      showNotification(
-        "Please create a Bayesian network first",
-        type = "warning",
-        duration = 3
-      )
+      notify_warning("Please create a Bayesian network first", duration = 3)
     }
   })
 
   observeEvent(input$fit_bayesian_menu, {
     # Trigger visNetwork fit command via JavaScript
     session$sendCustomMessage("fitBayesianNetwork", TRUE)
-    showNotification(
-      tagList(icon("expand"), " Network fitted to screen!"),
-      type = "message",
-      duration = 2
-    )
+    notify_info("Network fitted to screen!", duration = 2)
   })
 
   # NOTE: Download handlers (downloadData, downloadExcel) are now in export_module.R
@@ -3454,20 +3388,12 @@ server <- function(input, output, session) {
       # Check if manual exists
       if (file.exists(manual_path)) {
         file.copy(manual_path, file)
-        showNotification(
-          paste("User manual v", APP_CONFIG$VERSION, " downloaded successfully!"),
-          type = "message",
-          duration = 3
-        )
+        notify_success(paste("User manual v", APP_CONFIG$VERSION, " downloaded successfully!"), duration = 3)
       } else {
         # If manual not found, create error message
-        showNotification(
-          paste0("User manual v", APP_CONFIG$VERSION,
+        notify_error(paste0("User manual v", APP_CONFIG$VERSION,
                  " not found at: ", manual_path,
-                 ". Please contact support."),
-          type = "error",
-          duration = 10
-        )
+                 ". Please contact support."), duration = 10)
       }
     }
   )
@@ -3483,20 +3409,12 @@ server <- function(input, output, session) {
       # Check if manual exists
       if (file.exists(manual_path)) {
         file.copy(manual_path, file)
-        showNotification(
-          paste("Manuel utilisateur v", APP_CONFIG$VERSION, " téléchargé avec succès!"),
-          type = "message",
-          duration = 3
-        )
+        notify_success(paste("Manuel utilisateur v", APP_CONFIG$VERSION, " téléchargé avec succès!"), duration = 3)
       } else {
         # If manual not found, create error message
-        showNotification(
-          paste0("Manuel utilisateur v", APP_CONFIG$VERSION,
+        notify_error(paste0("Manuel utilisateur v", APP_CONFIG$VERSION,
                  " introuvable à: ", manual_path,
-                 ". Veuillez contacter le support."),
-          type = "error",
-          duration = 10
-        )
+                 ". Veuillez contacter le support."), duration = 10)
       }
     }
   )

@@ -77,11 +77,7 @@ language_module_server <- function(input, output, session) {
 
     runjs(js_code)
 
-    showNotification(
-      paste(t("language_label", new_lang), ":", ifelse(new_lang == "en", "English", "Français")),
-      type = "message",
-      duration = 3
-    )
+    notify_info(paste(t("language_label", new_lang), ":", ifelse(new_lang == "en", "English", "Français")), duration = 3)
   })
 
   # Reactive language getter

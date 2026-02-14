@@ -41,7 +41,7 @@ data_management_module_server <- function(input, output, session, lang = reactiv
       sheets(sheet_names)
       updateSelectInput(session, "sheet", choices = sheet_names, selected = sheet_names[1])
     }, error = function(e) {
-      showNotification(t("notify_error_reading_file", lang()), type = "error")
+      notify_error(t("notify_error_reading_file", lang()))
     })
   })
 
@@ -57,8 +57,8 @@ data_management_module_server <- function(input, output, session, lang = reactiv
       validation <- validate_data_columns(data)
 
       if (!validation$valid) {
-        showNotification(paste("Missing required columns:",
-                              paste(validation$missing, collapse = ", ")), type = "error")
+        notify_error(paste("Missing required columns:",
+                              paste(validation$missing, collapse = ", ")))
         return()
       }
 
@@ -74,22 +74,18 @@ data_management_module_server <- function(input, output, session, lang = reactiv
 
       # Improved success notification
       lastNotification(paste("✅", t("notify_data_loaded", lang())))
-      showNotification(paste("✅", t("notify_data_loaded", lang())), type = "message", duration = 3)
+      notify_success(paste("✅", t("notify_data_loaded", lang())), duration = 3)
 
       # Automatically navigate to Bowtie tab to show the diagram
       updateTabItems(session, "sidebar_menu", selected = "bowtie")
 
       # Show navigation notification
-      showNotification(
-        paste("📊 Navigating to Bowtie Diagram..."),
-        type = "message",
-        duration = 2
-      )
+      notify_info("📊 Navigating to Bowtie Diagram...", duration = 2)
 
     }, error = function(e) {
       hasData(FALSE)
       lastNotification(paste("❌ Error loading data:", e$message))
-      showNotification(paste("❌ Error loading data:", e$message), type = "error", duration = 8)
+      notify_error(paste("❌ Error loading data:", e$message), duration = 8)
     })
   })
 
@@ -103,7 +99,7 @@ data_management_module_server <- function(input, output, session, lang = reactiv
       "🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure..."
     }
 
-    showNotification(scenario_msg, type = "message", duration = 3)
+    notify_info(scenario_msg, duration = 3)
 
     tryCatch({
       multiple_controls_data <- generate_environmental_data_with_multiple_controls(scenario_key)
@@ -123,24 +119,18 @@ data_management_module_server <- function(input, output, session, lang = reactiv
       unique_controls <- length(unique(multiple_controls_data$Preventive_Control))
       total_entries <- nrow(multiple_controls_data)
 
-      showNotification(
-        paste("✅ Generated", total_entries, "entries with", unique_controls,
-              "preventive controls across", unique_pressures, "environmental pressures!"),
-        type = "message", duration = 5)
+      notify_success(paste("✅ Generated", total_entries, "entries with", unique_controls,
+              "preventive controls across", unique_pressures, "environmental pressures!"), duration = 5)
 
       # Automatically navigate to Bowtie tab to show the diagram
       updateTabItems(session, "sidebar_menu", selected = "bowtie")
 
       # Show navigation notification
-      showNotification(
-        paste("📊 Navigating to Bowtie Diagram..."),
-        type = "message",
-        duration = 2
-      )
+      notify_info("📊 Navigating to Bowtie Diagram...", duration = 2)
 
     }, error = function(e) {
       hasData(FALSE)  # Ensure menu items stay disabled on error
-      showNotification(paste("❌ Error generating multiple controls data:", e$message), type = "error", duration = 5)
+      notify_error(paste("❌ Error generating multiple controls data:", e$message), duration = 5)
     })
   })
 

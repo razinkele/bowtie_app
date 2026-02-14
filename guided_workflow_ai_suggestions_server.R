@@ -308,17 +308,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
               workflow_state(state)
 
 
-              showNotification(
-                paste0("✅ Added suggested activity: ", activity_name),
-                type = "message",
-                duration = 3
-              )
+              notify_success(paste0("✅ Added suggested activity: ", activity_name), duration = 3)
             } else {
-              showNotification(
-                "ℹ️ This activity is already in your selection",
-                type = "warning",
-                duration = 3
-              )
+              notify_warning("ℹ️ This activity is already in your selection", duration = 3)
             }
           }
         }
@@ -350,17 +342,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
             state$project_data$activities <- current_activities
             workflow_state(state)
 
-            showNotification(
-              paste0("✅ Added suggested activity: ", activity_name),
-              type = "message",
-              duration = 3
-            )
+            notify_success(paste0("✅ Added suggested activity: ", activity_name), duration = 3)
           } else {
-            showNotification(
-              "ℹ️ This activity is already in your selection",
-              type = "warning",
-              duration = 2
-            )
+            notify_warning("ℹ️ This activity is already in your selection", duration = 2)
           }
         }
       }
@@ -551,17 +535,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
               })
             }
 
-            showNotification(
-              paste0("✅ Added suggested pressure: ", new_pressure$name),
-              type = "message",
-              duration = 3
-            )
+            notify_success(paste0("✅ Added suggested pressure: ", new_pressure$name), duration = 3)
           } else {
-            showNotification(
-              "ℹ️ This pressure is already in your selection",
-              type = "warning",
-              duration = 2
-            )
+            notify_warning("ℹ️ This pressure is already in your selection", duration = 2)
           }
         }
       }
@@ -736,17 +712,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
               })
             }
 
-            showNotification(
-              paste0("✅ Added suggested control: ", new_control$name),
-              type = "message",
-              duration = 3
-            )
+            notify_success(paste0("✅ Added suggested control: ", new_control$name), duration = 3)
           } else {
-            showNotification(
-              "ℹ️ This control is already in your selection",
-              type = "warning",
-              duration = 2
-            )
+            notify_warning("ℹ️ This control is already in your selection", duration = 2)
           }
         }
       }
@@ -914,17 +882,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
               })
             }
 
-            showNotification(
-              paste0("✅ Added suggested consequence: ", new_consequence$name),
-              type = "message",
-              duration = 3
-            )
+            notify_success(paste0("✅ Added suggested consequence: ", new_consequence$name), duration = 3)
           } else {
-            showNotification(
-              "ℹ️ This consequence is already in your selection",
-              type = "warning",
-              duration = 2
-            )
+            notify_warning("ℹ️ This consequence is already in your selection", duration = 2)
           }
         }
       }
@@ -1092,17 +1052,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
               })
             }
 
-            showNotification(
-              paste0("✅ Added suggested control: ", new_control$name),
-              type = "message",
-              duration = 3
-            )
+            notify_success(paste0("✅ Added suggested control: ", new_control$name), duration = 3)
           } else {
-            showNotification(
-              "ℹ️ This control is already in your selection",
-              type = "warning",
-              duration = 2
-            )
+            notify_warning("ℹ️ This control is already in your selection", duration = 2)
           }
         }
       }

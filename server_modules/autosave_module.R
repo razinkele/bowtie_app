@@ -89,21 +89,14 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
             
             # Show notification if enabled
             if (isTRUE(input$autosave_notify)) {
-              showNotification(
-                sprintf("✅ Autosaved to local folder (v%d)", autosaveVersion()),
-                type = "message",
-                duration = 3
-              )
+              notify_success(sprintf("✅ Autosaved to local folder (v%d)", autosaveVersion()), duration = 3)
             }
             
             log_debug(paste("Local autosave completed. Version:", autosaveVersion()))
             local_save_completed <- TRUE  # Mark as completed, skip browser/file saves
             
           }, error = function(e) {
-            showNotification(
-              paste("Local autosave failed, falling back to browser:", e$message),
-              type = "warning"
-            )
+            notify_warning(paste("Local autosave failed, falling back to browser:", e$message))
             # Fall through to browser save
           })
         }
@@ -181,23 +174,15 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
 
       # Show notification if enabled
       if (isTRUE(input$autosave_notify)) {
-        showNotification(
-          sprintf("✅ Autosaved at %s (v%d)",
+        notify_success(sprintf("✅ Autosaved at %s (v%d)",
                  format(Sys.time(), "%H:%M:%S"),
-                 autosaveVersion()),
-          type = "message",
-          duration = 3
-        )
+                 autosaveVersion()), duration = 3)
       }
 
       log_debug(paste("Manual autosave completed. Version:", autosaveVersion()))
 
     }, error = function(e) {
-      showNotification(
-        paste("Autosave failed:", e$message),
-        type = "error",
-        duration = 5
-      )
+      notify_error(paste("Autosave failed:", e$message), duration = 5)
       log_error(paste("Autosave error:", e$message))
     })
   })
@@ -253,20 +238,12 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
 
       removeModal()
 
-      showNotification(
-        "🗑️ All autosaves cleared",
-        type = "warning",
-        duration = 3
-      )
+      notify_warning("🗑️ All autosaves cleared", duration = 3)
 
       log_info("All autosaves cleared")
 
     }, error = function(e) {
-      showNotification(
-        paste("❌ Error clearing autosaves:", e$message),
-        type = "error",
-        duration = 5
-      )
+      notify_error(paste("❌ Error clearing autosaves:", e$message), duration = 5)
     })
   })
 
@@ -406,19 +383,13 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
         lastAutosaveTime(as.POSIXct(save_data$timestamp))
       }
 
-      showNotification(
-        sprintf("✅ Settings restored from autosave (v%s)",
+      notify_success(sprintf("✅ Settings restored from autosave (v%s)",
                if (!is.null(save_data$version)) save_data$version else "?"),
-        type = "message",
         duration = 3
       )
 
     }, error = function(e) {
-      showNotification(
-        paste("⚠️ Could not restore all settings:", e$message),
-        type = "warning",
-        duration = 5
-      )
+      notify_warning(paste("⚠️ Could not restore all settings:", e$message), duration = 5)
     })
   })
 

@@ -200,11 +200,7 @@ local_storage_module_server <- function(input, output, session,
               dir.create(selected_path, recursive = TRUE)
               log_info(paste("Created bowtie_saves subfolder:", selected_path))
             }, error = function(e) {
-              showNotification(
-                paste("Failed to create subfolder:", e$message),
-                type = "error",
-                duration = 5
-              )
+              notify_error(paste("Failed to create subfolder:", e$message), duration = 5)
               return()
             })
           }
@@ -258,11 +254,7 @@ local_storage_module_server <- function(input, output, session,
         file.remove(test_file)
         storage_verified(TRUE)
         
-        showNotification(
-          paste("✅ Folder verified:", path),
-          type = "message",
-          duration = 3
-        )
+        notify_success(paste("✅ Folder verified:", path), duration = 3)
         
         log_info(paste("Local storage folder verified:", path))
         return(TRUE)
@@ -273,11 +265,7 @@ local_storage_module_server <- function(input, output, session,
       
     }, error = function(e) {
       storage_verified(FALSE)
-      showNotification(
-        paste("❌ Cannot access folder:", e$message),
-        type = "error",
-        duration = 5
-      )
+      notify_error(paste("❌ Cannot access folder:", e$message), duration = 5)
       log_error(paste("Local storage verification failed:", e$message))
       return(FALSE)
     })
@@ -289,7 +277,7 @@ local_storage_module_server <- function(input, output, session,
     if (!is.null(path) && nchar(path) > 0) {
       verify_folder_access(path)
     } else {
-      showNotification("Please select a folder first", type = "warning")
+      notify_warning("Please select a folder first")
     }
   })
   
@@ -377,7 +365,7 @@ local_storage_module_server <- function(input, output, session,
     path <- storage_path()
     
     if (is.null(path) || !dir.exists(path)) {
-      showNotification("No valid folder selected", type = "warning")
+      notify_warning("No valid folder selected")
       return()
     }
     
@@ -390,10 +378,7 @@ local_storage_module_server <- function(input, output, session,
         system2("xdg-open", path)
       }
     }, error = function(e) {
-      showNotification(
-        paste("Could not open folder:", e$message),
-        type = "error"
-      )
+      notify_error(paste("Could not open folder:", e$message))
     })
   })
   
@@ -407,13 +392,13 @@ local_storage_module_server <- function(input, output, session,
     if (mode == "browser") {
       # Trigger browser localStorage save via JavaScript
       session$sendCustomMessage("triggerAutosave", list())
-      showNotification("💾 Saved to browser storage", type = "message")
+      notify_info("💾 Saved to browser storage")
       
     } else if (mode == "local") {
       path <- storage_path()
       
       if (is.null(path) || !storage_verified()) {
-        showNotification("Please select and verify a local folder first", type = "warning")
+        notify_warning("Please select and verify a local folder first")
         return()
       }
       
@@ -429,26 +414,18 @@ local_storage_module_server <- function(input, output, session,
           saveRDS(save_data, filepath)
           last_save_time(Sys.time())
           
-          showNotification(
-            paste("✅ Saved to:", filename),
-            type = "message",
-            duration = 3
-          )
+          notify_success(paste("✅ Saved to:", filename), duration = 3)
           
           log_info(paste("Quick save completed:", filepath))
           
         }, error = function(e) {
-          showNotification(
-            paste("❌ Save failed:", e$message),
-            type = "error",
-            duration = 5
-          )
+          notify_error(paste("❌ Save failed:", e$message), duration = 5)
         })
       }
       
     } else {
       # Server mode - save to default server location
-      showNotification("Server save mode - using default location", type = "message")
+      notify_info("Server save mode - using default location")
     }
   })
   
@@ -467,7 +444,7 @@ local_storage_module_server <- function(input, output, session,
       path <- storage_path()
       
       if (is.null(path) || !dir.exists(path)) {
-        showNotification("Please select a local folder first", type = "warning")
+        notify_warning("Please select a local folder first")
         return()
       }
       
@@ -475,7 +452,7 @@ local_storage_module_server <- function(input, output, session,
       files <- list.files(path, pattern = "\\.rds$", full.names = TRUE)
       
       if (length(files) == 0) {
-        showNotification("No save files found in selected folder", type = "warning")
+        notify_warning("No save files found in selected folder")
         return()
       }
       
@@ -492,22 +469,14 @@ local_storage_module_server <- function(input, output, session,
           filename = basename(newest_file)
         ))
         
-        showNotification(
-          paste("✅ Loaded:", basename(newest_file)),
-          type = "message",
-          duration = 3
-        )
-        
+        notify_success(paste("✅ Loaded:", basename(newest_file)), duration = 3)
+
       }, error = function(e) {
-        showNotification(
-          paste("❌ Load failed:", e$message),
-          type = "error",
-          duration = 5
-        )
+        notify_error(paste("❌ Load failed:", e$message), duration = 5)
       })
-      
+
     } else {
-      showNotification("Server mode - load from server location", type = "message")
+      notify_info("Server mode - load from server location")
     }
   })
   
@@ -522,7 +491,7 @@ local_storage_module_server <- function(input, output, session,
       } else if (grepl("\\.json$", file$name, ignore.case = TRUE)) {
         loaded_data <- jsonlite::fromJSON(file$datapath)
       } else {
-        showNotification("Unsupported file format", type = "error")
+        notify_error("Unsupported file format")
         return()
       }
       
@@ -531,16 +500,10 @@ local_storage_module_server <- function(input, output, session,
         filename = file$name
       ))
       
-      showNotification(
-        paste("✅ Loaded:", file$name),
-        type = "message"
-      )
+      notify_success(paste("✅ Loaded:", file$name))
       
     }, error = function(e) {
-      showNotification(
-        paste("❌ Failed to load file:", e$message),
-        type = "error"
-      )
+      notify_error(paste("❌ Failed to load file:", e$message))
     })
   })
   
@@ -748,11 +711,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
               dir.create(selected_path, recursive = TRUE)
               bowtie_log(paste("Created bowtie_saves subfolder:", selected_path), level = "info")
             }, error = function(e) {
-              showNotification(
-                paste("Failed to create subfolder:", e$message),
-                type = "error",
-                duration = 5
-              )
+              notify_error(paste("Failed to create subfolder:", e$message), duration = 5)
               return()
             })
           }
@@ -800,11 +759,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
         file.remove(test_file)
         storage_verified(TRUE)
         
-        showNotification(
-          paste("✅ Folder verified:", path),
-          type = "message",
-          duration = 3
-        )
+        notify_success(paste("✅ Folder verified:", path), duration = 3)
         return(TRUE)
       } else {
         storage_verified(FALSE)
@@ -813,11 +768,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
       
     }, error = function(e) {
       storage_verified(FALSE)
-      showNotification(
-        paste("❌ Cannot access folder:", e$message),
-        type = "error",
-        duration = 5
-      )
+      notify_error(paste("❌ Cannot access folder:", e$message), duration = 5)
       return(FALSE)
     })
   }
@@ -828,7 +779,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
     if (!is.null(path) && nchar(path) > 0) {
       verify_folder_access(path)
     } else {
-      showNotification("Please select a folder first", type = "warning")
+      notify_warning("Please select a folder first")
     }
   })
   
@@ -920,7 +871,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
     path <- storage_path()
     
     if (is.null(path) || !dir.exists(path)) {
-      showNotification("No valid folder selected", type = "warning")
+      notify_warning("No valid folder selected")
       return()
     }
     
@@ -933,10 +884,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
         system2("xdg-open", path)
       }
     }, error = function(e) {
-      showNotification(
-        paste("Could not open folder:", e$message),
-        type = "error"
-      )
+      notify_error(paste("Could not open folder:", e$message))
     })
   })
   
@@ -949,13 +897,13 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
     
     if (mode == "browser") {
       session$sendCustomMessage("triggerAutosave", list())
-      showNotification("💾 Saved to browser storage", type = "message")
+      notify_info("💾 Saved to browser storage")
       
     } else if (mode == "local") {
       path <- storage_path()
       
       if (is.null(path) || !storage_verified()) {
-        showNotification("Please select and verify a local folder first", type = "warning")
+        notify_warning("Please select and verify a local folder first")
         return()
       }
       
@@ -988,24 +936,16 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
         writeLines(json_content, filepath)
         last_save_time(Sys.time())
         
-        showNotification(
-          paste("✅ Saved to:", filename),
-          type = "message",
-          duration = 3
-        )
-        
+        notify_success(paste("✅ Saved to:", filename), duration = 3)
+
         bowtie_log(paste("Quick save completed:", filepath), level = "info")
-        
+
       }, error = function(e) {
-        showNotification(
-          paste("❌ Save failed:", e$message),
-          type = "error",
-          duration = 5
-        )
+        notify_error(paste("❌ Save failed:", e$message), duration = 5)
       })
       
     } else {
-      showNotification("Server save mode - using default location", type = "message")
+      notify_info("Server save mode - using default location")
     }
   })
   
@@ -1023,7 +963,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
       path <- storage_path()
 
       if (is.null(path) || !dir.exists(path)) {
-        showNotification("Please select a local folder first", type = "warning")
+        notify_warning("Please select a local folder first")
         return()
       }
 
@@ -1033,7 +973,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
       files <- c(json_files, rds_files)
 
       if (length(files) == 0) {
-        showNotification("No save files found in selected folder", type = "warning")
+        notify_warning("No save files found in selected folder")
         return()
       }
 
@@ -1054,22 +994,14 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
           filename = basename(newest_file)
         ))
 
-        showNotification(
-          paste("Loaded:", basename(newest_file)),
-          type = "message",
-          duration = 3
-        )
+        notify_success(paste("Loaded:", basename(newest_file)), duration = 3)
 
       }, error = function(e) {
-        showNotification(
-          paste("Load failed:", e$message),
-          type = "error",
-          duration = 5
-        )
+        notify_error(paste("Load failed:", e$message), duration = 5)
       })
       
     } else {
-      showNotification("Server mode - load from server location", type = "message")
+      notify_info("Server mode - load from server location")
     }
   })
   
@@ -1084,7 +1016,7 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
       } else if (grepl("\\.json$", file$name, ignore.case = TRUE)) {
         loaded_data <- jsonlite::fromJSON(file$datapath)
       } else {
-        showNotification("Unsupported file format", type = "error")
+        notify_error("Unsupported file format")
         return()
       }
       
@@ -1093,16 +1025,10 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
         filename = file$name
       ))
       
-      showNotification(
-        paste("✅ Loaded:", file$name),
-        type = "message"
-      )
+      notify_success(paste("✅ Loaded:", file$name))
       
     }, error = function(e) {
-      showNotification(
-        paste("❌ Failed to load file:", e$message),
-        type = "error"
-      )
+      notify_error(paste("❌ Failed to load file:", e$message))
     })
   })
   

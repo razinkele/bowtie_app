@@ -1698,20 +1698,12 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         # Update hash to current state
         last_saved_hash(compute_state_hash(restored_state))
 
-        showNotification(
-          paste("Session restored successfully! Resuming at Step", restored_state$current_step),
-          type = "message",
-          duration = 5
-        )
+        notify_success(paste("Session restored successfully! Resuming at Step", restored_state$current_step), duration = 5)
 
         log_success("Workflow session restored from autosave")
       }
     }, error = function(e) {
-      showNotification(
-        paste("Error restoring session:", e$message),
-        type = "error",
-        duration = 10
-      )
+      notify_error(paste("Error restoring session:", e$message), duration = 10)
       log_error(paste("Error restoring session:", e$message))
     })
 
@@ -1723,11 +1715,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # Clear autosave from localStorage
     session$sendCustomMessage("clearAutosave", list())
 
-    showNotification(
-      "Starting fresh workflow session",
-      type = "message",
-      duration = 3
-    )
+    notify_info("Starting fresh workflow session", duration = 3)
 
     removeModal()
   })
@@ -1901,7 +1889,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # Validate current step before proceeding
     validation_result <- validate_current_step(state, input)
     if (!validation_result$is_valid) {
-      showNotification(validation_result$message, type = "error", duration = 5)
+      notify_error(validation_result$message, duration = 5)
       return()
     }
     
@@ -1943,7 +1931,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       state$current_step <- target_step
       workflow_state(state)
     } else {
-      showNotification(t("gw_complete_previous", lang()), type = "warning")
+      notify_warning(t("gw_complete_previous", lang()))
     }
   })
   
@@ -2127,15 +2115,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
             # Use generic label from item_type: "activities" -> "activity"
             label <- gsub("_", " ", sub("s$", "", item_type))
-            showNotification(
-              paste("Added custom", label, ":", item_name, "(marked for review)"),
-              type = "message", duration = 3
-            )
+            notify_info(paste("Added custom", label, ":", item_name, "(marked for review)"), duration = 3)
           } else {
-            showNotification(
-              paste(t(translation_added, lang()), item_name),
-              type = "message", duration = 2
-            )
+            notify_info(paste(t(translation_added, lang()), item_name), duration = 2)
           }
 
           # Update workflow state
@@ -2167,14 +2149,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
             ))
           }
         } else {
-          showNotification(t(translation_exists, lang()), type = "warning", duration = 2)
+          notify_warning(t(translation_exists, lang()), duration = 2)
         }
       } else {
         label <- gsub("_", " ", sub("s$", "", item_type))
-        showNotification(
-          paste("Please select a", label, "or enter a custom name"),
-          type = "warning", duration = 2
-        )
+        notify_warning(paste("Please select a", label, "or enter a custom name"), duration = 2)
       }
     })
   }
@@ -2678,12 +2657,12 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         state$project_data$escalation_factors <- current
         workflow_state(state)
         
-        showNotification(paste(t("gw_added_escalation", lang()), factor_name), type = "message", duration = 2)
+        notify_info(paste(t("gw_added_escalation", lang()), factor_name), duration = 2)
 
         # Clear the input
         updateTextInput(session, session$ns("escalation_factor_input"), value = "")
       } else {
-        showNotification(t("gw_escalation_exists", lang()), type = "warning", duration = 2)
+        notify_warning(t("gw_escalation_exists", lang()), duration = 2)
       }
     }
   })
@@ -2818,21 +2797,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       updated_connections <- rbind(current_connections, new_connection)
       activity_pressure_connections(updated_connections)
 
-      showNotification(
-        "Connection added successfully!",
-        type = "message",
-        duration = 2
-      )
+      notify_info("Connection added successfully!", duration = 2)
 
       # Reset selections
       updateSelectizeInput(session, "connection_activity", selected = character(0))
       updateSelectizeInput(session, "connection_pressure", selected = character(0))
     } else {
-      showNotification(
-        "This connection already exists!",
-        type = "warning",
-        duration = 2
-      )
+      notify_warning("This connection already exists!", duration = 2)
     }
   })
 
@@ -2863,21 +2834,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       updated_links <- rbind(current_links, new_link)
       preventive_control_links(updated_links)
 
-      showNotification(
-        "Control link added successfully!",
-        type = "message",
-        duration = 2
-      )
+      notify_info("Control link added successfully!", duration = 2)
 
       # Reset selections
       updateSelectizeInput(session, "link_control", selected = character(0))
       updateSelectizeInput(session, "link_target", selected = character(0))
     } else {
-      showNotification(
-        "This link already exists!",
-        type = "warning",
-        duration = 2
-      )
+      notify_warning("This link already exists!", duration = 2)
     }
   })
 
@@ -2902,21 +2865,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       updated_links <- rbind(current_links, new_link)
       consequence_protective_links(updated_links)
 
-      showNotification(
-        "Protective control link added successfully!",
-        type = "message",
-        duration = 2
-      )
+      notify_info("Protective control link added successfully!", duration = 2)
 
       # Reset selections
       updateSelectizeInput(session, "link_consequence", selected = character(0))
       updateSelectizeInput(session, "link_protective_control", selected = character(0))
     } else {
-      showNotification(
-        "This link already exists!",
-        type = "warning",
-        duration = 2
-      )
+      notify_warning("This link already exists!", duration = 2)
     }
   })
 
@@ -3250,12 +3205,8 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         state$project_data$example_pressures <- template_data$example_pressures
         workflow_state(state)
 
-        showNotification(
-          paste0("✅ ", t("gw_applied_template", lang()), template_data$name,
-                 " - Project Setup and Central Problem have been pre-filled!"),
-          type = "message",
-          duration = 5
-        )
+        notify_success(paste0("✅ ", t("gw_applied_template", lang()), template_data$name,
+                 " - Project Setup and Central Problem have been pre-filled!"), duration = 5)
       }
     }
   })
@@ -3327,7 +3278,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # Final validation
     validation_result <- validate_current_step(state, input)
     if (!validation_result$is_valid) {
-      showNotification(validation_result$message, type = "error")
+      notify_error(validation_result$message)
       return()
     }
 
@@ -3356,9 +3307,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # Clear autosave - workflow is complete, no need to keep autosave
     session$sendCustomMessage("clearAutosave", list())
 
-    showNotification(
-      tagList(icon("check-circle"), " Workflow finalized successfully! You can now export or view the diagram."),
-      type = "message",
+    notify_success("Workflow finalized successfully! You can now export or view the diagram.",
       duration = 5
     )
   })
@@ -3370,7 +3319,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # Final validation
     validation_result <- validate_current_step(state, input)
     if (!validation_result$is_valid) {
-      showNotification(validation_result$message, type = "error")
+      notify_error(validation_result$message)
       return()
     }
 
@@ -3389,9 +3338,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # Clear autosave - workflow is complete, no need to keep autosave
     session$sendCustomMessage("clearAutosave", list())
 
-    showNotification(
-      tagList(icon("check-circle"), " Workflow finalized! You can now export or view the diagram."),
-      type = "message",
+    notify_success("Workflow finalized! You can now export or view the diagram.",
       duration = 5
     )
   })
@@ -3406,11 +3353,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
     # Check if workflow is complete
     if (!isTRUE(state$workflow_complete)) {
-      showNotification(
-        "Please complete the workflow first by clicking 'Complete Workflow'.",
-        type = "warning",
-        duration = 4
-      )
+      notify_warning("Please complete the workflow first by clicking 'Complete Workflow'.", duration = 4)
       return()
     }
 
@@ -3439,19 +3382,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         export_bowtie_to_excel(converted_data, temp_file)
 
         # Trigger download
-        showNotification(
-          paste("✅ Excel file created:", filename),
-          type = "message",
-          duration = 3
-        )
+        notify_success(paste("✅ Excel file created:", filename), duration = 3)
 
         # Return file info for download handler (if downloadHandler is implemented)
         # For now, just notify where the file is saved
-        showNotification(
-          paste("File saved to:", temp_file),
-          type = "message",
-          duration = 10
-        )
+        notify_info(paste("File saved to:", temp_file), duration = 10)
       } else {
         # Fallback: use openxlsx directly
         library(openxlsx)
@@ -3479,19 +3414,11 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         # Save workbook
         saveWorkbook(wb, temp_file, overwrite = TRUE)
 
-        showNotification(
-          paste("✅ Excel file exported:", filename),
-          type = "message",
-          duration = 5
-        )
+        notify_success(paste("✅ Excel file exported:", filename), duration = 5)
       }
 
     }, error = function(e) {
-      showNotification(
-        paste("❌ Export failed:", e$message),
-        type = "error",
-        duration = 5
-      )
+      notify_error(paste("❌ Export failed:", e$message), duration = 5)
     })
   })
 
@@ -3501,11 +3428,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
     # Check if workflow is complete
     if (!isTRUE(state$workflow_complete)) {
-      showNotification(
-        "Please complete the workflow first by clicking 'Complete Workflow'.",
-        type = "warning",
-        duration = 4
-      )
+      notify_warning("Please complete the workflow first by clicking 'Complete Workflow'.", duration = 4)
       return()
     }
 
@@ -3604,24 +3527,12 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
       dev.off()
 
-      showNotification(
-        paste("✅ PDF report generated:", filename),
-        type = "message",
-        duration = 5
-      )
+      notify_success(paste("✅ PDF report generated:", filename), duration = 5)
 
-      showNotification(
-        paste("File saved to:", temp_file),
-        type = "message",
-        duration = 10
-      )
+      notify_info(paste("File saved to:", temp_file), duration = 10)
 
     }, error = function(e) {
-      showNotification(
-        paste("❌ PDF generation failed:", e$message),
-        type = "error",
-        duration = 5
-      )
+      notify_error(paste("❌ PDF generation failed:", e$message), duration = 5)
     })
   })
 
@@ -3631,11 +3542,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
     # Check if workflow is complete
     if (!isTRUE(state$workflow_complete)) {
-      showNotification(
-        tagList(icon("exclamation-triangle"), " Please finalize the workflow first by clicking 'Finalize Workflow'."),
-        type = "warning",
-        duration = 4
-      )
+      notify_warning("Please finalize the workflow first by clicking 'Finalize Workflow'.", duration = 4)
       return()
     }
 
@@ -3646,11 +3553,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
       # Validate data
       if (is.null(converted_data) || !is.data.frame(converted_data) || nrow(converted_data) == 0) {
-        showNotification(
-          tagList(icon("times-circle"), " No data available to load. Please ensure your workflow has data."),
-          type = "error",
-          duration = 5
-        )
+        notify_error("No data available to load. Please ensure your workflow has data.", duration = 5)
         return()
       }
 
@@ -3658,11 +3561,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       log_debug(paste("Columns:", paste(names(converted_data), collapse = ", ")))
 
       # Success notification
-      showNotification(
-        tagList(icon("check-circle"), paste(" Loading", nrow(converted_data), "scenarios...")),
-        type = "message",
-        duration = 2
-      )
+      notify_info(paste("Loading", nrow(converted_data), "scenarios..."), duration = 2)
 
       # Update state with fresh data and trigger timestamp to force reactive update
       state$converted_main_data <- converted_data
@@ -3692,18 +3591,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       })
 
       # Show success message
-      showNotification(
-        tagList(icon("diagram-project"), " Opening Bowtie Diagram..."),
-        type = "message",
-        duration = 3
-      )
+      notify_info("Opening Bowtie Diagram...", duration = 3)
 
     }, error = function(e) {
-      showNotification(
-        paste("Failed to load data:", e$message),
-        type = "error",
-        duration = 5
-      )
+      notify_error(paste("Failed to load data:", e$message), duration = 5)
     })
   })
 
@@ -3748,7 +3639,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       files <- list.files(local_path, pattern = "_workflow_.*\\.rds$", full.names = FALSE)
       
       if (length(files) == 0) {
-        showNotification("No workflow files found in local folder", type = "warning")
+        notify_warning("No workflow files found in local folder")
         # Fall back to file picker
         shinyjs::runjs("$('#guided_workflow-workflow_load_file_hidden').click();")
       } else {
@@ -3790,17 +3681,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         # Basic validation and load (same as regular file load)
         if (is.list(loaded_state) && "current_step" %in% names(loaded_state)) {
           workflow_state(loaded_state)
-          showNotification(
-            paste("✅ Loaded workflow from local folder:", selected_file),
-            type = "message"
-          )
+          notify_success(paste("✅ Loaded workflow from local folder:", selected_file))
         } else {
-          showNotification("❌ Invalid workflow file.", type = "error")
+          notify_error("❌ Invalid workflow file.")
         }
-        
+
       }, error = function(e) {
         removeModal()
-        showNotification(paste("❌ Failed to load:", e$message), type = "error")
+        notify_error(paste("❌ Failed to load:", e$message))
       })
     }
   })
@@ -3940,12 +3828,12 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           }
         }
         
-        showNotification("✅ Workflow progress loaded successfully!", type = "message")
+        notify_success("✅ Workflow progress loaded successfully!")
       } else {
-        showNotification("❌ Invalid workflow file.", type = "error")
+        notify_error("❌ Invalid workflow file.")
       }
     }, error = function(e) {
-      showNotification(paste(t("gw_error_loading", lang()), e$message), type = "error")
+      notify_error(paste(t("gw_error_loading", lang()), e$message))
     })
   })
   
@@ -3979,24 +3867,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
           local_filepath <- file.path(local_path, local_filename)
           writeLines(json_content, local_filepath)
 
-          showNotification(
-            paste("Also saved to local folder:", local_filename),
-            type = "message",
-            duration = 3
-          )
+          notify_info(paste("Also saved to local folder:", local_filename), duration = 3)
         }, error = function(e) {
-          showNotification(
-            paste("Could not save to local folder:", e$message),
-            type = "warning"
-          )
+          notify_warning(paste("Could not save to local folder:", e$message))
         })
       }
 
-      showNotification(
-        "Workflow saved successfully!",
-        type = "message",
-        duration = 3
-      )
+      notify_success("Workflow saved successfully!", duration = 3)
     },
     contentType = "application/json"  # JSON MIME type - browsers trust this
   )
