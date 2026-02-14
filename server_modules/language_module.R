@@ -19,6 +19,7 @@ language_module_server <- function(input, output, session) {
 
   # Language change observer
   observeEvent(input$applyLanguage, {
+    req(input$app_language)
     new_lang <- input$app_language
     currentLanguage(new_lang)
 

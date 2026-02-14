@@ -100,6 +100,7 @@ theme_module_server <- function(input, output, session, lang = reactive("en")) {
 
   # Enhanced Theme Apply Button Handler with CSS-based theme switching
   observeEvent(input$applyTheme, {
+    req(input$theme_preset)
     log_debug(paste("Apply Theme button pressed. Selected theme:", input$theme_preset))
 
     # Update reactive values

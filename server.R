@@ -959,6 +959,7 @@ server <- function(input, output, session) {
 
   # Track selected rows efficiently
   observe({
+    # Allow NULL to clear selection - intentional
     selectedRows(input$editableTable_rows_selected)
   })
 
@@ -1330,9 +1331,14 @@ server <- function(input, output, session) {
   # Save risk assessments
   observeEvent(input$save_link_risks, {
     req(input$link_risk_scenario)
+    req(input$activity_pressure_likelihood, input$activity_pressure_severity,
+        input$pressure_control_likelihood, input$pressure_control_severity,
+        input$escalation_control_likelihood, input$escalation_control_severity,
+        input$central_consequence_likelihood, input$central_consequence_severity,
+        input$protection_consequence_likelihood, input$protection_consequence_severity)
     data <- getCurrentData()
     req(data)
-    
+
     row_idx <- as.numeric(input$link_risk_scenario)
 
     # Check if data has granular risk columns before updating
@@ -1563,7 +1569,7 @@ server <- function(input, output, session) {
 
   # Search vocabulary
   observeEvent(input$search_vocab, {
-    req(input$vocab_search)
+    req(input$vocab_search, input$search_in)
     vocab <- current_vocabulary()
     if (nrow(vocab) > 0 && nchar(input$vocab_search) > 0) {
       results <- search_vocabulary(vocab, input$vocab_search, input$search_in)
@@ -1686,6 +1692,7 @@ server <- function(input, output, session) {
   # Download vocabulary
   output$download_vocab <- downloadHandler(
     filename = function() {
+      req(input$vocab_type)
       paste0("vocabulary_", input$vocab_type, "_", Sys.Date(), ".xlsx")
     },
     content = function(file) {
@@ -3117,6 +3124,7 @@ server <- function(input, output, session) {
 
   # Reactive filtered vocabulary data
   vocab_filtered <- reactive({
+    req(input$vocab_category)
     # Start with all vocabulary data
     all_vocab <- data.frame()
 

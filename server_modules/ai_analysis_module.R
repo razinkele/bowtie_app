@@ -36,6 +36,7 @@ ai_analysis_module_server <- function(input, output, session, vocabulary_data, l
   # ===========================================================================
 
   observeEvent(input$run_ai_analysis, {
+    req(input$similarity_threshold, input$max_links_per_item)
     notify_info("Starting AI analysis...", duration = 2)
 
     tryCatch({

@@ -17,7 +17,10 @@ export_module_server <- function(input, output, session, getCurrentData) {
 
   # Enhanced download bowtie diagram (HTML with interactive features)
   output$downloadBowtie <- downloadHandler(
-    filename = function() paste("enhanced_bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html"),
+    filename = function() {
+      req(input$selectedProblem)
+      paste("enhanced_bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".html")
+    },
     content = function(file) {
       data <- getCurrentData()
       req(data, input$selectedProblem)
@@ -61,10 +64,13 @@ export_module_server <- function(input, output, session, getCurrentData) {
 
   # Download bowtie as JPEG with white background
   output$downloadBowtieJPEG <- downloadHandler(
-    filename = function() paste("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".jpeg"),
+    filename = function() {
+      req(input$selectedProblem)
+      paste("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".jpeg")
+    },
     content = function(file) {
       data <- getCurrentData()
-      req(data, input$selectedProblem)
+      req(data, input$selectedProblem, input$nodeSize, input$showRiskLevels, input$showBarriers)
 
       if (!("Central_Problem" %in% names(data)) && "Problem" %in% names(data)) data$Central_Problem <- data$Problem
       problem_data <- data[data$Central_Problem == input$selectedProblem, ]
@@ -104,10 +110,13 @@ export_module_server <- function(input, output, session, getCurrentData) {
 
   # Download bowtie as PNG with white background (for readability)
   output$downloadBowtiePNG <- downloadHandler(
-    filename = function() paste("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".png"),
+    filename = function() {
+      req(input$selectedProblem)
+      paste("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".png")
+    },
     content = function(file) {
       data <- getCurrentData()
-      req(data, input$selectedProblem)
+      req(data, input$selectedProblem, input$nodeSize, input$showRiskLevels, input$showBarriers)
 
       if (!("Central_Problem" %in% names(data)) && "Problem" %in% names(data)) data$Central_Problem <- data$Problem
       problem_data <- data[data$Central_Problem == input$selectedProblem, ]
