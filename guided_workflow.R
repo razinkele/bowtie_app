@@ -2075,199 +2075,135 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     }
   })
   
-  # Handle "Add Activity" button
-  observeEvent(input$add_activity, {
-    log_debug("[ADD ACTIVITY] Button clicked!")
-    log_debug(paste("[ADD ACTIVITY] Current activity_group input:", input$activity_group))
-    log_debug(paste("[ADD ACTIVITY] Current activity_item input:", input$activity_item))
+  # =========================================================================
+  # Factory function for "add item" observers
+  # Replaces 5 identical ~60-line observeEvent handlers
+  # =========================================================================
+  create_add_item_observer <- function(
+    add_button_id,        # e.g., "add_activity"
+    item_type,            # e.g., "activities" (key in project_data)
+    custom_toggle_id,     # e.g., "activity_custom_toggle"
+    custom_text_id,       # e.g., "activity_custom_text"
+    item_input_id,        # e.g., "activity_item"
+    reactive_selected,    # e.g., selected_activities (reactiveVal)
+    translation_added,    # e.g., "gw_added_activity"
+    translation_exists,   # e.g., "gw_activity_exists"
+    group_input_id = NULL # e.g., "activity_group" (for selectize restore)
+  ) {
+    observeEvent(input[[add_button_id]], {
+      # Determine if using custom entry or hierarchical selection
+      item_name <- NULL
+      is_custom <- FALSE
 
-    # Determine if using custom entry or hierarchical selection
-    activity_name <- NULL
-    is_custom <- FALSE
-
-    if (!is.null(input$activity_custom_toggle) && input$activity_custom_toggle) {
-      # Custom entry mode
-      activity_name <- input$activity_custom_text
-      is_custom <- TRUE
-      log_debug(paste("[ADD ACTIVITY] Using CUSTOM entry mode:", activity_name))
-    } else {
-      # Hierarchical selection mode
-      activity_name <- input$activity_item
-      log_debug(paste("[ADD ACTIVITY] Using HIERARCHICAL selection mode:", activity_name))
-    }
-
-    # Validate: not NULL, not NA, not empty after trimming
-    if (!is.null(activity_name) && !is.na(activity_name) &&
-        nchar(trimws(activity_name)) > 0) {
-      # Get current list
-      current <- selected_activities()
-      log_debug(paste("[ADD ACTIVITY] Current activities list:", paste(current, collapse = ", ")))
-
-      # Check if already added
-      if (!activity_name %in% current) {
-        current <- c(current, activity_name)
-        selected_activities(current)
-        log_debug(paste("[ADD ACTIVITY] Updated activities list:", paste(current, collapse = ", ")))
-
-        # Track custom entries
-        if (is_custom) {
-          custom_list <- custom_entries()
-          custom_list$activities <- c(custom_list$activities, activity_name)
-          custom_entries(custom_list)
-
-          # Persist to file storage for admin review
-          tryCatch({
-            state <- workflow_state()
-            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
-            add_custom_term("activities", activity_name, "default", project_name)
-          }, error = function(e) {
-            log_warning(paste("Failed to persist custom term:", e$message))
-          })
-
-          showNotification(paste("Added custom activity:", activity_name, "(marked for review)"), type = "message", duration = 3)
-        } else {
-          showNotification(paste(t("gw_added_activity", lang()), activity_name), type = "message", duration = 2)
-        }
-
-        log_debug("[ADD ACTIVITY] Updating workflow state...")
-        # Update workflow state
-        state <- workflow_state()
-        state$project_data$activities <- current
-        state$project_data$custom_entries <- custom_entries()
-        workflow_state(state)
-        log_debug("[ADD ACTIVITY] Workflow state updated successfully")
-
-        # Save the current activity_group selection BEFORE clearing activity_item
-        # (Clearing child can trigger parent clearing in Selectize.js)
-        saved_group <- input$activity_group
-        log_debug(paste("[ADD ACTIVITY] Saving activity_group:", saved_group))
-
-        log_debug("[ADD ACTIVITY] Clearing activity_item input...")
-        # Clear inputs
-        updateSelectizeInput(session, session$ns("activity_item"), selected = character(0))
-        if (is_custom) {
-          updateTextInput(session, session$ns("activity_custom_text"), value = "")
-        }
-
-        # Restore activity_group using JavaScript setTimeout with Selectize API
-        # Direct JS approach ensures execution after Selectize.js completes clearing
-        if (!is.null(saved_group) && nchar(saved_group) > 0) {
-          log_debug(paste("[ADD ACTIVITY] Scheduling JS-based delayed restore of activity_group to:", saved_group))
-          # Create properly namespaced input ID for module context
-          input_id <- session$ns("activity_group")
-          # Use runjs to execute after 200ms delay with Selectize API
-          shinyjs::runjs(sprintf(
-            "setTimeout(function() {
-              console.log('[DELAYED RESTORE] Attempting to restore activity_group to: %s');
-              var elem = $('#%s');
-              if (elem.length > 0 && elem[0].selectize) {
-                elem[0].selectize.setValue('%s', false);
-                console.log('[DELAYED RESTORE] Successfully restored activity_group to: %s');
-              } else {
-                console.error('[DELAYED RESTORE] Selectize not found for #%s');
-              }
-            }, 200);",
-            saved_group, input_id, saved_group, saved_group, input_id
-          ))
-        }
-
-        log_debug("[ADD ACTIVITY] Input cleared, activity_group restore scheduled.")
-        log_debug("[ADD ACTIVITY] Completed successfully!")
+      if (!is.null(input[[custom_toggle_id]]) && input[[custom_toggle_id]]) {
+        item_name <- input[[custom_text_id]]
+        is_custom <- TRUE
       } else {
-        log_debug(paste("[ADD ACTIVITY] Activity already exists:", activity_name))
-        showNotification(t("gw_activity_exists", lang()), type = "warning", duration = 2)
+        item_name <- input[[item_input_id]]
       }
-    } else {
-      log_debug("[ADD ACTIVITY] Validation failed - empty or invalid input")
-      showNotification("Please select an activity or enter a custom name", type = "warning", duration = 2)
-    }
-  })
+
+      # Validate: not NULL, not NA, not empty after trimming
+      if (!is.null(item_name) && !is.na(item_name) &&
+          nchar(trimws(item_name)) > 0) {
+        current <- reactive_selected()
+
+        if (!item_name %in% current) {
+          current <- c(current, item_name)
+          reactive_selected(current)
+
+          # Track custom entries
+          if (is_custom) {
+            custom_list <- custom_entries()
+            custom_list[[item_type]] <- c(custom_list[[item_type]], item_name)
+            custom_entries(custom_list)
+
+            tryCatch({
+              state <- workflow_state()
+              project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
+              add_custom_term(item_type, item_name, "default", project_name)
+            }, error = function(e) {
+              log_warning(paste("Failed to persist custom term:", e$message))
+            })
+
+            # Use generic label from item_type: "activities" -> "activity"
+            label <- gsub("_", " ", sub("s$", "", item_type))
+            showNotification(
+              paste("Added custom", label, ":", item_name, "(marked for review)"),
+              type = "message", duration = 3
+            )
+          } else {
+            showNotification(
+              paste(t(translation_added, lang()), item_name),
+              type = "message", duration = 2
+            )
+          }
+
+          # Update workflow state
+          state <- workflow_state()
+          state$project_data[[item_type]] <- current
+          state$project_data$custom_entries <- custom_entries()
+          workflow_state(state)
+
+          # Save parent group before clearing child (prevents Selectize.js cascade)
+          saved_group <- if (!is.null(group_input_id)) input[[group_input_id]] else NULL
+
+          # Clear item selection
+          updateSelectizeInput(session, session$ns(item_input_id), selected = character(0))
+          if (is_custom) {
+            updateTextInput(session, session$ns(custom_text_id), value = "")
+          }
+
+          # Restore parent group via JS if needed
+          if (!is.null(saved_group) && !is.null(group_input_id) && nchar(saved_group) > 0) {
+            ns_id <- session$ns(group_input_id)
+            shinyjs::runjs(sprintf(
+              "setTimeout(function() {
+                var elem = $('#%s');
+                if (elem.length > 0 && elem[0].selectize) {
+                  elem[0].selectize.setValue('%s', false);
+                }
+              }, 200);",
+              ns_id, saved_group
+            ))
+          }
+        } else {
+          showNotification(t(translation_exists, lang()), type = "warning", duration = 2)
+        }
+      } else {
+        label <- gsub("_", " ", sub("s$", "", item_type))
+        showNotification(
+          paste("Please select a", label, "or enter a custom name"),
+          type = "warning", duration = 2
+        )
+      }
+    })
+  }
+
+  # Handle "Add Activity" button
+  create_add_item_observer(
+    add_button_id = "add_activity",
+    item_type = "activities",
+    custom_toggle_id = "activity_custom_toggle",
+    custom_text_id = "activity_custom_text",
+    item_input_id = "activity_item",
+    reactive_selected = selected_activities,
+    translation_added = "gw_added_activity",
+    translation_exists = "gw_activity_exists",
+    group_input_id = "activity_group"
+  )
   
   # Handle "Add Pressure" button
-  observeEvent(input$add_pressure, {
-    # Determine if using custom entry or hierarchical selection
-    pressure_name <- NULL
-    is_custom <- FALSE
-
-    if (!is.null(input$pressure_custom_toggle) && input$pressure_custom_toggle) {
-      # Custom entry mode
-      pressure_name <- input$pressure_custom_text
-      is_custom <- TRUE
-    } else {
-      # Hierarchical selection mode
-      pressure_name <- input$pressure_item
-    }
-
-    # Validate: not NULL, not NA, not empty after trimming
-    if (!is.null(pressure_name) && !is.na(pressure_name) &&
-        nchar(trimws(pressure_name)) > 0) {
-      # Get current list
-      current <- selected_pressures()
-
-      # Check if already added
-      if (!pressure_name %in% current) {
-        current <- c(current, pressure_name)
-        selected_pressures(current)
-
-        # Track custom entries
-        if (is_custom) {
-          custom_list <- custom_entries()
-          custom_list$pressures <- c(custom_list$pressures, pressure_name)
-          custom_entries(custom_list)
-
-          # Persist to file storage for admin review
-          tryCatch({
-            state <- workflow_state()
-            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
-            add_custom_term("pressures", pressure_name, "default", project_name)
-          }, error = function(e) {
-            log_warning(paste("Failed to persist custom term:", e$message))
-          })
-
-          showNotification(paste("✅ Added custom pressure:", pressure_name, "(marked for review)"), type = "message", duration = 3)
-        } else {
-          showNotification(paste(t("gw_added_pressure", lang()), pressure_name), type = "message", duration = 2)
-        }
-
-        # Update workflow state
-        state <- workflow_state()
-        state$project_data$pressures <- current
-        state$project_data$custom_entries <- custom_entries()
-        workflow_state(state)
-
-        # Save the current pressure_group selection BEFORE clearing pressure_item
-        saved_pressure_group <- input$pressure_group
-
-        # Clear inputs
-        updateSelectizeInput(session, session$ns("pressure_item"), selected = character(0))
-        if (is_custom) {
-          updateTextInput(session, session$ns("pressure_custom_text"), value = "")
-        }
-
-        # Restore pressure_group using JavaScript setTimeout with Selectize API
-        if (!is.null(saved_pressure_group) && nchar(saved_pressure_group) > 0) {
-          input_id <- session$ns("pressure_group")
-          shinyjs::runjs(sprintf(
-            "setTimeout(function() {
-              console.log('[DELAYED RESTORE] Attempting to restore pressure_group to: %s');
-              var elem = $('#%s');
-              if (elem.length > 0 && elem[0].selectize) {
-                elem[0].selectize.setValue('%s', false);
-                console.log('[DELAYED RESTORE] Successfully restored pressure_group to: %s');
-              } else {
-                console.error('[DELAYED RESTORE] Selectize not found for #%s');
-              }
-            }, 200);",
-            saved_pressure_group, input_id, saved_pressure_group, saved_pressure_group, input_id
-          ))
-        }
-      } else {
-        showNotification(t("gw_pressure_exists", lang()), type = "warning", duration = 2)
-      }
-    } else {
-      showNotification("Please select a pressure or enter a custom name", type = "warning", duration = 2)
-    }
-  })
+  create_add_item_observer(
+    add_button_id = "add_pressure",
+    item_type = "pressures",
+    custom_toggle_id = "pressure_custom_toggle",
+    custom_text_id = "pressure_custom_text",
+    item_input_id = "pressure_item",
+    reactive_selected = selected_pressures,
+    translation_added = "gw_added_pressure",
+    translation_exists = "gw_pressure_exists",
+    group_input_id = "pressure_group"
+  )
   
   # Render selected activities table (uses helper function for consistency)
   output$selected_activities_table <- renderDT({
@@ -2330,126 +2266,69 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # STEP 4: PREVENTIVE CONTROLS MANAGEMENT
   # =============================================================================
   
+  # =========================================================================
+  # Factory function for step-sync observers
+  # Replaces identical step-sync patterns for steps 4, 5, 6
+  # =========================================================================
+  create_step_sync_observer <- function(
+    step_number,
+    vocab_type,         # e.g., "controls", "consequences" (key in vocabulary_data)
+    search_input_id,    # e.g., "preventive_control_search"
+    reactive_selected,  # e.g., selected_preventive_controls
+    state_key           # e.g., "preventive_controls" (key in project_data)
+  ) {
+    observe({
+      state <- workflow_state()
+      if (!is.null(state) && state$current_step == step_number) {
+        # Update vocabulary search choices
+        if (!is.null(vocabulary_data) && !is.null(vocabulary_data[[vocab_type]])) {
+          choices <- vocabulary_data[[vocab_type]]$name
+          if (length(choices) > 0) {
+            log_debug(paste("Updating", search_input_id, "with", length(choices), "choices"))
+            updateSelectizeInput(session, search_input_id,
+                               choices = choices, server = TRUE,
+                               selected = character(0))
+          }
+        }
+
+        # Load from state if available
+        if (!is.null(state$project_data[[state_key]]) &&
+            length(state$project_data[[state_key]]) > 0) {
+          reactive_selected(as.character(state$project_data[[state_key]]))
+        } else {
+          reactive_selected(list())
+        }
+      }
+    })
+  }
+
   # Reactive values to store selected preventive controls
   selected_preventive_controls <- reactiveVal(list())
-  
+
   # Sync reactive values with workflow state when entering Step 4
-  observe({
-    state <- workflow_state()
-    if (!is.null(state) && state$current_step == 4) {
-      # Update control search choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
-        control_choices <- vocabulary_data$controls$name
-        if (length(control_choices) > 0) {
-          log_debug(paste("Updating preventive_control_search with", length(control_choices), "choices"))
-          updateSelectizeInput(session, "preventive_control_search", 
-                             choices = control_choices,
-                             server = TRUE,
-                             selected = character(0))
-        }
-      }
-      
-      # Load controls from state if available
-      if (!is.null(state$project_data$preventive_controls) && length(state$project_data$preventive_controls) > 0) {
-        controls <- as.character(state$project_data$preventive_controls)
-        selected_preventive_controls(controls)
-      } else {
-        selected_preventive_controls(list())
-      }
-    }
-  })
+  create_step_sync_observer(
+    step_number = 4,
+    vocab_type = "controls",
+    search_input_id = "preventive_control_search",
+    reactive_selected = selected_preventive_controls,
+    state_key = "preventive_controls"
+  )
   
-  # Handle "Add Control" button
-  observeEvent(input$add_preventive_control, {
-    # Determine if using custom entry or hierarchical selection
-    control_name <- NULL
-    is_custom <- FALSE
-
-    if (!is.null(input$preventive_control_custom_toggle) && input$preventive_control_custom_toggle) {
-      # Custom entry mode
-      control_name <- input$preventive_control_custom_text
-      is_custom <- TRUE
-    } else {
-      # Hierarchical selection mode
-      control_name <- input$preventive_control_item
-    }
-
-    # Validate: not NULL, not NA, not empty after trimming
-    if (!is.null(control_name) && !is.na(control_name) &&
-        nchar(trimws(control_name)) > 0) {
-      # Get current list
-      current <- selected_preventive_controls()
-
-      # Check if already added
-      if (!control_name %in% current) {
-        current <- c(current, control_name)
-        selected_preventive_controls(current)
-
-        # Track custom entries
-        if (is_custom) {
-          custom_list <- custom_entries()
-          custom_list$preventive_controls <- c(custom_list$preventive_controls, control_name)
-          custom_entries(custom_list)
-
-          # Persist to file storage for admin review
-          tryCatch({
-            state <- workflow_state()
-            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
-            add_custom_term("preventive_controls", control_name, "default", project_name)
-          }, error = function(e) {
-            log_warning(paste("Failed to persist custom term:", e$message))
-          })
-
-          showNotification(paste("✅ Added custom preventive control:", control_name, "(marked for review)"), type = "message", duration = 3)
-        } else {
-          showNotification(paste(t("gw_added_control", lang()), control_name), type = "message", duration = 2)
-        }
-
-        # Update workflow state
-        state <- workflow_state()
-        state$project_data$preventive_controls <- current
-        state$project_data$custom_entries <- custom_entries()
-        workflow_state(state)
-
-        # Clear inputs
-        updateSelectizeInput(session, session$ns("preventive_control_item"), selected = character(0))
-        if (is_custom) {
-          updateTextInput(session, session$ns("preventive_control_custom_text"), value = "")
-        }
-      } else {
-        showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
-      }
-    } else {
-      showNotification("Please select a control or enter a custom name", type = "warning", duration = 2)
-    }
-  })
+  # Handle "Add Preventive Control" button
+  create_add_item_observer(
+    add_button_id = "add_preventive_control",
+    item_type = "preventive_controls",
+    custom_toggle_id = "preventive_control_custom_toggle",
+    custom_text_id = "preventive_control_custom_text",
+    item_input_id = "preventive_control_item",
+    reactive_selected = selected_preventive_controls,
+    translation_added = "gw_added_control",
+    translation_exists = "gw_control_exists"
+  )
   
   # Render selected preventive controls table
   output$selected_preventive_controls_table <- renderDT({
-    controls <- selected_preventive_controls()
-    
-    if (length(controls) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Control = character(0), stringsAsFactors = FALSE)
-    } else {
-      # Create data frame with controls
-      dt_data <- data.frame(Control = controls, stringsAsFactors = FALSE)
-    }
-    
-    # Render with DT package - explicitly use DT::datatable
-    DT::datatable(
-      dt_data,
-      options = list(
-        pageLength = 10,
-        searching = FALSE,
-        lengthChange = FALSE,
-        info = FALSE,
-        dom = 't'
-      ),
-      rownames = FALSE,
-      selection = 'none',
-      class = 'cell-border stripe'
-    )
+    create_simple_datatable(selected_preventive_controls(), "Control", page_length = 10)
   })
   
   # Render preventive control links table
@@ -2526,124 +2405,31 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   
   # Reactive values to store selected consequences
   selected_consequences <- reactiveVal(list())
-  
+
   # Sync reactive values with workflow state when entering Step 5
-  observe({
-    state <- workflow_state()
-    if (!is.null(state) && state$current_step == 5) {
-      # Update consequence search choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$consequences)) {
-        consequence_choices <- vocabulary_data$consequences$name
-        if (length(consequence_choices) > 0) {
-          log_debug(paste("Updating consequence_search with", length(consequence_choices), "choices"))
-          updateSelectizeInput(session, "consequence_search", 
-                             choices = consequence_choices,
-                             server = TRUE,
-                             selected = character(0))
-        }
-      }
-      
-      # Load consequences from state if available
-      if (!is.null(state$project_data$consequences) && length(state$project_data$consequences) > 0) {
-        consequences <- as.character(state$project_data$consequences)
-        selected_consequences(consequences)
-      } else {
-        selected_consequences(list())
-      }
-    }
-  })
+  create_step_sync_observer(
+    step_number = 5,
+    vocab_type = "consequences",
+    search_input_id = "consequence_search",
+    reactive_selected = selected_consequences,
+    state_key = "consequences"
+  )
   
   # Handle "Add Consequence" button
-  observeEvent(input$add_consequence, {
-    # Determine if using custom entry or hierarchical selection
-    consequence_name <- NULL
-    is_custom <- FALSE
-
-    if (!is.null(input$consequence_custom_toggle) && input$consequence_custom_toggle) {
-      # Custom entry mode
-      consequence_name <- input$consequence_custom_text
-      is_custom <- TRUE
-    } else {
-      # Hierarchical selection mode
-      consequence_name <- input$consequence_item
-    }
-
-    # Validate: not NULL, not NA, not empty after trimming
-    if (!is.null(consequence_name) && !is.na(consequence_name) &&
-        nchar(trimws(consequence_name)) > 0) {
-      # Get current list
-      current <- selected_consequences()
-
-      # Check if already added
-      if (!consequence_name %in% current) {
-        current <- c(current, consequence_name)
-        selected_consequences(current)
-
-        # Track custom entries
-        if (is_custom) {
-          custom_list <- custom_entries()
-          custom_list$consequences <- c(custom_list$consequences, consequence_name)
-          custom_entries(custom_list)
-
-          # Persist to file storage for admin review
-          tryCatch({
-            state <- workflow_state()
-            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
-            add_custom_term("consequences", consequence_name, "default", project_name)
-          }, error = function(e) {
-            log_warning(paste("Failed to persist custom term:", e$message))
-          })
-
-          showNotification(paste("✅ Added custom consequence:", consequence_name, "(marked for review)"), type = "message", duration = 3)
-        } else {
-          showNotification(paste(t("gw_added_consequence", lang()), consequence_name), type = "message", duration = 2)
-        }
-
-        # Update workflow state
-        state <- workflow_state()
-        state$project_data$consequences <- current
-        state$project_data$custom_entries <- custom_entries()
-        workflow_state(state)
-
-        # Clear inputs
-        updateSelectizeInput(session, session$ns("consequence_item"), selected = character(0))
-        if (is_custom) {
-          updateTextInput(session, session$ns("consequence_custom_text"), value = "")
-        }
-      } else {
-        showNotification(t("gw_consequence_exists", lang()), type = "warning", duration = 2)
-      }
-    } else {
-      showNotification("Please select a consequence or enter a custom name", type = "warning", duration = 2)
-    }
-  })
+  create_add_item_observer(
+    add_button_id = "add_consequence",
+    item_type = "consequences",
+    custom_toggle_id = "consequence_custom_toggle",
+    custom_text_id = "consequence_custom_text",
+    item_input_id = "consequence_item",
+    reactive_selected = selected_consequences,
+    translation_added = "gw_added_consequence",
+    translation_exists = "gw_consequence_exists"
+  )
   
   # Render selected consequences table
   output$selected_consequences_table <- renderDT({
-    consequences <- selected_consequences()
-    
-    if (length(consequences) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Consequence = character(0), stringsAsFactors = FALSE)
-    } else {
-      # Create data frame with consequences
-      dt_data <- data.frame(Consequence = consequences, stringsAsFactors = FALSE)
-    }
-    
-    # Render with DT package - explicitly use DT::datatable
-    DT::datatable(
-      dt_data,
-      options = list(
-        pageLength = 10,
-        searching = FALSE,
-        lengthChange = FALSE,
-        info = FALSE,
-        dom = 't'
-      ),
-      rownames = FALSE,
-      selection = 'none',
-      class = 'cell-border stripe'
-    )
+    create_simple_datatable(selected_consequences(), "Consequence", page_length = 10)
   })
   
   # Render consequence severity assessment table
@@ -2688,124 +2474,31 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   
   # Reactive values to store selected protective controls
   selected_protective_controls <- reactiveVal(list())
-  
+
   # Sync reactive values with workflow state when entering Step 6
-  observe({
-    state <- workflow_state()
-    if (!is.null(state) && state$current_step == 6) {
-      # Update protective control search choices
-      if (!is.null(vocabulary_data) && !is.null(vocabulary_data$controls)) {
-        protective_control_choices <- vocabulary_data$controls$name
-        if (length(protective_control_choices) > 0) {
-          log_debug(paste("Updating protective_control_search with", length(protective_control_choices), "choices"))
-          updateSelectizeInput(session, "protective_control_search", 
-                             choices = protective_control_choices,
-                             server = TRUE,
-                             selected = character(0))
-        }
-      }
-      
-      # Load protective controls from state if available
-      if (!is.null(state$project_data$protective_controls) && length(state$project_data$protective_controls) > 0) {
-        controls <- as.character(state$project_data$protective_controls)
-        selected_protective_controls(controls)
-      } else {
-        selected_protective_controls(list())
-      }
-    }
-  })
+  create_step_sync_observer(
+    step_number = 6,
+    vocab_type = "controls",
+    search_input_id = "protective_control_search",
+    reactive_selected = selected_protective_controls,
+    state_key = "protective_controls"
+  )
   
   # Handle "Add Protective Control" button
-  observeEvent(input$add_protective_control, {
-    # Determine if using custom entry or hierarchical selection
-    control_name <- NULL
-    is_custom <- FALSE
-
-    if (!is.null(input$protective_control_custom_toggle) && input$protective_control_custom_toggle) {
-      # Custom entry mode
-      control_name <- input$protective_control_custom_text
-      is_custom <- TRUE
-    } else {
-      # Hierarchical selection mode
-      control_name <- input$protective_control_item
-    }
-
-    # Validate: not NULL, not NA, not empty after trimming
-    if (!is.null(control_name) && !is.na(control_name) &&
-        nchar(trimws(control_name)) > 0) {
-      # Get current list
-      current <- selected_protective_controls()
-
-      # Check if already added
-      if (!control_name %in% current) {
-        current <- c(current, control_name)
-        selected_protective_controls(current)
-
-        # Track custom entries
-        if (is_custom) {
-          custom_list <- custom_entries()
-          custom_list$protective_controls <- c(custom_list$protective_controls, control_name)
-          custom_entries(custom_list)
-
-          # Persist to file storage for admin review
-          tryCatch({
-            state <- workflow_state()
-            project_name <- if (!is.null(state$project_data$project_name)) state$project_data$project_name else ""
-            add_custom_term("protective_controls", control_name, "default", project_name)
-          }, error = function(e) {
-            log_warning(paste("Failed to persist custom term:", e$message))
-          })
-
-          showNotification(paste("✅ Added custom protective control:", control_name, "(marked for review)"), type = "message", duration = 3)
-        } else {
-          showNotification(paste(t("gw_added_protective", lang()), control_name), type = "message", duration = 2)
-        }
-
-        # Update workflow state
-        state <- workflow_state()
-        state$project_data$protective_controls <- current
-        state$project_data$custom_entries <- custom_entries()
-        workflow_state(state)
-
-        # Clear inputs
-        updateSelectizeInput(session, session$ns("protective_control_item"), selected = character(0))
-        if (is_custom) {
-          updateTextInput(session, session$ns("protective_control_custom_text"), value = "")
-        }
-      } else {
-        showNotification(t("gw_control_exists", lang()), type = "warning", duration = 2)
-      }
-    } else {
-      showNotification("Please select a control or enter a custom name", type = "warning", duration = 2)
-    }
-  })
+  create_add_item_observer(
+    add_button_id = "add_protective_control",
+    item_type = "protective_controls",
+    custom_toggle_id = "protective_control_custom_toggle",
+    custom_text_id = "protective_control_custom_text",
+    item_input_id = "protective_control_item",
+    reactive_selected = selected_protective_controls,
+    translation_added = "gw_added_protective",
+    translation_exists = "gw_protective_exists"
+  )
   
   # Render selected protective controls table
   output$selected_protective_controls_table <- renderDT({
-    controls <- selected_protective_controls()
-    
-    if (length(controls) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(Control = character(0), stringsAsFactors = FALSE)
-    } else {
-      # Create data frame with controls
-      dt_data <- data.frame(Control = controls, stringsAsFactors = FALSE)
-    }
-    
-    # Render with DT package - explicitly use DT::datatable
-    DT::datatable(
-      dt_data,
-      options = list(
-        pageLength = 10,
-        searching = FALSE,
-        lengthChange = FALSE,
-        info = FALSE,
-        dom = 't'
-      ),
-      rownames = FALSE,
-      selection = 'none',
-      class = 'cell-border stripe'
-    )
+    create_simple_datatable(selected_protective_controls(), "Control", page_length = 10)
   })
   
   # Render protective control links table
@@ -2997,30 +2690,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   
   # Render selected escalation factors table
   output$selected_escalation_factors_table <- renderDT({
-    factors <- selected_escalation_factors()
-    
-    if (length(factors) == 0) {
-      # Return empty data frame with proper column name
-      dt_data <- data.frame(`Escalation Factor` = character(0), stringsAsFactors = FALSE, check.names = FALSE)
-    } else {
-      # Create data frame with factors
-      dt_data <- data.frame(`Escalation Factor` = factors, stringsAsFactors = FALSE, check.names = FALSE)
-    }
-    
-    # Render with DT package - explicitly use DT::datatable
-    DT::datatable(
-      dt_data,
-      options = list(
-        pageLength = 10,
-        searching = FALSE,
-        lengthChange = FALSE,
-        info = FALSE,
-        dom = 't'
-      ),
-      rownames = FALSE,
-      selection = 'none',
-      class = 'cell-border stripe'
-    )
+    create_simple_datatable(selected_escalation_factors(), "Escalation Factor", page_length = 10)
   })
   
   # Render escalation factors affecting preventive controls
