@@ -1,5 +1,11 @@
+# =============================================================================
 # ml_ensemble_predictor.R
 # Ensemble Learning for Link Quality Prediction
+# =============================================================================
+# STATUS: EXPERIMENTAL - Not integrated into main application
+# This module is loaded optionally and provides advanced ML ensemble
+# features that are not yet used in the production workflow.
+# =============================================================================
 # Version: 1.0
 # Description: Combines multiple ML models for improved prediction accuracy
 #
@@ -58,13 +64,13 @@ train_ensemble <- function(feedback_data,
                           min_samples = 50) {
 
   if (nrow(feedback_data) < min_samples) {
-    cat(sprintf("ℹ️ Insufficient data (%d < %d) for ensemble training\n",
-                nrow(feedback_data), min_samples))
+    bowtie_log(sprintf("Insufficient data (%d < %d) for ensemble training",
+                nrow(feedback_data), min_samples), level = "info")
     return(NULL)
   }
 
-  cat(sprintf("🎯 Training ensemble with %d models on %d samples...\n",
-              length(models), nrow(feedback_data)))
+  bowtie_log(sprintf("Training ensemble with %d models on %d samples...",
+              length(models), nrow(feedback_data)), level = "info")
 
   # Extract features
   if (!exists("extract_features_batch")) {
@@ -84,7 +90,7 @@ train_ensemble <- function(feedback_data,
   train_data <- train_data[complete.cases(train_data), ]
 
   if (nrow(train_data) < min_samples) {
-    cat("ℹ️ Insufficient complete cases for ensemble\n")
+    bowtie_log("Insufficient complete cases for ensemble", level = "info")
     return(NULL)
   }
 
@@ -98,7 +104,7 @@ train_ensemble <- function(feedback_data,
 
   # 1. Random Forest
   if ("randomForest" %in% models && ENSEMBLE_CAPABILITIES$randomForest) {
-    cat("  📊 Training Random Forest...\n")
+    bowtie_log("Training Random Forest...", level = "debug")
     tryCatch({
       rf_model <- randomForest::randomForest(
         outcome ~ .,
@@ -115,15 +121,15 @@ train_ensemble <- function(feedback_data,
       ensemble$weights <- c(ensemble$weights, oob_accuracy)
       ensemble$model_types <- c(ensemble$model_types, "randomForest")
 
-      cat(sprintf("     ✓ RF accuracy: %.2f%%\n", oob_accuracy * 100))
+      bowtie_log(sprintf("RF accuracy: %.2f%%", oob_accuracy * 100), level = "success")
     }, error = function(e) {
-      cat("     ⚠️ RF training failed:", e$message, "\n")
+      bowtie_log(paste("RF training failed:", e$message), level = "warning")
     })
   }
 
   # 2. Gradient Boosting Machine
   if ("gbm" %in% models && ENSEMBLE_CAPABILITIES$gbm) {
-    cat("  📊 Training Gradient Boosting...\n")
+    bowtie_log("Training Gradient Boosting...", level = "debug")
     tryCatch({
       # Convert outcome to numeric for gbm
       train_data_gbm <- train_data
@@ -155,16 +161,15 @@ train_ensemble <- function(feedback_data,
       ensemble$weights <- c(ensemble$weights, cv_accuracy)
       ensemble$model_types <- c(ensemble$model_types, "gbm")
 
-      cat(sprintf("     ✓ GBM accuracy: %.2f%% (trees: %d)\n",
-                  cv_accuracy * 100, best_iter))
+      bowtie_log(sprintf("GBM accuracy: %.2f%% (trees: %d)", cv_accuracy * 100, best_iter), level = "success")
     }, error = function(e) {
-      cat("     ⚠️ GBM training failed:", e$message, "\n")
+      bowtie_log(paste("GBM training failed:", e$message), level = "warning")
     })
   }
 
   # 3. XGBoost (if available)
   if ("xgboost" %in% models && ENSEMBLE_CAPABILITIES$xgboost) {
-    cat("  📊 Training XGBoost...\n")
+    bowtie_log("Training XGBoost...", level = "debug")
     tryCatch({
       # Prepare data for xgboost
       train_matrix <- xgboost::xgb.DMatrix(
@@ -190,9 +195,9 @@ train_ensemble <- function(feedback_data,
       ensemble$weights <- c(ensemble$weights, accuracy)
       ensemble$model_types <- c(ensemble$model_types, "xgboost")
 
-      cat(sprintf("     ✓ XGBoost accuracy: %.2f%%\n", accuracy * 100))
+      bowtie_log(sprintf("XGBoost accuracy: %.2f%%", accuracy * 100), level = "success")
     }, error = function(e) {
-      cat("     ⚠️ XGBoost training failed:", e$message, "\n")
+      bowtie_log(paste("XGBoost training failed:", e$message), level = "warning")
     })
   }
 
@@ -200,18 +205,15 @@ train_ensemble <- function(feedback_data,
   if (length(ensemble$weights) > 0) {
     ensemble$weights <- ensemble$weights / sum(ensemble$weights)
 
-    cat(sprintf("\n✅ Ensemble trained with %d models\n", length(ensemble$models)))
-    cat("   Model weights:\n")
-    for (i in seq_along(ensemble$model_types)) {
-      cat(sprintf("     • %s: %.3f\n",
-                  ensemble$model_types[i],
-                  ensemble$weights[i]))
-    }
+    weight_details <- paste(sapply(seq_along(ensemble$model_types), function(i) {
+      sprintf("%s: %.3f", ensemble$model_types[i], ensemble$weights[i])
+    }), collapse = ", ")
+    bowtie_log(sprintf("Ensemble trained with %d models (%s)", length(ensemble$models), weight_details), level = "success")
 
     class(ensemble) <- c("ensemble_predictor", "list")
     return(ensemble)
   } else {
-    cat("❌ No models trained successfully\n")
+    bowtie_log("No models trained successfully", level = "error")
     return(NULL)
   }
 }
@@ -332,8 +334,7 @@ save_ensemble <- function(ensemble, file_path = "models/ensemble_predictor.rds")
 
   tryCatch({
     saveRDS(ensemble, file_path)
-    cat(sprintf("✅ Ensemble saved to %s\n", file_path))
-    cat(sprintf("   Models: %s\n", paste(names(ensemble$models), collapse = ", ")))
+    bowtie_log(sprintf("Ensemble saved to %s (models: %s)", file_path, paste(names(ensemble$models), collapse = ", ")), level = "success")
   }, error = function(e) {
     warning("Failed to save ensemble: ", e$message)
   })
@@ -348,15 +349,14 @@ save_ensemble <- function(ensemble, file_path = "models/ensemble_predictor.rds")
 load_ensemble <- function(file_path = "models/ensemble_predictor.rds") {
 
   if (!file.exists(file_path)) {
-    cat(sprintf("ℹ️ No ensemble found at %s\n", file_path))
+    bowtie_log(sprintf("No ensemble found at %s", file_path), level = "info")
     return(NULL)
   }
 
   tryCatch({
     ensemble <- readRDS(file_path)
-    cat(sprintf("✅ Loaded ensemble from %s\n", file_path))
-    cat(sprintf("   Models: %s\n", paste(names(ensemble$models), collapse = ", ")))
-    cat(sprintf("   Trained on: %d samples\n", ensemble$trained_on))
+    bowtie_log(sprintf("Loaded ensemble from %s (models: %s, trained on %d samples)",
+                       file_path, paste(names(ensemble$models), collapse = ", "), ensemble$trained_on), level = "success")
     return(ensemble)
   }, error = function(e) {
     warning("Failed to load ensemble: ", e$message)
@@ -372,7 +372,7 @@ load_ensemble <- function(file_path = "models/ensemble_predictor.rds") {
 init_ensemble_predictor <- function(feedback_data = NULL, auto_train = FALSE) {
 
   if (!ENSEMBLE_CAPABILITIES$ensemble_available) {
-    cat("ℹ️ Ensemble not available (need 2+ models installed)\n")
+    bowtie_log("Ensemble not available (need 2+ models installed)", level = "info")
     return(FALSE)
   }
 
@@ -380,7 +380,7 @@ init_ensemble_predictor <- function(feedback_data = NULL, auto_train = FALSE) {
   ensemble <- load_ensemble()
 
   if (is.null(ensemble) && auto_train && !is.null(feedback_data)) {
-    cat("ℹ️ No saved ensemble found, training new models...\n")
+    bowtie_log("No saved ensemble found, training new models...", level = "info")
     ensemble <- train_ensemble(feedback_data)
 
     if (!is.null(ensemble)) {
@@ -411,26 +411,21 @@ get_ensemble <- function() {
 # INITIALIZATION
 # =============================================================================
 
-cat("✅ Ensemble Predictor loaded successfully!\n")
-cat("==================================================\n\n")
-cat("📦 Capabilities:\n")
-cat("  - Random Forest:", if(ENSEMBLE_CAPABILITIES$randomForest) "✅" else "❌", "\n")
-cat("  - Gradient Boosting:", if(ENSEMBLE_CAPABILITIES$gbm) "✅" else "❌", "\n")
-cat("  - XGBoost:", if(ENSEMBLE_CAPABILITIES$xgboost) "✅" else "❌", "\n")
-cat("  - Ensemble available:", if(ENSEMBLE_CAPABILITIES$ensemble_available) "✅" else "❌", "\n\n")
-
-cat("🔧 Available Functions:\n")
-cat("  - train_ensemble()                 : Train ensemble of models\n")
-cat("  - predict_ensemble()               : Predict with ensemble\n")
-cat("  - add_ensemble_quality_scores()    : Add ensemble scores to links\n")
-cat("  - save_ensemble() / load_ensemble(): Model persistence\n")
-cat("  - init_ensemble_predictor()        : Initialize ensemble\n")
-cat("  - get_ensemble()                   : Get cached ensemble\n\n")
-
-cat("📚 Usage Example:\n")
-cat('  ensemble <- train_ensemble(feedback_data, models = c("randomForest", "gbm"))\n')
-cat('  save_ensemble(ensemble)\n')
-cat('  links_with_ensemble <- add_ensemble_quality_scores(links, ensemble)\n\n')
-
-cat("✅ Ready for ensemble prediction!\n")
-cat("==================================================\n\n")
+# Module initialization message (interactive only)
+if (interactive()) {
+  cat("Ensemble Predictor loaded successfully!\n")
+  cat("==================================================\n\n")
+  cat("Capabilities:\n")
+  cat("  - Random Forest:", if(ENSEMBLE_CAPABILITIES$randomForest) "YES" else "NO", "\n")
+  cat("  - Gradient Boosting:", if(ENSEMBLE_CAPABILITIES$gbm) "YES" else "NO", "\n")
+  cat("  - XGBoost:", if(ENSEMBLE_CAPABILITIES$xgboost) "YES" else "NO", "\n")
+  cat("  - Ensemble available:", if(ENSEMBLE_CAPABILITIES$ensemble_available) "YES" else "NO", "\n\n")
+  cat("Available Functions:\n")
+  cat("  - train_ensemble()                 : Train ensemble of models\n")
+  cat("  - predict_ensemble()               : Predict with ensemble\n")
+  cat("  - add_ensemble_quality_scores()    : Add ensemble scores to links\n")
+  cat("  - save_ensemble() / load_ensemble(): Model persistence\n")
+  cat("  - init_ensemble_predictor()        : Initialize ensemble\n")
+  cat("  - get_ensemble()                   : Get cached ensemble\n\n")
+  cat("==================================================\n")
+}

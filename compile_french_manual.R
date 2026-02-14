@@ -1,12 +1,12 @@
 #!/usr/bin/env Rscript
 
 # Compile French Manual to PDF
-# Version 5.3.0
+# Version 5.4.0
 # This script compiles the French user manual from R Markdown to PDF format
 
 cat("===============================================\n")
 cat("French Manual PDF Compilation Script\n")
-cat("Version 5.3.0\n")
+cat("Version 5.4.0\n")
 cat("===============================================\n\n")
 
 # Check for required packages

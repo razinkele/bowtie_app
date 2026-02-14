@@ -22,21 +22,11 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                                        ai_methods = reactive({c("jaccard")}),
                                        ai_max_suggestions = reactive({5})) {
 
-  cat("🤖 Initializing AI suggestion handlers...\n")
-  cat("   AI will be controlled by user settings\n")
-  cat("🔍 [INIT DEBUG] Checking for required functions:\n")
-  cat("   - find_vocabulary_links exists?", exists("find_vocabulary_links"), "\n")
-  cat("   - generate_ai_suggestions exists?", exists("generate_ai_suggestions"), "\n")
 
   # Helper function to convert character vector to item list with vocab lookup
   convert_to_item_list <- function(names_vector, vocab_type, vocab_data) {
-    cat("🔍 [CONVERT] convert_to_item_list called\n")
-    cat("🔍 [CONVERT] vocab_type: ", vocab_type, "\n")
-    cat("🔍 [CONVERT] names_vector: ", if (is.null(names_vector)) "NULL" else paste(names_vector, collapse = ", "), "\n")
-    cat("🔍 [CONVERT] names_vector length: ", if (is.null(names_vector)) 0 else length(names_vector), "\n")
 
     if (is.null(names_vector) || length(names_vector) == 0) {
-      cat("🔍 [CONVERT] Empty input - returning empty list\n")
       return(list())
     }
 
@@ -48,31 +38,25 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       NULL
     )
 
-    cat("🔍 [CONVERT] vocab_df is ", if (is.null(vocab_df)) "NULL" else paste("data.frame with", nrow(vocab_df), "rows"), "\n")
 
     if (is.null(vocab_df)) {
-      cat("🔍 [CONVERT] vocab_df is NULL - returning empty list\n")
       return(list())
     }
 
     # Convert each name to item format
     # All vocab types use same structure: hierarchy, id, name, level
     result <- lapply(names_vector, function(item_name) {
-      cat("🔍 [CONVERT] Processing item: '", item_name, "'\n", sep = "")
 
       # Try to find in vocabulary by matching the 'name' column
       row <- vocab_df[vocab_df$name == item_name, ]
-      cat("🔍 [CONVERT] Matching rows found: ", nrow(row), "\n")
 
       if (nrow(row) > 0) {
-        cat("🔍 [CONVERT] Found in vocabulary! ID: ", row$id[1], "\n")
         list(
           id = as.character(row$id[1]),
           name = as.character(row$name[1]),
           type = vocab_type
         )
       } else {
-        cat("🔍 [CONVERT] Not found in vocabulary - creating custom entry\n")
         # Custom entry - use name as ID
         list(
           id = paste0("custom_", gsub("[^a-z0-9_]", "_", tolower(item_name))),
@@ -82,7 +66,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       }
     })
 
-    cat("🔍 [CONVERT] Converted ", length(result), " items\n")
     return(result)
   }
 
@@ -90,7 +73,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   ai_available <- exists("find_vocabulary_links") && exists("generate_ai_suggestions")
 
   if (!ai_available) {
-    cat("⚠️ AI linker not available - suggestions disabled\n")
+    bowtie_log("AI linker not available - suggestions disabled", level = "warning")
     return(NULL)
   }
 
@@ -100,9 +83,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     tryCatch({
       init_feedback_tracker()
       feedback_enabled <- TRUE
-      cat("✅ Feedback tracking enabled\n")
     }, error = function(e) {
-      cat("⚠️ Feedback tracking unavailable:", e$message, "\n")
+      bowtie_log(paste("Feedback tracking unavailable:", e$message), level = "warning")
     })
   }
 
@@ -116,17 +98,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # STEP 3: ACTIVITY SUGGESTIONS (based on central problem from Step 2)
   # ======================================================================
 
-  cat("🔧 [INIT DEBUG] Registering activity suggestions observer...\n")
 
   # Observer for activity suggestions based on central problem
   observe({
-    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    cat("🔍 [AI SUGGESTIONS] Activity observer triggered!\n")
 
     # Check if AI is enabled FIRST
     if (!ai_enabled()) {
-      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping activity suggestions\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       return()
     }
 
@@ -134,10 +111,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     state <- workflow_state()
     problem_statement <- state$project_data$problem_statement
 
-    cat("🔍 [AI SUGGESTIONS] Problem statement:", if(is.null(problem_statement)) "NULL" else problem_statement, "\n")
 
     if (is.null(problem_statement) || nchar(trimws(problem_statement)) < 5) {
-      cat("🔍 [AI SUGGESTIONS] No problem statement or too short - hiding suggestions\n")
       shinyjs::hide(id = session$ns("suggestion_loading_activity"))
       shinyjs::hide(id = session$ns("suggestions_list_activity"))
       shinyjs::hide(id = session$ns("no_suggestions_activity"))
@@ -146,7 +121,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       return()
     }
 
-    cat("🔍 [AI SUGGESTIONS] Generating activity suggestions based on problem...\n")
 
     # Show loading
     shinyjs::hide(id = session$ns("suggestion_status_activity"))
@@ -170,7 +144,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       # Filter short words and empty strings
       problem_keywords <- problem_keywords[nchar(problem_keywords) > 3]
 
-      cat("🔍 [AI SUGGESTIONS] Extracted keywords:", paste(problem_keywords, collapse = ", "), "\n")
 
       # Find activities with matching keywords in their names or IDs
       matching_activities <- list()
@@ -204,7 +177,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         suggestions <- suggestions[1:ai_max_suggestions()]
       }
 
-      cat("🔍 [AI SUGGESTIONS] Found", length(suggestions), "activity suggestions\n")
 
       if (length(suggestions) == 0) {
         shinyjs::hide(id = session$ns("suggestion_loading_activity"))
@@ -219,8 +191,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
         })
 
-        cat("🔍 [AI SUGGESTIONS] Hiding loading, showing suggestions list...\n")
-        cat("🔍 [AI SUGGESTIONS] Namespaced ID for suggestions_list:", session$ns("suggestions_list_activity"), "\n")
 
         # Use JavaScript setTimeout to ensure UI is rendered before trying to show/hide
         suggestions_id <- session$ns("suggestions_list_activity")
@@ -228,43 +198,49 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         status_id <- session$ns("suggestion_status_activity")
 
         js_code <- sprintf("
+          // DOM polling mechanism - more robust than fixed timeout
           setTimeout(function() {
-            console.log('[AI SUGGESTIONS] Delayed show - checking elements...');
-            console.log('[AI SUGGESTIONS] Looking for ID: %s');
+            console.log('[AI SUGGESTIONS] Starting DOM polling for activity suggestions...');
+            var attempts = 0;
+            var maxAttempts = 50; // Poll for up to 5 seconds (50 * 100ms)
 
-            // List ALL elements with 'suggestion' in ID
-            var allSuggestionEls = $('[id*=\"suggestion\"]');
-            console.log('[AI SUGGESTIONS] Found', allSuggestionEls.length, 'elements with suggestion in ID:');
-            allSuggestionEls.each(function() {
-              console.log('  -', this.id, '(visible:', $(this).is(':visible'), ')');
-            });
+            var checkExist = setInterval(function() {
+              attempts++;
 
-            var suggestionsEl = $('#%s');
-            var loadingEl = $('#%s');
-            var statusEl = $('#%s');
+              var suggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+              var statusEl = $('#%s');
 
-            console.log('TARGET suggestions element exists:', suggestionsEl.length);
-            console.log('TARGET loading element exists:', loadingEl.length);
-            console.log('TARGET status element exists:', statusEl.length);
+              if (suggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                console.log('[AI SUGGESTIONS] ✅ Elements found after', attempts * 100, 'ms');
 
-            if (suggestionsEl.length > 0) {
-              loadingEl.hide();
-              statusEl.hide();
-              suggestionsEl.show();
-              console.log('[AI SUGGESTIONS] Successfully showed suggestions panel!');
-            } else {
-              console.error('[AI SUGGESTIONS] Suggestions element not found in DOM!');
-            }
-          }, 500);
-        ", suggestions_id, suggestions_id, loading_id, status_id)
+                // Hide loading/status and show suggestions
+                loadingEl.hide();
+                statusEl.hide();
+                suggestionsEl.show();
+
+                console.log('[AI SUGGESTIONS] Successfully showed activity suggestions panel!');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - elements not found after 5 seconds');
+                console.log('[AI SUGGESTIONS] Looking for ID: %s');
+
+                // Debug: List all elements with 'suggestion' in ID
+                var allSuggestionEls = $('[id*=\"suggestion\"]');
+                console.log('[AI SUGGESTIONS] Found', allSuggestionEls.length, 'total suggestion elements:');
+                allSuggestionEls.each(function() {
+                  console.log('  -', this.id);
+                });
+              }
+            }, 100); // Check every 100ms
+          }, 200); // Start checking after 200ms initial delay
+        ", suggestions_id, loading_id, status_id, suggestions_id)
 
         shinyjs::runjs(js_code)
-        cat("✅ [AI SUGGESTIONS] Activity suggestions display scheduled via JavaScript!\n")
       }
     }, error = function(e) {
-      cat("❌ [AI SUGGESTIONS] ERROR in activity suggestions:\n")
-      cat("   Error message: ", e$message, "\n")
-      warning("Error generating activity suggestions: ", e$message)
+      bowtie_log(paste("Error generating activity suggestions:", e$message), level = "error")
       shinyjs::hide(id = session$ns("suggestion_loading_activity"))
       shinyjs::show(id = session$ns("suggestion_error_activity"))
     })
@@ -274,13 +250,10 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # The suggestion cards create buttons like: add_suggestion_activity_1, add_suggestion_activity_2, etc.
   # We need to observe all possible button clicks dynamically
   # Use lapply to avoid closure issues with loops
-  cat("🔧 [INIT DEBUG] Registering activity Add button observers (1-10)...\n")
   lapply(1:10, function(i) {
     button_id <- paste0("add_suggestion_activity_", i)
-    cat("🔧 [INIT DEBUG] Registering observer for button:", button_id, "\n")
 
     observeEvent(input[[button_id]], {
-      cat("\n🔔 [CLICK HANDLER] Activity suggestion Add button clicked! Index:", i, "\n")
 
         # Get the current suggestions from the reactive
         state <- workflow_state()
@@ -324,7 +297,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
             suggestion <- matching_activities[[i]]
             activity_name <- suggestion$name
 
-            cat("🔔 [CLICK HANDLER] Adding activity:", activity_name, "\n")
 
             # Add to workflow state
             current_activities <- state$project_data$activities
@@ -335,7 +307,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
               state$project_data$activities <- current_activities
               workflow_state(state)
 
-              cat("✅ [CLICK HANDLER] Activity added successfully!\n")
 
               showNotification(
                 paste0("✅ Added suggested activity: ", activity_name),
@@ -343,7 +314,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                 duration = 3
               )
             } else {
-              cat("ℹ️ [CLICK HANDLER] Activity already in selection\n")
               showNotification(
                 "ℹ️ This activity is already in your selection",
                 type = "warning",
@@ -357,10 +327,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
   # Legacy handler (keeping for backward compatibility)
   observeEvent(input$suggestion_clicked_activity, {
-    cat("\n🔔 [CLICK HANDLER] Legacy activity suggestion clicked!\n")
     suggestion_data <- input$suggestion_clicked_activity
-    cat("🔔 [CLICK HANDLER] Suggestion data:", if(is.null(suggestion_data)) "NULL" else paste(names(suggestion_data), collapse = ", "), "\n")
-    cat("🔔 [CLICK HANDLER] Suggestion ID:", if(is.null(suggestion_data$id)) "NULL" else suggestion_data$id, "\n")
 
     if (!is.null(suggestion_data) && !is.null(suggestion_data$id)) {
       # Get the full item from vocabulary
@@ -406,32 +373,19 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
   # Observer for pressure suggestions
   observe({
-    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    cat("🔍 [AI SUGGESTIONS] Pressure observer triggered!\n")
-    cat("🔍 [AI SUGGESTIONS] Checking AI enabled status...\n")
 
     ai_status <- ai_enabled()
-    cat("🔍 [AI SUGGESTIONS] ai_enabled() returned:", ai_status, "\n")
-    cat("🔍 [AI SUGGESTIONS] ai_enabled() class:", class(ai_status), "\n")
 
     # Check if AI is enabled FIRST (before any expensive operations)
     if (!ai_status) {
-      cat("🔍 [AI SUGGESTIONS] AI is DISABLED in settings - skipping\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       return()
     }
-    cat("🔍 [AI SUGGESTIONS] AI is ENABLED in settings - proceeding\n")
 
     # Get current activities directly from state
     state <- workflow_state()
     selected_activities_names <- state$project_data$activities
-    cat("🔍 [AI SUGGESTIONS] Selected activities: ",
-        if (is.null(selected_activities_names)) "NULL" else paste(selected_activities_names, collapse = ", "), "\n")
-    cat("🔍 [AI SUGGESTIONS] Activity count: ",
-        if (is.null(selected_activities_names)) 0 else length(selected_activities_names), "\n")
 
     if (is.null(selected_activities_names) || length(selected_activities_names) == 0) {
-      cat("🔍 [AI SUGGESTIONS] No activities selected - hiding suggestions UI\n")
       # Hide suggestions (use session$ns for proper namespacing in module)
       shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
       shinyjs::hide(id = "suggestions_list_pressure", asis = FALSE)
@@ -441,7 +395,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       return()
     }
 
-    cat("🔍 [AI SUGGESTIONS] Activities found! Showing loading UI...\n")
     # Show loading (use session$ns for proper namespacing in module)
     shinyjs::hide(id = "suggestion_status_pressure", asis = FALSE)
     shinyjs::hide(id = "suggestions_list_pressure", asis = FALSE)
@@ -451,24 +404,14 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     # Generate suggestions
     tryCatch({
-      cat("🔍 [AI SUGGESTIONS] Starting suggestion generation...\n")
 
       # Convert character vector to item list format
       vocab_data <- vocabulary_data_reactive()
-      cat("🔍 [AI SUGGESTIONS] Got vocabulary data\n")
-      cat("🔍 [AI SUGGESTIONS] Vocab activities count: ", nrow(vocab_data$activities), "\n")
 
       selected_activities <- convert_to_item_list(selected_activities_names, "Activity", vocab_data)
-      cat("🔍 [AI SUGGESTIONS] Converted to item list. Count: ", length(selected_activities), "\n")
 
-      if (length(selected_activities) > 0) {
-        cat("🔍 [AI SUGGESTIONS] First activity item structure:\n")
-        print(str(selected_activities[[1]]))
-      }
+      # Debug logging removed - use bowtie_log for debug output if needed
 
-      cat("🔍 [AI SUGGESTIONS] Calling generate_ai_suggestions()...\n")
-      cat("🔍 [AI SUGGESTIONS] Using methods: ", paste(ai_methods(), collapse = ", "), "\n")
-      cat("🔍 [AI SUGGESTIONS] Max suggestions: ", ai_max_suggestions(), "\n")
 
       suggestions <- generate_ai_suggestions(
         vocab_data,
@@ -478,14 +421,38 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         methods = ai_methods()
       )
 
-      cat("🔍 [AI SUGGESTIONS] generate_ai_suggestions() returned. Count: ", length(suggestions), "\n")
 
       if (length(suggestions) == 0) {
-        cat("🔍 [AI SUGGESTIONS] No suggestions generated - showing 'no suggestions' message\n")
-        shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
-        shinyjs::show(id = "no_suggestions_pressure", asis = FALSE)
+
+        # Use DOM polling for no suggestions message too
+        loading_id <- session$ns("suggestion_loading_pressure")
+        no_sugg_id <- session$ns("no_suggestions_pressure")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+              var noSuggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (noSuggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                loadingEl.hide();
+                noSuggestionsEl.show();
+                console.log('[AI SUGGESTIONS] ✅ Showed no-suggestions message for pressure');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - no-suggestions element not found');
+              }
+            }, 100);
+          }, 200);
+        ", no_sugg_id, loading_id)
+
+        shinyjs::runjs(js_code)
       } else {
-        cat("🔍 [AI SUGGESTIONS] Got ", length(suggestions), " suggestions! Rendering UI...\n")
 
         # Render suggestions
         output$suggestions_content_pressure <- renderUI({
@@ -496,17 +463,45 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
         })
 
-        cat("🔍 [AI SUGGESTIONS] UI rendered. Showing suggestions list...\n")
-        shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
-        shinyjs::show(id = "suggestions_list_pressure", asis = FALSE)
-        cat("✅ [AI SUGGESTIONS] Pressure suggestions displayed successfully!\n")
+
+        # Use DOM polling mechanism
+        suggestions_id <- session$ns("suggestions_list_pressure")
+        loading_id <- session$ns("suggestion_loading_pressure")
+
+        js_code <- sprintf("
+          // DOM polling mechanism for pressure suggestions
+          setTimeout(function() {
+            console.log('[AI SUGGESTIONS] Starting DOM polling for pressure suggestions...');
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+
+              var suggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (suggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                console.log('[AI SUGGESTIONS] ✅ Pressure elements found after', attempts * 100, 'ms');
+
+                loadingEl.hide();
+                suggestionsEl.show();
+
+                console.log('[AI SUGGESTIONS] Successfully showed pressure suggestions panel!');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - pressure elements not found after 5 seconds');
+              }
+            }, 100);
+          }, 200);
+        ", suggestions_id, loading_id)
+
+        shinyjs::runjs(js_code)
       }
     }, error = function(e) {
-      cat("❌ [AI SUGGESTIONS] ERROR in pressure suggestions:\n")
-      cat("   Error message: ", e$message, "\n")
-      cat("   Error call: ", deparse(e$call), "\n")
-      print(traceback())
-      warning("Error generating pressure suggestions: ", e$message)
+      bowtie_log(paste("Error generating pressure suggestions:", e$message), level = "error")
+      bowtie_log(paste("Error call:", deparse(e$call)), level = "debug")
       shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
       shinyjs::show(id = "suggestion_error_pressure", asis = FALSE)
     })
@@ -551,7 +546,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                   step = "step3_pressure"
                 )
               }, error = function(e) {
-                # Silently fail - don't interrupt user workflow
+                # Log error but don't interrupt user workflow
+                bowtie_log(paste("Failed to log suggestion feedback:", e$message), level = "warning")
               })
             }
 
@@ -577,13 +573,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
-    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    cat("🔍 [AI SUGGESTIONS] Preventive control observer triggered!\n")
 
     # Check if AI is enabled FIRST
     if (!ai_enabled()) {
-      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping preventive control suggestions\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       return()
     }
 
@@ -594,8 +586,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     if ((is.null(activity_names) || length(activity_names) == 0) &&
         (is.null(pressure_names) || length(pressure_names) == 0)) {
-      cat("⏭️ [AI SUGGESTIONS] No activities or pressures - skipping preventive control analysis (saves ~2 seconds)\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       shinyjs::hide("suggestion_loading_control_preventive")
       shinyjs::hide("suggestions_list_control_preventive")
       shinyjs::hide("no_suggestions_control_preventive")
@@ -628,8 +618,34 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       )
 
       if (length(suggestions) == 0) {
-        shinyjs::hide("suggestion_loading_control_preventive")
-        shinyjs::show("no_suggestions_control_preventive")
+        # Use DOM polling for no suggestions message
+        loading_id <- session$ns("suggestion_loading_control_preventive")
+        no_sugg_id <- session$ns("no_suggestions_control_preventive")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+              var noSuggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (noSuggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                loadingEl.hide();
+                noSuggestionsEl.show();
+                console.log('[AI SUGGESTIONS] ✅ Showed no-suggestions message for preventive controls');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - preventive control no-suggestions element not found');
+              }
+            }, 100);
+          }, 200);
+        ", no_sugg_id, loading_id)
+
+        shinyjs::runjs(js_code)
       } else {
         output$suggestions_content_control_preventive <- renderUI({
           tagList(
@@ -639,8 +655,39 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
         })
 
-        shinyjs::hide("suggestion_loading_control_preventive")
-        shinyjs::show("suggestions_list_control_preventive")
+        # Use DOM polling mechanism
+        suggestions_id <- session$ns("suggestions_list_control_preventive")
+        loading_id <- session$ns("suggestion_loading_control_preventive")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            console.log('[AI SUGGESTIONS] Starting DOM polling for preventive control suggestions...');
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+
+              var suggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (suggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                console.log('[AI SUGGESTIONS] ✅ Preventive control elements found after', attempts * 100, 'ms');
+
+                loadingEl.hide();
+                suggestionsEl.show();
+
+                console.log('[AI SUGGESTIONS] Successfully showed preventive control suggestions!');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - preventive control elements not found');
+              }
+            }, 100);
+          }, 200);
+        ", suggestions_id, loading_id)
+
+        shinyjs::runjs(js_code)
       }
     }, error = function(e) {
       warning("Error generating control suggestions: ", e$message)
@@ -684,7 +731,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                   session_id = session$token,
                   step = "step4_preventive_control"
                 )
-              }, error = function(e) { })
+              }, error = function(e) {
+                bowtie_log(paste("Failed to log preventive control feedback:", e$message), level = "warning")
+              })
             }
 
             showNotification(
@@ -709,13 +758,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
-    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    cat("🔍 [AI SUGGESTIONS] Consequence observer triggered!\n")
 
     # Check if AI is enabled FIRST
     if (!ai_enabled()) {
-      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping consequence suggestions\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       return()
     }
 
@@ -724,8 +769,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     pressure_names <- state$project_data$pressures
 
     if (is.null(pressure_names) || length(pressure_names) == 0) {
-      cat("⏭️ [AI SUGGESTIONS] No pressures selected - skipping consequence analysis (saves ~2 seconds)\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       shinyjs::hide("suggestion_loading_consequence")
       shinyjs::hide("suggestions_list_consequence")
       shinyjs::hide("no_suggestions_consequence")
@@ -753,8 +796,34 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       )
 
       if (length(suggestions) == 0) {
-        shinyjs::hide("suggestion_loading_consequence")
-        shinyjs::show("no_suggestions_consequence")
+        # Use DOM polling for no suggestions message
+        loading_id <- session$ns("suggestion_loading_consequence")
+        no_sugg_id <- session$ns("no_suggestions_consequence")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+              var noSuggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (noSuggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                loadingEl.hide();
+                noSuggestionsEl.show();
+                console.log('[AI SUGGESTIONS] ✅ Showed no-suggestions message for consequences');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - consequence no-suggestions element not found');
+              }
+            }, 100);
+          }, 200);
+        ", no_sugg_id, loading_id)
+
+        shinyjs::runjs(js_code)
       } else {
         output$suggestions_content_consequence <- renderUI({
           tagList(
@@ -764,8 +833,39 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
         })
 
-        shinyjs::hide("suggestion_loading_consequence")
-        shinyjs::show("suggestions_list_consequence")
+        # Use DOM polling mechanism
+        suggestions_id <- session$ns("suggestions_list_consequence")
+        loading_id <- session$ns("suggestion_loading_consequence")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            console.log('[AI SUGGESTIONS] Starting DOM polling for consequence suggestions...');
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+
+              var suggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (suggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                console.log('[AI SUGGESTIONS] ✅ Consequence elements found after', attempts * 100, 'ms');
+
+                loadingEl.hide();
+                suggestionsEl.show();
+
+                console.log('[AI SUGGESTIONS] Successfully showed consequence suggestions!');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - consequence elements not found');
+              }
+            }, 100);
+          }, 200);
+        ", suggestions_id, loading_id)
+
+        shinyjs::runjs(js_code)
       }
     }, error = function(e) {
       warning("Error generating consequence suggestions: ", e$message)
@@ -809,7 +909,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                   session_id = session$token,
                   step = "step5_consequence"
                 )
-              }, error = function(e) { })
+              }, error = function(e) {
+                bowtie_log(paste("Failed to log consequence feedback:", e$message), level = "warning")
+              })
             }
 
             showNotification(
@@ -834,13 +936,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
   # ======================================================================
 
   observe({
-    cat("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    cat("🔍 [AI SUGGESTIONS] Protective control observer triggered!\n")
 
     # Check if AI is enabled FIRST
     if (!ai_enabled()) {
-      cat("🔍 [AI SUGGESTIONS] AI is DISABLED - skipping protective control suggestions\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       return()
     }
 
@@ -849,8 +947,6 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     consequence_names <- state$project_data$consequences
 
     if (is.null(consequence_names) || length(consequence_names) == 0) {
-      cat("⏭️ [AI SUGGESTIONS] No consequences selected - skipping protective control analysis (saves ~2 seconds)\n")
-      cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
       shinyjs::hide("suggestion_loading_control_protective")
       shinyjs::hide("suggestions_list_control_protective")
       shinyjs::hide("no_suggestions_control_protective")
@@ -878,8 +974,34 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       )
 
       if (length(suggestions) == 0) {
-        shinyjs::hide("suggestion_loading_control_protective")
-        shinyjs::show("no_suggestions_control_protective")
+        # Use DOM polling for no suggestions message
+        loading_id <- session$ns("suggestion_loading_control_protective")
+        no_sugg_id <- session$ns("no_suggestions_control_protective")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+              var noSuggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (noSuggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                loadingEl.hide();
+                noSuggestionsEl.show();
+                console.log('[AI SUGGESTIONS] ✅ Showed no-suggestions message for protective controls');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - protective control no-suggestions element not found');
+              }
+            }, 100);
+          }, 200);
+        ", no_sugg_id, loading_id)
+
+        shinyjs::runjs(js_code)
       } else {
         output$suggestions_content_control_protective <- renderUI({
           tagList(
@@ -889,8 +1011,39 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
           )
         })
 
-        shinyjs::hide("suggestion_loading_control_protective")
-        shinyjs::show("suggestions_list_control_protective")
+        # Use DOM polling mechanism
+        suggestions_id <- session$ns("suggestions_list_control_protective")
+        loading_id <- session$ns("suggestion_loading_control_protective")
+
+        js_code <- sprintf("
+          setTimeout(function() {
+            console.log('[AI SUGGESTIONS] Starting DOM polling for protective control suggestions...');
+            var attempts = 0;
+            var maxAttempts = 50;
+
+            var checkExist = setInterval(function() {
+              attempts++;
+
+              var suggestionsEl = $('#%s');
+              var loadingEl = $('#%s');
+
+              if (suggestionsEl.length > 0) {
+                clearInterval(checkExist);
+                console.log('[AI SUGGESTIONS] ✅ Protective control elements found after', attempts * 100, 'ms');
+
+                loadingEl.hide();
+                suggestionsEl.show();
+
+                console.log('[AI SUGGESTIONS] Successfully showed protective control suggestions!');
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.error('[AI SUGGESTIONS] ❌ Timeout - protective control elements not found');
+              }
+            }, 100);
+          }, 200);
+        ", suggestions_id, loading_id)
+
+        shinyjs::runjs(js_code)
       }
     }, error = function(e) {
       warning("Error generating protective control suggestions: ", e$message)
@@ -934,7 +1087,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                   session_id = session$token,
                   step = "step6_protective_control"
                 )
-              }, error = function(e) { })
+              }, error = function(e) {
+                bowtie_log(paste("Failed to log protective control feedback:", e$message), level = "warning")
+              })
             }
 
             showNotification(
@@ -960,18 +1115,12 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       tryCatch({
         save_feedback(quiet = TRUE)
       }, error = function(e) {
-        # Silent failure
+        bowtie_log(paste("Failed to save feedback on session end:", e$message), level = "warning")
       })
     }
   })
 
-  cat("✅ AI suggestion handlers initialized successfully\n")
-  cat("   - Pressure suggestions: enabled\n")
-  cat("   - Preventive control suggestions: enabled\n")
-  cat("   - Consequence suggestions: enabled\n")
-  cat("   - Protective control suggestions: enabled\n\n")
 
   return(TRUE)
 }
 
-cat("✅ Guided Workflow AI Suggestions Server module loaded\n\n")

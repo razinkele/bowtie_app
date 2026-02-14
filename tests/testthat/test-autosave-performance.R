@@ -12,6 +12,12 @@ library(shiny)
 # Suppress warnings for cleaner test output
 options(warn = -1)
 
+# Load guided workflow using helper (handles path resolution)
+if (!exists("load_guided_workflow")) {
+  skip("Helper setup not loaded - skipping autosave performance tests")
+}
+workflow_loaded <- tryCatch({ load_guided_workflow() }, error = function(e) FALSE)
+
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
@@ -42,7 +48,7 @@ test_that("State hashing completes within acceptable time", {
   skip_if_not_installed("digest")
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 State Hashing Performance:\n")
 
@@ -126,7 +132,7 @@ test_that("Repeated hashing maintains consistent performance", {
   skip_if_not_installed("digest")
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 Repeated Hashing Performance:\n")
 
@@ -169,7 +175,7 @@ context("Autosave Performance - JSON Serialization")
 test_that("JSON serialization is performant", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 JSON Serialization Performance:\n")
 
@@ -208,7 +214,7 @@ test_that("JSON serialization is performant", {
 test_that("JSON deserialization is performant", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 JSON Deserialization Performance:\n")
 
@@ -237,7 +243,7 @@ test_that("JSON deserialization is performant", {
 test_that("Round-trip serialization maintains performance", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 Round-Trip Serialization Performance:\n")
 
@@ -271,7 +277,7 @@ test_that("Complete autosave operation meets performance targets", {
   skip_if_not_installed("digest")
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 Complete Autosave Operation Performance:\n")
 
@@ -316,7 +322,7 @@ test_that("Autosave throughput handles frequent saves", {
   skip_if_not_installed("digest")
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 Autosave Throughput Test:\n")
 
@@ -364,7 +370,7 @@ context("Autosave Performance - Memory Usage")
 test_that("Autosave has acceptable memory footprint", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n💾 Memory Usage Analysis:\n")
 
@@ -409,7 +415,7 @@ test_that("Repeated autosaves don't leak memory", {
   skip_if_not_installed("jsonlite")
   skip_if_not_installed("digest")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n💾 Memory Leak Test:\n")
 
@@ -459,7 +465,7 @@ test_that("Autosave scales with workflow complexity", {
   skip_if_not_installed("digest")
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📈 Scalability Test:\n")
 

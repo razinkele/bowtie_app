@@ -64,7 +64,9 @@ run_test_safely <- function(test_name, test_file, skip_on_error = TRUE) {
 
   result <- tryCatch({
     if (file.exists(test_file)) {
-      # Load required modules first
+      # Load logging system first (required by other modules)
+      source("config/logging.R", local = TRUE)
+      # Load required modules
       source("vocabulary.R", local = TRUE)
       source("tests/fixtures/realistic_test_data.R", local = TRUE)
 

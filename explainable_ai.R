@@ -1,5 +1,11 @@
+# =============================================================================
 # explainable_ai.R
 # Explainable AI for Link Quality Predictions
+# =============================================================================
+# STATUS: EXPERIMENTAL - Not integrated into main application
+# This module is loaded optionally and provides advanced explainability
+# features that are not yet used in the production workflow.
+# =============================================================================
 # Version: 1.0
 # Description: Provides explanations for why suggestions were made
 #

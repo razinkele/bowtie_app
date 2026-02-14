@@ -1,5 +1,5 @@
 # Environmental Bowtie Risk Analysis - Deployment Guide
-**Version: 5.1.0** | **Updated: November 2025**
+**Version: 5.4.0** | **Updated: January 2026**
 
 ## 📋 Table of Contents
 
@@ -531,6 +531,6 @@ if (!is.null(session$user)) {
 
 ---
 
-**Last Updated:** November 16, 2025
-**Version:** 5.1.0
+**Last Updated:** January 6, 2026
+**Version:** 5.4.0
 **Maintainer:** Environmental Bowtie App Team

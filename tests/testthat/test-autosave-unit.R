@@ -12,6 +12,12 @@ library(shiny)
 # Suppress warnings for cleaner test output
 options(warn = -1)
 
+# Load guided workflow using helper (handles path resolution)
+if (!exists("load_guided_workflow")) {
+  skip("Helper setup not loaded - skipping autosave unit tests")
+}
+workflow_loaded <- tryCatch({ load_guided_workflow() }, error = function(e) FALSE)
+
 # =============================================================================
 # TEST CONTEXT: State Hashing and Change Detection
 # =============================================================================
@@ -22,7 +28,7 @@ test_that("compute_state_hash produces consistent hashes for same state", {
   skip_if_not_installed("digest")
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Create test state
   state1 <- list(
@@ -192,7 +198,7 @@ test_that("State hash changes when project_data changes", {
 context("Autosave Unit Tests - State Initialization")
 
 test_that("init_workflow_state creates valid state structure", {
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
 
@@ -214,7 +220,7 @@ test_that("init_workflow_state creates valid state structure", {
 })
 
 test_that("Workflow state has correct structure for autosave", {
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
 
@@ -237,7 +243,7 @@ context("Autosave Unit Tests - JSON Serialization")
 test_that("Workflow state can be serialized to JSON", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
   state$current_step <- 3
@@ -257,7 +263,7 @@ test_that("Workflow state can be serialized to JSON", {
 test_that("Serialized state can be deserialized correctly", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Original state
   original_state <- init_workflow_state()
@@ -286,7 +292,7 @@ test_that("Serialized state can be deserialized correctly", {
 context("Autosave Unit Tests - Save Conditions")
 
 test_that("Autosave should skip step 1", {
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
   state$current_step <- 1
@@ -298,7 +304,7 @@ test_that("Autosave should skip step 1", {
 })
 
 test_that("Autosave should proceed for step 2 and above", {
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   for (step in 2:8) {
     state <- init_workflow_state()

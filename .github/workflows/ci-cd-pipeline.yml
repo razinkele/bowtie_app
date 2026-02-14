@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie App - Advanced CI/CD Pipeline
-# Version: 5.5.3 (Code Quality & Infrastructure Completion Edition)
+# Version: 5.4.0 (Stability & Infrastructure Edition)
 # Automated testing, performance monitoring, deployment, and AI code review
 # =============================================================================
 
@@ -71,8 +71,8 @@ jobs:
     - name: 🎨 Validate Icon Standardization
       run: |
         Rscript -e "
-        # Check for mixed icon usage
-        files <- c('ui.R', 'server.R', 'guided_workflow.r')
+        # Check for mixed icon usage (case-sensitive filenames for Linux)
+        files <- c('ui.R', 'server.R', 'guided_workflow.R')
         issues <- 0
         for (file in files[file.exists(files)]) {
           content <- readLines(file)
@@ -88,11 +88,11 @@ jobs:
     - name: 🔗 Validate Dependency Structure
       run: |
         Rscript -e "
-        # Check for circular dependencies
-        if (file.exists('guided_workflow.r')) {
-          content <- readLines('guided_workflow.r')
-          if (any(grepl('source\\\(\"guided_workflow\\\\.r\"\\\)', content))) {
-            stop('❌ Circular dependency detected in guided_workflow.r (self-reference)')
+        # Check for circular dependencies (case-sensitive filenames for Linux)
+        if (file.exists('guided_workflow.R')) {
+          content <- readLines('guided_workflow.R')
+          if (any(grepl('source\\\\(\"guided_workflow\\\\.R\"\\\\)', content, ignore.case = TRUE))) {
+            stop('❌ Circular dependency detected in guided_workflow.R (self-reference)')
           }
         }
         cat('✅ No circular dependencies detected\n')
@@ -297,7 +297,7 @@ jobs:
         cp README.md CLAUDE.md deployment_package/ 2>/dev/null || true
 
         # Create deployment info
-        echo "Deployment Package - Version 5.3.0" > deployment_package/DEPLOYMENT_INFO.txt
+        echo "Deployment Package - Version 5.4.0" > deployment_package/DEPLOYMENT_INFO.txt
         echo "Built on: $(date)" >> deployment_package/DEPLOYMENT_INFO.txt
         echo "Git commit: ${{ github.sha }}" >> deployment_package/DEPLOYMENT_INFO.txt
         echo "Branch: ${{ github.ref_name }}" >> deployment_package/DEPLOYMENT_INFO.txt
@@ -306,7 +306,7 @@ jobs:
         cat > deployment_package/deploy.sh << 'EOF'
         #!/bin/bash
         echo "🚀 Deploying Environmental Bowtie Risk Analysis Application"
-        echo "Version: 5.3.0 (Production-Ready Edition)"
+        echo "Version: 5.4.0 (Stability & Infrastructure Edition)"
 
         # Install R dependencies
         Rscript -e "
@@ -333,7 +333,7 @@ jobs:
     - name: 📤 Upload Deployment Package
       uses: actions/upload-artifact@v3
       with:
-        name: deployment-package-v5.3
+        name: deployment-package-v5.4.0
         path: deployment_package/
 
     - name: 📋 Deployment Summary
@@ -404,7 +404,7 @@ jobs:
   notification:
     name: 📢 Pipeline Notifications
     runs-on: ubuntu-latest
-    needs: [comprehensive-testing, performance-testing, security-analysis, coderabbit-check]
+    needs: [comprehensive-testing, performance-testing, security-analysis]
     if: always()
 
     steps:
@@ -416,10 +416,8 @@ jobs:
         echo "Branch: ${{ github.ref_name }}"
         echo "Commit: ${{ github.sha }}"
         echo "Triggered by: ${{ github.event_name }}"
-        echo "CodeRabbit Review: ${{ needs.coderabbit-check.result }}"
         echo ""
         echo "Job Status:"
-        echo "- Consistency Checks: ${{ needs.consistency-checks.result || 'skipped' }}"
         echo "- Comprehensive Testing: ${{ needs.comprehensive-testing.result || 'skipped' }}"
         echo "- Performance Testing: ${{ needs.performance-testing.result || 'skipped' }}"
         echo "- Security Analysis: ${{ needs.security-analysis.result || 'skipped' }}"

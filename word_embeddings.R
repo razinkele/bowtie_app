@@ -1,5 +1,11 @@
+# =============================================================================
 # word_embeddings.R
 # Word Embeddings for Environmental Vocabulary Analysis
+# =============================================================================
+# STATUS: EXPERIMENTAL - Not integrated into main application
+# This module is loaded optionally and provides word embedding
+# features that are not yet used in the production workflow.
+# =============================================================================
 # Version: 1.0
 # Description: Word2Vec and GloVe embeddings for improved semantic similarity
 #
@@ -45,7 +51,7 @@ if (requireNamespace("text2vec", quietly = TRUE) &&
 #' @return Matrix of word embeddings (words × dimensions)
 create_simple_embeddings <- function(vocabulary_data, dim = 50) {
 
-  cat("📊 Creating simple word co-occurrence embeddings...\n")
+  bowtie_log("Creating simple word co-occurrence embeddings...", level = "info")
 
   # Collect all text
   all_text <- c()
@@ -72,7 +78,7 @@ create_simple_embeddings <- function(vocabulary_data, dim = 50) {
   vocab <- unique(unlist(tokens_list))
   vocab <- vocab[nchar(vocab) > 2]  # Remove very short words
 
-  cat(sprintf("  Vocabulary size: %d words\n", length(vocab)))
+  bowtie_log(sprintf("Vocabulary size: %d words", length(vocab)), level = "debug")
 
   # Create random embeddings (placeholder for co-occurrence)
   # In a full implementation, this would use actual co-occurrence statistics
@@ -85,8 +91,7 @@ create_simple_embeddings <- function(vocabulary_data, dim = 50) {
 
   rownames(embeddings) <- vocab
 
-  cat(sprintf("✅ Created %d-dimensional embeddings for %d words\n",
-              dim, length(vocab)))
+  bowtie_log(sprintf("Created %d-dimensional embeddings for %d words", dim, length(vocab)), level = "success")
 
   return(embeddings)
 }
@@ -111,7 +116,7 @@ train_word2vec_embeddings <- function(vocabulary_data,
     stop("word2vec package not available. Install with: install.packages('word2vec')")
   }
 
-  cat("🧠 Training Word2Vec environmental embeddings...\n")
+  bowtie_log("Training Word2Vec environmental embeddings...", level = "info")
 
   # Collect all text
   all_text <- c()
@@ -132,7 +137,7 @@ train_word2vec_embeddings <- function(vocabulary_data,
   # Preprocess text
   corpus <- tolower(all_text)
 
-  cat(sprintf("  Training on %d documents...\n", length(corpus)))
+  bowtie_log(sprintf("Training on %d documents...", length(corpus)), level = "debug")
 
   # Train Word2Vec
   model <- word2vec::word2vec(
@@ -149,10 +154,8 @@ train_word2vec_embeddings <- function(vocabulary_data,
 
   vocab_size <- length(model$vocabulary)
 
-  cat(sprintf("✅ Trained %d-dimensional embeddings\n", dim))
-  cat(sprintf("   Vocabulary: %d words\n", vocab_size))
-  cat(sprintf("   Iterations: %d\n", iter))
-  cat(sprintf("   Window: %d\n\n", window))
+  bowtie_log(sprintf("Trained %d-dimensional embeddings (vocab: %d, iterations: %d, window: %d)",
+                     dim, vocab_size, iter, window), level = "success")
 
   return(model)
 }
@@ -172,7 +175,7 @@ save_word2vec_model <- function(model, file_path = "models/environmental_w2v.bin
 
   tryCatch({
     word2vec::write.word2vec(model, file = file_path, type = "bin")
-    cat(sprintf("✅ Saved Word2Vec model to %s\n", file_path))
+    bowtie_log(sprintf("Saved Word2Vec model to %s", file_path), level = "success")
   }, error = function(e) {
     warning("Failed to save model: ", e$message)
   })
@@ -187,7 +190,7 @@ save_word2vec_model <- function(model, file_path = "models/environmental_w2v.bin
 load_word2vec_model <- function(file_path = "models/environmental_w2v.bin") {
 
   if (!file.exists(file_path)) {
-    cat(sprintf("ℹ️ No model found at %s\n", file_path))
+    bowtie_log(sprintf("No model found at %s", file_path), level = "info")
     return(NULL)
   }
 
@@ -198,9 +201,8 @@ load_word2vec_model <- function(file_path = "models/environmental_w2v.bin") {
 
   tryCatch({
     model <- word2vec::read.word2vec(file = file_path)
-    cat(sprintf("✅ Loaded Word2Vec model from %s\n", file_path))
-    cat(sprintf("   Vocabulary: %d words\n", length(model$vocabulary)))
-    cat(sprintf("   Dimensions: %d\n\n", ncol(as.matrix(model))))
+    bowtie_log(sprintf("Loaded Word2Vec model from %s (vocab: %d, dims: %d)",
+                       file_path, length(model$vocabulary), ncol(as.matrix(model))), level = "success")
     return(model)
   }, error = function(e) {
     warning("Failed to load model: ", e$message)
@@ -328,25 +330,20 @@ find_similar_words <- function(word, embedding_model, top_n = 10) {
 # INITIALIZATION
 # =============================================================================
 
-cat("✅ Word Embeddings module loaded successfully!\n")
-cat("==================================================\n\n")
-cat("📦 Capabilities:\n")
-cat("  - Word2Vec:", if(EMBEDDING_CAPABILITIES$word2vec) "✅" else "❌", "\n")
-cat("  - Text2Vec:", if(EMBEDDING_CAPABILITIES$text2vec) "✅" else "❌", "\n")
-cat("  - Basic embeddings:", if(EMBEDDING_CAPABILITIES$basic_embeddings) "✅" else "❌", "\n\n")
-
-cat("🔧 Available Functions:\n")
-cat("  - create_simple_embeddings()       : Basic co-occurrence embeddings\n")
-cat("  - train_word2vec_embeddings()      : Train Word2Vec model\n")
-cat("  - load_word2vec_model()            : Load saved model\n")
-cat("  - save_word2vec_model()            : Save model to disk\n")
-cat("  - calculate_embedding_similarity() : Embedding-based similarity\n")
-cat("  - find_similar_words()             : Find semantically similar words\n\n")
-
-cat("📚 Usage Example:\n")
-cat('  model <- train_word2vec_embeddings(vocab_data, dim = 100)\n')
-cat('  sim <- calculate_embedding_similarity("pollution", "contamination", model)\n')
-cat('  similar <- find_similar_words("marine", model, top_n = 10)\n\n')
-
-cat("✅ Ready for embedding-based analysis!\n")
-cat("==================================================\n\n")
+# Module initialization message (interactive only)
+if (interactive()) {
+  cat("Word Embeddings module loaded successfully!\n")
+  cat("==================================================\n\n")
+  cat("Capabilities:\n")
+  cat("  - Word2Vec:", if(EMBEDDING_CAPABILITIES$word2vec) "YES" else "NO", "\n")
+  cat("  - Text2Vec:", if(EMBEDDING_CAPABILITIES$text2vec) "YES" else "NO", "\n")
+  cat("  - Basic embeddings:", if(EMBEDDING_CAPABILITIES$basic_embeddings) "YES" else "NO", "\n\n")
+  cat("Available Functions:\n")
+  cat("  - create_simple_embeddings()       : Basic co-occurrence embeddings\n")
+  cat("  - train_word2vec_embeddings()      : Train Word2Vec model\n")
+  cat("  - load_word2vec_model()            : Load saved model\n")
+  cat("  - save_word2vec_model()            : Save model to disk\n")
+  cat("  - calculate_embedding_similarity() : Embedding-based similarity\n")
+  cat("  - find_similar_words()             : Find semantically similar words\n\n")
+  cat("==================================================\n")
+}

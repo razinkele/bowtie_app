@@ -2,6 +2,8 @@
 
 A comprehensive R Shiny web application for environmental risk assessment using bow-tie diagrams enhanced with Bayesian network analysis and AI-powered vocabulary linking.
 
+> **Archive notice:** The original R Shiny application (`app.R`) has been archived and moved to `archive/archived_app_R_20260101.R`. A new Python Shiny app is available at `shiny_copernicus_app.py` — see `README_shiny_copernicus.md` for usage and authentication instructions.
+
 ![Version](https://img.shields.io/badge/version-5.3.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)

@@ -24,7 +24,7 @@
 #' @return Invisible NULL
 init_feedback_tracker <- function(data_file = "data/suggestion_feedback.rds") {
 
-  cat("🎯 Initializing suggestion feedback tracker...\n")
+  bowtie_log("Initializing suggestion feedback tracker...", level = "info")
 
   # Initialize empty feedback dataframe
   .feedback_data$records <- data.frame(
@@ -54,16 +54,16 @@ init_feedback_tracker <- function(data_file = "data/suggestion_feedback.rds") {
     tryCatch({
       loaded_data <- readRDS(data_file)
       .feedback_data$records <- loaded_data
-      cat(sprintf("✅ Loaded %d historical feedback records\n", nrow(loaded_data)))
+      bowtie_log(sprintf("Loaded %d historical feedback records", nrow(loaded_data)), level = "success")
     }, error = function(e) {
       warning("Failed to load feedback data: ", e$message)
-      cat("⚠️ Starting with empty feedback database\n")
+      bowtie_log("Starting with empty feedback database", level = "warning")
     })
   } else {
-    cat("ℹ️ No historical feedback found - starting fresh\n")
+    bowtie_log("No historical feedback found - starting fresh", level = "info")
   }
 
-  cat(sprintf("📁 Feedback will be saved to: %s\n\n", data_file))
+  bowtie_log(sprintf("Feedback will be saved to: %s", data_file), level = "info")
 
   invisible(NULL)
 }
@@ -187,8 +187,8 @@ save_feedback <- function(quiet = FALSE) {
   tryCatch({
     saveRDS(.feedback_data$records, data_file)
     if (!quiet) {
-      cat(sprintf("✅ Saved %d feedback records to %s\n",
-                  nrow(.feedback_data$records), data_file))
+      bowtie_log(sprintf("Saved %d feedback records to %s",
+                  nrow(.feedback_data$records), data_file), level = "success")
     }
   }, error = function(e) {
     warning("Failed to save feedback: ", e$message)
@@ -337,8 +337,8 @@ export_feedback_csv <- function(file_path = "data/suggestion_feedback.csv") {
 
   tryCatch({
     write.csv(.feedback_data$records, file_path, row.names = FALSE)
-    cat(sprintf("✅ Exported %d feedback records to %s\n",
-                nrow(.feedback_data$records), file_path))
+    bowtie_log(sprintf("Exported %d feedback records to %s",
+                nrow(.feedback_data$records), file_path), level = "success")
   }, error = function(e) {
     warning("Failed to export feedback: ", e$message)
   })
@@ -362,7 +362,7 @@ plot_acceptance_rates <- function() {
   stats <- get_feedback_stats()
 
   if (nrow(stats$by_method) == 0) {
-    cat("ℹ️ No feedback data available for plotting\n")
+    bowtie_log("No feedback data available for plotting", level = "info")
     return(NULL)
   }
 
@@ -395,22 +395,17 @@ plot_acceptance_rates <- function() {
 # INITIALIZATION
 # =============================================================================
 
-cat("✅ Suggestion Feedback Tracker loaded successfully!\n")
-cat("==================================================\n\n")
-cat("📦 Available Functions:\n")
-cat("  - init_feedback_tracker()      : Initialize feedback system\n")
-cat("  - log_suggestion_feedback()    : Log user action on suggestion\n")
-cat("  - save_feedback()              : Save feedback to disk\n")
-cat("  - get_feedback_stats()         : Get summary statistics\n")
-cat("  - get_feedback_for_type()      : Filter feedback by type/method\n")
-cat("  - export_feedback_csv()        : Export to CSV format\n")
-cat("  - plot_acceptance_rates()      : Visualize acceptance rates\n\n")
-
-cat("📚 Usage Example:\n")
-cat('  init_feedback_tracker()\n')
-cat('  log_suggestion_feedback(suggestion, action = "accepted", session_id = session$token)\n')
-cat('  stats <- get_feedback_stats()\n')
-cat('  plot_acceptance_rates()\n\n')
-
-cat("✅ Ready for feedback tracking!\n")
-cat("==================================================\n\n")
+# Module initialization message (interactive only)
+if (interactive()) {
+  cat("Suggestion Feedback Tracker loaded successfully!\n")
+  cat("==================================================\n\n")
+  cat("Available Functions:\n")
+  cat("  - init_feedback_tracker()      : Initialize feedback system\n")
+  cat("  - log_suggestion_feedback()    : Log user action on suggestion\n")
+  cat("  - save_feedback()              : Save feedback to disk\n")
+  cat("  - get_feedback_stats()         : Get summary statistics\n")
+  cat("  - get_feedback_for_type()      : Filter feedback by type/method\n")
+  cat("  - export_feedback_csv()        : Export to CSV format\n")
+  cat("  - plot_acceptance_rates()      : Visualize acceptance rates\n\n")
+  cat("==================================================\n")
+}

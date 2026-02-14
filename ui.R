@@ -48,23 +48,33 @@ ui <- dashboardPage(
     ),
 
     rightUi = tagList(
-      dropdownMenu(
-        badgeStatus = "danger",
-        type = "notifications",
-        icon = icon("question-circle"),
-        headerText = "Help",
+      # User menu dropdown (dynamic - shows after login)
+      uiOutput("header_user_menu"),
 
-        notificationItem(
-          text = "User Guide",
+      # Help dropdown
+      dropdownMenu(
+        badgeStatus = "info",
+        type = "messages",
+        icon = icon("question-circle"),
+        headerText = "Help & Support",
+
+        # User Guide - properly structured with vertical alignment
+        messageItem(
+          from = "User Guide",
+          message = "Learn how to use the application",
           icon = icon("book"),
-          status = "info",
-          href = "#"
+          time = NULL,
+          href = "javascript:void(0);",
+          inputId = "show_user_guide"
         ),
-        notificationItem(
-          text = "About",
+        # About - properly structured with vertical alignment
+        messageItem(
+          from = "About",
+          message = "Version info and credits",
           icon = icon("info-circle"),
-          status = "success",
-          href = "#"
+          time = NULL,
+          href = "javascript:void(0);",
+          inputId = "show_about"
         )
       )
     )
@@ -74,6 +84,7 @@ ui <- dashboardPage(
   # SIDEBAR
   # =============================================================================
   sidebar = dashboardSidebar(
+    id = "sidebar",
     skin = "light",
     status = "primary",
     elevation = 3,
@@ -82,15 +93,21 @@ ui <- dashboardPage(
     expandOnHover = TRUE,
     fixed = TRUE,
 
-    sidebarUserPanel(
-      name = "Environmental Risk Management"
-    ),
+    # User info panel (dynamic - shows logged in user)
+    uiOutput("sidebar_user_panel"),
 
     sidebarMenu(
       id = "sidebar_menu",
       flat = FALSE,
       compact = FALSE,
       childIndent = TRUE,
+
+      # Dashboard
+      menuItem(
+        text = "Dashboard",
+        tabName = "dashboard",
+        icon = icon("dashboard")
+      ),
 
       # Data Management
       sidebarHeader("DATA MANAGEMENT"),
@@ -104,19 +121,25 @@ ui <- dashboardPage(
       menuItem(
         text = "Data Table",
         tabName = "table",
-        icon = icon("table")
+        icon = icon("table"),
+        badgeLabel = textOutput("badge_data_table", inline = TRUE),
+        badgeColor = "primary"
       ),
 
       menuItem(
         text = "Guided Creation",
         tabName = "guided",
-        icon = icon("magic")
+        icon = icon("magic"),
+        badgeLabel = textOutput("badge_guided", inline = TRUE),
+        badgeColor = "warning"
       ),
 
       menuItem(
         text = "Link Review",
         tabName = "link_risk",
-        icon = icon("link")
+        icon = icon("link"),
+        badgeLabel = textOutput("badge_link_review", inline = TRUE),
+        badgeColor = "info"
       ),
 
       # Analysis Tools
@@ -149,7 +172,9 @@ ui <- dashboardPage(
       menuItem(
         text = "Vocabulary",
         tabName = "vocabulary",
-        icon = icon("book")
+        icon = icon("book"),
+        badgeLabel = textOutput("badge_vocabulary", inline = TRUE),
+        badgeColor = "success"
       ),
 
       menuItem(
@@ -157,6 +182,9 @@ ui <- dashboardPage(
         tabName = "report",
         icon = icon("file-alt")
       ),
+
+      # Admin Section (dynamically shown only for admin users)
+      uiOutput("admin_menu_section"),
 
       # Help & Documentation
       sidebarHeader("HELP & DOCS"),
@@ -213,150 +241,406 @@ ui <- dashboardPage(
     skin = "light",
     pinned = FALSE,
     overlay = TRUE,
+    collapsed = TRUE,
+    width = 420,
 
     controlbarMenu(
       id = "controlbarMenu",
 
+      # =========================================================================
+      # TAB 1: APPEARANCE (Language & Theme)
+      # =========================================================================
       controlbarItem(
-        title = "Settings",
-        icon = icon("gear"),
+        title = "Appearance",
+        icon = icon("palette"),
 
-        h4("Language Settings"),
-        uiOutput("settings_language_section"),
-
-        hr(),
-
-        h4("Theme Settings"),
-        uiOutput("settings_theme_header"),
-
-        selectInput("theme_preset", "Select Theme:",
-                   choices = c(
-                     "🌿 Environmental (Default)" = "journal",
-                     "🌙 Dark Mode" = "darkly",
-                     "☀️ Light & Clean" = "flatly",
-                     "🌊 Ocean Blue" = "cosmo",
-                     "🌲 Forest Green" = "materia",
-                     "🔵 Corporate Blue" = "cerulean",
-                     "🎯 Minimal Clean" = "minty",
-                     "📊 Dashboard" = "lumen",
-                     "🎨 Creative Purple" = "pulse",
-                     "🧪 Science Lab" = "sandstone",
-                     "🌌 Space Dark" = "slate",
-                     "🏢 Professional" = "united",
-                     "🎭 Modern Contrast" = "superhero",
-                     "🌅 Sunset Orange" = "solar",
-                     "📈 Analytics" = "spacelab",
-                     "🎪 Vibrant" = "sketchy",
-                     "🌺 Nature Fresh" = "cyborg",
-                     "💼 Business" = "vapor",
-                     "🔬 Research" = "zephyr",
-                     "⚡ High Contrast" = "bootstrap"
-                   ),
-                   selected = "journal"),
-
-        br(),
-        actionButton("applyTheme",
-                    "Apply Theme",
-                    icon = icon("palette"),
-                    class = "btn-primary btn-block"),
-
-        hr(),
-
-        h4(icon("robot"), " AI Suggestions Settings"),
-        p(class = "text-muted small", "Configure AI-powered vocabulary suggestions in Guided Workflow"),
-
-        div(class = "form-group",
-          div(class = "custom-control custom-switch",
-            tags$input(
-              type = "checkbox",
-              class = "custom-control-input",
-              id = "ai_suggestions_enabled"
-              # NOT checked by default (disabled to prevent session blocking)
+        div(class = "p-2",
+          # Language Section
+          div(class = "card mb-3",
+            div(class = "card-header bg-primary text-white py-2",
+              icon("language"), " Language"
             ),
-            tags$label(
-              class = "custom-control-label",
-              `for` = "ai_suggestions_enabled",
-              "Enable AI Suggestions"
+            div(class = "card-body",
+              uiOutput("settings_language_section")
             )
           ),
-          tags$small(class = "form-text text-muted",
-            "⚠️ May cause 2-3 second delays when adding items"
+
+          # Theme Section
+          div(class = "card",
+            div(class = "card-header bg-primary text-white py-2",
+              icon("brush"), " Theme"
+            ),
+            div(class = "card-body",
+              uiOutput("settings_theme_header"),
+
+              selectInput("theme_preset", NULL,
+                         choices = c(
+                           "Environmental (Default)" = "journal",
+                           "Dark Mode" = "darkly",
+                           "Light & Clean" = "flatly",
+                           "Ocean Blue" = "cosmo",
+                           "Forest Green" = "materia",
+                           "Corporate Blue" = "cerulean",
+                           "Minimal Clean" = "minty",
+                           "Dashboard" = "lumen",
+                           "Creative Purple" = "pulse",
+                           "Science Lab" = "sandstone",
+                           "Space Dark" = "slate",
+                           "Professional" = "united",
+                           "Modern Contrast" = "superhero",
+                           "Sunset Orange" = "solar",
+                           "Analytics" = "spacelab",
+                           "Vibrant" = "sketchy",
+                           "Nature Fresh" = "cyborg",
+                           "Business" = "vapor",
+                           "Research" = "zephyr",
+                           "High Contrast" = "bootstrap"
+                         ),
+                         selected = "journal"),
+
+              actionButton("applyTheme",
+                          "Apply Theme",
+                          icon = icon("check"),
+                          class = "btn-primary btn-sm w-100 mt-2")
+            )
           )
-        ),
+        )
+      ),
 
-        div(id = "ai_methods_container", style = "margin-left: 20px; margin-top: 10px;",
-          h6("Analysis Methods:"),
+      # =========================================================================
+      # TAB 2: AI FEATURES
+      # =========================================================================
+      controlbarItem(
+        title = "AI Features",
+        icon = icon("robot"),
 
-          div(class = "custom-control custom-checkbox",
-            tags$input(
-              type = "checkbox",
-              class = "custom-control-input",
-              id = "ai_method_semantic",
-              checked = "checked"
+        div(class = "p-2",
+          div(class = "card",
+            div(class = "card-header bg-info text-white py-2",
+              icon("lightbulb"), " AI Suggestions"
             ),
-            tags$label(
-              class = "custom-control-label",
-              `for` = "ai_method_semantic",
-              "Semantic Similarity (Jaccard)"
+            div(class = "card-body",
+              p(class = "text-muted small mb-3",
+                "AI-powered vocabulary suggestions for Guided Workflow"),
+
+              div(class = "form-check form-switch mb-3",
+                checkboxInput("ai_suggestions_enabled",
+                             "Enable AI Suggestions",
+                             value = FALSE)
+              ),
+              tags$small(class = "form-text text-muted mb-3 d-block",
+                icon("exclamation-triangle"), " May cause 2-3 second delays"
+              ),
+
+              conditionalPanel(
+                condition = "input.ai_suggestions_enabled",
+
+                hr(),
+
+                h6(class = "text-secondary mb-2", "Analysis Methods"),
+
+                div(class = "ms-2",
+                  checkboxInput("ai_method_semantic",
+                               "Semantic Similarity",
+                               value = TRUE),
+
+                  checkboxInput("ai_method_keyword",
+                               "Keyword Matching",
+                               value = TRUE),
+
+                  checkboxInput("ai_method_causal",
+                               "Causal Relationships",
+                               value = TRUE)
+                ),
+
+                hr(),
+
+                sliderInput("ai_max_suggestions",
+                           "Max Suggestions:",
+                           min = 1,
+                           max = 10,
+                           value = 5,
+                           step = 1,
+                           ticks = FALSE,
+                           width = "100%")
+              )
+            )
+          )
+        )
+      ),
+
+      # =========================================================================
+      # TAB 3: AUTOSAVE
+      # =========================================================================
+      controlbarItem(
+        title = "Autosave",
+        icon = icon("save"),
+
+        div(class = "p-2",
+          div(class = "card",
+            div(class = "card-header bg-success text-white py-2",
+              icon("clock"), " Autosave Settings"
+            ),
+            div(class = "card-body",
+              p(class = "text-muted small mb-3",
+                "Automatically save your work at regular intervals"),
+
+              div(class = "form-check form-switch mb-3",
+                checkboxInput("autosave_enabled",
+                             "Enable Autosave",
+                             value = FALSE)
+              ),
+
+              conditionalPanel(
+                condition = "input.autosave_enabled",
+
+                hr(),
+
+                sliderInput("autosave_interval",
+                           "Interval (minutes):",
+                           min = 1,
+                           max = 30,
+                           value = 5,
+                           step = 1,
+                           ticks = FALSE,
+                           width = "100%"),
+
+                sliderInput("autosave_versions",
+                           "Versions to Keep:",
+                           min = 1,
+                           max = 10,
+                           value = 3,
+                           step = 1,
+                           ticks = FALSE,
+                           width = "100%"),
+
+                selectInput("autosave_location",
+                           "Save Location:",
+                           choices = c(
+                             "Browser Storage" = "browser",
+                             "Download to File" = "file",
+                             "Both" = "both"
+                           ),
+                           selected = "browser"),
+
+                hr(),
+
+                checkboxInput("autosave_notify",
+                             "Show notification on save",
+                             value = TRUE),
+
+                checkboxInput("autosave_autoload",
+                             "Auto-load on startup",
+                             value = TRUE),
+
+                checkboxInput("autosave_include_data",
+                             "Include data table",
+                             value = FALSE),
+                tags$small(class = "form-text text-muted mb-3 d-block",
+                  icon("exclamation-triangle"), " May increase file size"
+                ),
+
+                hr(),
+
+                div(class = "d-grid gap-2",
+                  actionButton("autosave_now",
+                              "Save Now",
+                              icon = icon("save"),
+                              class = "btn-success btn-sm"),
+                  actionButton("autosave_clear",
+                              "Clear All Saves",
+                              icon = icon("trash"),
+                              class = "btn-outline-danger btn-sm")
+                ),
+
+                div(class = "alert alert-light mt-3 mb-0 py-2 small",
+                  icon("info-circle"), " Last save: ",
+                  tags$span(id = "last_autosave_time", "Never")
+                )
+              )
+            )
+          )
+        )
+      ),
+
+      # =========================================================================
+      # TAB 4: STORAGE
+      # =========================================================================
+      controlbarItem(
+        title = "Storage",
+        icon = icon("folder-open"),
+
+        div(class = "p-2",
+          div(class = "card mb-3",
+            div(class = "card-header bg-secondary text-white py-2",
+              icon("database"), " Storage Mode"
+            ),
+            div(class = "card-body",
+              p(class = "text-muted small mb-3",
+                "Configure where to store configurations and saves"),
+
+              # Custom radio buttons with descriptions
+              div(class = "storage-options",
+                div(class = "form-check mb-2",
+                  tags$input(type = "radio", class = "form-check-input",
+                             name = "storage_mode", id = "storage_browser",
+                             value = "browser", checked = "checked"),
+                  tags$label(class = "form-check-label", `for` = "storage_browser",
+                    tags$strong("Browser (LocalStorage)")
+                  ),
+                  tags$small(class = "d-block text-muted ps-4",
+                    "Saves in your browser. Quick and easy, but limited to ~5MB and may be cleared."
+                  )
+                ),
+                div(class = "form-check mb-2",
+                  tags$input(type = "radio", class = "form-check-input",
+                             name = "storage_mode", id = "storage_local",
+                             value = "local"),
+                  tags$label(class = "form-check-label", `for` = "storage_local",
+                    tags$strong("Local Folder")
+                  ),
+                  tags$small(class = "d-block text-muted ps-4",
+                    "Saves to a folder on your computer. Best for large files and long-term storage."
+                  )
+                ),
+                div(class = "form-check mb-2",
+                  tags$input(type = "radio", class = "form-check-input",
+                             name = "storage_mode", id = "storage_server",
+                             value = "server"),
+                  tags$label(class = "form-check-label", `for` = "storage_server",
+                    tags$strong("Server Default")
+                  ),
+                  tags$small(class = "d-block text-muted ps-4",
+                    "Saves to server's shared location. ",
+                    tags$span(class = "text-warning",
+                      icon("exclamation-triangle", class = "fa-xs"),
+                      " Multi-user: files may conflict or be overwritten by others."
+                    )
+                  )
+                )
+              ),
+
+              # Bind custom radios to Shiny input
+              tags$script(HTML("
+                $(document).on('change', 'input[name=\"storage_mode\"]', function() {
+                  Shiny.setInputValue('storage_mode', this.value);
+                });
+                $(document).ready(function() {
+                  Shiny.setInputValue('storage_mode', 'browser');
+                });
+              ")),
+
+              # Browser storage info tooltip
+              tags$details(class = "mt-2",
+                tags$summary(class = "text-info small",
+                  style = "cursor: pointer;",
+                  icon("info-circle"), " Storage tips by browser"
+                ),
+                div(class = "small mt-2 ps-2", style = "font-size: 0.8em;",
+                  tags$dl(class = "mb-0",
+                    tags$dt("Chrome / Edge"),
+                    tags$dd(class = "text-muted mb-2",
+                      "Best support. ~5MB limit. Data persists until cleared."),
+
+                    tags$dt("Firefox"),
+                    tags$dd(class = "text-muted mb-2",
+                      "Good support. May prompt for permission in private mode."),
+
+                    tags$dt("Safari"),
+                    tags$dd(class = "text-muted mb-2",
+                      "7-day limit in some versions. Use 'Local Folder' for long-term storage."),
+
+                    tags$dt("Private/Incognito"),
+                    tags$dd(class = "text-muted mb-0",
+                      "Data lost when window closes. Use 'Local Folder' instead.")
+                  ),
+                  hr(class = "my-2"),
+                  p(class = "text-muted mb-0",
+                    icon("lightbulb"), " ",
+                    tags$strong("Tip:"), " For reliable long-term storage, use 'Local Folder' mode.")
+                )
+              )
             )
           ),
 
-          div(class = "custom-control custom-checkbox",
-            tags$input(
-              type = "checkbox",
-              class = "custom-control-input",
-              id = "ai_method_keyword",
-              checked = "checked"
+          conditionalPanel(
+            condition = "input.storage_mode == 'local'",
+
+            div(class = "card mb-3",
+              div(class = "card-header bg-light py-2",
+                icon("folder"), " Local Folder"
+              ),
+              div(class = "card-body",
+                textInput("local_folder_path",
+                          "Folder Path:",
+                          value = "",
+                          placeholder = "No folder selected...",
+                          width = "100%"),
+
+                div(class = "d-grid gap-2 mb-3",
+                  shinyDirButton("select_folder",
+                                 "Browse...",
+                                 title = "Select folder for saving configurations",
+                                 icon = icon("folder-open"),
+                                 class = "btn-outline-primary btn-sm")
+                ),
+
+                checkboxInput("create_subfolder",
+                              "Create 'bowtie_saves' subfolder",
+                              value = TRUE),
+
+                uiOutput("folder_status"),
+
+                div(class = "d-grid gap-2 d-md-flex mt-3",
+                  actionButton("verify_folder",
+                               "Verify",
+                               icon = icon("check-circle"),
+                               class = "btn-info btn-sm"),
+                  actionButton("open_folder",
+                               "Open",
+                               icon = icon("external-link-alt"),
+                               class = "btn-secondary btn-sm")
+                )
+              )
             ),
-            tags$label(
-              class = "custom-control-label",
-              `for` = "ai_method_keyword",
-              "Keyword Matching"
+
+            div(class = "card",
+              div(class = "card-header bg-light py-2",
+                icon("file-archive"), " Saved Files"
+              ),
+              div(class = "card-body", style = "max-height: 150px; overflow-y: auto;",
+                uiOutput("local_files_list")
+              )
             )
           ),
 
-          div(class = "custom-control custom-checkbox",
-            tags$input(
-              type = "checkbox",
-              class = "custom-control-input",
-              id = "ai_method_causal",
-              checked = "checked"
+          hr(),
+
+          div(class = "card",
+            div(class = "card-header bg-light py-2",
+              icon("bolt"), " Quick Actions"
             ),
-            tags$label(
-              class = "custom-control-label",
-              `for` = "ai_method_causal",
-              "Causal Relationships"
+            div(class = "card-body",
+              div(class = "d-grid gap-2",
+                actionButton("local_quick_save",
+                             "Quick Save",
+                             icon = icon("save"),
+                             class = "btn-success btn-sm"),
+                actionButton("local_quick_load",
+                             "Quick Load",
+                             icon = icon("folder-open"),
+                             class = "btn-primary btn-sm")
+              )
             )
           ),
 
-          br(),
-
-          sliderInput("ai_max_suggestions",
-                     "Max Suggestions:",
-                     min = 1,
-                     max = 10,
-                     value = 5,
-                     step = 1,
-                     ticks = FALSE)
-        ),
-
-        tags$script(HTML("
-          $(document).ready(function() {
-            // Show/hide AI methods based on enabled switch
-            $('#ai_suggestions_enabled').on('change', function() {
-              if ($(this).is(':checked')) {
-                $('#ai_methods_container').slideDown();
-              } else {
-                $('#ai_methods_container').slideUp();
-              }
-            });
-
-            // Initialize visibility
-            if (!$('#ai_suggestions_enabled').is(':checked')) {
-              $('#ai_methods_container').hide();
-            }
-          });
-        "))
+          # Hidden file input for loading
+          fileInput("local_load_file_input",
+                    label = NULL,
+                    accept = c(".rds", ".json"),
+                    width = "0px"),
+          tags$style("#local_load_file_input { display: none; }")
+        )
       )
     )
   ),
@@ -380,9 +664,16 @@ ui <- dashboardPage(
     # Shinyjs
     useShinyjs(),
 
+    # Login Module UI
+    login_ui("login"),
+    login_css(),
+
     # UI Components
     ui_components_css(),
     ui_components_js(),
+    
+    # Local Storage JavaScript handlers
+    local_storage_js(),
 
     # Custom CSS for bs4Dash compatibility
     tags$head(
@@ -390,6 +681,94 @@ ui <- dashboardPage(
         /* Custom styling for bs4Dash */
         .content-wrapper {
           background-color: #f4f6f9;
+        }
+
+        /* ============================================= */
+        /* HEADER WIDGET VERTICAL ALIGNMENT FIXES       */
+        /* ============================================= */
+
+        /* Main header navbar alignment */
+        .main-header .navbar-nav {
+          display: flex;
+          align-items: center;
+          height: 100%;
+        }
+
+        .main-header .navbar-nav > li {
+          display: flex;
+          align-items: center;
+        }
+
+        .main-header .navbar-nav > li > a {
+          display: flex;
+          align-items: center;
+          height: 100%;
+          padding: 0 0.75rem;
+        }
+
+        /* Dropdown menu items alignment */
+        .main-header .dropdown-menu .dropdown-item,
+        .main-header .dropdown-menu a {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0.5rem 1rem;
+        }
+
+        /* Icon alignment in dropdown items */
+        .main-header .dropdown-menu .dropdown-item i,
+        .main-header .dropdown-menu a i,
+        .main-header .dropdown-menu .fa,
+        .main-header .dropdown-menu .fas,
+        .main-header .dropdown-menu .far {
+          min-width: 20px;
+          text-align: center;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Message item improvements for help dropdown */
+        .dropdown-menu .media {
+          display: flex;
+          align-items: flex-start;
+          padding: 0.5rem;
+        }
+
+        .dropdown-menu .media .media-body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .dropdown-menu .media img,
+        .dropdown-menu .media .img-size-50 {
+          flex-shrink: 0;
+        }
+
+        /* Navbar brand vertical alignment */
+        .navbar-brand {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .navbar-brand img {
+          vertical-align: middle;
+        }
+
+        /* Badge alignment in navbar */
+        .main-header .navbar-badge {
+          position: absolute;
+          top: 5px;
+          right: 3px;
+          font-size: 0.6rem;
+          padding: 2px 4px;
+        }
+
+        /* Controlbar icon alignment */
+        .main-header [data-widget='control-sidebar'] {
+          display: flex;
+          align-items: center;
         }
 
         /* Network visualization */
@@ -475,29 +854,21 @@ ui <- dashboardPage(
         .nav-sidebar .nav-link.disabled:hover {
           background-color: transparent;
         }
-
-        /* Wider controlbar for settings */
-        .control-sidebar {
-          width: 400px !important;
-        }
-
-        @media (max-width: 768px) {
-          .control-sidebar {
-            width: 300px !important;
-          }
-        }
       "))
     ),
 
     # Tab Items
     tabItems(
 
+      # DASHBOARD TAB
+      tabItem(
+        tabName = "dashboard",
+        get_dashboard_tab_content()
+      ),
+
       # DATA UPLOAD TAB
       tabItem(
         tabName = "upload",
-        h2("Data Upload & Generation", class = "mb-4"),
-
-        # Load tab content
         get_upload_tab_content()
       ),
 
@@ -547,6 +918,12 @@ ui <- dashboardPage(
       tabItem(
         tabName = "report",
         get_report_tab_content()
+      ),
+
+      # CUSTOM TERMS REVIEW TAB (Admin Only)
+      tabItem(
+        tabName = "custom_terms",
+        uiOutput("custom_terms_content")
       ),
 
       # HELP TABS

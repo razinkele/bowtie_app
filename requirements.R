@@ -1,8 +1,8 @@
 # requirements.R
 # R Package Dependencies for Environmental Bowtie Risk Analysis Application
-# Version: 5.3.0 (Production-Ready Edition)
+# Version: 5.4.0 (Stability & Infrastructure Edition)
 
-cat("📦 Installing R Package Dependencies for Bowtie App v5.3\n")
+cat("📦 Installing R Package Dependencies for Bowtie App v5.4\n")
 cat("======================================================\n")
 
 # Set CRAN mirror for faster downloads
@@ -16,7 +16,8 @@ core_packages <- c(
   "shinycssloaders",
   "colourpicker",
   "htmlwidgets",
-  "shinyjs"
+  "shinyjs",
+  "shinyFiles"  # For local folder selection (user storage)
 )
 
 # Data handling packages

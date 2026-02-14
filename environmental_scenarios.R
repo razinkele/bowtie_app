@@ -43,6 +43,21 @@ ENVIRONMENTAL_SCENARIOS <- list(
     description = "Marine resource depletion and ecosystem impacts from commercial fishing, bycatch, and habitat destruction"
   ),
 
+  marine_biodiversity_loss = list(
+    id = "marine_biodiversity_loss",
+    icon = "fish-fins",
+    label = "Marine biodiversity loss and ecosystem degradation",
+    description = "Species decline, habitat destruction, and ecosystem imbalance from multiple anthropogenic pressures"
+  ),
+
+  # Offshore Wind Farm scenario
+  offshore_wind_biodiversity = list(
+    id = "offshore_wind_biodiversity",
+    icon = "wind",
+    label = "Offshore wind farm impacts on marine biodiversity and fishery",
+    description = "Comprehensive assessment of offshore wind energy development impacts on marine ecosystems, fish populations, seabed habitats, and commercial/artisanal fisheries, with Nature Inclusive Design (NID) mitigation measures"
+  ),
+
   # Martinique-specific scenarios
   martinique_coastal_erosion = list(
     id = "martinique_coastal_erosion",
@@ -155,5 +170,5 @@ getScenarioDescription <- function(scenario_id) {
 }
 
 # Export for use in other modules
-cat("✅ Environmental scenarios configuration loaded\n")
-cat("   Available scenarios:", length(ENVIRONMENTAL_SCENARIOS), "\n")
+log_debug("Environmental scenarios configuration loaded")
+log_debug(paste("   Available scenarios:", length(ENVIRONMENTAL_SCENARIOS)))

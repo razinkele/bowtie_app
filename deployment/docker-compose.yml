@@ -1,7 +1,7 @@
 # =============================================================================
 # Docker Compose Configuration for Environmental Bowtie Risk Analysis App
-# Version: 5.1.0
-# Updated: November 2025
+# Version: 5.4.0 (Stability & Infrastructure Edition)
+# Updated: January 2026
 # =============================================================================
 
 version: '3.8'
@@ -35,7 +35,7 @@ services:
     networks:
       - bowtie-network
     labels:
-      - "com.bowtie.version=5.1.0"
+      - "com.bowtie.version=5.4.0"
       - "com.bowtie.description=Environmental Bowtie Risk Analysis"
 
   # =============================================================================
@@ -43,20 +43,21 @@ services:
   # =============================================================================
   bowtie-app-dev:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deployment/Dockerfile
       target: development
     container_name: bowtie-app-dev
     ports:
       - "3839:3838"
     volumes:
       # Mount entire app directory for hot reload
-      - .:/srv/shiny-server/bowtie_app
-      - ./dev_logs:/srv/shiny-server/bowtie_app/dev_logs
+      - ..:/srv/shiny-server/bowtie_app
+      - bowtie-dev-logs:/srv/shiny-server/bowtie_app/dev_logs
     environment:
       - SHINY_ENV=development
       - SHINY_HOST=0.0.0.0
       - SHINY_PORT=3838
+      - TZ=Europe/Vilnius
     restart: "no"
     networks:
       - bowtie-network
@@ -68,8 +69,8 @@ services:
   # =============================================================================
   bowtie-app-test:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deployment/Dockerfile
       target: build
     container_name: bowtie-app-test
     volumes:
@@ -77,6 +78,7 @@ services:
       - ./performance_reports:/srv/shiny-server/bowtie_app/performance_reports
     environment:
       - SHINY_ENV=testing
+      - TZ=Europe/Vilnius
     command: >
       sh -c "
       echo '🧪 Running Comprehensive Test Suite' &&
@@ -91,35 +93,39 @@ services:
       - test
 
   # =============================================================================
-  # MONITORING SERVICE
+  # PERFORMANCE MONITORING SERVICE
   # =============================================================================
   performance-monitor:
-    build:
-      context: .
-      dockerfile: Dockerfile
-
-  # =============================================================================
-  # DEVELOPMENT SERVICE (Optional - for testing)
-  # =============================================================================
-  bowtie-app-dev:
     build:
       context: ..
       dockerfile: deployment/Dockerfile
       target: build
-    container_name: bowtie-app-dev
-    ports:
-      - "3839:3838"
+    container_name: bowtie-performance-monitor
     volumes:
-      # Mount entire app directory for development
-      - ..:/srv/shiny-server/bowtie_app
+      - ./performance_reports:/srv/shiny-server/bowtie_app/performance_reports
     environment:
-      - SHINY_ENV=development
+      - SHINY_ENV=monitoring
       - TZ=Europe/Vilnius
-    restart: "no"
+    command: >
+      sh -c "
+      echo '📊 Starting Performance Monitoring' &&
+      while true; do
+        echo \"[$(date)] Running performance check...\" &&
+        Rscript -e \"
+          source('utils/performance_benchmark.R')
+          results <- run_performance_suite()
+          saveRDS(results, paste0('performance_reports/monitor_', format(Sys.time(), '%Y%m%d_%H%M%S'), '.rds'))
+          cat('✅ Performance check completed\n')
+        \" &&
+        sleep 3600
+      done
+      "
     networks:
       - bowtie-network
     profiles:
-      - dev
+      - monitoring
+    depends_on:
+      - bowtie-app
 
 # =============================================================================
 # NETWORKS
@@ -139,3 +145,6 @@ volumes:
   bowtie-logs:
     driver: local
     name: bowtie-app-logs
+  bowtie-dev-logs:
+    driver: local
+    name: bowtie-app-dev-logs

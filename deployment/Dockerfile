@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Application - Docker Configuration
-# Version: 5.2.0 (Advanced Framework Edition)
+# Version: 5.4.0 (Stability & Infrastructure Edition)
 # Multi-stage build for optimized production deployment
 # =============================================================================
 
@@ -9,7 +9,7 @@ FROM rocker/shiny:4.4.3 as base
 
 # Set maintainer information
 LABEL maintainer="Environmental Bowtie App Team"
-LABEL version="5.2.0"
+LABEL version="5.4.0"
 LABEL description="Environmental Bowtie Risk Analysis with Bayesian Networks"
 
 # Set working directory
@@ -45,11 +45,17 @@ RUN Rscript requirements.R
 FROM dependencies as build
 
 # Copy application files
-COPY app.R global.R ui.R server.R start_app.R ./
+COPY app.R global.R ui.R server.R start_app.R config.R ./
 COPY guided_workflow.R bowtie_bayesian_network.R ./
 COPY utils.R vocabulary.R translations_data.R ./
 COPY environmental_scenarios.R ./
-COPY *.xlsx ./
+COPY vocabulary_bowtie_generator.R ./
+
+# Copy data files (explicit list for clarity)
+COPY CAUSES.xlsx CONSEQUENCES.xlsx CONTROLS.xlsx ./
+COPY data/ ./data/
+
+# Copy web assets and documentation
 COPY www/ ./www/
 COPY README.md CLAUDE.md ./
 
@@ -61,9 +67,9 @@ RUN chmod +r *.R *.xlsx
 RUN Rscript -e "
 # Validate essential files exist
 required_files <- c('app.R', 'global.R', 'ui.R', 'server.R', 'start_app.R',
-                   'guided_workflow.R', 'utils.R', 'vocabulary.R',
+                   'config.R', 'guided_workflow.R', 'utils.R', 'vocabulary.R',
                    'bowtie_bayesian_network.R', 'translations_data.R',
-                   'environmental_scenarios.R')
+                   'environmental_scenarios.R', 'vocabulary_bowtie_generator.R')
 
 missing_files <- required_files[!file.exists(required_files)]
 if (length(missing_files) > 0) {
@@ -87,6 +93,10 @@ if (length(missing_data) > 0) {
 # =============================================================================
 FROM base as production
 
+# Install curl for healthcheck (minimal addition)
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy built application from build stage
 COPY --from=build /srv/shiny-server/bowtie_app /srv/shiny-server/bowtie_app
 
@@ -94,14 +104,14 @@ COPY --from=build /srv/shiny-server/bowtie_app /srv/shiny-server/bowtie_app
 COPY --from=dependencies /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 
 # Create necessary directories
-RUN mkdir -p /var/log/shiny-server
-RUN mkdir -p /srv/shiny-server/bowtie_app/logs
-RUN mkdir -p /srv/shiny-server/bowtie_app/performance_reports
-RUN mkdir -p /srv/shiny-server/bowtie_app/dev_logs
+RUN mkdir -p /var/log/shiny-server \
+    && mkdir -p /srv/shiny-server/bowtie_app/logs \
+    && mkdir -p /srv/shiny-server/bowtie_app/performance_reports \
+    && mkdir -p /srv/shiny-server/bowtie_app/data
 
 # Set proper permissions
-RUN chown -R shiny:shiny /srv/shiny-server/
-RUN chown -R shiny:shiny /var/log/shiny-server
+RUN chown -R shiny:shiny /srv/shiny-server/ \
+    && chown -R shiny:shiny /var/log/shiny-server
 
 # Configure Shiny Server
 COPY shiny-server.conf /etc/shiny-server/shiny-server.conf

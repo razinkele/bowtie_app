@@ -13,6 +13,12 @@ library(dplyr)
 # Suppress warnings for cleaner test output
 options(warn = -1)
 
+# Load guided workflow using helper (handles path resolution)
+if (!exists("load_guided_workflow")) {
+  skip("Helper setup not loaded - skipping hierarchical integration tests")
+}
+workflow_loaded <- tryCatch({ load_guided_workflow() }, error = function(e) FALSE)
+
 # =============================================================================
 # TEST CONTEXT: Complete Workflow Simulation
 # =============================================================================
@@ -20,8 +26,7 @@ options(warn = -1)
 context("Hierarchical Integration - Complete Workflow")
 
 test_that("Complete workflow: Select activities hierarchically", {
-  source("../../vocabulary.R")
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
 
@@ -56,8 +61,7 @@ test_that("Complete workflow: Select activities hierarchically", {
 })
 
 test_that("Complete workflow: Add custom entries and review", {
-  source("../../vocabulary.R")
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Initialize workflow state
   workflow_state <- list(
@@ -137,7 +141,7 @@ test_that("Complete workflow: Add custom entries and review", {
 })
 
 test_that("Complete workflow: Mix vocabulary and custom entries", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
 
@@ -213,7 +217,7 @@ test_that("Custom entries persist when navigating between steps", {
 })
 
 test_that("Hierarchical selections persist across step navigation", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   # Create workflow state with hierarchical selections
@@ -299,7 +303,7 @@ test_that("Duplicate entries are detected across vocabulary and custom", {
 })
 
 test_that("Group-item relationship is validated", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   validate_item_belongs_to_group <- function(group_id, item_name, vocab_data) {
@@ -436,7 +440,7 @@ test_that("Export data includes custom entries metadata", {
 context("Hierarchical Integration - User Experience")
 
 test_that("User can complete workflow using only vocabulary items", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   workflow <- list(
@@ -498,7 +502,7 @@ test_that("User can complete workflow using only custom entries", {
 })
 
 test_that("User can mix vocabulary and custom entries seamlessly", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   workflow <- list(

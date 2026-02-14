@@ -1,10 +1,10 @@
 #!/usr/bin/env Rscript
 # Compile USER_MANUAL.Rmd to PDF
-# Version: 5.3.0
+# Version: 5.4.0
 
 cat("=============================================================================\n")
 cat("  Environmental Bowtie Risk Analysis - PDF Manual Compilation\n")
-cat("  Version: 5.3.0\n")
+cat("  Version: 5.4.0\n")
 cat("=============================================================================\n\n")
 
 # Check and install required packages
@@ -45,7 +45,7 @@ if (!has_latex) {
 cat("\n[INFO] Compiling USER_MANUAL.Rmd to PDF...\n")
 
 input_file <- "docs/USER_MANUAL.Rmd"
-output_file <- "Environmental_Bowtie_Risk_Analysis_Manual_v5.3.0.pdf"
+output_file <- "Environmental_Bowtie_Risk_Analysis_Manual_v5.4.0.pdf"
 output_dir <- "docs"
 
 if (!file.exists(input_file)) {
@@ -67,7 +67,7 @@ tryCatch({
   cat("Manual Details:\n")
   cat("  File: ", output_file, "\n")
   cat("  Location: ", file.path(output_dir, output_file), "\n")
-  cat("  Version: 5.3.0\n")
+  cat("  Version: 5.4.0\n")
 
   # Get file size
   file_path <- file.path(output_dir, output_file)

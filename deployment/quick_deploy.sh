@@ -1,8 +1,9 @@
 #!/bin/bash
 # =============================================================================
 # Quick Deployment Script for Environmental Bowtie Risk Analysis
-# Version: 5.1.0
+# Version: 5.4.0 (Stability & Infrastructure Edition)
 # Usage: ./quick_deploy.sh [local|production|docker]
+# Updated: January 2026
 # =============================================================================
 
 set -e  # Exit on error
@@ -16,7 +17,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 APP_NAME="bowtie_app"
-APP_VERSION="5.1.0"
+APP_VERSION="5.4.0"
+SHINY_SERVER_VERSION="1.5.22.1017"  # Latest stable version as of Jan 2026
 DEPLOY_MODE="${1:-local}"
 APP_DIR="/srv/shiny-server/$APP_NAME"
 
@@ -98,28 +100,33 @@ deploy_local() {
 
 deploy_production() {
     print_header "Deploying to Production"
-    
+
     # Install Shiny Server if not present
     if ! command -v shiny-server &> /dev/null; then
-        print_warning "Shiny Server not found. Installing..."
-        
+        print_warning "Shiny Server not found. Installing version ${SHINY_SERVER_VERSION}..."
+
         # Detect OS
         if [ -f /etc/debian_version ]; then
             # Debian/Ubuntu
-            wget https://download3.rstudio.org/ubuntu-18.04/x86_64/shiny-server-1.5.21.1012-amd64.deb
-            sudo gdebi -n shiny-server-1.5.21.1012-amd64.deb
-            rm shiny-server-1.5.21.1012-amd64.deb
+            print_info "Detected Debian/Ubuntu system"
+            wget "https://download3.rstudio.org/ubuntu-18.04/x86_64/shiny-server-${SHINY_SERVER_VERSION}-amd64.deb"
+            sudo gdebi -n "shiny-server-${SHINY_SERVER_VERSION}-amd64.deb"
+            rm "shiny-server-${SHINY_SERVER_VERSION}-amd64.deb"
         elif [ -f /etc/redhat-release ]; then
-            # RedHat/CentOS
-            wget https://download3.rstudio.org/centos6.3/x86_64/shiny-server-1.5.21.1012-x86_64.rpm
-            sudo yum install -y --nogpgcheck shiny-server-1.5.21.1012-x86_64.rpm
-            rm shiny-server-1.5.21.1012-x86_64.rpm
+            # RedHat/CentOS/Rocky/Alma
+            print_info "Detected RedHat-based system"
+            wget "https://download3.rstudio.org/centos7/x86_64/shiny-server-${SHINY_SERVER_VERSION}-x86_64.rpm"
+            sudo yum install -y --nogpgcheck "shiny-server-${SHINY_SERVER_VERSION}-x86_64.rpm"
+            rm "shiny-server-${SHINY_SERVER_VERSION}-x86_64.rpm"
         else
             print_error "Unsupported OS. Please install Shiny Server manually."
+            print_info "Visit: https://posit.co/download/shiny-server/"
             exit 1
         fi
-        
-        print_success "Shiny Server installed"
+
+        print_success "Shiny Server ${SHINY_SERVER_VERSION} installed"
+    else
+        print_success "Shiny Server already installed"
     fi
     
     # Create backup if app exists

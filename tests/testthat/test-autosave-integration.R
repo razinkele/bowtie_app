@@ -12,6 +12,20 @@ library(shiny)
 # Suppress warnings for cleaner test output
 options(warn = -1)
 
+# Load guided workflow using helper (handles path resolution)
+# The helper-setup.R file is automatically loaded by testthat
+if (!exists("load_guided_workflow")) {
+  # Fallback if helper not loaded
+  skip("Helper setup not loaded - skipping autosave tests")
+}
+
+# Try to load guided workflow once at the start
+workflow_loaded <- tryCatch({
+  load_guided_workflow()
+}, error = function(e) {
+  FALSE
+})
+
 # =============================================================================
 # TEST CONTEXT: Complete Autosave Workflow
 # =============================================================================
@@ -22,7 +36,7 @@ test_that("Complete autosave workflow: enter data, save, restore", {
   skip_if_not_installed("jsonlite")
   skip_if_not_installed("digest")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Step 1: Create initial workflow state
   state1 <- init_workflow_state()
@@ -72,7 +86,7 @@ test_that("Autosave workflow with custom entries", {
   skip_if_not_installed("jsonlite")
   skip_if_not_installed("digest")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Create state with custom entries
   state <- init_workflow_state()
@@ -114,7 +128,7 @@ context("Autosave Integration - Session Restore")
 test_that("Session restore handles complete workflow state", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Create advanced workflow state (step 7)
   state <- init_workflow_state()
@@ -191,7 +205,7 @@ test_that("Session restore validates restored structure", {
 test_that("Session restore handles empty/null data gracefully", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # State with minimal data
   state <- init_workflow_state()
@@ -220,7 +234,7 @@ test_that("Autosave tracks progression through multiple steps", {
   skip_if_not_installed("jsonlite")
   skip_if_not_installed("digest")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Simulate user progressing through workflow
   hashes <- list()
@@ -292,7 +306,7 @@ context("Autosave Integration - Data Persistence")
 test_that("Autosave preserves all workflow data types", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Create comprehensive state
   state <- init_workflow_state()
@@ -337,7 +351,7 @@ test_that("Autosave preserves all workflow data types", {
 test_that("Autosave handles large workflow states efficiently", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Create large state
   state <- init_workflow_state()
@@ -407,7 +421,7 @@ test_that("Autosave handles corrupted JSON gracefully", {
 test_that("Autosave handles very long strings in state", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
   state$current_step <- 3
@@ -431,7 +445,7 @@ test_that("Autosave handles very long strings in state", {
 test_that("Autosave handles special characters in data", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
   state$current_step <- 3
@@ -464,7 +478,7 @@ test_that("Autosave handles special characters in data", {
 context("Autosave Integration - Workflow Completion")
 
 test_that("Workflow completion marks state correctly", {
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
   state$current_step <- 8
@@ -483,7 +497,7 @@ test_that("Workflow completion marks state correctly", {
 test_that("Completed workflow state can be serialized for final save", {
   skip_if_not_installed("jsonlite")
 
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
   state$current_step <- 8

@@ -1,7 +1,7 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis - Application Configuration
-# Version: 5.3.0
-# Last Updated: November 2025
+# Version: 5.4.0
+# Last Updated: December 2025
 # =============================================================================
 # This file contains all centralized configuration settings for the application.
 # It should be sourced by global.R and referenced by deployment scripts.
@@ -10,7 +10,7 @@
 APP_CONFIG <- list(
   # Application Metadata
   APP_NAME = "bowtie_app",
-  VERSION = "5.3.0",
+  VERSION = "5.4.0",
   TITLE = "Environmental Bowtie Risk Analysis",
   SUBTITLE = "Marine Biodiversity and Ecosystem Services Assessment",
   AUTHOR = "Marbefes Team & AI Assistant",
@@ -82,8 +82,11 @@ APP_CONFIG <- list(
   ),
   
   # UI Theme Configuration
+  # NOTE: These are CUSTOM APPLICATION BRANDING colors (environmental/green theme)
+  # For Bootstrap standard colors, see constants.R (COLOR_PRIMARY, etc.)
+  # Use APP_CONFIG$THEME for app-specific theming, COLOR_* for Bootstrap defaults
   THEME = list(
-    PRIMARY_COLOR = "#2C5F2D",
+    PRIMARY_COLOR = "#2C5F2D",  # Forest green - custom branding
     SECONDARY_COLOR = "#97BC62",
     SUCCESS_COLOR = "#28a745",
     WARNING_COLOR = "#ffc107",

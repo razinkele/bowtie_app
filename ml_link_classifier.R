@@ -1,5 +1,11 @@
+# =============================================================================
 # ml_link_classifier.R
 # Machine Learning Link Quality Classifier
+# =============================================================================
+# STATUS: EXPERIMENTAL - Not integrated into main application
+# This module is loaded optionally and provides ML classification
+# features that are not yet used in the production workflow.
+# =============================================================================
 # Version: 1.0
 # Description: Random Forest classifier for predicting suggestion acceptance
 #
@@ -176,12 +182,12 @@ train_link_classifier <- function(feedback_data,
   }
 
   if (nrow(feedback_data) < min_samples) {
-    cat(sprintf("ℹ️ Insufficient training data (%d < %d), skipping ML training\n",
-                nrow(feedback_data), min_samples))
+    bowtie_log(sprintf("Insufficient training data (%d < %d), skipping ML training",
+                nrow(feedback_data), min_samples), level = "info")
     return(NULL)
   }
 
-  cat(sprintf("🤖 Training Random Forest classifier on %d samples...\n", nrow(feedback_data)))
+  bowtie_log(sprintf("Training Random Forest classifier on %d samples...", nrow(feedback_data)), level = "info")
 
   # Extract features
   features <- extract_features_batch(feedback_data)
@@ -202,14 +208,13 @@ train_link_classifier <- function(feedback_data,
   training_data <- training_data[complete_cases, ]
 
   if (nrow(training_data) < min_samples) {
-    cat(sprintf("ℹ️ Insufficient complete cases (%d < %d), skipping ML training\n",
-                nrow(training_data), min_samples))
+    bowtie_log(sprintf("Insufficient complete cases (%d < %d), skipping ML training",
+                nrow(training_data), min_samples), level = "info")
     return(NULL)
   }
 
-  cat(sprintf("   Training on %d complete samples\n", nrow(training_data)))
-  cat(sprintf("   Positive rate: %.1f%%\n",
-              100 * mean(training_data$outcome == "accepted")))
+  bowtie_log(sprintf("Training on %d complete samples (positive rate: %.1f%%)",
+              nrow(training_data), 100 * mean(training_data$outcome == "accepted")), level = "debug")
 
   # Set mtry if not provided (sqrt of number of features)
   if (is.null(mtry)) {
@@ -228,20 +233,13 @@ train_link_classifier <- function(feedback_data,
     )
 
     # Print model summary
-    cat(sprintf("✅ Random Forest trained successfully\n"))
-    cat(sprintf("   Trees: %d\n", ntree))
-    cat(sprintf("   Features per split: %d\n", mtry))
-    cat(sprintf("   OOB error rate: %.2f%%\n\n", model$err.rate[ntree, "OOB"] * 100))
+    bowtie_log(sprintf("Random Forest trained: %d trees, %d features/split, OOB error: %.2f%%",
+                       ntree, mtry, model$err.rate[ntree, "OOB"] * 100), level = "success")
 
     # Feature importance
     importance <- randomForest::importance(model)
     top_features <- head(rownames(importance)[order(importance[, "MeanDecreaseGini"], decreasing = TRUE)], 5)
-
-    cat("   Top 5 important features:\n")
-    for (feat in top_features) {
-      cat(sprintf("     • %s\n", feat))
-    }
-    cat("\n")
+    bowtie_log(sprintf("Top features: %s", paste(top_features, collapse = ", ")), level = "debug")
 
     return(model)
   }, error = function(e) {
@@ -265,7 +263,7 @@ save_classifier <- function(model, file_path = "models/link_classifier.rds") {
 
   tryCatch({
     saveRDS(model, file_path)
-    cat(sprintf("✅ Classifier saved to %s\n", file_path))
+    bowtie_log(sprintf("Classifier saved to %s", file_path), level = "success")
   }, error = function(e) {
     warning("Failed to save classifier: ", e$message)
   })
@@ -280,7 +278,7 @@ save_classifier <- function(model, file_path = "models/link_classifier.rds") {
 load_classifier <- function(file_path = "models/link_classifier.rds") {
 
   if (!file.exists(file_path)) {
-    cat(sprintf("ℹ️ No classifier found at %s\n", file_path))
+    bowtie_log(sprintf("No classifier found at %s", file_path), level = "info")
     return(NULL)
   }
 
@@ -291,9 +289,8 @@ load_classifier <- function(file_path = "models/link_classifier.rds") {
 
   tryCatch({
     model <- readRDS(file_path)
-    cat(sprintf("✅ Loaded classifier from %s\n", file_path))
-    cat(sprintf("   Trees: %d\n", model$ntree))
-    cat(sprintf("   OOB error: %.2f%%\n\n", model$err.rate[model$ntree, "OOB"] * 100))
+    bowtie_log(sprintf("Loaded classifier from %s (trees: %d, OOB error: %.2f%%)",
+                       file_path, model$ntree, model$err.rate[model$ntree, "OOB"] * 100), level = "success")
     return(model)
   }, error = function(e) {
     warning("Failed to load classifier: ", e$message)
@@ -386,7 +383,7 @@ init_ml_classifier <- function(feedback_data = NULL,
                               min_samples = 50) {
 
   if (!ML_CLASSIFIER_CAPABILITIES$randomForest) {
-    cat("ℹ️ randomForest not available, ML classification disabled\n")
+    bowtie_log("randomForest not available, ML classification disabled", level = "info")
     return(FALSE)
   }
 
@@ -394,7 +391,7 @@ init_ml_classifier <- function(feedback_data = NULL,
   model <- load_classifier()
 
   if (is.null(model) && auto_train && !is.null(feedback_data)) {
-    cat("ℹ️ No saved classifier found, training new model...\n")
+    bowtie_log("No saved classifier found, training new model...", level = "info")
     model <- train_link_classifier(feedback_data, min_samples = min_samples)
 
     if (!is.null(model)) {
@@ -425,30 +422,22 @@ get_ml_classifier <- function() {
 # INITIALIZATION
 # =============================================================================
 
-cat("✅ ML Link Classifier loaded successfully!\n")
-cat("==================================================\n\n")
-cat("📦 Capabilities:\n")
-cat("  - Random Forest:", if(ML_CLASSIFIER_CAPABILITIES$randomForest) "✅" else "❌", "\n")
-cat("  - Caret (advanced):", if(ML_CLASSIFIER_CAPABILITIES$caret) "✅" else "❌", "\n")
-cat("  - Basic ML:", if(ML_CLASSIFIER_CAPABILITIES$basic_ml) "✅" else "❌", "\n\n")
-
-cat("🔧 Available Functions:\n")
-cat("  - train_link_classifier()      : Train Random Forest on feedback\n")
-cat("  - load_classifier()            : Load saved model\n")
-cat("  - save_classifier()            : Save model to disk\n")
-cat("  - predict_link_quality()       : Predict acceptance probability\n")
-cat("  - add_ml_quality_scores()      : Add ML scores to links\n")
-cat("  - extract_link_features()      : Feature engineering\n")
-cat("  - init_ml_classifier()         : Initialize classifier\n")
-cat("  - get_ml_classifier()          : Get cached classifier\n\n")
-
-cat("📚 Usage Example:\n")
-cat('  # Train on feedback data\n')
-cat('  model <- train_link_classifier(feedback_data, ntree = 500)\n')
-cat('  save_classifier(model)\n\n')
-cat('  # Use for prediction\n')
-cat('  links_with_ml <- add_ml_quality_scores(links, model)\n')
-cat('  links_ranked <- links_with_ml %>% arrange(desc(ml_quality))\n\n')
-
-cat("✅ Ready for ML-based link quality prediction!\n")
-cat("==================================================\n\n")
+# Module initialization message (interactive only)
+if (interactive()) {
+  cat("ML Link Classifier loaded successfully!\n")
+  cat("==================================================\n\n")
+  cat("Capabilities:\n")
+  cat("  - Random Forest:", if(ML_CLASSIFIER_CAPABILITIES$randomForest) "YES" else "NO", "\n")
+  cat("  - Caret (advanced):", if(ML_CLASSIFIER_CAPABILITIES$caret) "YES" else "NO", "\n")
+  cat("  - Basic ML:", if(ML_CLASSIFIER_CAPABILITIES$basic_ml) "YES" else "NO", "\n\n")
+  cat("Available Functions:\n")
+  cat("  - train_link_classifier()      : Train Random Forest on feedback\n")
+  cat("  - load_classifier()            : Load saved model\n")
+  cat("  - save_classifier()            : Save model to disk\n")
+  cat("  - predict_link_quality()       : Predict acceptance probability\n")
+  cat("  - add_ml_quality_scores()      : Add ML scores to links\n")
+  cat("  - extract_link_features()      : Feature engineering\n")
+  cat("  - init_ml_classifier()         : Initialize classifier\n")
+  cat("  - get_ml_classifier()          : Get cached classifier\n\n")
+  cat("==================================================\n")
+}

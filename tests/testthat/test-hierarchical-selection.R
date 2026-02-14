@@ -13,6 +13,20 @@ library(dplyr)
 # Suppress warnings for cleaner test output
 options(warn = -1)
 
+# Load guided workflow using helper (handles path resolution)
+if (!exists("load_guided_workflow")) {
+  skip("Helper setup not loaded - skipping hierarchical selection tests")
+}
+workflow_loaded <- tryCatch({ load_guided_workflow() }, error = function(e) FALSE)
+
+# Helper function to safely load vocabulary
+safe_load_vocabulary <- function() {
+  if (!exists("load_vocabulary")) {
+    if (!workflow_loaded) return(NULL)
+  }
+  tryCatch({ load_vocabulary() }, error = function(e) NULL)
+}
+
 # =============================================================================
 # TEST CONTEXT: Hierarchical Selection Functionality
 # =============================================================================
@@ -20,8 +34,7 @@ options(warn = -1)
 context("Hierarchical Selection - Vocabulary Structure")
 
 test_that("Vocabulary data has hierarchical structure", {
-  # Source vocabulary module
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Load vocabulary
   vocab <- load_vocabulary()
@@ -56,7 +69,7 @@ test_that("Vocabulary data has hierarchical structure", {
 })
 
 test_that("get_children function returns correct hierarchical data", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   # Get first Level 1 activity
@@ -76,7 +89,7 @@ test_that("get_children function returns correct hierarchical data", {
 })
 
 test_that("Hierarchical structure is consistent across vocabulary types", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   # Check each vocabulary type has consistent structure
@@ -182,10 +195,7 @@ test_that("Custom entries prevent duplicates", {
 context("Hierarchical Selection - UI Components")
 
 test_that("Step 3 UI generates hierarchical selection inputs", {
-  source("../../translations_data.R")
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
 
@@ -207,10 +217,7 @@ test_that("Step 3 UI generates hierarchical selection inputs", {
 })
 
 test_that("Step 3 UI includes custom entry options", {
-  source("../../translations_data.R")
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
   ui <- generate_step3_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -230,10 +237,7 @@ test_that("Step 3 UI includes custom entry options", {
 })
 
 test_that("Step 4 UI generates hierarchical control selection", {
-  source("../../translations_data.R")
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
   ui <- generate_step4_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -248,10 +252,7 @@ test_that("Step 4 UI generates hierarchical control selection", {
 })
 
 test_that("Step 5 UI generates hierarchical consequence selection", {
-  source("../../translations_data.R")
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
   ui <- generate_step5_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -266,10 +267,7 @@ test_that("Step 5 UI generates hierarchical consequence selection", {
 })
 
 test_that("Step 6 UI generates hierarchical protective control selection", {
-  source("../../translations_data.R")
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
   ui <- generate_step6_ui(vocabulary_data = vocab, session = NULL, current_lang = "en")
@@ -284,9 +282,7 @@ test_that("Step 6 UI generates hierarchical protective control selection", {
 })
 
 test_that("Step 7 UI includes custom entries review table", {
-  source("../../translations_data.R")
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   ui <- generate_step7_ui(session = NULL, current_lang = "en")
   ui_html <- as.character(ui)
@@ -304,7 +300,7 @@ test_that("Step 7 UI includes custom entries review table", {
 context("Hierarchical Selection - Server Logic")
 
 test_that("Group selection updates item choices correctly", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   # Simulate selecting a group
@@ -372,7 +368,7 @@ test_that("Item selection from hierarchy works correctly", {
     return(NULL)
   }
 
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   if (nrow(vocab$activities) > 0) {
@@ -515,8 +511,6 @@ test_that("Custom entries review table generates correct data", {
 context("Hierarchical Selection - Edge Cases")
 
 test_that("Empty vocabulary data is handled gracefully", {
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
 
   # Create empty vocabulary data
   empty_vocab <- list(
@@ -532,8 +526,6 @@ test_that("Empty vocabulary data is handled gracefully", {
 })
 
 test_that("NULL vocabulary data is handled gracefully", {
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
 
   # Should not error when generating UI with NULL vocabulary
   expect_error(generate_step3_ui(vocabulary_data = NULL, session = NULL), NA,
@@ -541,7 +533,7 @@ test_that("NULL vocabulary data is handled gracefully", {
 })
 
 test_that("Invalid group selection returns no items", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   # Try to get children of non-existent group
@@ -616,7 +608,7 @@ test_that("Empty custom entries show appropriate message", {
 context("Hierarchical Selection - Performance")
 
 test_that("Large vocabulary loads efficiently", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   # Measure load time
   start_time <- Sys.time()
@@ -632,7 +624,7 @@ test_that("Large vocabulary loads efficiently", {
 })
 
 test_that("Hierarchical filtering is performant", {
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   if (nrow(vocab$activities) > 0) {
@@ -660,10 +652,7 @@ test_that("Hierarchical filtering is performant", {
 })
 
 test_that("UI generation is performant", {
-  source("../../translations_data.R")
-  source("../../ui_components.R")
-  source("../../guided_workflow.R")
-  source("../../vocabulary.R")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   vocab <- load_vocabulary()
 

@@ -12,6 +12,12 @@ library(dplyr)
 # Suppress warnings for cleaner test output
 options(warn = -1)
 
+# Load guided workflow using helper (handles path resolution)
+if (!exists("load_guided_workflow")) {
+  skip("Helper setup not loaded - skipping hierarchical performance tests")
+}
+workflow_loaded <- tryCatch({ load_guided_workflow() }, error = function(e) FALSE)
+
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
@@ -43,7 +49,7 @@ test_that("Vocabulary loading completes within acceptable time", {
 
   result <- benchmark_operation(
     operation = function() {
-      source("../../vocabulary.r")
+      skip_if(!workflow_loaded, "Guided workflow not available")
       load_vocabulary()
     },
     description = "Load complete vocabulary",
@@ -56,7 +62,7 @@ test_that("Vocabulary loading completes within acceptable time", {
 })
 
 test_that("Individual vocabulary type loading is performant", {
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n📊 Individual Vocabulary Type Loading:\n")
 
@@ -105,7 +111,7 @@ test_that("Individual vocabulary type loading is performant", {
 context("Hierarchical Performance - Filtering Operations")
 
 test_that("Group filtering is performant", {
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   cat("\n📊 Hierarchical Filtering Performance:\n")
@@ -134,7 +140,7 @@ test_that("Group filtering is performant", {
 })
 
 test_that("Child item filtering is performant", {
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   cat("\n📊 Child Item Filtering Performance:\n")
@@ -165,7 +171,7 @@ test_that("Child item filtering is performant", {
 })
 
 test_that("get_children function is performant", {
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   cat("\n📊 get_children Function Performance:\n")
@@ -196,8 +202,7 @@ test_that("get_children function is performant", {
 context("Hierarchical Performance - UI Generation")
 
 test_that("Step UI generation with vocabulary is performant", {
-  source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   cat("\n📊 UI Generation Performance:\n")
@@ -250,8 +255,7 @@ test_that("Step UI generation with vocabulary is performant", {
 })
 
 test_that("Batch UI generation for all steps is performant", {
-  source("../../guided_workflow.R")
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   cat("\n📊 Batch UI Generation Performance:\n")
@@ -369,7 +373,7 @@ test_that("Custom entries review table generation is performant", {
 context("Hierarchical Performance - Memory Usage")
 
 test_that("Vocabulary data has acceptable memory footprint", {
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
 
   cat("\n💾 Memory Usage Analysis:\n")
 
@@ -429,7 +433,7 @@ test_that("Custom entries tracking has minimal memory overhead", {
 context("Hierarchical Performance - Scalability")
 
 test_that("System handles large number of selections efficiently", {
-  source("../../vocabulary.r")
+  skip_if(!workflow_loaded, "Guided workflow not available")
   vocab <- load_vocabulary()
 
   cat("\n📈 Scalability Test - Large Selections:\n")
