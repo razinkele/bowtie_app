@@ -56,6 +56,11 @@ deployment/.claude/
 .env.local
 .env.production
 
+# Docs archive (session notes, old implementation logs)
+docs/archive/sessions/
+docs/archive/implementation/
+docs/archive/phase-notes/
+
 # OneDrive sync conflict files
 *-laguna-safeBackup*
 # Editor backup files
