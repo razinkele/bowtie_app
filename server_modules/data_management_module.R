@@ -54,7 +54,7 @@ data_management_module_server <- function(input, output, session, lang = reactiv
 
     tryCatch({
       data <- read_excel(input$file$datapath, sheet = input$sheet)
-      validation <- validateDataColumns(data)
+      validation <- validate_data_columns(data)
 
       if (!validation$valid) {
         showNotification(paste("Missing required columns:",
@@ -62,7 +62,7 @@ data_management_module_server <- function(input, output, session, lang = reactiv
         return()
       }
 
-      data <- addDefaultColumns(data)
+      data <- add_default_columns(data)
       currentData(data)
       editedData(data)
       dataVersion(dataVersion() + 1)
@@ -106,7 +106,7 @@ data_management_module_server <- function(input, output, session, lang = reactiv
     showNotification(scenario_msg, type = "message", duration = 3)
 
     tryCatch({
-      multiple_controls_data <- generateEnvironmentalDataWithMultipleControls(scenario_key)
+      multiple_controls_data <- generate_environmental_data_with_multiple_controls(scenario_key)
       currentData(multiple_controls_data)
       editedData(multiple_controls_data)
       envDataGenerated(TRUE)

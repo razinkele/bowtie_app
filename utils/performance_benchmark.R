@@ -67,8 +67,8 @@ run_performance_benchmarks <- function(include_regression_tests = TRUE,
   sample_data <- generate_sample_environmental_data()
 
   bowtie_benchmark <- microbenchmark(
-    create_nodes = createBowtieNodesFixed(sample_data, "Sample Problem", 45, TRUE, TRUE),
-    create_edges = createBowtieEdgesFixed(sample_data, TRUE),
+    create_nodes = create_bowtie_nodes_fixed(sample_data, "Sample Problem", 45, TRUE, TRUE),
+    create_edges = create_bowtie_edges_fixed(sample_data, TRUE),
     times = 20
   )
   print(bowtie_benchmark)
@@ -80,8 +80,8 @@ run_performance_benchmarks <- function(include_regression_tests = TRUE,
 
   large_dataset_benchmark <- microbenchmark(
     process_large_data = {
-      nodes <- createBowtieNodesFixed(large_data, "Large Test Problem", 45, TRUE, TRUE)
-      edges <- createBowtieEdgesFixed(large_data, TRUE)
+      nodes <- create_bowtie_nodes_fixed(large_data, "Large Test Problem", 45, TRUE, TRUE)
+      edges <- create_bowtie_edges_fixed(large_data, TRUE)
     },
     times = 5
   )
@@ -220,8 +220,8 @@ profile_application_startup <- function() {
 
     # Simulate data loading
     sample_data <- generate_sample_environmental_data()
-    nodes <- createBowtieNodesFixed(sample_data, "Profile Test", 45, TRUE, TRUE)
-    edges <- createBowtieEdgesFixed(sample_data, TRUE)
+    nodes <- create_bowtie_nodes_fixed(sample_data, "Profile Test", 45, TRUE, TRUE)
+    edges <- create_bowtie_edges_fixed(sample_data, TRUE)
   }, interval = 0.01)
 }
 
@@ -257,10 +257,10 @@ monitor_memory_usage <- function() {
   log_memory("Sample data generated")
 
   # Create bowtie components
-  nodes <- createBowtieNodesFixed(test_data, "Memory Test", 45, TRUE, TRUE)
+  nodes <- create_bowtie_nodes_fixed(test_data, "Memory Test", 45, TRUE, TRUE)
   log_memory("Nodes created")
 
-  edges <- createBowtieEdgesFixed(test_data, TRUE)
+  edges <- create_bowtie_edges_fixed(test_data, TRUE)
   log_memory("Edges created")
 
   # Clean up

@@ -315,7 +315,7 @@ benchmark_function <- function(fn, name = "function", iterations = 1, ...) {
 }
 
 # Function to generate environmental management sample data with connections and granular risk values
-generateEnvironmentalDataFixed <- function() {
+generate_environmental_data_fixed <- function() {
   bowtie_log("🔄 Generating environmental management data with granular connection risks", .verbose = TRUE)
   
   # Create comprehensive data with PROPERLY MAPPED protective mitigations
@@ -547,10 +547,10 @@ generateEnvironmentalDataFixed <- function() {
   return(sample_data)
 }
 
-# Backward compatibility alias removed - use generateEnvironmentalDataFixed() directly
+# Backward compatibility alias removed - use generate_environmental_data_fixed() directly
 
 # Detailed validation (returns list with missing columns) - used by server
-validateDataColumnsDetailed <- function(data) {
+validate_data_columns_detailed <- function(data) {
   # Accept either 'Central_Problem' or legacy 'Problem' as the central problem column
   required_cols <- c("Activity", "Pressure", "Consequence")
   missing_cols <- setdiff(required_cols, names(data))
@@ -564,13 +564,13 @@ validateDataColumnsDetailed <- function(data) {
 }
 
 # Backwards-compatible boolean validator (used by tests)
-validateDataColumns <- function(data) {
-  res <- validateDataColumnsDetailed(data)
+validate_data_columns <- function(data) {
+  res <- validate_data_columns_detailed(data)
   res$valid
 } 
 
 # Function to add default columns if missing (improved structure with granular risks)
-addDefaultColumns <- function(data, scenario_type = "") {
+add_default_columns <- function(data, scenario_type = "") {
   n_rows <- nrow(data)
   
   if (!"Activity" %in% names(data)) data$Activity <- paste("Activity", seq_len(n_rows))
@@ -702,7 +702,7 @@ addDefaultColumns <- function(data, scenario_type = "") {
 }
 
 # Vectorized risk score calculation (numeric product). Tests expect numeric rating (likelihood * severity)
-calculateRiskLevel <- function(likelihood, severity) {
+calculate_risk_level <- function(likelihood, severity) {
   as.numeric(likelihood) * as.numeric(severity)
 } 
 
@@ -728,7 +728,7 @@ PROTECTIVE_COLOR <- if(exists("APP_CONFIG")) APP_CONFIG$THEME$INFO_COLOR else "#
 CONSEQUENCE_COLOR <- "#E67E22"       # Dark orange for consequences
 
 # Optimized risk color function - accepts numeric scores or categorical levels
-getRiskColor <- function(risk_level, show_risk_levels = TRUE) {
+get_risk_color <- function(risk_level, show_risk_levels = TRUE) {
   if (!show_risk_levels) return("#CCCCCC")
   if (is.numeric(risk_level)) {
     catg <- ifelse(risk_level <= 6, "Low", ifelse(risk_level <= 15, "Medium", "High"))
@@ -741,7 +741,7 @@ getRiskColor <- function(risk_level, show_risk_levels = TRUE) {
 # Duplicate clearCache function removed - use clear_cache() instead
 
 # Updated node creation for comprehensive bowtie structure
-createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
+create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, show_risk_levels, show_barriers) {
   # Validate input data
   if (missing(hazard_data) || !is.data.frame(hazard_data) || nrow(hazard_data) == 0) {
     stop("Invalid hazard data: 'hazard_data' must be a non-empty data.frame with required columns")
@@ -855,7 +855,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     activity_colors <- if (show_risk_levels) {
       sapply(activities, function(a) {
         risk <- hazard_data$Risk_Level[hazard_data$Activity == a][1]
-        getRiskColor(risk, TRUE)
+        get_risk_color(risk, TRUE)
       })
     } else {
       rep(ACTIVITY_COLOR, n_activities)
@@ -902,7 +902,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     pressure_colors <- if (show_risk_levels) {
       sapply(pressures, function(p) {
         risk <- hazard_data$Risk_Level[hazard_data$Pressure == p][1]
-        getRiskColor(risk, TRUE)
+        get_risk_color(risk, TRUE)
       })
     } else {
       rep(PRESSURE_COLOR, n_pressures)
@@ -952,7 +952,7 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
     cons_colors <- if (show_risk_levels) {
       sapply(consequences, function(c) {
         risk <- hazard_data$Risk_Level[hazard_data$Consequence == c][1]
-        getRiskColor(risk, TRUE)
+        get_risk_color(risk, TRUE)
       })
     } else {
       rep(CONSEQUENCE_COLOR, n_consequences)
@@ -1119,11 +1119,11 @@ createBowtieNodesFixed <- function(hazard_data, selected_problem, node_size, sho
 }
 
 # Backward compatibility function
-# Backward compatibility alias removed - use createBowtieNodesFixed() directly
+# Backward compatibility alias removed - use create_bowtie_nodes_fixed() directly
 
 # Updated edge creation function with PROPER protective mitigation connections
 # OPTIMIZED: Uses list accumulation instead of vector concatenation (O(n) vs O(n²))
-createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
+create_bowtie_edges_fixed <- function(hazard_data, show_barriers) {
   # Create a unique cache key that includes mitigation data for proper caching
   if(!requireNamespace("digest", quietly = TRUE)) {
     # If digest package is not available, create a simple hash
@@ -1420,10 +1420,10 @@ createBowtieEdgesFixed <- function(hazard_data, show_barriers) {
 }
 
 # Backward compatibility function
-# Backward compatibility alias removed - use createBowtieEdgesFixed() directly
+# Backward compatibility alias removed - use create_bowtie_edges_fixed() directly
 
 # Improved function to create a default row for data editing with granular risks
-createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
+create_default_row_fixed <- function(selected_problem = "New Environmental Risk") {
   new_row <- data.frame(
     Activity = "New Improved Activity",
     Pressure = "New Improved Pressure",
@@ -1468,10 +1468,10 @@ createDefaultRowFixed <- function(selected_problem = "New Environmental Risk") {
 }
 
 # Backward compatibility function
-# Backward compatibility alias removed - use createDefaultRowFixed() directly
+# Backward compatibility alias removed - use create_default_row_fixed() directly
 
 # Backwards-compatible simple numeric validator (used by tests)
-validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
+validate_numeric_input <- function(value, min_val = 1L, max_val = 5L) {
   num_value <- suppressWarnings(as.integer(value))
   if (is.na(num_value)) return(min_val)
   if (num_value < min_val) return(min_val)
@@ -1480,7 +1480,7 @@ validateNumericInput <- function(value, min_val = 1L, max_val = 5L) {
 } 
 
 # Improved data summary function with granular connection analysis
-getDataSummaryFixed <- function(data) {
+get_data_summary_fixed <- function(data) {
   if (is.null(data) || nrow(data) == 0) return(NULL)
 
   # Prefer Problem if present, otherwise Central_Problem
@@ -1500,17 +1500,17 @@ getDataSummaryFixed <- function(data) {
 }
 
 # Backward compatibility function
-# Backward compatibility alias removed - use getDataSummaryFixed() directly
+# Backward compatibility alias removed - use get_data_summary_fixed() directly
 
 # NEW: Generate data with multiple preventive controls per pressure
-generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
+generate_environmental_data_with_multiple_controls <- function(scenario_key = NULL) {
   bowtie_log("🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure", level = "debug")
 
   # If a scenario is provided, use it as the base and expand controls
   if (!is.null(scenario_key) && scenario_key != "") {
     tryCatch({
-      # Use generateScenarioSpecificBowtie to get base scenario data
-      base_scenario <- generateScenarioSpecificBowtie(scenario_key)
+      # Use generate_scenario_specific_bowtie to get base scenario data
+      base_scenario <- generate_scenario_specific_bowtie(scenario_key)
       if (!is.null(base_scenario) && nrow(base_scenario) > 0) {
         bowtie_log("📋 Using scenario:", scenario_key, level = "debug")
 
@@ -1829,7 +1829,7 @@ generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
   pressure_control_data$Risk_Level <- pressure_control_data$Threat_Likelihood * pressure_control_data$Consequence_Severity
   
   # Add default columns (pass empty scenario for default escalation factors)
-  pressure_control_data <- addDefaultColumns(pressure_control_data, "")
+  pressure_control_data <- add_default_columns(pressure_control_data, "")
 
   bowtie_log("✅ Generated", n_rows, "entries with multiple preventive controls per pressure", level = "debug")
   bowtie_log("🎯 Unique pressures:", length(unique(pressure_control_data$Pressure)), level = "debug")
@@ -1846,13 +1846,13 @@ generateEnvironmentalDataWithMultipleControls <- function(scenario_key = NULL) {
 
 # Generate bowtie data using vocabulary elements from Excel files
 # Redirects to focused scenario-specific generation for better performance
-generateDataFromVocabulary <- function(scenario_type = "marine_pollution") {
+generate_data_from_vocabulary <- function(scenario_type = "marine_pollution") {
   bowtie_log("🔄 Generating FOCUSED bow-tie for scenario:", scenario_type, level = "debug")
-  return(generateScenarioSpecificBowtie(scenario_type))
+  return(generate_scenario_specific_bowtie(scenario_type))
 }
 
 # Generate scenario-specific bowtie data with SINGLE central problem
-generateScenarioSpecificBowtie <- function(scenario_type = "") {
+generate_scenario_specific_bowtie <- function(scenario_type = "") {
   bowtie_log("🎯 Generating FOCUSED bowtie with ONE central problem for scenario:", scenario_type, level = "debug")
 
   # Check if vocabulary_data is available
@@ -2257,7 +2257,7 @@ generateScenarioSpecificBowtie <- function(scenario_type = "") {
   }
 
   # Add default columns that the app expects
-  bowtie_data <- addDefaultColumns(bowtie_data, scenario_type)
+  bowtie_data <- add_default_columns(bowtie_data, scenario_type)
 
   bowtie_log("✅ Generated", nrow(bowtie_data), "bowtie scenarios with SINGLE central problem", level = "debug")
   bowtie_log("🎯 Central Problem:", unique(bowtie_data$Central_Problem), level = "debug")

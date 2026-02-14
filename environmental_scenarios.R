@@ -116,7 +116,7 @@ ENVIRONMENTAL_SCENARIOS <- list(
 #' @param include_blank Logical. Include blank/custom option? Default TRUE
 #' @return Named character vector with scenario IDs as values and labels as names
 #' @export
-getEnvironmentalScenarioChoices <- function(include_blank = TRUE) {
+get_environmental_scenario_choices <- function(include_blank = TRUE) {
   choices <- sapply(ENVIRONMENTAL_SCENARIOS, function(s) s$id)
   names(choices) <- sapply(ENVIRONMENTAL_SCENARIOS, function(s) s$label)
 
@@ -134,7 +134,7 @@ getEnvironmentalScenarioChoices <- function(include_blank = TRUE) {
 #' @param scenario_id Character. The scenario ID
 #' @return Character. FontAwesome icon name, or "circle-question" if not found
 #' @export
-getScenarioIcon <- function(scenario_id) {
+get_scenario_icon <- function(scenario_id) {
   if (scenario_id %in% names(ENVIRONMENTAL_SCENARIOS)) {
     return(ENVIRONMENTAL_SCENARIOS[[scenario_id]]$icon)
   }
@@ -148,7 +148,7 @@ getScenarioIcon <- function(scenario_id) {
 #' @param scenario_id Character. The scenario ID
 #' @return Character. Scenario label, or "Custom" if not found
 #' @export
-getScenarioLabel <- function(scenario_id) {
+get_scenario_label <- function(scenario_id) {
   if (scenario_id %in% names(ENVIRONMENTAL_SCENARIOS)) {
     return(ENVIRONMENTAL_SCENARIOS[[scenario_id]]$label)
   }
@@ -162,7 +162,7 @@ getScenarioLabel <- function(scenario_id) {
 #' @param scenario_id Character. The scenario ID
 #' @return Character. Scenario description, or empty string if not found
 #' @export
-getScenarioDescription <- function(scenario_id) {
+get_scenario_description <- function(scenario_id) {
   if (scenario_id %in% names(ENVIRONMENTAL_SCENARIOS)) {
     return(ENVIRONMENTAL_SCENARIOS[[scenario_id]]$description)
   }

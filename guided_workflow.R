@@ -635,7 +635,7 @@ generate_step1_ui <- function(session = NULL, current_lang = "en") {
              div(class = "mb-3",
                  h6(t("gw_select_template", current_lang)),
                  selectInput(ns("problem_template"), t("gw_quick_start", current_lang),
-                           choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
+                           choices = get_environmental_scenario_choices(include_blank = TRUE),
                            selected = ""
                  )
              ),

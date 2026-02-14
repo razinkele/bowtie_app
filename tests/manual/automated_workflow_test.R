@@ -176,7 +176,7 @@ test_that("Environmental scenarios are accessible", {
 })
 
 test_that("Scenario choices can be generated", {
-  choices <- getEnvironmentalScenarioChoices(include_blank = TRUE)
+  choices <- get_environmental_scenario_choices(include_blank = TRUE)
 
   expect_true(is.character(choices))
   expect_true(length(choices) > 0)

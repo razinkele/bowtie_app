@@ -947,13 +947,13 @@ server <- function(input, output, session) {
     numeric_columns <- c("Likelihood", "Severity", "Overall_Likelihood", "Overall_Severity")
 
     if (col_name %in% numeric_columns) {
-      validation <- validateNumericInput(info$value)
+      validation <- validate_numeric_input(info$value)
       if (!validation$valid) {
         showNotification(validation$message, type = "error", duration = 3)
         return()
       }
       data[info$row, info$col] <- validation$value
-      data[info$row, "Risk_Level"] <- calculateRiskLevel(data[info$row, "Likelihood"], data[info$row, "Severity"])
+      data[info$row, "Risk_Level"] <- calculate_risk_level(data[info$row, "Likelihood"], data[info$row, "Severity"])
     } else {
       data[info$row, info$col] <- as.character(info$value)
     }
@@ -986,7 +986,7 @@ server <- function(input, output, session) {
         if (getOption("bowtie.verbose", FALSE)) {
           bowtie_log("Initializing data for addRow operation...", level = "debug")
         }
-        initial_data <- generateEnvironmentalDataFixed()
+        initial_data <- generate_environmental_data_fixed()
         # Take only the structure but remove all rows to start fresh
         data <- initial_data[0, , drop = FALSE]
         currentData(data)
@@ -995,7 +995,7 @@ server <- function(input, output, session) {
       }
 
       selected_problem <- if (!is.null(input$selectedProblem)) input$selectedProblem else "New Environmental Risk"
-      new_row <- createDefaultRowFixed(selected_problem)
+      new_row <- create_default_row_fixed(selected_problem)
 
       # Ensure column structure compatibility
       existing_cols <- names(data)
@@ -3093,7 +3093,7 @@ server <- function(input, output, session) {
     current_lang <- lang()
     updateSelectInput(session, "data_scenario_template",
                      label = t("select_scenario", current_lang),
-                     choices = getScenarioChoices(current_lang, include_blank = TRUE))
+                     choices = get_scenario_choices(current_lang, include_blank = TRUE))
   })
 
   # =============================================================================

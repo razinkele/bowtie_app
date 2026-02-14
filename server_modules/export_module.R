@@ -24,8 +24,8 @@ export_module_server <- function(input, output, session, getCurrentData) {
 
       if (!("Central_Problem" %in% names(data)) && "Problem" %in% names(data)) data$Central_Problem <- data$Problem
       problem_data <- data[data$Central_Problem == input$selectedProblem, ]
-      nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, 50, FALSE, TRUE)
-      edges <- createBowtieEdgesFixed(problem_data, TRUE)
+      nodes <- create_bowtie_nodes_fixed(problem_data, input$selectedProblem, 50, FALSE, TRUE)
+      edges <- create_bowtie_edges_fixed(problem_data, TRUE)
 
       network <- visNetwork(nodes, edges,
                           main = paste("🌟 Enhanced Environmental Bowtie Analysis with Bayesian Networks:", input$selectedProblem),
@@ -68,9 +68,9 @@ export_module_server <- function(input, output, session, getCurrentData) {
 
       if (!("Central_Problem" %in% names(data)) && "Problem" %in% names(data)) data$Central_Problem <- data$Problem
       problem_data <- data[data$Central_Problem == input$selectedProblem, ]
-      nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, input$nodeSize,
+      nodes <- create_bowtie_nodes_fixed(problem_data, input$selectedProblem, input$nodeSize,
                                      input$showRiskLevels, input$showBarriers)
-      edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
+      edges <- create_bowtie_edges_fixed(problem_data, input$showBarriers)
 
       # Create network
       network <- visNetwork(nodes, edges,
@@ -112,9 +112,9 @@ export_module_server <- function(input, output, session, getCurrentData) {
 
       if (!("Central_Problem" %in% names(data)) && "Problem" %in% names(data)) data$Central_Problem <- data$Problem
       problem_data <- data[data$Central_Problem == input$selectedProblem, ]
-      nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, input$nodeSize,
+      nodes <- create_bowtie_nodes_fixed(problem_data, input$selectedProblem, input$nodeSize,
                                      input$showRiskLevels, input$showBarriers)
-      edges <- createBowtieEdgesFixed(problem_data, input$showBarriers)
+      edges <- create_bowtie_edges_fixed(problem_data, input$showBarriers)
 
       # Create network with export button - WHITE background for readability
       network <- visNetwork(nodes, edges,

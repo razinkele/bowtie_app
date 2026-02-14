@@ -135,7 +135,7 @@ get_upload_tab_content <- function() {
               div(class = "mb-3",
                 selectInput("data_scenario_template",
                            "Select environmental scenario:",
-                           choices = getEnvironmentalScenarioChoices(include_blank = TRUE),
+                           choices = get_environmental_scenario_choices(include_blank = TRUE),
                            selected = "")
               ),
               actionButton("generateMultipleControls",

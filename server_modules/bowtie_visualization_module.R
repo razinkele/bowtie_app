@@ -66,7 +66,7 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
     }
 
     # Calculate nodes
-    nodes <- createBowtieNodesFixed(problem_data, input$selectedProblem, node_size,
+    nodes <- create_bowtie_nodes_fixed(problem_data, input$selectedProblem, node_size,
                                    show_risk, show_barriers)
 
     # Store in cache
@@ -93,7 +93,7 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
     }
 
     # Calculate edges
-    edges <- createBowtieEdgesFixed(problem_data, show_barriers)
+    edges <- create_bowtie_edges_fixed(problem_data, show_barriers)
 
     # Store in cache
     set_cache(cache_key, edges)

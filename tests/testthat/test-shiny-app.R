@@ -84,7 +84,7 @@ test_that("Environmental data generation works in app context", {
   source("utils.r", local = TRUE)
   
   expect_no_error({
-    env_data <- generateEnvironmentalDataFixed()
+    env_data <- generate_environmental_data_fixed()
   })
   
   expect_s3_class(env_data, "data.frame")
@@ -119,7 +119,7 @@ test_that("Bayesian network functions work in app context", {
   source("bowtie_bayesian_network.r", local = TRUE)
   
   expect_no_error({
-    test_data <- generateEnvironmentalDataFixed()
+    test_data <- generate_environmental_data_fixed()
     bn_structure <- create_bayesian_structure(test_data)
   })
 })
@@ -129,15 +129,15 @@ test_that("File processing functions handle different inputs", {
   source("utils.r", local = TRUE)
   
   # Test with generated data
-  test_data <- generateEnvironmentalDataFixed()
+  test_data <- generate_environmental_data_fixed()
   
   expect_no_error({
-    validated <- validateDataColumns(test_data)
+    validated <- validate_data_columns(test_data)
     expect_true(validated)
   })
   
   expect_no_error({
-    enhanced_data <- addDefaultColumns(test_data)
+    enhanced_data <- add_default_columns(test_data)
     expect_true(ncol(enhanced_data) >= ncol(test_data))
   })
 })
@@ -146,17 +146,17 @@ test_that("File processing functions handle different inputs", {
 test_that("Visualization functions work correctly", {
   source("utils.r", local = TRUE)
   
-  test_data <- generateEnvironmentalDataFixed()
+  test_data <- generate_environmental_data_fixed()
   
   expect_no_error({
     # Test bowtie node creation
-    nodes <- createBowtieNodesFixed(test_data, "Water Pollution", 50, TRUE, TRUE)
+    nodes <- create_bowtie_nodes_fixed(test_data, "Water Pollution", 50, TRUE, TRUE)
     expect_s3_class(nodes, "data.frame")
   })
   
   expect_no_error({
     # Test bowtie edge creation
-    edges <- createBowtieEdgesFixed(test_data, TRUE)
+    edges <- create_bowtie_edges_fixed(test_data, TRUE)
     expect_s3_class(edges, "data.frame")
   })
 })
@@ -168,13 +168,13 @@ test_that("App handles errors gracefully", {
   # Test with invalid data
   expect_error({
     invalid_data <- data.frame()
-    createBowtieNodesFixed(invalid_data, "Test Problem", 50, TRUE, TRUE)
+    create_bowtie_nodes_fixed(invalid_data, "Test Problem", 50, TRUE, TRUE)
   })
   
   # Test risk calculation with edge cases
   expect_no_error({
-    risk1 <- calculateRiskLevel(0, 0)  # Edge case
-    risk2 <- calculateRiskLevel(10, 10)  # Above normal range
+    risk1 <- calculate_risk_level(0, 0)  # Edge case
+    risk2 <- calculate_risk_level(10, 10)  # Above normal range
   })
 })
 
@@ -182,10 +182,10 @@ test_that("App handles errors gracefully", {
 test_that("Data summary functions work in app", {
   source("utils.r", local = TRUE)
   
-  test_data <- generateEnvironmentalDataFixed()
+  test_data <- generate_environmental_data_fixed()
   
   expect_no_error({
-    summary_data <- getDataSummaryFixed(test_data)
+    summary_data <- get_data_summary_fixed(test_data)
     expect_s3_class(summary_data, "data.frame")
     expect_true(nrow(summary_data) > 0)
   })
@@ -205,8 +205,8 @@ test_that("Input validation functions work properly", {
   source("utils.r", local = TRUE)
   
   # Test numeric validation
-  expect_equal(validateNumericInput(3, 1, 5), 3)
-  expect_equal(validateNumericInput(-1, 1, 5), 1)
-  expect_equal(validateNumericInput(10, 1, 5), 5)
-  expect_equal(validateNumericInput("invalid", 1, 5), 1)
+  expect_equal(validate_numeric_input(3, 1, 5), 3)
+  expect_equal(validate_numeric_input(-1, 1, 5), 1)
+  expect_equal(validate_numeric_input(10, 1, 5), 5)
+  expect_equal(validate_numeric_input("invalid", 1, 5), 1)
 })

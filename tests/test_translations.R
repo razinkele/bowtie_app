@@ -19,8 +19,8 @@ cat("  FR marine pollution:", t("scenario_marine_pollution", "fr"), "\n")
 
 # Test scenario choices function
 cat("\n📋 Testing scenario choices function:\n")
-scenarios_en <- getScenarioChoices("en", include_blank = FALSE)
-scenarios_fr <- getScenarioChoices("fr", include_blank = FALSE)
+scenarios_en <- get_scenario_choices("en", include_blank = FALSE)
+scenarios_fr <- get_scenario_choices("fr", include_blank = FALSE)
 cat("  English scenarios count:", length(scenarios_en), "\n")
 cat("  French scenarios count:", length(scenarios_fr), "\n")
 

@@ -1216,6 +1216,6 @@ t <- function(key, lang = "en") {
 }
 
 # Scenario choices helper function
-getScenarioChoices <- function(lang = "en", include_blank = TRUE) {
-  return(getEnvironmentalScenarioChoices(include_blank))
+get_scenario_choices <- function(lang = "en", include_blank = TRUE) {
+  return(get_environmental_scenario_choices(include_blank))
 }
