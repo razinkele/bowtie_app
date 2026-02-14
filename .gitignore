@@ -14,11 +14,13 @@ logs/
 dev_logs/
 *.log
 
+# Root archive (old scripts, cache, mock data, backups)
+archive/
+
 # Cache Files
 .cache/
 __pycache__/
 .pytest_cache/
-archive/cache/
 
 # User-Generated Data (workflow saves, feedback)
 data/*.rds
