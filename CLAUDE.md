@@ -6,30 +6,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an R Shiny web application for Environmental Bowtie Risk Analysis with Bayesian Network integration. The application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks.
 
-**Version**: 5.3.0 (Production-Ready Edition)
-**Release Date**: November 2025
-**Framework Updates**: Production-ready with comprehensive deployment framework, UI/UX improvements, bug fixes, Linux compatibility, and clean codebase structure.
+**Version**: 5.4.0 (Stability & Infrastructure Edition)
+**Release Date**: December 2025
+**Framework Updates**: Production-ready with comprehensive bug fixes (v5.3.7-5.3.10.1), filename normalization for cross-platform compatibility, critical usability improvements including category filtering, delete functionality for all tables, enhanced data persistence, comprehensive workflow fixes, export functionality improvements, and complete guided workflow system.
 
 ## Running the Application
 
-### Local Development
+The application supports two launcher methods:
+
+### Method 1: Standard Launcher (app.R)
 ```r
 # In R console or RStudio
-source("app.R")
-# The app will launch automatically via shinyApp() call at the end of app.R
+Rscript app.R
+# Local access only, suitable for development
+# Automatically sources global.R, ui.R, server.R
 ```
 
-### Network/Online Deployment (Recommended)
+### Method 2: Network-Ready Launcher (start_app.R) - Recommended
 ```r
 # Use the optimized start script for network access
 Rscript start_app.R
-# App will be accessible at http://0.0.0.0:3838 for network users
+# Reads configuration from config.R (port 3838, host 0.0.0.0)
+# App will be accessible across your network
 ```
 
 ### Access Links
 - **Local machine**: http://localhost:3838
 - **Network access**: http://[YOUR_IP]:3838 (replace [YOUR_IP] with actual IP address)
-- **Current deployment**: http://192.168.1.8:3838 (example network access)
+- Both launchers now use port 3838 by default (configured in config.R)
 
 The application requires these R packages to be installed:
 - shiny, bslib, DT, readxl, openxlsx
@@ -43,11 +47,17 @@ Missing packages are automatically installed when the application starts.
 
 The application follows a modular Shiny architecture with separate files for different concerns:
 
-### `app.r` (Application Launcher)
-- Lightweight launcher that loads all required modules
+### `app.R` (Standard Application Launcher)
+- Standard Shiny application launcher (local development)
 - Sources global.R, ui.R, and server.R files
 - Entry point: `shinyApp(ui = ui, server = server)` at line 27
-- Contains startup messages and module loading sequence
+- Suitable for RStudio "Run App" button and local development
+
+### `start_app.R` (Network-Ready Launcher)
+- Enhanced launcher for network deployment
+- Reads configuration from config.R for host/port settings
+- Default: port 3838, host 0.0.0.0 (network access enabled)
+- Displays connection URLs and current IP address
 
 ### `global.R` (Global Configuration)
 - Package loading and dependency management
@@ -78,7 +88,7 @@ The application follows a modular Shiny architecture with separate files for dif
 - Functions for loading activities, pressures, consequences, and controls
 - Data structure management for bowtie components
 
-### `bowtie_bayesian_network.r` (Bayesian Network Integration)
+### `bowtie_bayesian_network.R` (Bayesian Network Integration)
 - Converts bowtie diagrams to Bayesian network structures
 - Probabilistic risk modeling and inference
 - Network visualization and analysis functions
@@ -147,26 +157,35 @@ The application features a comprehensive 8-step guided workflow for creating bow
 - **Data Persistence**: Maintains state across workflow steps
 - **Export Integration**: Seamless export to Excel format compatible with main application
 
-### Environmental Scenario Templates (Latest Update - September 2025)
+### Environmental Scenario Templates (Latest Update - December 2025)
 
-The application now includes updated environmental scenario templates across multiple interfaces:
+The application now includes **16 comprehensive environmental scenario templates** organized by geographic region across multiple interfaces:
 
-#### **Guided Workflow (Step 1) - Environmental Scenarios:**
-1. 🌊 **Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
-2. 🏭 **Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
-3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
-4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
-5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts *(NEW)*
+#### **Guided Workflow (Step 1) - Environmental Scenarios (Ordered):**
 
-#### **Data Upload Interface (Option 2) - Environmental Scenarios:**
-- 📊 **Complete vocabulary coverage** (53 activities, 36 pressures, 74 controls)
+**General Marine Scenarios (6):**
 1. 🌊 **Marine pollution from shipping & coastal activities** - Comprehensive maritime pollution assessment
 2. 🏭 **Industrial contamination through chemical discharge** - Chemical pollutant risk analysis
 3. 🚢 **Oil spills from maritime transportation** - Petroleum-based contamination scenarios
 4. 🌾 **Agricultural runoff causing eutrophication** - Nutrient pollution and water quality impacts
 5. 🐟 **Overfishing and commercial stock depletion** - Marine resource depletion and ecosystem impacts
+6. 🐠 **Marine biodiversity loss and ecosystem degradation** - Species decline, habitat destruction, and ecosystem imbalance
 
-**✅ Latest Update (September 2025):** All 5 environmental scenarios now synchronized between guided workflow and Data Upload interfaces for consistent user experience.
+**Macaronesian Islands Scenarios (3):** *(NEW Dec 2025)*
+7. ⛰️ **Macaronesia: Volcanic activity impacts on marine ecosystems** - Volcanic eruptions, lava flows, and hydrothermal vents (Azores, Madeira, Canary Islands, Cape Verde)
+8. 🦅 **Macaronesia: Endemic marine species conservation threats** - Monk seals, sea turtles, cetaceans, and endemic species protection
+9. 🌊 **Macaronesia: Deep-sea ecosystems and mining pressures** - Seamounts, hydrothermal vents, cold-water corals, and mining threats
+
+**Martinique-Specific Scenarios (7):**
+10. ⛰️ **Martinique: Coastal erosion and beach degradation** - Sea level rise and storm surge impacts
+11. 🌿 **Martinique: Sargassum seaweed influx impacts** - Massive seaweed arrivals and ecosystem disruption
+12. 🌊 **Martinique: Coral reef degradation and bleaching** - Caribbean reef ecosystem threats
+13. 💧 **Martinique: Watershed pollution from agriculture** - Chlordecone legacy and nutrient runoff
+14. 🌳 **Martinique: Mangrove forest degradation** - Coastal development and climate impacts
+15. 🌪️ **Martinique: Hurricane and tropical storm impacts** - Extreme weather and ecosystem disruption
+16. 🚢 **Martinique: Marine tourism environmental pressures** - Cruise ships and recreation impacts
+
+**✅ Latest Update (December 2025):** 16 environmental scenarios now available with 3 new Macaronesian island scenarios covering volcanic impacts, endemic species conservation, and deep-sea ecosystems. Scenarios are organized by region: General (6) → Macaronesian (3) → Martinique (7).
 
 ### UI/UX Enhancements (September 2025)
 
@@ -179,6 +198,7 @@ The application now includes updated environmental scenario templates across mul
 #### **Environmental Scenario Updates:**
 - ✅ **New overfishing scenario** - Added comprehensive marine resource depletion template
 - ✅ **Fish emoji integration** - Used 🐟 emoji for visual consistency
+
 - ✅ **Streamlined data interface** - Removed redundant scenarios from data upload page
 - ✅ **Template positioning** - Optimized scenario selector placement in Step 1
 
@@ -187,7 +207,124 @@ The application now includes updated environmental scenario templates across mul
 - ✅ **Enhanced scenario coverage** - 53/53 activities, 35/36 pressures, 74/74 controls, 26/26 consequences
 - ✅ **Realistic environmental modeling** - Multi-dimensional risk analysis across all vocabulary elements
 
-## Testing Framework (Version 5.2 Advanced)
+## Critical Usability Fixes (Version 5.3.3 - December 2025)
+
+The application received three critical usability improvements based on extensive user testing:
+
+### Issue #1: Category Header Filtering ✅
+
+**Problem**: Users could select category headers (Level 1 ALL CAPS items) which are meant only for organization.
+
+**Solution**:
+- Added filtering logic to all vocabulary selectors (activities, pressures, controls, consequences)
+- Only Level 2+ items are now shown in dropdown lists
+- Applied to 5 different selection widgets throughout the guided workflow
+
+**Files Modified**:
+- `guided_workflow.R` (lines 759-771, 808-821, 877-890, 953-966, 1029-1042)
+
+**Impact**: Users can now only select actual items, eliminating confusion
+
+### Issue #4: Delete Functionality ✅
+
+**Problem**: No way to remove items once added to tables - users had to restart workflow to fix mistakes.
+
+**Solution**:
+- Added delete button column to all 6 data tables:
+  - Activities table
+  - Pressures table
+  - Preventive controls table
+  - Consequences table
+  - Protective controls table
+  - Escalation factors table
+- Each delete button updates both reactive values and workflow state
+- Clear visual indication with red trash icon buttons
+
+**Files Modified**:
+- `guided_workflow.R` (12 new observer functions, 6 updated table renderers)
+
+**Impact**: Users can now easily correct mistakes without restarting
+
+### Issue #11: Data Persistence Enhancement ✅
+
+**Problem**: Data would disappear when navigating between steps or "playing around with the system".
+
+**Solution**:
+- Enhanced state validation in `save_step_data()` function
+- Added data integrity checks to prevent NULL overwrites
+- Comprehensive debugging logging to track data counts
+- All data fields initialized to prevent accidental loss
+
+**Files Modified**:
+- `guided_workflow.R` (lines 3558-3641)
+
+**Impact**: Data now reliably persists across all navigation scenarios
+
+### Documentation
+- **CRITICAL_FIXES_v5.3.3.md**: Comprehensive documentation of all usability fixes
+- **Testing**: All fixes manually tested and verified working
+
+## Critical Fixes (Version 5.3.2 - December 2025)
+
+The application received comprehensive fixes to resolve critical usability and stability issues in the guided workflow system:
+
+### Workflow & Navigation Fixes
+
+#### **IP Address Detection (Windows Compatibility)**
+- **Fixed**: Application crash on startup with error `'length = 2' in coercion to 'logical(1)'`
+- **Resolution**: Added cross-platform IP detection for Windows/Linux/Mac
+- **File**: `start_app.R` lines 30-64
+- **Result**: Application now starts successfully on all platforms
+
+#### **Template Selection System**
+- **Fixed**: All 16 environmental scenario templates now work correctly (updated Dec 2025 with Macaronesian island scenarios)
+- **Resolution**: Added comprehensive error handling and debugging
+- **File**: `guided_workflow.R` lines 2537-2617
+- **Result**: Templates populate Steps 1-2 automatically for all scenarios
+
+#### **Server Disconnection Issues**
+- **Fixed**: Server no longer disconnects during workflow navigation
+- **Resolution**: Fixed undefined `current_lang` variable, added error handling
+- **Files**: Multiple sections in `guided_workflow.R`
+- **Result**: Smooth navigation through all 8 workflow steps
+
+#### **Validation & Error Handling**
+- **Fixed**: Missing required fields no longer cause crashes
+- **Resolution**: NULL-safe input access, graceful error recovery
+- **File**: `guided_workflow.R` lines 3173-3239
+- **Result**: Clear validation messages instead of server crashes
+
+### Export & Completion Fixes
+
+#### **Complete Workflow Button**
+- **Added**: Prominent "Complete Workflow" button in Step 8
+- **Location**: Top of export options section (large green button)
+- **File**: `guided_workflow.R` lines 1187-1215
+- **Result**: Users can now clearly finalize their workflow
+
+#### **Auto-Complete on Export**
+- **Improved**: Export functions now auto-complete workflow if needed
+- **Affected**: Export to Excel, Generate PDF, Load to Main
+- **Files**: `guided_workflow.R` lines 2710-2959
+- **Result**: Seamless export experience without confusing errors
+
+#### **Load Progress Functionality**
+- **Fixed**: Loading saved workflow files no longer causes errors
+- **Resolution**: Removed undefined variable, added multi-format support
+- **File**: `guided_workflow.R` lines 3018-3135
+- **Result**: Backward-compatible file loading with automatic data migration
+
+### Documentation Added
+- `WORKFLOW_FIXES_2025.md`: Complete documentation of navigation & template fixes
+- `EXPORT_FIXES_2025.md`: Comprehensive export & completion fixes documentation
+- `COMPLETE_FIXES_SUMMARY.md`: Master summary of all v5.3.2 improvements
+
+### Testing Updates
+- **New Test Suite**: `tests/testthat/test-workflow-fixes.R`
+- **Coverage**: Templates, navigation, validation, export, load progress
+- **Integration**: Added to comprehensive test runner v5.3.2
+
+## Testing Framework (Version 5.3.2 Enhanced)
 
 The application includes a state-of-the-art testing framework with comprehensive test coverage, performance regression detection, and CI/CD integration:
 
@@ -205,7 +342,7 @@ source("tests/testthat/test-vocabulary.R")
 source("tests/testthat/test-bayesian-network.R")
 ```
 
-### Advanced Test Structure (Version 5.2)
+### Advanced Test Structure (Version 5.3.2)
 #### **Core Test Suites:**
 - `tests/testthat/test-utils.R`: Core utility functions, data generation, validation with advanced edge cases
 - `tests/testthat/test-vocabulary.R`: Vocabulary management and hierarchical data processing with performance benchmarks
@@ -214,15 +351,16 @@ source("tests/testthat/test-bayesian-network.R")
 - `tests/testthat/test-vocabulary-bowtie-generator.R`: Vocabulary-based bow-tie generation with AI linking validation
 - `tests/testthat/test-integration-workflow.R`: End-to-end integration tests with complete workflow coverage
 
-#### **New Advanced Test Suites:**
-- `tests/testthat/test-consistency-fixes.R`: **NEW** Validates consistency fixes (circular dependencies, icon standardization)
-- `tests/testthat/test-performance-regression.R`: **NEW** Performance regression testing and memory monitoring
+#### **Advanced Test Suites:**
+- `tests/testthat/test-consistency-fixes.R`: Validates consistency fixes (circular dependencies, icon standardization)
+- `tests/testthat/test-performance-regression.R`: Performance regression testing and memory monitoring
 - `tests/testthat/test-preventive-controls.R`: Preventive controls functionality and vocabulary integration
 - `tests/testthat/test-guided-workflow-integration.R`: Complete guided workflow system with state management tests
-- `tests/testthat/test-enhanced-themes.R`: **NEW** Bootstrap theme integration and UI component testing
+- `tests/testthat/test-enhanced-themes.R`: Bootstrap theme integration and UI component testing
+- `tests/testthat/test-workflow-fixes.R`: **NEW v5.3.2** Workflow navigation, templates, validation, export & load progress
 - `tests/fixtures/test_data.R`: Mock data and test fixtures with realistic scenarios
 - `tests/fixtures/realistic_test_data.R`: Enhanced realistic test data matching Excel file structure
-- `tests/comprehensive_test_runner.R`: **ENHANCED** Advanced test runner with parallel execution and detailed reporting
+- `tests/comprehensive_test_runner.R`: **ENHANCED v5.3.2** Advanced test runner with workflow fixes testing
 
 ### New Testing Capabilities (Version 5.1)
 - **Parallel Test Execution**: Faster test runs with concurrent testing
@@ -253,8 +391,63 @@ source("tests/testthat/test-bayesian-network.R")
 - **Error Handling**: Comprehensive try-catch blocks with user-friendly messaging and recovery
 - **Code Quality**: Enhanced coding standards with automated validation and consistent styling
 - **Memory Management**: Optimized memory usage for large datasets with smart caching
-- **Logging System**: **NEW** Structured logging for debugging, monitoring, and performance tracking
+- **Logging System**: Structured logging for debugging, monitoring, and performance tracking
 - **Version Control Integration**: Enhanced git workflow with automated testing and deployment
+
+### Logging Standards
+
+The application uses a structured logging system defined in `config/logging.R`. Follow these guidelines:
+
+**Preferred logging functions** (after global.R loads):
+```r
+bowtie_log("Message", level = "info")   # General logging
+log_info("Info message")                 # Info level
+log_warning("Warning message")           # Warning level
+log_error("Error message")               # Error level
+log_debug("Debug message")               # Debug level (verbose)
+log_success("Success message")           # Success level
+```
+
+**Early loading files** (before logging.R):
+- Files like `config.R`, `constants.R` load before the logging system
+- Use `cat()` wrapped in `if (interactive())` for these files
+- Add a comment explaining why `cat()` is used
+
+**Avoid**:
+- Raw `cat()` in files that load after `global.R`
+- Multiple logging patterns in the same file
+- Logging without level indicators
+
+**Never use after global.R loads:**
+- `message()` — bypasses centralized logging configuration
+- `warning()` — bypasses centralized logging configuration
+- `print()` — use `log_debug()` instead
+
+### Naming Conventions
+
+Follow these naming standards for consistency:
+
+| Element | Convention | Example |
+|---------|------------|---------|
+| Functions | `snake_case` | `load_vocabulary()`, `get_cache_stats()` |
+| Reactive values | `camelCase` | `hasData`, `currentLanguage` |
+| Constants | `UPPER_SNAKE_CASE` | `CACHE_MAX_SIZE`, `COLOR_PRIMARY` |
+| Local variables | `snake_case` | `file_path`, `cache_key` |
+| Function parameters | `snake_case` | `include_blank`, `max_size` |
+
+**Legacy camelCase functions** (maintained for backward compatibility):
+- `generateEnvironmentalDataFixed()` - use but don't create new ones like this
+- `validateDataColumns()`, `calculateRiskLevel()`, `getRiskColor()`
+- `createBowtieNodesFixed()`, `createBowtieEdgesFixed()`
+
+**When adding new functions**: Always use `snake_case`. Example:
+```r
+# Good
+calculate_risk_score <- function(likelihood, impact) { ... }
+
+# Avoid (legacy pattern)
+calculateRiskScore <- function(likelihood, impact) { ... }
+```
 
 ### Development Tools and Setup
 - **Package Management**: Automatic dependency resolution and installation
