@@ -25,6 +25,7 @@ __pycache__/
 # User-Generated Data (workflow saves, feedback)
 data/*.rds
 data/suggestion_feedback.rds
+data/custom_terms_backups/
 Bow-tie guidance/*.rds
 
 # Test Outputs
