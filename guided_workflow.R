@@ -1487,10 +1487,45 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     # =============================================================================
     # INITIALIZATION & REACTIVE STATE
     # =============================================================================
-    
+
     # Initialize workflow state
     workflow_state <- reactiveVal(init_workflow_state())
-  
+
+  # -------------------------------------------------------------------------
+  # NARROWED REACTIVES - Reduce unnecessary reactive cascade invalidations
+  # Instead of watching the entire workflow_state() list (which invalidates
+  # ALL downstream observers on ANY field change), these extract specific
+  # fields so observers only re-execute when their actual dependency changes.
+  # -------------------------------------------------------------------------
+
+  # Narrowed reactive: only invalidates when current_step changes
+  current_step_reactive <- reactive({
+    workflow_state()$current_step
+  })
+
+  # Narrowed reactive: only invalidates when project_data changes
+  # Used by Step 8 review renderers (debounced to avoid rapid re-renders)
+  project_data_reactive <- reactive({
+    workflow_state()$project_data
+  })
+  project_data_debounced <- project_data_reactive %>% debounce(300)
+
+  # Narrowed reactive: only invalidates when workflow_complete changes
+  workflow_complete_reactive <- reactive({
+    isTRUE(workflow_state()$workflow_complete)
+  })
+
+  # Narrowed reactive: progress-related fields for the progress bar
+  progress_state_reactive <- reactive({
+    state <- workflow_state()
+    list(
+      current_step = state$current_step,
+      total_steps = state$total_steps,
+      completed_steps = state$completed_steps,
+      progress_percentage = state$progress_percentage
+    )
+  })
+
   # Reactive value for vocabulary data
   vocab_data <- reactiveVal(vocabulary_data)
   
@@ -1613,10 +1648,20 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   }, priority = -1)
 
   # Watch for workflow state changes and trigger autosave
-  observe({
+  # Throttled to 500ms - prevents excessive autosave triggers during rapid state updates
+  # (e.g., adding multiple items quickly). The actual save is further debounced to 3000ms
+  # by trigger_autosave_debounced, so this throttle just limits how often we check.
+  autosave_state_hash_raw <- reactive({
     state <- workflow_state()
     req(state)
     req(autosave_enabled())
+    compute_state_hash(state)
+  })
+  autosave_state_hash_throttled <- autosave_state_hash_raw %>% throttle(500)
+
+  observe({
+    hash <- autosave_state_hash_throttled()
+    req(hash)
 
     # Trigger debounced autosave on any state change
     trigger_autosave_debounced(delay_ms = 3000)
@@ -1755,70 +1800,79 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   
   # Render progress tracker
+  # Uses narrowed progress_state_reactive instead of full workflow_state()
   output$workflow_progress_ui <- renderUI({
-    req(workflow_state())
-    workflow_progress_ui(workflow_state(), lang())
+    progress_state <- progress_state_reactive()
+    req(progress_state)
+    # Build a minimal state-like list for the UI function
+    workflow_progress_ui(progress_state, lang())
   })
-  
+
   # Render steps sidebar
+  # Uses narrowed progress_state_reactive (only needs current_step + completed_steps)
   output$workflow_steps_sidebar <- renderUI({
-    req(workflow_state())
-    workflow_steps_sidebar_ui(workflow_state(), lang())
+    progress_state <- progress_state_reactive()
+    req(progress_state)
+    workflow_steps_sidebar_ui(progress_state, lang())
   })
-  
+
   # Render current step header
+  # Uses narrowed current_step_reactive - only re-renders on step change
   output$current_step_header <- renderUI({
-    state <- workflow_state()
-    req(state)
+    step_num <- current_step_reactive()
+    req(step_num)
     current_lang <- lang()
-    step_info <- WORKFLOW_CONFIG$steps[[state$current_step]]
-    
+    step_info <- WORKFLOW_CONFIG$steps[[step_num]]
+
     tagList(
       h4(t(step_info$title, current_lang)),
       tags$small(class = "text-muted", t(step_info$description, current_lang))
     )
   })
-  
+
   # Render current step content
+  # Uses narrowed current_step_reactive - only re-renders on step change
   output$current_step_content <- renderUI({
-    state <- workflow_state()
-    req(state)
-    
+    step_num <- current_step_reactive()
+    req(step_num)
+
     # Get the UI generation function for the current step
-    ui_function_name <- paste0("generate_step", state$current_step, "_ui")
-    
+    ui_function_name <- paste0("generate_step", step_num, "_ui")
+
     if (exists(ui_function_name, mode = "function")) {
       ui_function <- get(ui_function_name)
       # Call with session parameter and vocabulary_data for steps that need it
-      if (state$current_step %in% c(3, 4, 5, 6)) {
+      if (step_num %in% c(3, 4, 5, 6)) {
         ui_function(vocabulary_data = vocabulary_data, session = session, current_lang = lang())
       } else {
         ui_function(session = session, current_lang = lang())
       }
     } else {
       div(class = "alert alert-danger",
-          paste("UI for step", state$current_step, "not found."))
+          paste("UI for step", step_num, "not found."))
     }
   })
-  
+
   # Render navigation buttons
+  # Uses narrowed current_step_reactive - only re-renders on step change
   output$workflow_navigation <- renderUI({
-    state <- workflow_state()
-    req(state)
+    step_num <- current_step_reactive()
+    req(step_num)
 
     ns <- session$ns  # Get namespace function
+    total <- isolate(workflow_state()$total_steps)
 
     # On Step 8, only show Previous button - the finalize button is in the step content
-    if (state$current_step == state$total_steps) {
+    if (step_num == total) {
       tagList(
-        if (state$current_step > 1) {
+        if (step_num > 1) {
           actionButton(ns("prev_step"), t("gw_previous", lang()), icon = icon("arrow-left"), class = "btn-secondary")
         }
       )
     } else {
       # For steps 1-7, show normal navigation
       tagList(
-        if (state$current_step > 1) {
+        if (step_num > 1) {
           actionButton(ns("prev_step"), t("gw_previous", lang()), icon = icon("arrow-left"), class = "btn-secondary")
         },
         actionButton(ns("next_step"), t("gw_next", lang()), icon = icon("arrow-right"), class = "btn-primary")
@@ -1836,9 +1890,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
 
   # Update selectize choices when entering step 3
   # ONLY triggers when step ACTUALLY changes from a different value
+  # Uses narrowed current_step_reactive to avoid firing on non-step state changes
   observe({
-    state <- workflow_state()
-    current_step_num <- if (!is.null(state)) state$current_step else 0
+    current_step_num <- current_step_reactive() %||% 0
     previous_step <- last_processed_step()
 
     log_debug(paste("[VOCAB CHOICES] Observer triggered. Current step:", current_step_num, "| Previous:", previous_step))
@@ -2032,10 +2086,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   })
 
   # Sync reactive values with workflow state when entering Step 3
+  # Uses narrowed current_step_reactive to only fire on step changes
   observe({
-    state <- workflow_state()
-    if (!is.null(state) && state$current_step == 3) {
+    step_num <- current_step_reactive()
+    if (!is.null(step_num) && step_num == 3) {
       log_debug("[STATE SYNC] Step 3 state sync triggered")
+
+      # Read full state only when we know we need it (isolate prevents dependency)
+      state <- isolate(workflow_state())
 
       # Load activities from state if available
       if (!is.null(state$project_data$activities) && length(state$project_data$activities) > 0) {
@@ -2256,9 +2314,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     reactive_selected,  # e.g., selected_preventive_controls
     state_key           # e.g., "preventive_controls" (key in project_data)
   ) {
+    # Uses narrowed current_step_reactive to only fire on step changes
     observe({
-      state <- workflow_state()
-      if (!is.null(state) && state$current_step == step_number) {
+      step_num <- current_step_reactive()
+      if (!is.null(step_num) && step_num == step_number) {
         # Update vocabulary search choices
         if (!is.null(vocabulary_data) && !is.null(vocabulary_data[[vocab_type]])) {
           choices <- vocabulary_data[[vocab_type]]$name
@@ -2269,6 +2328,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
                                selected = character(0))
           }
         }
+
+        # Read full state only when we know we need it (isolate prevents dependency)
+        state <- isolate(workflow_state())
 
         # Load from state if available
         if (!is.null(state$project_data[[state_key]]) &&
@@ -2540,9 +2602,13 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   selected_escalation_factors <- reactiveVal(list())
   
   # Sync reactive values with workflow state when entering Step 7
+  # Uses narrowed current_step_reactive to only fire on step changes
   observe({
-    state <- workflow_state()
-    if (!is.null(state) && state$current_step == 7) {
+    step_num <- current_step_reactive()
+    if (!is.null(step_num) && step_num == 7) {
+      # Read full state only when we know we need it (isolate prevents dependency)
+      state <- isolate(workflow_state())
+
       # Load escalation factors from state if available
       if (!is.null(state$project_data$escalation_factors) && length(state$project_data$escalation_factors) > 0) {
         factors <- as.character(state$project_data$escalation_factors)
@@ -2937,16 +3003,19 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   
   # Render review outputs for Step 8
+  # All review renderers use project_data_debounced (300ms) to avoid rapid
+  # re-renders when multiple state fields change in quick succession.
+  # These outputs are only visible on Step 8, so a small delay is imperceptible.
   output$review_central_problem <- renderUI({
-    state <- workflow_state()
-    problem <- state$project_data$problem_statement %||% t("gw_not_defined", lang())
+    pd <- project_data_debounced()
+    problem <- pd$problem_statement %||% t("gw_not_defined", lang())
     tags$p(strong(problem))
   })
-  
+
   output$review_activities_pressures <- renderUI({
-    state <- workflow_state()
-    activities <- state$project_data$activities %||% list()
-    pressures <- state$project_data$pressures %||% list()
+    pd <- project_data_debounced()
+    activities <- pd$activities %||% list()
+    pressures <- pd$pressures %||% list()
 
     tagList(
       if (length(activities) > 0) {
@@ -2967,10 +3036,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       }
     )
   })
-  
+
   output$review_preventive_controls <- renderUI({
-    state <- workflow_state()
-    controls <- state$project_data$preventive_controls %||% list()
+    pd <- project_data_debounced()
+    controls <- pd$preventive_controls %||% list()
 
     if (length(controls) > 0) {
       tags$div(
@@ -2981,10 +3050,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       tags$p(em(t("gw_no_preventive_controls", lang())))
     }
   })
-  
+
   output$review_consequences <- renderUI({
-    state <- workflow_state()
-    consequences <- state$project_data$consequences %||% list()
+    pd <- project_data_debounced()
+    consequences <- pd$consequences %||% list()
 
     if (length(consequences) > 0) {
       tags$div(
@@ -2995,10 +3064,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       tags$p(em(t("gw_no_consequences", lang())))
     }
   })
-  
+
   output$review_protective_controls <- renderUI({
-    state <- workflow_state()
-    controls <- state$project_data$protective_controls %||% list()
+    pd <- project_data_debounced()
+    controls <- pd$protective_controls %||% list()
 
     if (length(controls) > 0) {
       tags$div(
@@ -3009,10 +3078,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       tags$p(em(t("gw_no_protective_controls", lang())))
     }
   })
-  
+
   output$review_escalation_preventive <- renderUI({
-    state <- workflow_state()
-    factors <- state$project_data$escalation_factors %||% list()
+    pd <- project_data_debounced()
+    factors <- pd$escalation_factors %||% list()
 
     if (length(factors) > 0) {
       tags$div(
@@ -3023,10 +3092,10 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       tags$p(em(t("gw_no_escalation", lang())))
     }
   })
-  
+
   output$review_escalation_protective <- renderUI({
-    state <- workflow_state()
-    factors <- state$project_data$escalation_factors %||% list()
+    pd <- project_data_debounced()
+    factors <- pd$escalation_factors %||% list()
 
     if (length(factors) > 0) {
       tags$div(
@@ -3037,16 +3106,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       tags$p(em(t("gw_no_escalation", lang())))
     }
   })
-  
-  output$assessment_statistics <- renderUI({
-    state <- workflow_state()
 
-    activities_count <- length(state$project_data$activities %||% list())
-    pressures_count <- length(state$project_data$pressures %||% list())
-    preventive_count <- length(state$project_data$preventive_controls %||% list())
-    consequences_count <- length(state$project_data$consequences %||% list())
-    protective_count <- length(state$project_data$protective_controls %||% list())
-    escalation_count <- length(state$project_data$escalation_factors %||% list())
+  output$assessment_statistics <- renderUI({
+    pd <- project_data_debounced()
+
+    activities_count <- length(pd$activities %||% list())
+    pressures_count <- length(pd$pressures %||% list())
+    preventive_count <- length(pd$preventive_controls %||% list())
+    consequences_count <- length(pd$consequences %||% list())
+    protective_count <- length(pd$protective_controls %||% list())
+    escalation_count <- length(pd$escalation_factors %||% list())
 
     tags$div(
       tags$h6("Component Summary:"),
@@ -3070,9 +3139,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
 
   # Render the finalize/export section based on workflow completion status
+  # Uses narrowed workflow_complete_reactive to only re-render when completion status changes
   output$finalize_export_section <- renderUI({
-    state <- workflow_state()
-    is_complete <- isTRUE(state$workflow_complete)
+    is_complete <- workflow_complete_reactive()
 
     if (!is_complete) {
       # Workflow NOT complete - show single Finalize button
@@ -3212,40 +3281,45 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   })
 
   # Populate Step 2 fields from template data when navigating to Step 2
+  # Uses narrowed current_step_reactive to only fire on step changes
   observe({
-    state <- workflow_state()
-    req(state)
-    req(state$current_step)
+    step_num <- current_step_reactive()
+    req(step_num)
 
     # When user navigates to Step 2, populate fields from stored template data
-    if (state$current_step == 2 && !is.null(state$project_data$template_applied)) {
-      # Small delay to ensure Step 2 UI is fully rendered
-      shinyjs::delay(100, {
-        # Populate problem statement if available
-        if (!is.null(state$project_data$problem_statement) && state$project_data$problem_statement != "") {
-          updateTextInput(session, "problem_statement", value = state$project_data$problem_statement)
-        }
+    if (step_num == 2) {
+      # Read full state only when we know we need it (isolate prevents dependency)
+      state <- isolate(workflow_state())
 
-        # Populate problem category if available
-        if (!is.null(state$project_data$problem_category) && state$project_data$problem_category != "") {
-          updateSelectInput(session, "problem_category", selected = state$project_data$problem_category)
-        }
+      if (!is.null(state$project_data$template_applied)) {
+        # Small delay to ensure Step 2 UI is fully rendered
+        shinyjs::delay(100, {
+          # Populate problem statement if available
+          if (!is.null(state$project_data$problem_statement) && state$project_data$problem_statement != "") {
+            updateTextInput(session, "problem_statement", value = state$project_data$problem_statement)
+          }
 
-        # Populate problem details if available
-        if (!is.null(state$project_data$problem_details) && state$project_data$problem_details != "") {
-          updateTextAreaInput(session, "problem_details", value = state$project_data$problem_details)
-        }
+          # Populate problem category if available
+          if (!is.null(state$project_data$problem_category) && state$project_data$problem_category != "") {
+            updateSelectInput(session, "problem_category", selected = state$project_data$problem_category)
+          }
 
-        # Populate problem scale if available
-        if (!is.null(state$project_data$problem_scale) && state$project_data$problem_scale != "") {
-          updateSelectInput(session, "problem_scale", selected = state$project_data$problem_scale)
-        }
+          # Populate problem details if available
+          if (!is.null(state$project_data$problem_details) && state$project_data$problem_details != "") {
+            updateTextAreaInput(session, "problem_details", value = state$project_data$problem_details)
+          }
 
-        # Populate problem urgency if available
-        if (!is.null(state$project_data$problem_urgency) && state$project_data$problem_urgency != "") {
-          updateSelectInput(session, "problem_urgency", selected = state$project_data$problem_urgency)
-        }
-      })
+          # Populate problem scale if available
+          if (!is.null(state$project_data$problem_scale) && state$project_data$problem_scale != "") {
+            updateSelectInput(session, "problem_scale", selected = state$project_data$problem_scale)
+          }
+
+          # Populate problem urgency if available
+          if (!is.null(state$project_data$problem_urgency) && state$project_data$problem_urgency != "") {
+            updateSelectInput(session, "problem_urgency", selected = state$project_data$problem_urgency)
+          }
+        })
+      }
     }
   })
 
@@ -3254,17 +3328,21 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
 
   # Finalization status output
+  # Uses narrowed workflow_complete_reactive to only re-render when completion changes
   output$finalization_status <- renderUI({
-    state <- workflow_state()
+    is_complete <- workflow_complete_reactive()
 
-    if (isTRUE(state$workflow_complete)) {
+    if (is_complete) {
+      # Read converted data count only when complete (isolate to avoid extra dependency)
+      scenario_count <- isolate({
+        state <- workflow_state()
+        if (!is.null(state$converted_main_data)) nrow(state$converted_main_data) else 0
+      })
       div(class = "d-flex align-items-center",
         span(class = "badge bg-success fs-6 me-2",
              tagList(icon("check-circle"), " Finalized")),
         span(class = "text-success",
-             paste("Ready to export -",
-                   if (!is.null(state$converted_main_data)) nrow(state$converted_main_data) else 0,
-                   "scenarios"))
+             paste("Ready to export -", scenario_count, "scenarios"))
       )
     } else {
       span(class = "text-muted fst-italic", "Not yet finalized")
