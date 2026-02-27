@@ -1,9 +1,9 @@
 /**
  * Deep Ocean Scientific Theme - Micro-Interactions
  * Environmental Bowtie Risk Analysis Application
- * Version: 1.0.0
+ * Version: 1.1.0
  *
- * Provides smooth animations, hover effects, and enhanced UX interactions
+ * Provides smooth animations, hover effects, theme switching, and enhanced UX
  */
 
 (function() {
@@ -18,8 +18,99 @@
     particleCount: 30,
     enableParticles: true,
     enableRipple: true,
-    enableCardAnimations: true
+    enableCardAnimations: true,
+    defaultTheme: 'dark',
+    themeStorageKey: 'bowtie_theme_preference'
   };
+
+  // =============================================================================
+  // THEME MANAGEMENT
+  // =============================================================================
+  const ThemeManager = {
+    currentTheme: 'dark',
+
+    init: function() {
+      // Load saved theme preference or use default
+      const savedTheme = localStorage.getItem(CONFIG.themeStorageKey);
+      this.currentTheme = savedTheme || CONFIG.defaultTheme;
+
+      // Apply theme immediately (before DOM fully loads to prevent flash)
+      this.applyTheme(this.currentTheme, false);
+
+      console.log('[Theme Manager] Initialized with theme:', this.currentTheme);
+    },
+
+    applyTheme: function(theme, animate = true) {
+      const html = document.documentElement;
+      const body = document.body;
+
+      if (animate) {
+        // Add transition class for smooth theme change
+        body.classList.add('theme-transitioning');
+      }
+
+      // Set theme attribute
+      html.setAttribute('data-theme', theme);
+      body.setAttribute('data-theme', theme);
+
+      // Update any theme toggle buttons
+      this.updateToggleButtons(theme);
+
+      // Store preference
+      localStorage.setItem(CONFIG.themeStorageKey, theme);
+      this.currentTheme = theme;
+
+      // Notify Shiny if available
+      if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+        Shiny.setInputValue('current_color_theme', theme, {priority: 'event'});
+      }
+
+      if (animate) {
+        // Remove transition class after animation
+        setTimeout(() => {
+          body.classList.remove('theme-transitioning');
+        }, 500);
+      }
+
+      console.log('[Theme Manager] Applied theme:', theme);
+    },
+
+    toggle: function() {
+      const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+      this.applyTheme(newTheme, true);
+      return newTheme;
+    },
+
+    updateToggleButtons: function(theme) {
+      // Update all theme toggle buttons in the UI
+      document.querySelectorAll('.theme-toggle-btn, [data-theme-toggle]').forEach(btn => {
+        const icon = btn.querySelector('i, .fa, .fas, .far');
+        const text = btn.querySelector('.theme-toggle-text');
+
+        if (icon) {
+          if (theme === 'dark') {
+            icon.className = icon.className.replace(/fa-sun|fa-moon/, 'fa-sun');
+          } else {
+            icon.className = icon.className.replace(/fa-sun|fa-moon/, 'fa-moon');
+          }
+        }
+
+        if (text) {
+          text.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+        }
+
+        // Update aria-label for accessibility
+        btn.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`);
+      });
+    },
+
+    getTheme: function() {
+      return this.currentTheme;
+    }
+  };
+
+  // Initialize theme BEFORE DOMContentLoaded to prevent flash
+  ThemeManager.init();
 
   // =============================================================================
   // INITIALIZATION
@@ -28,6 +119,7 @@
     console.log('[Deep Ocean Theme] Initializing micro-interactions...');
 
     // Initialize all interaction modules
+    initThemeToggle();
     initPageTransitions();
     initCardAnimations();
     initButtonRipples();
@@ -44,6 +136,41 @@
 
     console.log('[Deep Ocean Theme] Micro-interactions initialized');
   });
+
+  // =============================================================================
+  // THEME TOGGLE INITIALIZATION
+  // =============================================================================
+  function initThemeToggle() {
+    // Attach click handlers to any theme toggle buttons
+    document.querySelectorAll('.theme-toggle-btn, [data-theme-toggle]').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        ThemeManager.toggle();
+      });
+    });
+
+    // Listen for system preference changes
+    if (window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', (e) => {
+        // Only auto-switch if user hasn't set a preference
+        if (!localStorage.getItem(CONFIG.themeStorageKey)) {
+          ThemeManager.applyTheme(e.matches ? 'dark' : 'light', true);
+        }
+      });
+    }
+
+    // Keyboard shortcut: Ctrl/Cmd + Shift + L to toggle theme
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'L') {
+        e.preventDefault();
+        ThemeManager.toggle();
+      }
+    });
+  }
+
+  // Expose ThemeManager globally for external access
+  window.ThemeManager = ThemeManager;
 
   // =============================================================================
   // PAGE TRANSITIONS
@@ -446,7 +573,82 @@
   // =============================================================================
   const dynamicStyles = document.createElement('style');
   dynamicStyles.textContent = `
-    /* Value update animation */
+    /* =========================================
+       THEME TRANSITION STYLES
+       ========================================= */
+
+    /* Smooth theme transition */
+    .theme-transitioning,
+    .theme-transitioning * {
+      transition: background-color 0.4s ease,
+                  color 0.4s ease,
+                  border-color 0.4s ease,
+                  box-shadow 0.4s ease !important;
+    }
+
+    /* Theme toggle button */
+    .theme-toggle-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 25px;
+      font-weight: 500;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle-btn i {
+      font-size: 1.1em;
+      transition: transform 0.4s ease;
+    }
+
+    .theme-toggle-btn:hover i {
+      transform: rotate(180deg);
+    }
+
+    /* Dark mode toggle button style */
+    [data-theme="dark"] .theme-toggle-btn {
+      background: linear-gradient(135deg, rgba(255, 217, 61, 0.15), rgba(255, 217, 61, 0.05));
+      border: 1px solid rgba(255, 217, 61, 0.3);
+      color: #ffd93d;
+    }
+
+    [data-theme="dark"] .theme-toggle-btn:hover {
+      background: linear-gradient(135deg, rgba(255, 217, 61, 0.25), rgba(255, 217, 61, 0.1));
+      box-shadow: 0 4px 20px rgba(255, 217, 61, 0.2);
+    }
+
+    /* Light mode toggle button style */
+    [data-theme="light"] .theme-toggle-btn {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05));
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #6366f1;
+    }
+
+    [data-theme="light"] .theme-toggle-btn:hover {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.1));
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Compact toggle button (icon only) */
+    .theme-toggle-compact {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 50%;
+    }
+
+    .theme-toggle-compact .theme-toggle-text {
+      display: none;
+    }
+
+    /* =========================================
+       VALUE UPDATE ANIMATION
+       ========================================= */
     .value-updated {
       animation: valueFlash 0.5s ease;
     }
@@ -457,7 +659,9 @@
       100% { background-color: transparent; }
     }
 
-    /* Busy state indicator */
+    /* =========================================
+       BUSY STATE INDICATOR
+       ========================================= */
     .shiny-busy-state::after {
       content: '';
       position: fixed;
@@ -475,21 +679,58 @@
       z-index: 9999;
     }
 
+    [data-theme="light"] .shiny-busy-state::after {
+      background: linear-gradient(90deg,
+        transparent 0%,
+        #0d9488 50%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+    }
+
     @keyframes loadingBar {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
 
-    /* Input focused state */
+    /* =========================================
+       INPUT FOCUSED STATE
+       ========================================= */
     .input-focused label {
       color: #00d4aa !important;
       transform: translateY(-2px);
       transition: all 0.2s ease;
     }
 
-    /* Smooth transitions for all interactive elements */
+    [data-theme="light"] .input-focused label {
+      color: #0d9488 !important;
+    }
+
+    /* =========================================
+       SMOOTH TRANSITIONS
+       ========================================= */
     .btn, .nav-link, .form-control, .card, .box {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* =========================================
+       KEYBOARD SHORTCUT HINT
+       ========================================= */
+    .theme-toggle-btn::after {
+      content: 'Ctrl+Shift+L';
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .theme-toggle-btn:hover::after {
+      opacity: 0.6;
     }
   `;
   document.head.appendChild(dynamicStyles);

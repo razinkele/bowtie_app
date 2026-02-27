@@ -1,0 +1,606 @@
+/* =============================================================================
+   COASTAL LIGHT THEME
+   Environmental Bowtie Risk Analysis Application
+   Version: 1.0.0
+
+   Design Philosophy: Bright, airy coastal science aesthetic
+   - Soft whites and cool grays
+   - Ocean-inspired teal accents
+   - Clean, professional appearance
+   - High readability for extended use
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   LIGHT THEME CSS CUSTOM PROPERTIES
+   Applied when [data-theme="light"] is set on <html> or <body>
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] {
+  /* Primary Coastal Palette */
+  --ocean-abyss: #f8fafc;
+  --ocean-deep: #f1f5f9;
+  --ocean-mid: #e2e8f0;
+  --ocean-surface: #cbd5e1;
+  --ocean-shallow: #94a3b8;
+
+  /* Accent Colors (kept vibrant for contrast) */
+  --bioluminescent: #0d9488;
+  --bioluminescent-glow: rgba(13, 148, 136, 0.15);
+  --coral-warning: #ef4444;
+  --coral-soft: rgba(239, 68, 68, 0.1);
+  --sunbeam: #f59e0b;
+  --sunbeam-soft: rgba(245, 158, 11, 0.1);
+
+  /* Neutral Spectrum (inverted) */
+  --foam-white: #0f172a;
+  --mist: #334155;
+  --seafoam: #64748b;
+  --slate-deep: #94a3b8;
+
+  /* Glass Effects (light mode) */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-highlight: rgba(0, 0, 0, 0.04);
+
+  /* Shadows (softer for light mode) */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 4px 15px rgba(0, 0, 0, 0.08);
+  --shadow-deep: 0 10px 40px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(13, 148, 136, 0.2);
+}
+
+/* -----------------------------------------------------------------------------
+   BASE OVERRIDES FOR LIGHT THEME
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] body,
+[data-theme="light"] .wrapper {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  color: #334155;
+}
+
+/* Remove dark animated backgrounds */
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(13, 148, 136, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(99, 102, 241, 0.03) 0%, transparent 70%);
+}
+
+[data-theme="light"] body::after {
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgba(13, 148, 136, 0.2), transparent),
+    radial-gradient(1px 1px at 40px 70px, rgba(0, 0, 0, 0.08), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(13, 148, 136, 0.15), transparent);
+  opacity: 0.4;
+}
+
+/* -----------------------------------------------------------------------------
+   HEADER (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .main-header {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .main-header .navbar-nav .nav-link {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .main-header .navbar-nav .nav-link:hover {
+  color: #0d9488 !important;
+}
+
+[data-theme="light"] .brand-link .brand-text {
+  background: linear-gradient(135deg, #0f172a 0%, #0d9488 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="light"] .main-header .dropdown-menu {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .main-header .dropdown-item {
+  color: #334155;
+}
+
+[data-theme="light"] .main-header .dropdown-item:hover {
+  background: rgba(13, 148, 136, 0.08);
+  color: #0d9488;
+}
+
+/* -----------------------------------------------------------------------------
+   SIDEBAR (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .main-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .sidebar-header {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .nav-sidebar .nav-item > .nav-link {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .nav-sidebar .nav-item > .nav-link:hover {
+  background: rgba(13, 148, 136, 0.08) !important;
+  color: #0d9488 !important;
+}
+
+[data-theme="light"] .nav-sidebar .nav-item > .nav-link.active {
+  background: linear-gradient(90deg, rgba(13, 148, 136, 0.12), transparent) !important;
+  color: #0d9488 !important;
+}
+
+[data-theme="light"] .nav-sidebar .nav-icon {
+  color: #64748b;
+}
+
+[data-theme="light"] .nav-sidebar .nav-item > .nav-link:hover .nav-icon,
+[data-theme="light"] .nav-sidebar .nav-item > .nav-link.active .nav-icon {
+  color: #0d9488;
+}
+
+[data-theme="light"] .user-panel {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .user-panel .info {
+  color: #475569;
+}
+
+[data-theme="light"] .user-panel .info a {
+  color: #0f172a !important;
+}
+
+/* -----------------------------------------------------------------------------
+   CARDS & BOXES (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .card,
+[data-theme="light"] .box {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .card:hover,
+[data-theme="light"] .box:hover {
+  border-color: rgba(13, 148, 136, 0.2) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .card-header,
+[data-theme="light"] .box-header {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.8), transparent) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .card-header .card-title,
+[data-theme="light"] .box-header .box-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .card-header .card-title i,
+[data-theme="light"] .box-header .box-title i {
+  color: #0d9488;
+}
+
+[data-theme="light"] .card-body,
+[data-theme="light"] .box-body {
+  color: #475569;
+}
+
+/* Solid header variations */
+[data-theme="light"] .card-primary .card-header,
+[data-theme="light"] .box.box-primary .box-header {
+  background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+  color: white;
+}
+
+[data-theme="light"] .card-success .card-header,
+[data-theme="light"] .box.box-success .box-header {
+  background: linear-gradient(135deg, #10b981, #34d399) !important;
+  color: white;
+}
+
+[data-theme="light"] .card-warning .card-header,
+[data-theme="light"] .box.box-warning .box-header {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #0f172a;
+}
+
+[data-theme="light"] .card-danger .card-header,
+[data-theme="light"] .box.box-danger .box-header {
+  background: linear-gradient(135deg, #ef4444, #f87171) !important;
+  color: white;
+}
+
+[data-theme="light"] .card-info .card-header,
+[data-theme="light"] .box.box-info .box-header {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa) !important;
+  color: white;
+}
+
+/* -----------------------------------------------------------------------------
+   INFO BOXES (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .info-box,
+[data-theme="light"] .small-box {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .info-box:hover,
+[data-theme="light"] .small-box:hover {
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .info-box-text {
+  color: #64748b;
+}
+
+[data-theme="light"] .info-box-number {
+  color: #0f172a;
+}
+
+/* -----------------------------------------------------------------------------
+   BUTTONS (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .btn-primary {
+  background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.25);
+}
+
+[data-theme="light"] .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
+}
+
+[data-theme="light"] .btn-secondary {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .btn-secondary:hover {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] .btn-outline-primary {
+  border-color: #0d9488 !important;
+  color: #0d9488 !important;
+}
+
+[data-theme="light"] .btn-outline-primary:hover {
+  background: #0d9488 !important;
+  color: white !important;
+}
+
+/* -----------------------------------------------------------------------------
+   FORM CONTROLS (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .form-control,
+[data-theme="light"] .form-select,
+[data-theme="light"] .selectize-input {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .form-control:focus,
+[data-theme="light"] .form-select:focus,
+[data-theme="light"] .selectize-input.focus {
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15) !important;
+}
+
+[data-theme="light"] .form-control::placeholder {
+  color: #94a3b8;
+}
+
+[data-theme="light"] .form-label,
+[data-theme="light"] .control-label,
+[data-theme="light"] label:not(.form-check-label) {
+  color: #475569;
+}
+
+[data-theme="light"] .selectize-dropdown {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .selectize-dropdown .option {
+  color: #475569;
+}
+
+[data-theme="light"] .selectize-dropdown .option:hover,
+[data-theme="light"] .selectize-dropdown .option.active {
+  background: rgba(13, 148, 136, 0.1) !important;
+  color: #0d9488;
+}
+
+[data-theme="light"] .form-check-input:checked {
+  background-color: #0d9488;
+  border-color: #0d9488;
+}
+
+/* Sliders */
+[data-theme="light"] .irs--shiny .irs-bar {
+  background: linear-gradient(90deg, #0d9488, #14b8a6) !important;
+}
+
+[data-theme="light"] .irs--shiny .irs-handle {
+  background: #0d9488 !important;
+  border: 3px solid white !important;
+}
+
+[data-theme="light"] .irs--shiny .irs-line {
+  background: #e2e8f0;
+}
+
+[data-theme="light"] .irs--shiny .irs-single {
+  background: #0d9488;
+  color: white;
+}
+
+/* -----------------------------------------------------------------------------
+   DATA TABLES (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .dataTables_wrapper {
+  color: #475569;
+}
+
+[data-theme="light"] table.dataTable thead th {
+  background: linear-gradient(180deg, rgba(13, 148, 136, 0.08), transparent) !important;
+  color: #0f172a !important;
+  border-bottom: 2px solid #0d9488 !important;
+}
+
+[data-theme="light"] table.dataTable tbody tr:hover {
+  background: rgba(13, 148, 136, 0.04) !important;
+}
+
+[data-theme="light"] table.dataTable tbody tr.selected {
+  background: rgba(13, 148, 136, 0.1) !important;
+}
+
+[data-theme="light"] table.dataTable tbody td {
+  color: #475569;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+[data-theme="light"] .dataTables_filter input,
+[data-theme="light"] .dataTables_length select {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .dataTables_info {
+  color: #64748b;
+}
+
+[data-theme="light"] .dataTables_paginate .paginate_button {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .dataTables_paginate .paginate_button:hover {
+  background: #f1f5f9 !important;
+  color: #0d9488 !important;
+  border-color: #0d9488 !important;
+}
+
+[data-theme="light"] .dataTables_paginate .paginate_button.current {
+  background: #0d9488 !important;
+  color: white !important;
+  border-color: #0d9488 !important;
+}
+
+/* -----------------------------------------------------------------------------
+   TABS (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .nav-tabs {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .nav-tabs .nav-link {
+  color: #64748b;
+}
+
+[data-theme="light"] .nav-tabs .nav-link:hover {
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .nav-tabs .nav-link.active {
+  background: rgba(13, 148, 136, 0.08);
+  color: #0d9488;
+}
+
+/* -----------------------------------------------------------------------------
+   ALERTS (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .alert-primary,
+[data-theme="light"] .alert-info {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e40af;
+  border-left: 4px solid #3b82f6;
+}
+
+[data-theme="light"] .alert-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border-left: 4px solid #10b981;
+}
+
+[data-theme="light"] .alert-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border-left: 4px solid #f59e0b;
+}
+
+[data-theme="light"] .alert-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border-left: 4px solid #ef4444;
+}
+
+[data-theme="light"] .alert-light {
+  background: #f8fafc;
+  color: #475569;
+  border-left: 4px solid #e2e8f0;
+}
+
+/* Shiny notifications */
+[data-theme="light"] .shiny-notification {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+/* -----------------------------------------------------------------------------
+   BADGES (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .badge-primary,
+[data-theme="light"] .bg-primary {
+  background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+  color: white !important;
+}
+
+[data-theme="light"] .badge-success,
+[data-theme="light"] .bg-success {
+  background: linear-gradient(135deg, #10b981, #34d399) !important;
+  color: white !important;
+}
+
+/* -----------------------------------------------------------------------------
+   MODALS (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .modal-content {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .modal-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .modal-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .modal-body {
+  color: #475569;
+}
+
+[data-theme="light"] .modal-footer {
+  border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .btn-close {
+  filter: none;
+}
+
+[data-theme="light"] .modal-backdrop.show {
+  background: #0f172a;
+  opacity: 0.5;
+}
+
+/* -----------------------------------------------------------------------------
+   CONTROLBAR (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .control-sidebar {
+  background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+  border-left: 1px solid #e2e8f0;
+}
+
+/* -----------------------------------------------------------------------------
+   SCROLLBAR (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 2px solid #f1f5f9;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+[data-theme="light"] * {
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* -----------------------------------------------------------------------------
+   TYPOGRAPHY OVERRIDES (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4,
+[data-theme="light"] h5,
+[data-theme="light"] h6,
+[data-theme="light"] .h1,
+[data-theme="light"] .h2,
+[data-theme="light"] .h3,
+[data-theme="light"] .h4,
+[data-theme="light"] .h5,
+[data-theme="light"] .h6 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .content-wrapper h2:first-child::after,
+[data-theme="light"] .tab-pane > h2:first-of-type::after {
+  background: linear-gradient(90deg, #0d9488, transparent);
+}
+
+/* -----------------------------------------------------------------------------
+   FOOTER (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .main-footer {
+  background: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+  color: #64748b;
+}
+
+/* -----------------------------------------------------------------------------
+   UTILITY CLASSES (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .text-gradient {
+  background: linear-gradient(135deg, #0f172a, #0d9488);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="light"] .glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .gradient-border::before {
+  background: linear-gradient(135deg, #0d9488, #3b82f6);
+}
+
+/* -----------------------------------------------------------------------------
+   BUSY STATE (Light Mode)
+   ----------------------------------------------------------------------------- */
+[data-theme="light"] .shiny-busy-state::after {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    #0d9488 50%,
+    transparent 100%
+  );
+}
