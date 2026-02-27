@@ -44,14 +44,17 @@
       const html = document.documentElement;
       const body = document.body;
 
-      if (animate) {
+      // Guard against null body (script may run before DOM ready)
+      if (!html) return;
+
+      if (animate && body) {
         // Add transition class for smooth theme change
         body.classList.add('theme-transitioning');
       }
 
       // Set theme attribute
       html.setAttribute('data-theme', theme);
-      body.setAttribute('data-theme', theme);
+      if (body) body.setAttribute('data-theme', theme);
 
       // Update any theme toggle buttons
       this.updateToggleButtons(theme);
@@ -65,7 +68,7 @@
         Shiny.setInputValue('current_color_theme', theme, {priority: 'event'});
       }
 
-      if (animate) {
+      if (animate && body) {
         // Remove transition class after animation
         setTimeout(() => {
           body.classList.remove('theme-transitioning');
@@ -84,14 +87,27 @@
     updateToggleButtons: function(theme) {
       // Update all theme toggle buttons in the UI
       document.querySelectorAll('.theme-toggle-btn, [data-theme-toggle]').forEach(btn => {
-        const icon = btn.querySelector('i, .fa, .fas, .far');
+        const darkIcon = btn.querySelector('.theme-icon-dark');
+        const lightIcon = btn.querySelector('.theme-icon-light');
+        const singleIcon = btn.querySelector('i:not(.theme-icon-dark):not(.theme-icon-light)');
         const text = btn.querySelector('.theme-toggle-text');
 
-        if (icon) {
+        // Handle dual-icon toggle buttons (dark/light icons)
+        if (darkIcon && lightIcon) {
           if (theme === 'dark') {
-            icon.className = icon.className.replace(/fa-sun|fa-moon/, 'fa-sun');
+            darkIcon.style.display = 'inline-block';
+            lightIcon.style.display = 'none';
           } else {
-            icon.className = icon.className.replace(/fa-sun|fa-moon/, 'fa-moon');
+            darkIcon.style.display = 'none';
+            lightIcon.style.display = 'inline-block';
+          }
+        }
+        // Handle single-icon toggle buttons (swap icon class)
+        else if (singleIcon) {
+          if (theme === 'dark') {
+            singleIcon.className = singleIcon.className.replace(/fa-sun|fa-moon/, 'fa-sun');
+          } else {
+            singleIcon.className = singleIcon.className.replace(/fa-sun|fa-moon/, 'fa-moon');
           }
         }
 
@@ -141,6 +157,9 @@
   // THEME TOGGLE INITIALIZATION
   // =============================================================================
   function initThemeToggle() {
+    // Inject theme toggle button into navbar
+    injectNavbarThemeToggle();
+
     // Attach click handlers to any theme toggle buttons
     document.querySelectorAll('.theme-toggle-btn, [data-theme-toggle]').forEach(btn => {
       btn.addEventListener('click', function(e) {
@@ -171,6 +190,64 @@
 
   // Expose ThemeManager globally for external access
   window.ThemeManager = ThemeManager;
+
+  // =============================================================================
+  // INJECT NAVBAR THEME TOGGLE BUTTON
+  // =============================================================================
+  function injectNavbarThemeToggle() {
+    // Find the navbar-nav on the right side (where settings gear icon is)
+    const navbarRight = document.querySelector('.navbar-nav.ml-auto.navbar-right, .navbar-nav.ml-auto');
+
+    if (!navbarRight) {
+      console.log('[Theme Toggle] Navbar not found, will retry...');
+      setTimeout(injectNavbarThemeToggle, 500);
+      return;
+    }
+
+    // Check if toggle already exists
+    if (document.getElementById('navbar-theme-toggle')) {
+      console.log('[Theme Toggle] Toggle already exists');
+      return;
+    }
+
+    // Create the theme toggle button
+    const toggleItem = document.createElement('li');
+    toggleItem.className = 'nav-item';
+    toggleItem.innerHTML = `
+      <a id="navbar-theme-toggle"
+         class="nav-link theme-toggle-btn"
+         href="javascript:void(0);"
+         title="Toggle light/dark theme (Ctrl+Shift+L)"
+         data-theme-toggle="true"
+         style="cursor: pointer; font-size: 1.2rem; padding: 0.5rem 0.75rem;">
+        <i class="fas fa-moon theme-icon-dark" style="color: #f8fafc;"></i>
+        <i class="fas fa-sun theme-icon-light" style="display: none; color: #f59e0b;"></i>
+      </a>
+    `;
+
+    // Find the settings gear (controlbar toggle) - it's a direct child li with [data-widget]
+    const settingsLi = navbarRight.querySelector('li:has([data-widget="control-sidebar"])');
+    if (settingsLi) {
+      navbarRight.insertBefore(toggleItem, settingsLi);
+    } else {
+      // Try to find the gear link directly
+      const gearLink = navbarRight.querySelector('[data-widget="control-sidebar"]');
+      if (gearLink && gearLink.closest('li')) {
+        navbarRight.insertBefore(toggleItem, gearLink.closest('li'));
+      } else {
+        // Append at the end if settings not found
+        navbarRight.appendChild(toggleItem);
+      }
+    }
+
+    // Note: Click handler is attached by initThemeToggle() via .theme-toggle-btn class
+    // No need to attach another one here to avoid double-firing
+
+    // Update button state to match current theme
+    ThemeManager.updateToggleButtons(ThemeManager.currentTheme);
+
+    console.log('[Theme Toggle] Navbar toggle button injected successfully');
+  }
 
   // =============================================================================
   // PAGE TRANSITIONS

@@ -1369,3 +1369,39 @@ table.dataTable tbody td {
     box-shadow: none !important;
   }
 }
+
+/* -----------------------------------------------------------------------------
+   THEME TOGGLE BUTTON
+   ----------------------------------------------------------------------------- */
+#theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.3s ease;
+}
+
+#theme-toggle-btn:hover {
+  color: var(--bioluminescent) !important;
+  transform: scale(1.1);
+}
+
+/* Dark theme (default): show moon, hide sun */
+.theme-icon-dark {
+  display: inline-block !important;
+  color: var(--foam-white);
+}
+
+.theme-icon-light {
+  display: none !important;
+}
+
+/* Light theme: show sun, hide moon */
+[data-theme="light"] .theme-icon-dark {
+  display: none !important;
+}
+
+[data-theme="light"] .theme-icon-light {
+  display: inline-block !important;
+  color: #f59e0b;
+}

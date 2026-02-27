@@ -634,6 +634,7 @@ ui <- dashboardPage(
     tags$head(
       # Custom theme CSS
       tags$link(rel = "stylesheet", type = "text/css", href = "css/deep-ocean-theme.css"),
+      tags$link(rel = "stylesheet", type = "text/css", href = "css/light-theme.css"),
       # Custom micro-interactions JavaScript
       tags$script(src = "js/deep-ocean-interactions.js")
     ),
