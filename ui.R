@@ -627,6 +627,17 @@ ui <- dashboardPage(
     # Shinyjs
     useShinyjs(),
 
+    # ==========================================================================
+    # DEEP OCEAN SCIENTIFIC THEME (v5.4.1)
+    # Premium UI design with glass-morphism, animations, and oceanic aesthetics
+    # ==========================================================================
+    tags$head(
+      # Custom theme CSS
+      tags$link(rel = "stylesheet", type = "text/css", href = "css/deep-ocean-theme.css"),
+      # Custom micro-interactions JavaScript
+      tags$script(src = "js/deep-ocean-interactions.js")
+    ),
+
     # Login Module UI
     login_ui("login"),
     login_css(),
@@ -634,11 +645,11 @@ ui <- dashboardPage(
     # UI Components
     ui_components_css(),
     ui_components_js(),
-    
+
     # Local Storage JavaScript handlers
     local_storage_js(),
 
-    # Custom CSS for bs4Dash compatibility
+    # Custom CSS for bs4Dash compatibility (legacy styles kept for compatibility)
     tags$head(
       tags$style(HTML("
         /* Custom styling for bs4Dash */
