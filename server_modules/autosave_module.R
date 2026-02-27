@@ -3,6 +3,7 @@
 # =============================================================================
 # Purpose: Automatic saving of workflow state and data
 # Dependencies: shiny, jsonlite
+# Version: 1.1.0 (Multi-User Session Isolation)
 # =============================================================================
 
 #' Initialize autosave module server logic
@@ -21,6 +22,23 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
   autosaveVersion <- reactiveVal(0)
 
   # =============================================================================
+  # SESSION-SPECIFIC TAB ID (v5.4.1 - Multi-User Isolation)
+  # =============================================================================
+  # Generate a unique tab ID based on session token to isolate localStorage
+  # between multiple browser tabs. This prevents one tab overwriting another's data.
+  tab_id <- substr(session$token, 1, 12)
+
+  # Initialize tab ID in browser on session start
+  observe({
+    # Send tab ID to client for localStorage key prefixing
+    js_init <- sprintf("
+      window.bowtie_tab_id = '%s';
+      console.log('Bowtie session initialized with tab ID:', window.bowtie_tab_id);
+    ", tab_id)
+    session$sendCustomMessage("eval", list(code = js_init))
+  }) |> bindEvent(session$clientData$url_protocol, once = TRUE)
+
+  # =============================================================================
   # MANUAL SAVE NOW
   # =============================================================================
   observeEvent(input$autosave_now, {
@@ -33,7 +51,7 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
         version = autosaveVersion() + 1,
         settings = list(
           language = lang(),
-          theme = input$theme_preset,
+          theme = input[["theme-theme_preset"]],  # namespaced: theme module uses moduleServer
           ai_enabled = isTRUE(input$ai_suggestions_enabled),
           ai_methods = list(
             semantic = isTRUE(input$ai_method_semantic),
@@ -107,39 +125,50 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
         return()  # Now we can safely return from the outer tryCatch
       }
       
-      # Browser storage (localStorage)
+      # Browser storage (localStorage) - WITH TAB-SPECIFIC KEYS (v5.4.1)
       if (location %in% c("browser", "both")) {
-        # Generate JavaScript to save to localStorage
+        # Generate JavaScript to save to localStorage with tab-specific keys
+        # This prevents multiple browser tabs from overwriting each other's data
         js_code <- sprintf("
           try {
+            // Get tab-specific prefix (falls back to 'default' for backwards compatibility)
+            var tabId = window.bowtie_tab_id || 'default';
+            var keyPrefix = 'bowtie_autosave_' + tabId + '_';
+
             // Manage version history
             var maxVersions = %d;
             var currentVersion = %d;
             var saveData = %s;
 
-            // Save current version
-            localStorage.setItem('bowtie_autosave_current', JSON.stringify(saveData));
+            // Add tab ID to save data for identification
+            saveData.tab_id = tabId;
+
+            // Save current version with tab-specific key
+            localStorage.setItem(keyPrefix + 'current', JSON.stringify(saveData));
 
             // Add to version history
-            var versionKey = 'bowtie_autosave_v' + currentVersion;
+            var versionKey = keyPrefix + 'v' + currentVersion;
             localStorage.setItem(versionKey, JSON.stringify(saveData));
 
-            // Clean old versions
+            // Clean old versions for THIS TAB ONLY
             for (var i = 1; i <= currentVersion - maxVersions; i++) {
-              localStorage.removeItem('bowtie_autosave_v' + i);
+              localStorage.removeItem(keyPrefix + 'v' + i);
             }
 
-            // Update metadata
+            // Update metadata with tab-specific key
             var metadata = {
               lastSave: new Date().toISOString(),
               currentVersion: currentVersion,
-              totalVersions: Math.min(currentVersion, maxVersions)
+              totalVersions: Math.min(currentVersion, maxVersions),
+              tabId: tabId
             };
-            localStorage.setItem('bowtie_autosave_metadata', JSON.stringify(metadata));
+            localStorage.setItem(keyPrefix + 'metadata', JSON.stringify(metadata));
 
             // Update UI timestamp
             var timestamp = new Date().toLocaleString();
             $('#last_autosave_time').text(timestamp);
+
+            console.log('Autosave completed for tab:', tabId, 'version:', currentVersion);
 
           } catch(e) {
             console.error('Autosave failed:', e);
@@ -210,21 +239,28 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
   # Confirm clear
   observeEvent(input$autosave_clear_confirm, {
     tryCatch({
-      # Clear localStorage via JavaScript
+      # Clear localStorage via JavaScript - TAB-SPECIFIC ONLY (v5.4.1)
+      # Only clears autosaves for THIS tab, not other tabs
       js_code <- "
         try {
-          // Clear all autosave data
+          // Get tab-specific prefix
+          var tabId = window.bowtie_tab_id || 'default';
+          var keyPrefix = 'bowtie_autosave_' + tabId + '_';
+
+          // Clear only THIS TAB's autosave data
           var keys = Object.keys(localStorage);
+          var clearedCount = 0;
           for (var i = 0; i < keys.length; i++) {
-            if (keys[i].startsWith('bowtie_autosave_')) {
+            if (keys[i].startsWith(keyPrefix)) {
               localStorage.removeItem(keys[i]);
+              clearedCount++;
             }
           }
 
           // Reset UI
           $('#last_autosave_time').text('Never');
 
-          console.log('All autosaves cleared');
+          console.log('Cleared', clearedCount, 'autosaves for tab:', tabId);
         } catch(e) {
           console.error('Clear autosaves failed:', e);
         }
@@ -277,22 +313,36 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
   })
 
   # =============================================================================
-  # AUTO-LOAD ON STARTUP
+  # AUTO-LOAD ON STARTUP (v5.4.1 - Tab-Specific)
   # =============================================================================
   observe({
     req(input$autosave_autoload)
 
     # Only run once on startup
     isolate({
-      # JavaScript to load last save and send to server
+      # JavaScript to load last save and send to server - TAB-SPECIFIC
       js_code <- "
         try {
           var autoload = $('#autosave_autoload').is(':checked');
           if (autoload) {
-            var saveData = localStorage.getItem('bowtie_autosave_current');
+            // Get tab-specific prefix
+            var tabId = window.bowtie_tab_id || 'default';
+            var keyPrefix = 'bowtie_autosave_' + tabId + '_';
+
+            // Try tab-specific key first
+            var saveData = localStorage.getItem(keyPrefix + 'current');
+
+            // Fallback to legacy key for backwards compatibility
+            if (!saveData) {
+              saveData = localStorage.getItem('bowtie_autosave_current');
+              if (saveData) {
+                console.log('Loaded from legacy key, will migrate to tab-specific on next save');
+              }
+            }
+
             if (saveData) {
               var data = JSON.parse(saveData);
-              console.log('Auto-loading last save from:', data.timestamp);
+              console.log('Auto-loading last save from:', data.timestamp, 'for tab:', tabId);
 
               // Send data to Shiny server for restore
               Shiny.setInputValue('autosave_restore_data', data, {priority: 'event'});
@@ -327,7 +377,7 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
 
         # Restore theme
         if (!is.null(settings$theme)) {
-          updateSelectInput(session, "theme_preset", selected = settings$theme)
+          updateSelectInput(session, "theme-theme_preset", selected = settings$theme)  # namespaced: theme module uses moduleServer
         }
 
         # Restore AI settings
@@ -394,13 +444,24 @@ autosave_module_server <- function(input, output, session, getCurrentData, lang 
   })
 
   # =============================================================================
-  # INITIALIZE LAST SAVE TIMESTAMP DISPLAY
+  # INITIALIZE LAST SAVE TIMESTAMP DISPLAY (v5.4.1 - Tab-Specific)
   # =============================================================================
   observe({
-    # Load timestamp from localStorage on startup
+    # Load timestamp from localStorage on startup - TAB-SPECIFIC
     js_code <- "
       try {
-        var metadata = localStorage.getItem('bowtie_autosave_metadata');
+        // Get tab-specific prefix
+        var tabId = window.bowtie_tab_id || 'default';
+        var keyPrefix = 'bowtie_autosave_' + tabId + '_';
+
+        // Try tab-specific metadata first
+        var metadata = localStorage.getItem(keyPrefix + 'metadata');
+
+        // Fallback to legacy key for backwards compatibility
+        if (!metadata) {
+          metadata = localStorage.getItem('bowtie_autosave_metadata');
+        }
+
         if (metadata) {
           var data = JSON.parse(metadata);
           if (data.lastSave) {

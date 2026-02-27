@@ -5,7 +5,10 @@
 # Description: Optimized performance with improved caching and error handling
 # =============================================================================
 
-# Enhanced LRU Cache for expensive computations with memory management
+# =============================================================================
+# GLOBAL CACHE - For read-only shared data (vocabulary, static lookups)
+# WARNING: Do NOT use for user-specific data - use session cache instead
+# =============================================================================
 .cache <- new.env()
 .cache$data <- new.env()           # Actual cached data
 .cache$access_times <- new.env()   # Access timestamps for LRU
@@ -17,6 +20,363 @@
 .cache$misses <- 0                 # Cache miss counter
 .cache$evictions <- 0              # LRU eviction counter
 .cache$expirations <- 0            # TTL expiration counter
+
+# =============================================================================
+# SESSION-SCOPED CACHE SYSTEM (v5.4.1 - Multi-User Isolation)
+# =============================================================================
+# Use these functions for user-specific computations to prevent data leakage
+# between simultaneous users. Requires session$userData to be initialized.
+# =============================================================================
+
+#' Initialize session-scoped cache in session$userData
+#' Call this at the start of server function
+#' @param session Shiny session object
+#' @param max_size Maximum cache entries per session (default: 50)
+#' @param max_age_seconds TTL in seconds (default: 1800 = 30 min)
+init_session_cache <- function(session, max_size = 50, max_age_seconds = 1800) {
+  if (is.null(session$userData)) {
+    session$userData <- new.env()
+  }
+
+  session$userData$cache <- new.env()
+  session$userData$cache$data <- new.env()
+  session$userData$cache$access_times <- new.env()
+  session$userData$cache$creation_times <- new.env()
+  session$userData$cache$max_size <- max_size
+  session$userData$cache$max_age_seconds <- max_age_seconds
+
+  session$userData$cache$current_size <- 0
+  session$userData$cache$hits <- 0
+  session$userData$cache$misses <- 0
+  session$userData$cache$evictions <- 0
+  session$userData$cache$expirations <- 0
+
+ # Store session token for identification
+  session$userData$session_token <- session$token
+
+  bowtie_log(paste("Session cache initialized for session:",
+                   substr(session$token, 1, 8)), .verbose = TRUE)
+
+  invisible(TRUE)
+}
+
+#' Get value from session-scoped cache
+#' @param session Shiny session object
+#' @param key Cache key
+#' @param default Default value if not found
+#' @return Cached value or default
+get_session_cache <- function(session, key, default = NULL) {
+  # Validate session cache exists
+  if (is.null(session$userData$cache)) {
+    return(default)
+  }
+
+  cache <- session$userData$cache
+
+  if (exists(key, envir = cache$data)) {
+    # Check TTL expiration
+    if (exists(key, envir = cache$creation_times)) {
+      age <- as.numeric(difftime(Sys.time(), cache$creation_times[[key]], units = "secs"))
+      if (age > cache$max_age_seconds) {
+        # Expired - remove and return default
+        rm(list = key, envir = cache$data)
+        if (exists(key, envir = cache$access_times)) rm(list = key, envir = cache$access_times)
+        rm(list = key, envir = cache$creation_times)
+        cache$current_size <- max(0, cache$current_size - 1)
+        cache$expirations <- cache$expirations + 1
+        cache$misses <- cache$misses + 1
+        return(default)
+      }
+    }
+
+    # Cache hit - update access time
+    cache$access_times[[key]] <- Sys.time()
+    cache$hits <- cache$hits + 1
+    return(cache$data[[key]])
+  }
+
+  # Cache miss
+  cache$misses <- cache$misses + 1
+  return(default)
+}
+
+#' Set value in session-scoped cache
+#' @param session Shiny session object
+#' @param key Cache key
+#' @param value Value to cache
+set_session_cache <- function(session, key, value) {
+  # Validate session cache exists
+  if (is.null(session$userData$cache)) {
+    bowtie_log("Warning: Session cache not initialized, call init_session_cache() first",
+               level = "warn")
+    return(invisible(FALSE))
+  }
+
+  cache <- session$userData$cache
+  now <- Sys.time()
+
+  # If key exists, update it
+  if (exists(key, envir = cache$data)) {
+    cache$data[[key]] <- value
+    cache$access_times[[key]] <- now
+    cache$creation_times[[key]] <- now
+    return(invisible(TRUE))
+  }
+
+  # Evict LRU if at capacity
+  if (cache$current_size >= cache$max_size) {
+    evict_session_lru(session)
+  }
+
+  # Add new entry
+  cache$data[[key]] <- value
+  cache$access_times[[key]] <- now
+  cache$creation_times[[key]] <- now
+  cache$current_size <- cache$current_size + 1
+
+  invisible(TRUE)
+}
+
+#' Evict least recently used item from session cache
+#' @param session Shiny session object
+evict_session_lru <- function(session) {
+  cache <- session$userData$cache
+  if (is.null(cache) || cache$current_size == 0) return(invisible(NULL))
+
+  keys <- ls(cache$access_times)
+  if (length(keys) == 0) return(invisible(NULL))
+
+  access_times <- sapply(keys, function(k) cache$access_times[[k]])
+  lru_key <- keys[which.min(access_times)]
+
+  rm(list = lru_key, envir = cache$data)
+  rm(list = lru_key, envir = cache$access_times)
+  if (exists(lru_key, envir = cache$creation_times)) {
+    rm(list = lru_key, envir = cache$creation_times)
+  }
+  cache$current_size <- cache$current_size - 1
+  cache$evictions <- cache$evictions + 1
+
+  invisible(NULL)
+}
+
+#' Clear session-scoped cache
+#' @param session Shiny session object
+#' @param reset_stats Whether to reset statistics
+clear_session_cache <- function(session, reset_stats = FALSE) {
+  if (is.null(session$userData$cache)) return(invisible(FALSE))
+
+  cache <- session$userData$cache
+  rm(list = ls(cache$data), envir = cache$data)
+  rm(list = ls(cache$access_times), envir = cache$access_times)
+  rm(list = ls(cache$creation_times), envir = cache$creation_times)
+  cache$current_size <- 0
+
+  if (reset_stats) {
+    cache$hits <- 0
+    cache$misses <- 0
+    cache$evictions <- 0
+    cache$expirations <- 0
+  }
+
+  bowtie_log("Session cache cleared", .verbose = TRUE)
+  invisible(TRUE)
+}
+
+#' Get session cache statistics
+#' @param session Shiny session object
+#' @return List of cache statistics
+get_session_cache_stats <- function(session) {
+  if (is.null(session$userData$cache)) {
+    return(list(initialized = FALSE))
+  }
+
+  cache <- session$userData$cache
+  total_requests <- cache$hits + cache$misses
+  hit_rate <- if (total_requests > 0) cache$hits / total_requests else 0
+
+  list(
+    initialized = TRUE,
+    session_token = substr(session$userData$session_token, 1, 8),
+    current_size = cache$current_size,
+    max_size = cache$max_size,
+    hits = cache$hits,
+    misses = cache$misses,
+    hit_rate = round(hit_rate, 3),
+    evictions = cache$evictions,
+    expirations = cache$expirations
+  )
+}
+
+# =============================================================================
+# SESSION-SPECIFIC TEMP FILE UTILITIES (v5.4.1)
+# =============================================================================
+
+#' Create a session-specific temporary file path
+#' @param session Shiny session object
+#' @param prefix File prefix
+#' @param fileext File extension
+#' @return Path to session-specific temp file
+session_temp_file <- function(session, prefix = "bowtie", fileext = "") {
+  session_id <- if (!is.null(session$token)) {
+    substr(session$token, 1, 12)
+  } else {
+    format(Sys.time(), "%Y%m%d%H%M%S")
+  }
+
+  tempfile(
+    pattern = paste0(prefix, "_", session_id, "_"),
+    fileext = fileext
+  )
+}
+#' Clean up session-specific temp files
+#' @param session Shiny session object
+cleanup_session_temp_files <- function(session) {
+  if (is.null(session$token)) return(invisible(0))
+
+  session_id <- substr(session$token, 1, 12)
+  pattern <- paste0("bowtie_", session_id, "_.*")
+
+  temp_files <- list.files(tempdir(), pattern = pattern, full.names = TRUE)
+  if (length(temp_files) > 0) {
+    unlink(temp_files, recursive = TRUE)
+    bowtie_log(paste("Cleaned up", length(temp_files),
+                     "session temp files for session:", substr(session$token, 1, 8)),
+               .verbose = TRUE)
+  }
+
+  invisible(length(temp_files))
+}
+
+# =============================================================================
+# VOCABULARY DATA PROTECTION (v5.4.1 - Multi-User Isolation)
+# =============================================================================
+# The global vocabulary_data should be treated as READ-ONLY.
+# If session-specific modifications are needed, use these functions.
+# =============================================================================
+
+#' Initialize session-local vocabulary data copy
+#' Call this if the session needs to modify vocabulary data
+#' @param session Shiny session object
+#' @param vocabulary_data The global vocabulary_data object
+#' @return TRUE if initialized successfully
+init_session_vocabulary <- function(session, vocabulary_data) {
+  if (is.null(session$userData)) {
+    session$userData <- new.env()
+  }
+
+  # Deep copy vocabulary data for this session
+  session$userData$vocabulary <- list(
+    activities = if (!is.null(vocabulary_data$activities)) {
+      as.data.frame(vocabulary_data$activities)
+    } else NULL,
+    pressures = if (!is.null(vocabulary_data$pressures)) {
+      as.data.frame(vocabulary_data$pressures)
+    } else NULL,
+    consequences = if (!is.null(vocabulary_data$consequences)) {
+      as.data.frame(vocabulary_data$consequences)
+    } else NULL,
+    controls = if (!is.null(vocabulary_data$controls)) {
+      as.data.frame(vocabulary_data$controls)
+    } else NULL
+  )
+
+  session$userData$vocabulary_initialized <- TRUE
+
+  bowtie_log(paste("Session vocabulary initialized for session:",
+                   substr(session$token, 1, 8)), .verbose = TRUE)
+
+  invisible(TRUE)
+}
+
+#' Get vocabulary data (session-local if available, else global)
+#' This function safely returns vocabulary data, preferring session-local copy
+#' @param session Shiny session object (optional)
+#' @param vocabulary_data The global vocabulary_data object
+#' @return Vocabulary data (session-local copy if available)
+get_vocabulary_safe <- function(session = NULL, vocabulary_data) {
+  # If session has local vocabulary, return that
+ if (!is.null(session) &&
+      !is.null(session$userData) &&
+      isTRUE(session$userData$vocabulary_initialized)) {
+    return(session$userData$vocabulary)
+  }
+
+  # Otherwise return global (read-only)
+  return(vocabulary_data)
+}
+
+#' Check if session has local vocabulary modifications
+#' @param session Shiny session object
+#' @return TRUE if session has local vocabulary copy
+has_session_vocabulary <- function(session) {
+  !is.null(session$userData) && isTRUE(session$userData$vocabulary_initialized)
+}
+
+#' Clear session vocabulary data
+#' @param session Shiny session object
+clear_session_vocabulary <- function(session) {
+  if (!is.null(session$userData)) {
+    session$userData$vocabulary <- NULL
+    session$userData$vocabulary_initialized <- FALSE
+  }
+  invisible(TRUE)
+}
+
+# =============================================================================
+# COMPLETE SESSION INITIALIZATION (v5.4.1)
+# =============================================================================
+
+#' Initialize all session isolation features
+#' Call this at the beginning of the server function
+#' @param session Shiny session object
+#' @param vocabulary_data The global vocabulary_data object (optional)
+#' @return List of session info
+init_session_isolation <- function(session, vocabulary_data = NULL) {
+  # Initialize session cache
+  init_session_cache(session)
+
+  # Store session token
+  if (is.null(session$userData)) {
+    session$userData <- new.env()
+  }
+  session$userData$session_token <- session$token
+  session$userData$session_start <- Sys.time()
+
+  bowtie_log(paste("Session isolation initialized for:",
+                   substr(session$token, 1, 8)), .verbose = TRUE)
+
+  invisible(list(
+    session_token = session$token,
+    cache_initialized = TRUE,
+    session_start = session$userData$session_start
+  ))
+}
+
+#' Clean up all session isolation features
+#' Call this in session$onSessionEnded
+#' @param session Shiny session object
+cleanup_session_isolation <- function(session) {
+  tryCatch({
+    # Clear session cache
+    clear_session_cache(session, reset_stats = TRUE)
+
+    # Clear session vocabulary
+    clear_session_vocabulary(session)
+
+    # Clean up session temp files
+    cleanup_session_temp_files(session)
+
+    bowtie_log(paste("Session isolation cleaned up for:",
+                     substr(session$token, 1, 8)), .verbose = TRUE)
+
+  }, error = function(e) {
+    bowtie_log(paste("Error during session cleanup:", e$message),
+               level = "warn", .verbose = TRUE)
+  })
+
+  invisible(TRUE)
+}
 
 # Cache management functions
 clear_cache <- function(reset_stats = FALSE) {

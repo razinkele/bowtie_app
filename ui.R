@@ -265,45 +265,8 @@ ui <- dashboardPage(
             )
           ),
 
-          # Theme Section
-          div(class = "card",
-            div(class = "card-header bg-primary text-white py-2",
-              icon("brush"), " Theme"
-            ),
-            div(class = "card-body",
-              uiOutput("settings_theme_header"),
-
-              selectInput("theme_preset", NULL,
-                         choices = c(
-                           "Environmental (Default)" = "journal",
-                           "Dark Mode" = "darkly",
-                           "Light & Clean" = "flatly",
-                           "Ocean Blue" = "cosmo",
-                           "Forest Green" = "materia",
-                           "Corporate Blue" = "cerulean",
-                           "Minimal Clean" = "minty",
-                           "Dashboard" = "lumen",
-                           "Creative Purple" = "pulse",
-                           "Science Lab" = "sandstone",
-                           "Space Dark" = "slate",
-                           "Professional" = "united",
-                           "Modern Contrast" = "superhero",
-                           "Sunset Orange" = "solar",
-                           "Analytics" = "spacelab",
-                           "Vibrant" = "sketchy",
-                           "Nature Fresh" = "cyborg",
-                           "Business" = "vapor",
-                           "Research" = "zephyr",
-                           "High Contrast" = "bootstrap"
-                         ),
-                         selected = "journal"),
-
-              actionButton("applyTheme",
-                          "Apply Theme",
-                          icon = icon("check"),
-                          class = "btn-primary btn-sm w-100 mt-2")
-            )
-          )
+          # Theme Section (proper Shiny module with namespace isolation)
+          theme_module_ui("theme")
         )
       ),
 

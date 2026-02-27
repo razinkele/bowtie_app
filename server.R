@@ -1,7 +1,15 @@
 # Server Logic for Environmental Bowtie Risk Analysis Application
+# Version: 5.4.1 (Multi-User Session Isolation)
 # =============================================================================
 
 server <- function(input, output, session) {
+
+  # =============================================================================
+  # SESSION ISOLATION INITIALIZATION (v5.4.1)
+  # =============================================================================
+  # Initialize session-scoped features for multi-user safety
+  # This MUST be called at the start of the server function
+  init_session_isolation(session, vocabulary_data)
 
   # =============================================================================
   # HELPER FUNCTION FOR SAFE UI RENDERING
@@ -48,11 +56,11 @@ server <- function(input, output, session) {
   lang <- language_module$lang
   currentLanguage <- language_module$currentLanguage
 
-  # Initialize theme module
-  theme_module <- theme_module_server(input, output, session, lang)
+  # Initialize theme module (proper moduleServer with namespace isolation)
+  theme_module <- theme_module_server("theme", lang)
   current_theme <- theme_module$current_theme
-  appliedTheme <- theme_module$appliedTheme
-  themeUpdateTrigger <- theme_module$themeUpdateTrigger
+  applied_theme <- theme_module$applied_theme
+  theme_update_trigger <- theme_module$theme_update_trigger
 
   # Initialize data management module
   data_module <- data_management_module_server(input, output, session, lang)
@@ -107,7 +115,7 @@ server <- function(input, output, session) {
                         currentData, editedData, dataVersion, lang)
 
   # =============================================================================
-  # SESSION CLEANUP HANDLER (Memory leak prevention)
+  # SESSION CLEANUP HANDLER (v5.4.1 - Enhanced Multi-User Isolation)
   # =============================================================================
   session$onSessionEnded(function() {
     bowtie_log("🧹 Session ended - cleaning up resources...", .verbose = TRUE)
@@ -118,17 +126,14 @@ server <- function(input, output, session) {
       if (exists("bayesianNetwork") && is.function(bayesianNetwork)) bayesianNetwork(NULL)
       if (exists("inferenceResults") && is.function(inferenceResults)) inferenceResults(NULL)
 
-      # Clear application cache
-      if (exists("clear_cache") && is.function(clear_cache)) {
-        clear_cache(reset_stats = TRUE)
-      }
+      # Use comprehensive session isolation cleanup (v5.4.1)
+      # This clears: session cache, session vocabulary, session temp files
+      cleanup_session_isolation(session)
 
-      # Clean up temporary files created during session
-      temp_files <- list.files(tempdir(), pattern = "bowtie_.*", full.names = TRUE)
-      if (length(temp_files) > 0) {
-        unlink(temp_files, recursive = TRUE)
-        bowtie_log(paste("🗑️ Cleaned up", length(temp_files), "temporary files"), .verbose = TRUE)
-      }
+      # NOTE: We no longer call global clear_cache() here because:
+      # 1. Session-specific caches are now handled by cleanup_session_isolation()
+      # 2. Global cache may contain read-only data shared by other sessions
+      # 3. This prevents one session ending from clearing another session's cache
 
       # Force garbage collection
       gc(verbose = FALSE)
@@ -731,14 +736,15 @@ server <- function(input, output, session) {
   # - inferenceCompleted() - Inference completion flag
 
   # =============================================================================
-  # THEME MANAGEMENT (Handled by theme_module)
+  # THEME MANAGEMENT (Handled by theme_module -- proper moduleServer)
   # =============================================================================
-  # NOTE: All theme logic is now in theme_module.R
+  # NOTE: All theme logic is now in theme_module.R using moduleServer pattern.
+  # UI: theme_module_ui("theme") in ui.R controlbar
+  # Server: theme_module_server("theme", lang) initialized above
   # Available from module:
-  # - current_theme() - Reactive theme object
-  # - appliedTheme() - Currently applied theme name
-  # - themeUpdateTrigger() - Theme change trigger
-  # - All theme observers and handlers
+  # - current_theme() - Reactive bslib theme object
+  # - applied_theme() - Currently applied theme name
+  # - theme_update_trigger() - Theme change trigger
 
   # =============================================================================
   # DATA MANAGEMENT (Handled by data_management_module)
@@ -1185,7 +1191,7 @@ server <- function(input, output, session) {
     }
   }, ignoreInit = TRUE)
 
-  # NOTE: Theme apply handlers (applyTheme, applyCustomTheme) are now in theme_module.R
+  # NOTE: Theme handlers are in theme_module_server("theme") using proper moduleServer pattern
 
   # ============================================================================
   # TRANSLATION SYSTEM - Dynamic UI Rendering
@@ -1249,11 +1255,7 @@ server <- function(input, output, session) {
     )
   })
 
-  # Render Settings Theme Header
-  output$settings_theme_header <- renderUI({
-    current_lang <- lang()
-    h6(tagList(icon("palette"), " ", t("theme_settings", current_lang)), class = "text-primary")
-  })
+  # NOTE: settings_theme_header is now rendered inside theme_module_server("theme")
 
   # Render Data Input Card Headers
   output$data_input_header <- renderUI({
