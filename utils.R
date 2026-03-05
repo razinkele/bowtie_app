@@ -275,8 +275,159 @@ safe_ncol <- function(x) {
 #' @param x Vector or list (or NULL)
 #' @return Length, or 0 if x is NULL
 safe_length <- function(x) {
+
   if (is.null(x)) return(0L)
   length(x)
+}
+
+#' Get data frame column with fallback to alternate column name
+#'
+#' Useful when data frames may have different column naming conventions.
+#' Returns the first matching column or NULL if none match.
+#'
+#' @param df Data frame
+#' @param col_name Primary column name to look for
+#' @param alt_col_name Alternative column name (optional)
+#' @param default Default value if neither column exists
+#' @return Column values or default
+get_column_safe <- function(df, col_name, alt_col_name = NULL, default = NULL) {
+  if (is.null(df) || !is.data.frame(df)) return(default)
+  if (col_name %in% names(df)) return(df[[col_name]])
+  if (!is.null(alt_col_name) && alt_col_name %in% names(df)) return(df[[alt_col_name]])
+  return(default)
+}
+
+#' Check if data frame has required columns
+#'
+#' @param df Data frame to check
+#' @param required_cols Character vector of required column names
+#' @return List with $valid (TRUE/FALSE) and $missing (vector of missing columns)
+check_required_columns <- function(df, required_cols) {
+  if (is.null(df) || !is.data.frame(df)) {
+    return(list(valid = FALSE, missing = required_cols))
+  }
+  missing <- setdiff(required_cols, names(df))
+  list(valid = length(missing) == 0, missing = missing)
+}
+
+#' Ensure session$userData is initialized
+#'
+#' Safe initialization that can be called multiple times.
+#' Returns the session$userData environment.
+#'
+#' @param session Shiny session object
+#' @return session$userData environment (created if needed)
+ensure_session_userData <- function(session) {
+  if (is.null(session$userData)) {
+    session$userData <- new.env()
+  }
+  return(session$userData)
+}
+
+#' Safely access nested session$userData value
+#'
+#' @param session Shiny session object
+#' @param key Key to access in session$userData
+#' @param default Default value if not found
+#' @return Value or default
+get_session_data <- function(session, key, default = NULL) {
+  if (is.null(session$userData)) return(default)
+  if (!exists(key, envir = session$userData, inherits = FALSE)) return(default)
+  session$userData[[key]]
+}
+
+#' Safely set session$userData value
+#'
+#' Ensures session$userData is initialized first.
+#'
+#' @param session Shiny session object
+#' @param key Key to set in session$userData
+#' @param value Value to set
+#' @return invisible(TRUE)
+set_session_data <- function(session, key, value) {
+  ensure_session_userData(session)
+  session$userData[[key]] <- value
+  invisible(TRUE)
+}
+
+# =============================================================================
+# STANDARDIZED ERROR HANDLING (Issue #16 fix - consistent error handling)
+# =============================================================================
+
+#' Execute code with standardized error handling
+#'
+#' Wraps code execution with consistent error handling, logging, and user notification.
+#' Use this for operations that could fail and need consistent error reporting.
+#'
+#' @param expr Expression to evaluate
+#' @param error_msg User-facing error message prefix
+#' @param default Default value to return on error (default: NULL)
+#' @param notify_user Whether to show user notification on error (default: TRUE)
+#' @param log_level Log level for errors: "error", "warn", "info" (default: "error")
+#' @return Result of expr on success, default on error
+#' @examples
+#' result <- safe_execute(
+#'   read_excel("file.xlsx"),
+#'   error_msg = "Failed to read Excel file",
+#'   default = data.frame(),
+#'   notify_user = TRUE
+#' )
+safe_execute <- function(expr, error_msg = "Operation failed", default = NULL,
+                         notify_user = TRUE, log_level = "error") {
+  tryCatch({
+    expr
+  }, error = function(e) {
+    full_msg <- paste(error_msg, "-", e$message)
+
+    # Log the error
+    if (exists("bowtie_log")) {
+      bowtie_log(full_msg, level = log_level)
+    }
+
+    # Notify user if requested
+    if (notify_user && exists("notify_error")) {
+      notify_error(error_msg)
+    }
+
+    return(default)
+  })
+}
+
+#' Execute code and return result with success/error status
+#'
+#' Similar to safe_execute but returns a list with success status and value/error.
+#' Useful when you need to know whether an operation succeeded.
+#'
+#' @param expr Expression to evaluate
+#' @param error_msg User-facing error message prefix
+#' @return List with $success (TRUE/FALSE), $value (result if success), $error (message if failed)
+try_with_result <- function(expr, error_msg = "Operation failed") {
+  tryCatch({
+    result <- expr
+    list(success = TRUE, value = result, error = NULL)
+  }, error = function(e) {
+    full_msg <- paste(error_msg, "-", e$message)
+    if (exists("bowtie_log")) {
+      bowtie_log(full_msg, level = "error")
+    }
+    list(success = FALSE, value = NULL, error = e$message)
+  })
+}
+
+#' Validate function arguments with consistent error messages
+#'
+#' @param condition Logical condition that must be TRUE
+#' @param error_msg Error message if condition is FALSE
+#' @param arg_name Name of the argument being validated (optional)
+#' @return TRUE if valid, throws error if invalid
+validate_arg <- function(condition, error_msg, arg_name = NULL) {
+  if (!isTRUE(condition)) {
+    if (!is.null(arg_name)) {
+      error_msg <- paste("Invalid argument", arg_name, "-", error_msg)
+    }
+    stop(error_msg, call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 # =============================================================================
@@ -340,6 +491,43 @@ session_temp_file <- function(session, prefix = "bowtie", fileext = "") {
     fileext = fileext
   )
 }
+
+#' Atomic file write - writes to temp then renames to prevent partial reads
+#' @param content Content to write (character vector or raw)
+#' @param target_path Final destination path
+#' @param write_func Optional custom write function (default: writeLines for character, writeBin for raw)
+#' @return TRUE if successful, FALSE otherwise
+atomic_file_write <- function(content, target_path, write_func = NULL) {
+  # Create temp file in same directory as target for atomic rename
+  temp_path <- paste0(target_path, ".tmp.", format(Sys.time(), "%Y%m%d%H%M%S%OS3"))
+
+  tryCatch({
+    # Write to temp file first
+    if (!is.null(write_func)) {
+      write_func(content, temp_path)
+    } else if (is.raw(content)) {
+      writeBin(content, temp_path)
+    } else {
+      writeLines(content, temp_path)
+    }
+
+    # Atomically rename to target (this is atomic on most filesystems)
+    if (file.exists(target_path)) {
+      file.remove(target_path)
+    }
+    file.rename(temp_path, target_path)
+
+    return(TRUE)
+  }, error = function(e) {
+    # Clean up temp file if it exists
+    if (file.exists(temp_path)) {
+      try(file.remove(temp_path), silent = TRUE)
+    }
+    bowtie_log(paste("Atomic write failed:", e$message), level = "error")
+    return(FALSE)
+  })
+}
+
 #' Clean up session-specific temp files
 #' @param session Shiny session object
 cleanup_session_temp_files <- function(session) {
@@ -566,6 +754,121 @@ cleanup_session_isolation <- function(session) {
   }
 
   invisible(cleanup_stats)
+}
+
+# =============================================================================
+# MEMORY MANAGEMENT UTILITIES (Issue #17 fix - prevent memory leaks)
+# =============================================================================
+
+#' Limit list size by removing oldest entries
+#'
+#' Use this to prevent unbounded growth of lists in reactive values.
+#' Removes oldest entries (from beginning of list) when size exceeds limit.
+#'
+#' @param lst List to limit
+#' @param max_size Maximum allowed entries
+#' @return Trimmed list
+limit_list_size <- function(lst, max_size = 100) {
+  if (is.null(lst) || !is.list(lst)) return(lst)
+  if (length(lst) <= max_size) return(lst)
+
+  # Keep only the most recent entries
+  start_idx <- length(lst) - max_size + 1
+  return(lst[start_idx:length(lst)])
+}
+
+#' Trim workflow state to prevent memory bloat
+#'
+#' Removes non-essential historical data from workflow state.
+#' Keeps current state but limits history tracking.
+#'
+#' @param state Workflow state list
+#' @param max_history_items Maximum items to keep in any history list
+#' @return Trimmed state
+trim_workflow_state <- function(state, max_history_items = 50) {
+  if (is.null(state) || !is.list(state)) return(state)
+
+  # Limit activities list
+  if (!is.null(state$project_data$activities) && length(state$project_data$activities) > max_history_items) {
+    state$project_data$activities <- tail(state$project_data$activities, max_history_items)
+  }
+
+  # Limit pressures list
+  if (!is.null(state$project_data$pressures) && length(state$project_data$pressures) > max_history_items) {
+    state$project_data$pressures <- tail(state$project_data$pressures, max_history_items)
+  }
+
+  # Limit controls lists
+  if (!is.null(state$project_data$preventive_controls) && length(state$project_data$preventive_controls) > max_history_items) {
+    state$project_data$preventive_controls <- tail(state$project_data$preventive_controls, max_history_items)
+  }
+
+  if (!is.null(state$project_data$protective_controls) && length(state$project_data$protective_controls) > max_history_items) {
+    state$project_data$protective_controls <- tail(state$project_data$protective_controls, max_history_items)
+  }
+
+  # Limit consequences list
+  if (!is.null(state$project_data$consequences) && length(state$project_data$consequences) > max_history_items) {
+    state$project_data$consequences <- tail(state$project_data$consequences, max_history_items)
+  }
+
+  return(state)
+}
+
+#' Get estimated memory usage of an object
+#'
+#' @param obj Object to measure
+#' @return Memory size in bytes
+estimate_memory_usage <- function(obj) {
+  as.numeric(object.size(obj))
+}
+
+#' Check if session memory usage is within limits
+#'
+#' @param session Shiny session object
+#' @param max_mb Maximum allowed memory in MB (default: 100)
+#' @return List with $within_limit and $current_mb
+check_session_memory <- function(session, max_mb = 100) {
+  if (is.null(session$userData)) {
+    return(list(within_limit = TRUE, current_mb = 0))
+  }
+
+  # Estimate total userData size
+  total_bytes <- tryCatch({
+    sum(sapply(ls(session$userData), function(name) {
+      estimate_memory_usage(session$userData[[name]])
+    }))
+  }, error = function(e) 0)
+
+  current_mb <- total_bytes / (1024 * 1024)
+
+  list(
+    within_limit = current_mb <= max_mb,
+    current_mb = round(current_mb, 2)
+  )
+}
+
+#' Force cleanup if memory usage is too high
+#'
+#' @param session Shiny session object
+#' @param max_mb Maximum allowed memory before cleanup
+#' @return TRUE if cleanup was performed
+force_memory_cleanup_if_needed <- function(session, max_mb = 100) {
+  memory_check <- check_session_memory(session, max_mb)
+
+  if (!memory_check$within_limit) {
+    bowtie_log(paste("Memory limit exceeded (", memory_check$current_mb, "MB) - forcing cleanup"), level = "warn")
+
+    # Clear session cache
+    clear_session_cache(session, reset_stats = FALSE)
+
+    # Force garbage collection
+    gc(verbose = FALSE)
+
+    return(TRUE)
+  }
+
+  return(FALSE)
 }
 
 # Cache management functions

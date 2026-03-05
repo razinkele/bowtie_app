@@ -53,8 +53,37 @@ validate_step <- function(step_number, data) {
   )
 }
 
+#' Validate a required text field with length constraints
+#' Helper function to reduce nested conditionals in validation
+#' @param value Text value to validate
+#' @param field_name Human-readable field name for error messages
+#' @param max_length Maximum allowed length
+#' @param translation_key Translation key for empty field error
+#' @param current_lang Current language code
+#' @return List with is_valid (boolean) and message
+validate_text_field <- function(value, field_name, max_length, translation_key = NULL, current_lang = "en") {
+  # Check for empty/NULL
+  if (is.null(value) || nchar(trimws(value)) == 0) {
+    msg <- if (!is.null(translation_key)) {
+      tryCatch(t(translation_key, current_lang), error = function(e) paste("Please enter", field_name))
+    } else {
+      paste("Please enter", field_name)
+    }
+    return(list(is_valid = FALSE, message = msg))
+  }
+
+  # Check length constraint
+  if (nchar(value) > max_length) {
+    return(list(is_valid = FALSE, message = paste(field_name, "too long. Maximum", max_length, "characters.")))
+  }
+
+  # Valid
+  list(is_valid = TRUE, message = "")
+}
+
 #' Validate current step before proceeding
 #' Enhanced with input length validation (Issue #4 fix)
+#' Refactored to use helper function (Issue #16 fix - reduce nested conditionals)
 #' @param state Current workflow state
 #' @param input Shiny input object
 #' @param current_lang Current language code (for translations)
@@ -65,55 +94,14 @@ validate_current_step <- function(state, input, current_lang = "en") {
   # Get max lengths from constants (with fallbacks)
   max_name_length <- if (exists("MAX_NAME_LENGTH")) MAX_NAME_LENGTH else 200
   max_text_length <- if (exists("MAX_TEXT_LENGTH")) MAX_TEXT_LENGTH else 1000
-  max_desc_length <- if (exists("MAX_DESCRIPTION_LENGTH")) MAX_DESCRIPTION_LENGTH else 2000
 
-  # Basic validation based on step number
+  # Validation using helper function to reduce nesting
   validation <- switch(as.character(step),
-    "1" = {
-      # Step 1: Project Setup
-      project_name <- input$project_name
-      if (is.null(project_name) || nchar(trimws(project_name)) == 0) {
-        # Try to use translation function if available
-        msg <- tryCatch(
-          t("gw_enter_project_name", current_lang),
-          error = function(e) "Please enter a project name"
-        )
-        list(is_valid = FALSE, message = msg)
-      } else if (nchar(project_name) > max_name_length) {
-        # INPUT LENGTH VALIDATION (Issue #4 fix)
-        list(is_valid = FALSE, message = paste("Project name too long. Maximum", max_name_length, "characters."))
-      } else {
-        list(is_valid = TRUE, message = "")
-      }
-    },
-    "2" = {
-      # Step 2: Central Problem
-      problem <- input$problem_statement
-      if (is.null(problem) || nchar(trimws(problem)) == 0) {
-        msg <- tryCatch(
-          t("gw_define_central_problem", current_lang),
-          error = function(e) "Please define the central problem"
-        )
-        list(is_valid = FALSE, message = msg)
-      } else if (nchar(problem) > max_text_length) {
-        # INPUT LENGTH VALIDATION (Issue #4 fix)
-        list(is_valid = FALSE, message = paste("Problem statement too long. Maximum", max_text_length, "characters."))
-      } else {
-        list(is_valid = TRUE, message = "")
-      }
-    },
-    "3" = {
-      # Step 3: Activities and Pressures
-      # Optional validation - can proceed without entries
-      list(is_valid = TRUE, message = "")
-    },
-    # Steps 4-7 have no mandatory fields (placeholders)
-    "4" = list(is_valid = TRUE, message = ""),
-    "5" = list(is_valid = TRUE, message = ""),
-    "6" = list(is_valid = TRUE, message = ""),
-    "7" = list(is_valid = TRUE, message = ""),
-    "8" = list(is_valid = TRUE, message = ""),
-    # Default
+    "1" = validate_text_field(input$project_name, "Project name", max_name_length,
+                              "gw_enter_project_name", current_lang),
+    "2" = validate_text_field(input$problem_statement, "Problem statement", max_text_length,
+                              "gw_define_central_problem", current_lang),
+    # Steps 3-8: Optional validation - can proceed without entries
     list(is_valid = TRUE, message = "")
   )
 

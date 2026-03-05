@@ -161,13 +161,15 @@ init_workflow_export <- function(input, output, session, workflow_state,
         workflow_state(state)
       }
 
-      # Create filename with timestamp
+      # Create filename with timestamp and session ID to prevent race conditions
       project_name <- state$project_data$project_name %||% "Bowtie"
       project_name <- gsub("[^A-Za-z0-9_-]", "_", project_name)  # Sanitize filename
-      filename <- paste0(project_name, "_", format(Sys.Date(), "%Y%m%d"), ".xlsx")
+      # Include session token to ensure unique filenames across concurrent users
+      session_id <- if (!is.null(session$token)) substr(session$token, 1, 8) else format(Sys.time(), "%H%M%S")
+      filename <- paste0(project_name, "_", format(Sys.Date(), "%Y%m%d"), "_", session_id, ".xlsx")
 
-      # Create temporary file
-      temp_file <- file.path(tempdir(), filename)
+      # Create temporary file using session-specific path to avoid race conditions
+      temp_file <- session_temp_file(session, prefix = paste0("export_", project_name), fileext = ".xlsx")
 
       # Export using the existing function from vocabulary_bowtie_generator.R
       # Note: This function should be sourced in global.R
@@ -229,8 +231,11 @@ init_workflow_export <- function(input, output, session, workflow_state,
       # Create a simple PDF report using base graphics or ggplot2
       project_name <- state$project_data$project_name %||% "Bowtie_Report"
       project_name <- gsub("[^A-Za-z0-9_-]", "_", project_name)
-      filename <- paste0(project_name, "_Report_", format(Sys.Date(), "%Y%m%d"), ".pdf")
-      temp_file <- file.path(tempdir(), filename)
+      # Include session token to ensure unique filenames across concurrent users
+      session_id <- if (!is.null(session$token)) substr(session$token, 1, 8) else format(Sys.time(), "%H%M%S")
+      filename <- paste0(project_name, "_Report_", format(Sys.Date(), "%Y%m%d"), "_", session_id, ".pdf")
+      # Use session-specific temp file to avoid race conditions between users
+      temp_file <- session_temp_file(session, prefix = paste0("report_", project_name), fileext = ".pdf")
 
       # Create PDF with summary information
       pdf(temp_file, width = 11, height = 8.5)

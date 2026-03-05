@@ -25,6 +25,54 @@
 bowtie_visualization_module_server <- function(input, output, session, getCurrentData, lang) {
 
   # ===========================================================================
+  # HELPER FUNCTIONS FOR DATA NORMALIZATION
+  # ===========================================================================
+
+  #' Calculate risk level from likelihood and severity
+  #' @param likelihood Numeric likelihood value (1-5)
+  #' @param severity Numeric severity value (1-5)
+  #' @return Character risk level: "Low", "Medium", or "High"
+  calculate_risk_level <- function(likelihood, severity) {
+    risk_score <- likelihood * severity
+    ifelse(risk_score <= 6, "Low",
+           ifelse(risk_score <= 15, "Medium", "High"))
+  }
+
+  #' Normalize risk data ensuring all required columns exist
+  #' Consolidates duplicate column existence checks into single function
+  #' @param data Data frame with risk data
+  #' @return Normalized data frame with consistent column names
+  normalize_risk_data <- function(data) {
+    if (is.null(data) || !is.data.frame(data) || nrow(data) == 0) {
+      return(data)
+    }
+
+    # Normalize likelihood column
+    if (!"Likelihood" %in% names(data)) {
+      data$Likelihood <- get_column_safe(data, "Overall_Likelihood", default = 3)
+    }
+
+    # Normalize severity column
+    if (!"Severity" %in% names(data)) {
+      data$Severity <- get_column_safe(data, "Overall_Severity", default = 3)
+    }
+
+    # Calculate or normalize Risk_Level column
+    if (!"Risk_Level" %in% names(data)) {
+      data$Risk_Level <- calculate_risk_level(data$Likelihood, data$Severity)
+    } else if (is.numeric(data$Risk_Level)) {
+      # Convert numeric risk level to categorical
+      data$Risk_Level <- calculate_risk_level(data$Risk_Level, 1)  # Treat as score
+    }
+
+    # Validate Risk_Level values - set invalid to "Medium"
+    valid_levels <- c("Low", "Medium", "High")
+    data$Risk_Level[!data$Risk_Level %in% valid_levels] <- "Medium"
+
+    return(data)
+  }
+
+  # ===========================================================================
   # CACHED REACTIVE EXPRESSIONS FOR BOWTIE VISUALIZATION
   # ===========================================================================
   # These cached reactives prevent expensive recalculation of nodes/edges
@@ -179,35 +227,8 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
     data <- getCurrentData()
     req(data, nrow(data) > 0)
 
-    # Ensure Risk_Level column exists and is properly formatted
-    if (!"Risk_Level" %in% names(data)) {
-      # Calculate risk level based on likelihood and severity
-      likelihood_col <- if ("Likelihood" %in% names(data)) data$Likelihood else data$Overall_Likelihood
-      severity_col <- if ("Severity" %in% names(data)) data$Severity else data$Overall_Severity
-
-      risk_scores <- likelihood_col * severity_col
-      data$Risk_Level <- ifelse(risk_scores <= 6, "Low",
-                               ifelse(risk_scores <= 15, "Medium", "High"))
-    }
-
-    # Ensure Risk_Level is character and has valid values
-    if (is.numeric(data$Risk_Level)) {
-      # Convert numeric risk level to categorical
-      data$Risk_Level <- ifelse(data$Risk_Level <= 6, "Low",
-                               ifelse(data$Risk_Level <= 15, "Medium", "High"))
-    }
-
-    # Validate Risk_Level values and set defaults for invalid ones
-    valid_levels <- c("Low", "Medium", "High")
-    data$Risk_Level[!data$Risk_Level %in% valid_levels] <- "Medium"
-
-    # Ensure Likelihood and Severity columns exist
-    if (!"Likelihood" %in% names(data)) {
-      data$Likelihood <- data$Overall_Likelihood
-    }
-    if (!"Severity" %in% names(data)) {
-      data$Severity <- data$Overall_Severity
-    }
+    # Use helper function to normalize data (eliminates duplicate logic)
+    data <- normalize_risk_data(data)
 
     # Create the risk matrix plot
     tryCatch({
