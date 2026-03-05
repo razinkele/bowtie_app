@@ -133,13 +133,14 @@ bayesian_module_server <- function(input, output, session, getCurrentData, lang)
         # Prepare evidence
         evidence <- list()
 
-        if (!is.null(input$evidenceActivity) && input$evidenceActivity != "" && input$evidenceActivity != "Any") {
+        # Use has_value() for consistent empty checks, plus "Any" filter
+        if (has_value(input$evidenceActivity) && input$evidenceActivity != "Any") {
           evidence$Activity <- input$evidenceActivity
         }
-        if (!is.null(input$evidencePressure) && input$evidencePressure != "" && input$evidencePressure != "Any") {
+        if (has_value(input$evidencePressure) && input$evidencePressure != "Any") {
           evidence$Pressure_Level <- input$evidencePressure
         }
-        if (!is.null(input$evidenceControl) && input$evidenceControl != "" && input$evidenceControl != "Any") {
+        if (has_value(input$evidenceControl) && input$evidenceControl != "Any") {
           evidence$Control_Effect <- input$evidenceControl
         }
 

@@ -209,6 +209,77 @@ get_session_cache_stats <- function(session) {
 }
 
 # =============================================================================
+# VALUE CHECKING UTILITIES (Issue #15 fix - consistent NULL/empty checks)
+# =============================================================================
+
+#' Check if a value is empty (NULL, NA, zero-length, or empty string)
+#'
+#' Provides consistent empty value checking across the codebase.
+#' Use this instead of ad-hoc NULL/NA/length checks.
+#'
+#' @param x Value to check
+#' @param trim_strings If TRUE (default), empty strings after trimming count as empty
+#' @return TRUE if value is considered empty, FALSE otherwise
+#' @examples
+#' is_empty(NULL)        # TRUE
+#' is_empty(NA)          # TRUE
+#' is_empty(c())         # TRUE
+#' is_empty("")          # TRUE
+#' is_empty("  ")        # TRUE (with trim_strings = TRUE)
+#' is_empty(0)           # FALSE (zero is a valid value)
+#' is_empty(data.frame()) # TRUE (zero rows)
+is_empty <- function(x, trim_strings = TRUE) {
+  if (is.null(x)) return(TRUE)
+  if (length(x) == 0) return(TRUE)
+  if (is.data.frame(x)) return(nrow(x) == 0)
+  if (all(is.na(x))) return(TRUE)
+  if (is.character(x)) {
+    if (trim_strings) {
+      return(all(trimws(x) == ""))
+    } else {
+      return(all(x == ""))
+    }
+  }
+  return(FALSE)
+}
+
+#' Check if a value is NOT empty (inverse of is_empty)
+#'
+#' @param x Value to check
+#' @param trim_strings If TRUE (default), empty strings after trimming count as empty
+#' @return TRUE if value has content, FALSE if empty
+has_value <- function(x, trim_strings = TRUE) {
+  !is_empty(x, trim_strings)
+}
+
+#' Safe nrow() that handles NULL values
+#'
+#' @param x Data frame or matrix (or NULL)
+#' @return Number of rows, or 0 if x is NULL
+safe_nrow <- function(x) {
+  if (is.null(x)) return(0L)
+  nrow(x)
+}
+
+#' Safe ncol() that handles NULL values
+#'
+#' @param x Data frame or matrix (or NULL)
+#' @return Number of columns, or 0 if x is NULL
+safe_ncol <- function(x) {
+  if (is.null(x)) return(0L)
+  ncol(x)
+}
+
+#' Safe length() that handles NULL values
+#'
+#' @param x Vector or list (or NULL)
+#' @return Length, or 0 if x is NULL
+safe_length <- function(x) {
+  if (is.null(x)) return(0L)
+  length(x)
+}
+
+# =============================================================================
 # SESSION-SPECIFIC TEMP FILE UTILITIES (v5.4.1)
 # =============================================================================
 

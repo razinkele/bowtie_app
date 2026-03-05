@@ -203,13 +203,13 @@ calculate_semantic_similarity <- function(text1, text2, method = "jaccard") {
       similarity <- calculate_embedding_similarity(text1, text2, embedding_model)
     } else {
       # Fallback to Jaccard if embedding function not found
-      warning("Embedding similarity function not found, using Jaccard")
+      log_warning("Embedding similarity function not found, using Jaccard")
       return(calculate_semantic_similarity(text1, text2, method = "jaccard"))
     }
 
   } else {
     # Default to simple Jaccard if method unavailable
-    warning("Method '", method, "' not available, using Jaccard")
+    log_warning("Method '", method, "' not available, using Jaccard")
     return(calculate_semantic_similarity(text1, text2, method = "jaccard"))
   }
 
@@ -392,7 +392,7 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
-    warning("Invalid vocabulary_data provided to find_basic_connections")
+    log_warning("Invalid vocabulary_data provided to find_basic_connections")
     return(data.frame())
   }
 
@@ -400,7 +400,7 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
   missing_components <- setdiff(required_components, names(vocabulary_data))
 
   if (length(missing_components) > 0) {
-    warning("Missing vocabulary components: ", paste(missing_components, collapse = ", "))
+    log_warning("Missing vocabulary components: ", paste(missing_components, collapse = ", "))
     return(data.frame())
   }
 
@@ -431,7 +431,7 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
       for (j in 1:nrow(vocabulary_data$pressures)) {
         pressure <- vocabulary_data$pressures[j, ]
         score <- get_word_overlap_score(activity$name, pressure$name)
-        if (score > 0.2) {
+        if (score > VOCAB_WORD_OVERLAP_THRESHOLD) {
           results_list[[length(results_list) + 1]] <- data.frame(
             from_id = activity$id, from_name = activity$name, from_type = "Activity",
             to_id = pressure$id, to_name = pressure$name, to_type = "Pressure",
@@ -449,7 +449,7 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
       for (j in 1:nrow(vocabulary_data$consequences)) {
         consequence <- vocabulary_data$consequences[j, ]
         score <- get_word_overlap_score(pressure$name, consequence$name)
-        if (score > 0.2) {
+        if (score > VOCAB_WORD_OVERLAP_THRESHOLD) {
           results_list[[length(results_list) + 1]] <- data.frame(
             from_id = pressure$id, from_name = pressure$name, from_type = "Pressure",
             to_id = consequence$id, to_name = consequence$name, to_type = "Consequence",
@@ -489,7 +489,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
-    warning("Invalid vocabulary_data provided")
+    log_warning("Invalid vocabulary_data provided")
     return(data.frame())
   }
 
@@ -553,7 +553,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
         }
 
         # Add link if score sufficient
-        if (causal_score > 0.3) {
+        if (causal_score > VOCAB_CAUSAL_WEAK_THRESHOLD) {
           causal_results[[length(causal_results) + 1]] <- data.frame(
             from_id = activity$id,
             from_name = activity$name,
@@ -629,7 +629,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
         }
 
         # Add link if score sufficient
-        if (causal_score > 0.3) {
+        if (causal_score > VOCAB_CAUSAL_WEAK_THRESHOLD) {
           causal_results[[length(causal_results) + 1]] <- data.frame(
             from_id = pressure$id,
             from_name = pressure$name,
@@ -701,7 +701,7 @@ detect_causal_relationships <- function(vocabulary_data, use_domain_knowledge = 
           }
 
           # Add link if score sufficient
-          if (causal_score > 0.4) {
+          if (causal_score > VOCAB_CAUSAL_STRONG_THRESHOLD) {
             causal_results[[length(causal_results) + 1]] <- data.frame(
               from_id = control$id,
               from_name = control$name,
@@ -740,7 +740,7 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
-    warning("Invalid vocabulary_data provided")
+    log_warning("Invalid vocabulary_data provided")
     return(data.frame())
   }
 
@@ -750,12 +750,12 @@ find_keyword_connections <- function(vocabulary_data, themes = ENVIRONMENTAL_THE
   all_items <- tryCatch({
     assemble_all_items(vocabulary_data)
   }, error = function(e) {
-    warning("Error combining vocabulary items: ", e$message)
+    log_warning("Error combining vocabulary items: ", e$message)
     return(data.frame(id = character(), name = character(), type = character(), stringsAsFactors = FALSE))
   })
 
   if (nrow(all_items) == 0) {
-    warning("No vocabulary items found")
+    log_warning("No vocabulary items found")
     return(data.frame())
   }
 
@@ -828,7 +828,7 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
-    warning("Invalid vocabulary_data provided")
+    log_warning("Invalid vocabulary_data provided")
     return(data.frame())
   }
 
@@ -838,12 +838,12 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
   all_items <- tryCatch({
     assemble_all_items(vocabulary_data)
   }, error = function(e) {
-    warning("Error combining vocabulary items: ", e$message)
+    log_warning("Error combining vocabulary items: ", e$message)
     return(data.frame(id = character(), name = character(), type = character(), stringsAsFactors = FALSE))
   })
 
   if (nrow(all_items) < 2) {
-    warning("Not enough vocabulary items for semantic analysis")
+    log_warning("Not enough vocabulary items for semantic analysis")
     return(data.frame())
   }
 
@@ -948,12 +948,12 @@ find_vocabulary_links <- function(vocabulary_data,
   valid_methods <- c("jaccard", "cosine", "keyword", "causal", "basic")
   invalid_methods <- setdiff(methods, valid_methods)
   if (length(invalid_methods) > 0) {
-    warning("Invalid methods specified: ", paste(invalid_methods, collapse = ", "))
+    log_warning("Invalid methods specified: ", paste(invalid_methods, collapse = ", "))
     methods <- intersect(methods, valid_methods)
   }
 
   if (length(methods) == 0) {
-    warning("No valid methods specified, using default: jaccard, keyword, causal")
+    log_warning("No valid methods specified, using default: jaccard, keyword, causal")
     methods <- c("jaccard", "keyword", "causal")
   }
 
@@ -983,7 +983,7 @@ find_vocabulary_links <- function(vocabulary_data,
       # Use bind_rows for column-safe combining (handles causal_type mismatch)
       all_links <- dplyr::bind_rows(all_links, semantic_links)
     }, error = function(e) {
-      warning("Semantic analysis failed: ", e$message)
+      log_warning("Semantic analysis failed: ", e$message)
     })
   }
 
@@ -993,7 +993,7 @@ find_vocabulary_links <- function(vocabulary_data,
       keyword_links <- find_keyword_connections(vocabulary_data, ENVIRONMENTAL_THEMES)
       all_links <- dplyr::bind_rows(all_links, keyword_links)
     }, error = function(e) {
-      warning("Keyword analysis failed: ", e$message)
+      log_warning("Keyword analysis failed: ", e$message)
     })
   }
 
@@ -1004,7 +1004,7 @@ find_vocabulary_links <- function(vocabulary_data,
       # bind_rows handles the extra causal_type column gracefully
       all_links <- dplyr::bind_rows(all_links, causal_links)
     }, error = function(e) {
-      warning("Causal analysis failed: ", e$message)
+      log_warning("Causal analysis failed: ", e$message)
     })
   }
 
@@ -1179,7 +1179,7 @@ save_cache <- function(file_path = "cache/similarity_cache.rds") {
 
     bowtie_log(sprintf("Saved %d cached similarities to %s", length(cache_list), file_path), level = "success")
   }, error = function(e) {
-    warning("Failed to save cache: ", e$message)
+    log_warning("Failed to save cache: ", e$message)
   })
 
   invisible(NULL)
@@ -1204,7 +1204,7 @@ load_cache <- function(file_path = "cache/similarity_cache.rds") {
 
     bowtie_log(sprintf("Loaded %d cached similarities from %s", length(cache_list), file_path), level = "success")
   }, error = function(e) {
-    warning("Failed to load cache: ", e$message)
+    log_warning("Failed to load cache: ", e$message)
   })
 
   invisible(NULL)
@@ -1224,7 +1224,7 @@ precompute_similarity_matrix <- function(vocabulary_data,
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
-    warning("Invalid vocabulary_data provided")
+    log_warning("Invalid vocabulary_data provided")
     return(invisible(NULL))
   }
 
@@ -1232,7 +1232,7 @@ precompute_similarity_matrix <- function(vocabulary_data,
   all_items <- assemble_all_items(vocabulary_data)
 
   if (nrow(all_items) == 0) {
-    warning("No vocabulary items found")
+    log_warning("No vocabulary items found")
     return(invisible(NULL))
   }
 
@@ -1299,7 +1299,7 @@ build_keyword_index <- function(vocabulary_data, themes = ENVIRONMENTAL_THEMES) 
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
-    warning("Invalid vocabulary_data provided")
+    log_warning("Invalid vocabulary_data provided")
     return(invisible(NULL))
   }
 
@@ -1310,7 +1310,7 @@ build_keyword_index <- function(vocabulary_data, themes = ENVIRONMENTAL_THEMES) 
   all_items <- assemble_all_items(vocabulary_data)
 
   if (nrow(all_items) == 0) {
-    warning("No vocabulary items found")
+    log_warning("No vocabulary items found")
     return(invisible(NULL))
   }
 
@@ -1473,7 +1473,7 @@ find_semantic_connections_parallel <- function(vocabulary_data,
 
   # Validate input
   if (is.null(vocabulary_data) || !is.list(vocabulary_data)) {
-    warning("Invalid vocabulary_data provided")
+    log_warning("Invalid vocabulary_data provided")
     return(data.frame())
   }
 
@@ -1481,12 +1481,12 @@ find_semantic_connections_parallel <- function(vocabulary_data,
   all_items <- tryCatch({
     assemble_all_items(vocabulary_data)
   }, error = function(e) {
-    warning("Error combining vocabulary items: ", e$message)
+    log_warning("Error combining vocabulary items: ", e$message)
     return(data.frame(id = character(), name = character(), type = character(), stringsAsFactors = FALSE))
   })
 
   if (nrow(all_items) < 2) {
-    warning("Not enough vocabulary items for semantic analysis")
+    log_warning("Not enough vocabulary items for semantic analysis")
     return(data.frame())
   }
 
@@ -1914,14 +1914,14 @@ calculate_confidence_score <- function(link, context = list()) {
   # Normalize confidence to 0-1 range
   confidence <- min(1.0, max(0.0, score))
 
-  # Categorize confidence level
-  level <- if (confidence >= 0.85) {
+  # Categorize confidence level (using constants for thresholds)
+  level <- if (confidence >= AI_CONFIDENCE_VERY_HIGH) {
     "very_high"
-  } else if (confidence >= 0.70) {
+  } else if (confidence >= AI_CONFIDENCE_HIGH) {
     "high"
-  } else if (confidence >= 0.50) {
+  } else if (confidence >= AI_CONFIDENCE_MODERATE) {
     "medium"
-  } else if (confidence >= 0.30) {
+  } else if (confidence >= AI_CONFIDENCE_LOW) {
     "low"
   } else {
     "very_low"
@@ -2033,11 +2033,11 @@ train_vocabulary_embeddings <- function(vocabulary_data,
 
       return(model)
     }, error = function(e) {
-      warning("Failed to train Word2Vec model: ", e$message)
+      log_warning("Failed to train Word2Vec model: ", e$message)
       return(NULL)
     })
   } else {
-    warning("train_word2vec_embeddings() function not found")
+    log_warning("train_word2vec_embeddings() function not found")
     return(NULL)
   }
 }

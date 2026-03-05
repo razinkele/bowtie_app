@@ -316,9 +316,16 @@ AI_SIMILARITY_THRESHOLD_KEYWORD <- 0.5
 AI_SIMILARITY_THRESHOLD_CAUSAL <- 0.4
 AI_SIMILARITY_THRESHOLD_SEMANTIC <- 0.6
 
+## Vocabulary Linking Thresholds
+VOCAB_WORD_OVERLAP_THRESHOLD <- 0.2   # Min score for word overlap connections
+VOCAB_CAUSAL_WEAK_THRESHOLD <- 0.3    # Weak causal relationship threshold
+VOCAB_CAUSAL_STRONG_THRESHOLD <- 0.4  # Strong causal relationship threshold
+
 ## Confidence Level Thresholds
+AI_CONFIDENCE_VERY_HIGH <- 0.85    # Very high confidence threshold
 AI_CONFIDENCE_HIGH <- 0.8          # High confidence threshold
 AI_CONFIDENCE_MEDIUM <- 0.6        # Medium confidence threshold
+AI_CONFIDENCE_MODERATE <- 0.5      # Moderate confidence threshold
 AI_CONFIDENCE_LOW <- 0.3           # Low confidence threshold
 
 ## AI Processing Limits

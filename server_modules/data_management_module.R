@@ -162,7 +162,7 @@ data_management_module_server <- function(input, output, session, lang = reactiv
   observeEvent(input$generateMultipleControls, {
     scenario_key <- input$data_scenario_template
 
-    scenario_msg <- if (!is.null(scenario_key) && scenario_key != "") {
+    scenario_msg <- if (has_value(scenario_key)) {
       paste0("🔄 Generating data with MULTIPLE CONTROLS for scenario: ", scenario_key)
     } else {
       "🔄 Generating data with MULTIPLE PREVENTIVE CONTROLS per pressure..."
