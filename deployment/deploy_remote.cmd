@@ -61,7 +61,7 @@ if defined BOWTIE_DEPLOY_PORT (
 
 set APP_NAME=bowtie_app
 set REMOTE_APP_DIR=/srv/shiny-server/%APP_NAME%
-set REMOTE_BACKUP_DIR=/var/backups/shiny-apps
+set REMOTE_BACKUP_DIR=~/backups/shiny-apps
 set SSH_EXE=C:\Windows\System32\OpenSSH\ssh.exe
 set SCP_EXE=C:\Windows\System32\OpenSSH\scp.exe
 set SSH_TARGET=%REMOTE_USER%@%REMOTE_HOST%
@@ -478,10 +478,10 @@ set TIMESTAMP=%TIMESTAMP: =0%
 set BACKUP_FILE=%REMOTE_BACKUP_DIR%/%APP_NAME%_%TIMESTAMP%.tar.gz
 
 call :log_action "Creating backup directory..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo mkdir -p %REMOTE_BACKUP_DIR%" 2>>"%LOG_FILE%"
+"%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "mkdir -p %REMOTE_BACKUP_DIR%" 2>>"%LOG_FILE%"
 
 call :log_action "Creating backup: %BACKUP_FILE%..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo tar -czf %BACKUP_FILE% -C /srv/shiny-server %APP_NAME% 2>/dev/null" 2>>"%LOG_FILE%"
+"%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "tar -czf %BACKUP_FILE% -C /srv/shiny-server %APP_NAME% 2>/dev/null" 2>>"%LOG_FILE%"
 if %ERRORLEVEL% EQU 0 (
     set BACKUP_CREATED=1
     call :log_success "Backup created successfully"
@@ -591,12 +591,9 @@ if %DRY_RUN%==1 (
     goto :skip_deploy
 )
 
-echo NOTE: You may be prompted for your sudo password.
-echo.
-
-REM Create app directory
+REM Create app directory (no sudo needed - razinka has write access)
 call :log_action "Creating application directory..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo mkdir -p %REMOTE_APP_DIR%" 2>>"%LOG_FILE%"
+"%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "mkdir -p %REMOTE_APP_DIR%" 2>>"%LOG_FILE%"
 if %ERRORLEVEL% NEQ 0 (
     call :log_error "Failed to create application directory"
     goto :deployment_failed
@@ -604,26 +601,20 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM Copy files from staging
 call :log_action "Installing files to %REMOTE_APP_DIR%..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo cp -rf %STAGING_DIR%/* %REMOTE_APP_DIR%/" 2>>"%LOG_FILE%"
+"%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "cp -rf %STAGING_DIR%/* %REMOTE_APP_DIR%/" 2>>"%LOG_FILE%"
 if %ERRORLEVEL% NEQ 0 (
     call :log_error "Failed to copy files to application directory"
     goto :rollback
 )
 call :log_success "Files installed"
 
-REM Set permissions
-call :log_action "Setting ownership to shiny user..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo chown -R shiny:shiny %REMOTE_APP_DIR%" 2>>"%LOG_FILE%"
-if %ERRORLEVEL% NEQ 0 (
-    call :log_warning "Failed to set ownership - may need manual fix"
-)
-
+REM Set permissions (no sudo needed)
 call :log_action "Setting file permissions..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo find %REMOTE_APP_DIR% -type d -exec chmod 755 {} \; && sudo find %REMOTE_APP_DIR% -type f -exec chmod 644 {} \;" 2>>"%LOG_FILE%"
+"%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "find %REMOTE_APP_DIR% -type d -exec chmod 755 {} \; && find %REMOTE_APP_DIR% -type f -exec chmod 644 {} \;" 2>>"%LOG_FILE%"
 
 REM Create runtime directories
 call :log_action "Creating runtime directories..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo mkdir -p %REMOTE_APP_DIR%/data %REMOTE_APP_DIR%/logs && sudo chmod 775 %REMOTE_APP_DIR%/data %REMOTE_APP_DIR%/logs && sudo chown shiny:shiny %REMOTE_APP_DIR%/data %REMOTE_APP_DIR%/logs" 2>>"%LOG_FILE%"
+"%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "mkdir -p %REMOTE_APP_DIR%/data %REMOTE_APP_DIR%/logs && chmod 775 %REMOTE_APP_DIR%/data %REMOTE_APP_DIR%/logs" 2>>"%LOG_FILE%"
 
 REM Clean up staging
 call :log_action "Cleaning up staging directory..."
@@ -655,7 +646,7 @@ if %QUICK_MODE%==1 (
 )
 
 call :log_action "Installing R packages (this may take several minutes)..."
-"%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "cd %REMOTE_APP_DIR% && sudo Rscript requirements.R" 2>>"%LOG_FILE%"
+"%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "cd %REMOTE_APP_DIR% && Rscript requirements.R" 2>>"%LOG_FILE%"
 if %ERRORLEVEL% EQU 0 (
     call :log_success "R packages installed"
 ) else (
@@ -679,11 +670,12 @@ if %DRY_RUN%==1 (
     goto :skip_restart
 )
 
-call :log_action "Restarting shiny-server..."
+call :log_action "Restarting shiny-server (requires sudo)..."
 "%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo systemctl restart shiny-server" 2>>"%LOG_FILE%"
 if %ERRORLEVEL% NEQ 0 (
-    call :log_error "Failed to restart shiny-server"
-    goto :deployment_failed
+    call :log_warning "Failed to restart shiny-server - may need manual restart"
+    call :log_info "Run manually: ssh %SSH_TARGET% 'sudo systemctl restart shiny-server'"
+    goto :skip_restart
 )
 
 call :log_action "Waiting for service to start..."
@@ -803,7 +795,7 @@ echo.
 
 if %BACKUP_CREATED%==1 (
     call :log_action "Restoring from backup: %BACKUP_FILE%"
-    "%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo rm -rf %REMOTE_APP_DIR%/* && sudo tar -xzf %BACKUP_FILE% -C /srv/shiny-server" 2>>"%LOG_FILE%"
+    "%SSH_EXE%" -p %REMOTE_PORT% %SSH_TARGET% "rm -rf %REMOTE_APP_DIR%/* && tar -xzf %BACKUP_FILE% -C /srv/shiny-server" 2>>"%LOG_FILE%"
     if %ERRORLEVEL% EQU 0 (
         call :log_success "Rollback successful"
         "%SSH_EXE%" -t -p %REMOTE_PORT% %SSH_TARGET% "sudo systemctl restart shiny-server" 2>>"%LOG_FILE%"
