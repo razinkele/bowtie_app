@@ -69,6 +69,72 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     return(result)
   }
 
+  # Helper function to generate DOM polling JavaScript code
+  # Uses constants from constants.R for polling settings
+  generate_dom_poll_js <- function(target_ids, loading_id, suggestion_type, show_message = FALSE) {
+    poll_max <- if (exists("DOM_POLL_MAX_ATTEMPTS")) DOM_POLL_MAX_ATTEMPTS else 50
+    poll_interval <- if (exists("DOM_POLL_INTERVAL_MS")) DOM_POLL_INTERVAL_MS else 100
+    poll_delay <- if (exists("DOM_POLL_INITIAL_DELAY_MS")) DOM_POLL_INITIAL_DELAY_MS else 200
+
+    if (show_message) {
+      # Simplified version for showing "no suggestions" message
+      sprintf("
+        setTimeout(function() {
+          var attempts = 0;
+          var maxAttempts = %d;
+          var pollInterval = %d;
+
+          var checkExist = setInterval(function() {
+            attempts++;
+            var targetEl = $('#%s');
+            var loadingEl = $('#%s');
+
+            if (targetEl.length > 0) {
+              clearInterval(checkExist);
+              loadingEl.hide();
+              targetEl.show();
+              console.log('[AI SUGGESTIONS] ✅ Showed no-suggestions message for %s');
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkExist);
+              console.error('[AI SUGGESTIONS] ❌ Timeout - no-suggestions element not found for %s');
+            }
+          }, pollInterval);
+        }, %d);
+      ", poll_max, poll_interval, target_ids[1], loading_id, suggestion_type, suggestion_type, poll_delay)
+    } else {
+      # Full version for suggestion lists
+      sprintf("
+        setTimeout(function() {
+          console.log('[AI SUGGESTIONS] Starting DOM polling for %s suggestions...');
+          var attempts = 0;
+          var maxAttempts = %d;
+          var pollInterval = %d;
+
+          var checkExist = setInterval(function() {
+            attempts++;
+
+            var suggestionsEl = $('#%s');
+            var loadingEl = $('#%s');
+
+            if (suggestionsEl.length > 0) {
+              clearInterval(checkExist);
+              console.log('[AI SUGGESTIONS] ✅ %s elements found after', attempts * pollInterval, 'ms');
+
+              loadingEl.hide();
+              suggestionsEl.show();
+
+              console.log('[AI SUGGESTIONS] Successfully showed %s suggestions panel!');
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkExist);
+              console.error('[AI SUGGESTIONS] ❌ Timeout - %s elements not found after', maxAttempts * pollInterval / 1000, 'seconds');
+            }
+          }, pollInterval);
+        }, %d);
+      ", suggestion_type, poll_max, poll_interval, target_ids[1], loading_id,
+         tools::toTitleCase(suggestion_type), suggestion_type, suggestion_type, poll_delay)
+    }
+  }
+
   # Check if AI linker is available
   ai_available <- exists("find_vocabulary_links") && exists("generate_ai_suggestions")
 
@@ -90,7 +156,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
   # Require shinyjs for showing/hiding elements
   if (!requireNamespace("shinyjs", quietly = TRUE)) {
-    warning("shinyjs package required for AI suggestions")
+    log_warning("shinyjs package required for AI suggestions")
     return(NULL)
   }
 
@@ -197,12 +263,18 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         loading_id <- session$ns("suggestion_loading_activity")
         status_id <- session$ns("suggestion_status_activity")
 
+        # Use constants for DOM polling settings
+        poll_max <- if (exists("DOM_POLL_MAX_ATTEMPTS")) DOM_POLL_MAX_ATTEMPTS else 50
+        poll_interval <- if (exists("DOM_POLL_INTERVAL_MS")) DOM_POLL_INTERVAL_MS else 100
+        poll_delay <- if (exists("DOM_POLL_INITIAL_DELAY_MS")) DOM_POLL_INITIAL_DELAY_MS else 200
+
         js_code <- sprintf("
           // DOM polling mechanism - more robust than fixed timeout
           setTimeout(function() {
             console.log('[AI SUGGESTIONS] Starting DOM polling for activity suggestions...');
             var attempts = 0;
-            var maxAttempts = 50; // Poll for up to 5 seconds (50 * 100ms)
+            var maxAttempts = %d;
+            var pollInterval = %d;
 
             var checkExist = setInterval(function() {
               attempts++;
@@ -213,7 +285,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
               if (suggestionsEl.length > 0) {
                 clearInterval(checkExist);
-                console.log('[AI SUGGESTIONS] ✅ Elements found after', attempts * 100, 'ms');
+                console.log('[AI SUGGESTIONS] ✅ Elements found after', attempts * pollInterval, 'ms');
 
                 // Hide loading/status and show suggestions
                 loadingEl.hide();
@@ -223,7 +295,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                 console.log('[AI SUGGESTIONS] Successfully showed activity suggestions panel!');
               } else if (attempts >= maxAttempts) {
                 clearInterval(checkExist);
-                console.error('[AI SUGGESTIONS] ❌ Timeout - elements not found after 5 seconds');
+                console.error('[AI SUGGESTIONS] ❌ Timeout - elements not found after', maxAttempts * pollInterval / 1000, 'seconds');
                 console.log('[AI SUGGESTIONS] Looking for ID: %s');
 
                 // Debug: List all elements with 'suggestion' in ID
@@ -233,9 +305,9 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
                   console.log('  -', this.id);
                 });
               }
-            }, 100); // Check every 100ms
-          }, 200); // Start checking after 200ms initial delay
-        ", suggestions_id, loading_id, status_id, suggestions_id)
+            }, pollInterval);
+          }, %d);
+        ", poll_max, poll_interval, suggestions_id, loading_id, status_id, suggestions_id, poll_delay)
 
         shinyjs::runjs(js_code)
       }
@@ -666,7 +738,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         shinyjs::runjs(js_code)
       }
     }, error = function(e) {
-      warning("Error generating control suggestions: ", e$message)
+      log_warning(paste("Error generating control suggestions:", e$message))
       shinyjs::hide("suggestion_loading_control_preventive")
       shinyjs::show("suggestion_error_control_preventive")
     })
@@ -836,7 +908,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         shinyjs::runjs(js_code)
       }
     }, error = function(e) {
-      warning("Error generating consequence suggestions: ", e$message)
+      log_warning(paste("Error generating consequence suggestions:", e$message))
       shinyjs::hide("suggestion_loading_consequence")
       shinyjs::show("suggestion_error_consequence")
     })
@@ -1006,7 +1078,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         shinyjs::runjs(js_code)
       }
     }, error = function(e) {
-      warning("Error generating protective control suggestions: ", e$message)
+      log_warning(paste("Error generating protective control suggestions:", e$message))
       shinyjs::hide("suggestion_loading_control_protective")
       shinyjs::show("suggestion_error_control_protective")
     })

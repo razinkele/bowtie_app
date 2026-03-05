@@ -401,13 +401,14 @@ perform_inference <- function(fitted_bn, evidence = list(), query_nodes = NULL) 
       tryCatch({
         results[[node]] <- gRain::querygrain(junction, nodes = node)[[node]]
       }, error = function(e) {
-        # Skip nodes that can't be queried
+        # Log skipped nodes at debug level (Issue #7 fix - no silent failures)
+        log_debug(paste("Skipping node in query:", node, "-", e$message))
       })
     }
 
     return(results)
   }, error = function(e) {
-    warning("Bayesian inference failed: ", e$message)
+    log_warning(paste("Bayesian inference failed:", e$message))
     return(list())
   })
 }
@@ -561,12 +562,12 @@ find_critical_paths <- function(fitted_bn, target_node = "Consequence_Level") {
   all_nodes <- tryCatch({
     names(fitted_bn)
   }, error = function(e) {
-    warning("Could not extract nodes from fitted_bn: ", e$message)
+    log_warning(paste("Could not extract nodes from fitted_bn:", e$message))
     return(character(0))
   })
 
   if (length(all_nodes) == 0) {
-    warning("No nodes found in network - cannot find critical paths")
+    log_warning("No nodes found in network - cannot find critical paths")
     return(list())
   }
 
@@ -595,7 +596,8 @@ find_critical_paths <- function(fitted_bn, target_node = "Consequence_Level") {
         )
       }
     }, error = function(e) {
-      # Skip nodes that cause errors
+      # Log skipped nodes at debug level (Issue #7 fix - no silent failures)
+      log_debug(paste("Error analyzing critical path for root node:", root, "-", e$message))
     })
   }
 

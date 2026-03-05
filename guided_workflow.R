@@ -1866,33 +1866,44 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   # DYNAMIC CHOICE UPDATES - Update selectizeInput choices based on selections
   # =============================================================================
+  # THROTTLED UI UPDATES (Issue #9 fix - prevent rapid UI updates)
+  # =============================================================================
+  # Get throttle delay from constants (with fallback)
+  throttle_delay <- if (exists("THROTTLE_UI_UPDATE_MS")) THROTTLE_UI_UPDATE_MS else 200
 
-  # Update connection activity choices (Step 3)
+  # Create throttled versions of selected items for UI updates
+  selected_activities_throttled <- reactive({ selected_activities() }) %>% throttle(throttle_delay)
+  selected_pressures_throttled <- reactive({ selected_pressures() }) %>% throttle(throttle_delay)
+  selected_preventive_controls_throttled <- reactive({ selected_preventive_controls() }) %>% throttle(throttle_delay)
+  selected_consequences_throttled <- reactive({ selected_consequences() }) %>% throttle(throttle_delay)
+  selected_protective_controls_throttled <- reactive({ selected_protective_controls() }) %>% throttle(throttle_delay)
+
+  # Update connection activity choices (Step 3) - THROTTLED
   observe({
-    activities <- selected_activities()
+    activities <- selected_activities_throttled()
     if (length(activities) > 0) {
       updateSelectizeInput(session, "connection_activity", choices = activities)
     }
   })
 
-  # Update connection pressure choices (Step 3)
+  # Update connection pressure choices (Step 3) - THROTTLED
   observe({
-    pressures <- selected_pressures()
+    pressures <- selected_pressures_throttled()
     if (length(pressures) > 0) {
       updateSelectizeInput(session, "connection_pressure", choices = pressures)
     }
   })
 
-  # Update control link choices (Step 4)
+  # Update control link choices (Step 4) - THROTTLED
   observe({
-    controls <- selected_preventive_controls()
+    controls <- selected_preventive_controls_throttled()
     if (length(controls) > 0) {
       updateSelectizeInput(session, "link_control", choices = controls)
     }
 
-    # Update targets (activities + pressures)
-    activities <- selected_activities()
-    pressures <- selected_pressures()
+    # Update targets (activities + pressures) - using throttled versions
+    activities <- selected_activities_throttled()
+    pressures <- selected_pressures_throttled()
     targets <- c()
 
     if (length(activities) > 0) {
@@ -1907,14 +1918,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     }
   })
 
-  # Update consequence-protective control choices (Step 6)
+  # Update consequence-protective control choices (Step 6) - THROTTLED
   observe({
-    consequences <- selected_consequences()
+    consequences <- selected_consequences_throttled()
     if (length(consequences) > 0) {
       updateSelectizeInput(session, "link_consequence", choices = consequences)
     }
 
-    protective_controls <- selected_protective_controls()
+    protective_controls <- selected_protective_controls_throttled()
     if (length(protective_controls) > 0) {
       updateSelectizeInput(session, "link_protective_control", choices = protective_controls)
     }

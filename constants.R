@@ -89,6 +89,7 @@ NOTIFICATION_DURATION_ERROR <- 5
 NOTIFICATION_DURATION_WARNING <- 4
 NOTIFICATION_DURATION_INFO <- 2
 NOTIFICATION_DURATION_PROGRESS <- 2
+NOTIFICATION_DURATION_LONG <- 10  # For file save confirmations
 
 ## Modal Settings
 MODAL_WIDTH_SMALL <- "400px"
@@ -194,6 +195,35 @@ AUTOSAVE_LOCK_TIMEOUT_MS <- 10000  # Max time to hold lock
 AUTOSAVE_MIN_INTERVAL_MS <- 2000   # Minimum interval between saves
 
 # =============================================================================
+# DOM POLLING CONSTANTS (JavaScript)
+# =============================================================================
+# Settings for JavaScript DOM polling operations (AI suggestions, etc.)
+
+DOM_POLL_MAX_ATTEMPTS <- 50        # Max polling attempts before timeout (50 * 100ms = 5s)
+DOM_POLL_INTERVAL_MS <- 100        # Interval between polling attempts
+DOM_POLL_INITIAL_DELAY_MS <- 200   # Initial delay before starting polling
+
+# =============================================================================
+# SHINY UI DELAY CONSTANTS
+# =============================================================================
+# Delays for shinyjs::delay() calls to ensure UI is ready
+
+SHINYJS_DELAY_DIALOG_MS <- 100     # Delay before showing dialogs
+SHINYJS_DELAY_TAB_SWITCH_MS <- 500 # Delay before switching tabs
+SHINYJS_DELAY_UPDATE_MS <- 50      # Delay for general UI updates
+
+# =============================================================================
+# FILE LOCKING CONSTANTS
+# =============================================================================
+# Settings for file lock operations (custom terms, etc.)
+
+LOCK_VERIFY_DELAY_SEC <- 0.05      # Small delay during lock verification
+LOCK_STALE_AGE_SEC <- 60           # Seconds before a lock is considered stale
+LOCK_RETRY_DELAY_SEC <- 0.1        # Delay between lock retry attempts
+MAX_BACKUP_FILES <- 10             # Maximum number of backup files to keep
+RANDOM_ID_RANGE <- c(1000, 9999)   # Range for random ID generation
+
+# =============================================================================
 # FILE CONSTANTS
 # =============================================================================
 
@@ -225,6 +255,57 @@ CPT_CONFIDENCE_THRESHOLD <- 0.6
 BAYESIAN_MAX_PARENTS <- 5
 BAYESIAN_MAX_CHILDREN <- 10
 
+## Risk Level Discretization Thresholds
+RISK_THRESHOLD_LOW <- 0.33         # Below this = Low risk
+RISK_THRESHOLD_HIGH <- 0.66        # Above this = High risk
+
+## Bayesian Simulation Settings
+BAYESIAN_SIMULATION_SAMPLES <- 100 # Number of samples for Monte Carlo
+MIN_ROWS_FOR_LEARNING <- 10        # Minimum data rows for network learning
+PROBABILITY_CHANGE_THRESHOLD <- 0.1 # Threshold for significant probability change
+
+# =============================================================================
+# PDF EXPORT CONSTANTS
+# =============================================================================
+
+## Page Dimensions (inches)
+PDF_PAGE_WIDTH_INCHES <- 11
+PDF_PAGE_HEIGHT_INCHES <- 8.5
+
+## Font Sizes (cex multipliers)
+PDF_TITLE_CEX <- 2.5
+PDF_SUBTITLE_CEX <- 2.0
+PDF_DATE_CEX <- 1.2
+PDF_SECTION_CEX <- 2.0
+PDF_LABEL_CEX <- 1.3
+PDF_CONTENT_CEX <- 1.0
+PDF_CONTENT_SMALL_CEX <- 1.1
+
+## Layout Settings
+PDF_LINE_HEIGHT <- 0.06
+PDF_MAX_ITEMS_PER_SECTION <- 10    # Max items to display per PDF section
+
+# =============================================================================
+# LABEL WRAPPING CONSTANTS
+# =============================================================================
+# Character widths for wrapping labels in visualizations
+
+LABEL_WRAP_WIDTH_DEFAULT <- 20
+LABEL_WRAP_WIDTH_PROBLEM <- 25     # Central problem label
+LABEL_WRAP_WIDTH_ITEM <- 18        # Activities, pressures
+LABEL_WRAP_WIDTH_CONTROL <- 16     # Controls, escalation factors
+
+# =============================================================================
+# VISNETWORK PHYSICS CONSTANTS
+# =============================================================================
+# Settings for visNetwork graph visualization
+
+VISNETWORK_STABILIZATION_ITERATIONS <- 100
+VISNETWORK_GRAVITATIONAL_CONSTANT <- -8000
+VISNETWORK_SPRING_CONSTANT <- 0.04
+VISNETWORK_RANDOM_SEED <- 123
+VISNETWORK_LEGEND_WIDTH <- 0.15
+
 # =============================================================================
 # AI LINKING CONSTANTS
 # =============================================================================
@@ -235,9 +316,18 @@ AI_SIMILARITY_THRESHOLD_KEYWORD <- 0.5
 AI_SIMILARITY_THRESHOLD_CAUSAL <- 0.4
 AI_SIMILARITY_THRESHOLD_SEMANTIC <- 0.6
 
+## Confidence Level Thresholds
+AI_CONFIDENCE_HIGH <- 0.8          # High confidence threshold
+AI_CONFIDENCE_MEDIUM <- 0.6        # Medium confidence threshold
+AI_CONFIDENCE_LOW <- 0.3           # Low confidence threshold
+
 ## AI Processing Limits
 AI_MAX_SUGGESTIONS <- 10
 AI_MAX_PROCESSING_TIME_SECONDS <- 30
+
+## ML Model Settings
+ML_MIN_SAMPLES_THRESHOLD <- 50     # Minimum samples for ML model training
+AI_LINKER_MIN_SAMPLES <- 20        # Minimum samples for AI vocabulary linker
 
 # =============================================================================
 # TRANSLATION CONSTANTS
@@ -319,7 +409,10 @@ get_node_color <- function(node_type) {
 
   color <- colors[[node_type]]
   if (is.null(color)) {
-    warning("Unknown node type: ", node_type, ". Using default color.")
+    # Use log_warning if available, otherwise silent (constants.R loads early)
+    if (exists("log_warning", mode = "function")) {
+      log_warning(paste("Unknown node type:", node_type, "- Using default color"))
+    }
     return(COLOR_SECONDARY)
   }
 
@@ -343,7 +436,10 @@ get_risk_color <- function(risk_level) {
 
   color <- colors[[risk_level]]
   if (is.null(color)) {
-    warning("Unknown risk level: ", risk_level, ". Using default color.")
+    # Use log_warning if available, otherwise silent (constants.R loads early)
+    if (exists("log_warning", mode = "function")) {
+      log_warning(paste("Unknown risk level:", risk_level, "- Using default color"))
+    }
     return(COLOR_WARNING)
   }
 

@@ -101,7 +101,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
     session$sendCustomMessage("clearAutosave", list())
 
     notify_success("Workflow finalized successfully! You can now export or view the diagram.",
-      duration = 5
+      duration = NOTIFICATION_DURATION_ERROR
     )
   })
 
@@ -132,7 +132,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
     session$sendCustomMessage("clearAutosave", list())
 
     notify_success("Workflow finalized! You can now export or view the diagram.",
-      duration = 5
+      duration = NOTIFICATION_DURATION_ERROR
     )
   })
 
@@ -146,7 +146,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
 
     # Check if workflow is complete
     if (!isTRUE(state$workflow_complete)) {
-      notify_warning("Please complete the workflow first by clicking 'Complete Workflow'.", duration = 4)
+      notify_warning("Please complete the workflow first by clicking 'Complete Workflow'.", duration = NOTIFICATION_DURATION_WARNING)
       return()
     }
 
@@ -175,11 +175,11 @@ init_workflow_export <- function(input, output, session, workflow_state,
         export_bowtie_to_excel(converted_data, temp_file)
 
         # Trigger download
-        notify_success(paste("\u2705 Excel file created:", filename), duration = 3)
+        notify_success(paste("\u2705 Excel file created:", filename), duration = NOTIFICATION_DURATION_SUCCESS)
 
         # Return file info for download handler (if downloadHandler is implemented)
         # For now, just notify where the file is saved
-        notify_info(paste("File saved to:", temp_file), duration = 10)
+        notify_info(paste("File saved to:", temp_file), duration = NOTIFICATION_DURATION_LONG)
       } else {
         # Fallback: use openxlsx directly
         library(openxlsx)
@@ -207,11 +207,11 @@ init_workflow_export <- function(input, output, session, workflow_state,
         # Save workbook
         saveWorkbook(wb, temp_file, overwrite = TRUE)
 
-        notify_success(paste("\u2705 Excel file exported:", filename), duration = 5)
+        notify_success(paste("\u2705 Excel file exported:", filename), duration = NOTIFICATION_DURATION_ERROR)
       }
 
     }, error = function(e) {
-      notify_error(paste("\u274c Export failed:", e$message), duration = 5)
+      notify_error(paste("\u274c Export failed:", e$message), duration = NOTIFICATION_DURATION_ERROR)
     })
   })
 
@@ -221,7 +221,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
 
     # Check if workflow is complete
     if (!isTRUE(state$workflow_complete)) {
-      notify_warning("Please complete the workflow first by clicking 'Complete Workflow'.", duration = 4)
+      notify_warning("Please complete the workflow first by clicking 'Complete Workflow'.", duration = NOTIFICATION_DURATION_WARNING)
       return()
     }
 
@@ -320,12 +320,12 @@ init_workflow_export <- function(input, output, session, workflow_state,
 
       dev.off()
 
-      notify_success(paste("\u2705 PDF report generated:", filename), duration = 5)
+      notify_success(paste("\u2705 PDF report generated:", filename), duration = NOTIFICATION_DURATION_ERROR)
 
-      notify_info(paste("File saved to:", temp_file), duration = 10)
+      notify_info(paste("File saved to:", temp_file), duration = NOTIFICATION_DURATION_LONG)
 
     }, error = function(e) {
-      notify_error(paste("\u274c PDF generation failed:", e$message), duration = 5)
+      notify_error(paste("\u274c PDF generation failed:", e$message), duration = NOTIFICATION_DURATION_ERROR)
     })
   })
 
@@ -335,7 +335,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
 
     # Check if workflow is complete
     if (!isTRUE(state$workflow_complete)) {
-      notify_warning("Please finalize the workflow first by clicking 'Finalize Workflow'.", duration = 4)
+      notify_warning("Please finalize the workflow first by clicking 'Finalize Workflow'.", duration = NOTIFICATION_DURATION_WARNING)
       return()
     }
 
@@ -346,7 +346,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
 
       # Validate data
       if (is.null(converted_data) || !is.data.frame(converted_data) || nrow(converted_data) == 0) {
-        notify_error("No data available to load. Please ensure your workflow has data.", duration = 5)
+        notify_error("No data available to load. Please ensure your workflow has data.", duration = NOTIFICATION_DURATION_ERROR)
         return()
       }
 
@@ -354,7 +354,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
       log_debug(paste("Columns:", paste(names(converted_data), collapse = ", ")))
 
       # Success notification
-      notify_info(paste("Loading", nrow(converted_data), "scenarios..."), duration = 2)
+      notify_info(paste("Loading", nrow(converted_data), "scenarios..."), duration = NOTIFICATION_DURATION_INFO)
 
       # Update state with fresh data and trigger timestamp to force reactive update
       state$converted_main_data <- converted_data
@@ -384,10 +384,10 @@ init_workflow_export <- function(input, output, session, workflow_state,
       })
 
       # Show success message
-      notify_info("Opening Bowtie Diagram...", duration = 3)
+      notify_info("Opening Bowtie Diagram...", duration = NOTIFICATION_DURATION_SUCCESS)
 
     }, error = function(e) {
-      notify_error(paste("Failed to load data:", e$message), duration = 5)
+      notify_error(paste("Failed to load data:", e$message), duration = NOTIFICATION_DURATION_ERROR)
     })
   })
 
@@ -661,13 +661,13 @@ init_workflow_export <- function(input, output, session, workflow_state,
           local_filepath <- file.path(local_path, local_filename)
           writeLines(json_content, local_filepath)
 
-          notify_info(paste("Also saved to local folder:", local_filename), duration = 3)
+          notify_info(paste("Also saved to local folder:", local_filename), duration = NOTIFICATION_DURATION_SUCCESS)
         }, error = function(e) {
           notify_warning(paste("Could not save to local folder:", e$message))
         })
       }
 
-      notify_success("Workflow saved successfully!", duration = 3)
+      notify_success("Workflow saved successfully!", duration = NOTIFICATION_DURATION_SUCCESS)
     },
     contentType = "application/json"  # JSON MIME type - browsers trust this
   )

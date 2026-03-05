@@ -249,7 +249,7 @@ generate_ai_suggestions <- function(vocabulary_data,
 
   # Check if AI linker is available
   if (!exists("find_vocabulary_links")) {
-    warning("AI linker not available for suggestions")
+    log_warning("AI linker not available for suggestions")
     return(list())
   }
 
@@ -457,7 +457,7 @@ generate_ai_suggestions <- function(vocabulary_data,
     return(suggestions_list)
 
   }, error = function(e) {
-    warning("Error generating AI suggestions: ", e$message)
+    log_warning(paste("Error generating AI suggestions:", e$message))
     return(list())
   })
 }

@@ -236,7 +236,7 @@ get_feature_importance <- function(model) {
     )
 
   } else {
-    warning("Unknown model type for importance extraction")
+    log_warning("Unknown model type for importance extraction")
     return(data.frame(feature = character(), importance = numeric()))
   }
 
