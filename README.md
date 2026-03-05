@@ -4,7 +4,7 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 
 > **Archive notice:** The original R Shiny application (`app.R`) has been archived and moved to `archive/archived_app_R_20260101.R`. A new Python Shiny app is available at `shiny_copernicus_app.py` — see `README_shiny_copernicus.md` for usage and authentication instructions.
 
-![Version](https://img.shields.io/badge/version-5.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.5.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -29,6 +29,26 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
+
+## What's New in Version 5.5.0 (Security Edition)
+
+### 🔒 Security Hardening
+- **Removed eval() vulnerability**: Eliminated dangerous JavaScript eval() handler that could allow code injection
+- **Secure file deserialization**: New `safe_readRDS()` function validates files before deserializing to prevent RDS deserialization attacks
+- **Object validation**: Checks for dangerous types (functions, environments, external pointers) in deserialized objects
+- **XSS prevention**: Added `sanitize_html()` function for proper HTML sanitization
+- **Path traversal protection**: New `validate_file_path()` prevents directory traversal attacks
+- **Admin authentication**: Removed hardcoded password fallback - requires environment variable configuration
+
+### 🛠️ Code Quality
+- **Naming conventions**: Standardized function and reactive naming (snake_case for functions, camelCase for reactives)
+- **Logging consistency**: Replaced raw `warning()` calls with centralized `log_warning()` system
+- **Error handling**: Added logging to silent error handlers for better debugging
+
+### 📦 New Security Module
+- `helpers/security_helpers.R`: Centralized security utilities including `safe_readRDS()`, `validate_rds_object()`, `safe_fromJSON()`, `sanitize_html()`, and `validate_file_path()`
+
+---
 
 ## What's New in Version 5.3.0 (Production-Ready Edition)
 

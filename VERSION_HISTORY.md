@@ -3,7 +3,28 @@
 
 ---
 
-## Version 5.5.0 (Codebase Cleanup Edition)
+## Version 5.5.0 (Security Edition)
+**Release Date:** 2026-03-05
+
+### Security Improvements
+- **Removed dangerous eval() handler**: Eliminated JavaScript eval() handler from `local_storage_module.R` that could allow code injection
+- **Secure RDS deserialization**: Created `helpers/security_helpers.R` with `safe_readRDS()` that validates file size, extension, and object contents before deserializing
+- **RDS object validation**: New `validate_rds_object()` function checks for dangerous types (functions, environments with active bindings, external pointers)
+- **Secure JSON parsing**: Added `safe_fromJSON()` with size limits and error handling
+- **HTML sanitization**: Added `sanitize_html()` function for XSS prevention
+- **File path validation**: Added `validate_file_path()` to prevent path traversal attacks
+- **Admin password security**: Removed hardcoded "admin" password fallback - admin login now disabled until `BOWTIE_ADMIN_PASSWORD` environment variable is set
+- **Updated 11 locations** to use `safe_readRDS` instead of raw `readRDS`
+
+### Code Quality Improvements
+- **Naming convention fixes**: Renamed `ensure_session_userData` to `ensure_session_user_data` (snake_case)
+- **Reactive naming standardization**: Renamed theme module reactives to camelCase (`themeUpdateTrigger`, `appliedTheme`, `currentTheme`)
+- **Logging consistency**: Replaced 14 `warning()` calls with `log_warning()` in `bowtie_bayesian_network.R`
+- **Silent error handler fixes**: Added logging to 3 silent error handlers in `custom_terms_module.R`
+
+---
+
+## Version 5.5.0-beta (Codebase Cleanup Edition)
 **Release Date:** 2026-02-14
 
 ### Critical Bug Fixes
