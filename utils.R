@@ -317,7 +317,7 @@ check_required_columns <- function(df, required_cols) {
 #'
 #' @param session Shiny session object
 #' @return session$userData environment (created if needed)
-ensure_session_userData <- function(session) {
+ensure_session_user_data <- function(session) {
   if (is.null(session$userData)) {
     session$userData <- new.env()
   }
@@ -345,7 +345,7 @@ get_session_data <- function(session, key, default = NULL) {
 #' @param value Value to set
 #' @return invisible(TRUE)
 set_session_data <- function(session, key, value) {
-  ensure_session_userData(session)
+  ensure_session_user_data(session)
   session$userData[[key]] <- value
   invisible(TRUE)
 }

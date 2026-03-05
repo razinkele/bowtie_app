@@ -474,7 +474,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
       filepath <- file.path(local_path, selected_file)
 
       tryCatch({
-        loaded_state <- readRDS(filepath)
+        # SECURITY: Use safe_readRDS to validate file before deserialization
+        loaded_state <- safe_readRDS(filepath, expected_class = "list")
         removeModal()
 
         # Basic validation and load (same as regular file load)
@@ -500,12 +501,13 @@ init_workflow_export <- function(input, output, session, workflow_state,
     tryCatch({
       # Detect file format and load accordingly
       if (grepl("\\.json$", file$name, ignore.case = TRUE)) {
-        # Load JSON format (new default)
+        # Load JSON format (new default) with size validation
         json_content <- readLines(file$datapath, warn = FALSE)
-        loaded_state <- jsonlite::fromJSON(paste(json_content, collapse = "\n"), simplifyVector = FALSE)
+        json_text <- paste(json_content, collapse = "\n")
+        loaded_state <- safe_fromJSON(json_text)  # SECURITY: Use safe JSON parser
       } else {
-        # Load RDS format (legacy support)
-        loaded_state <- readRDS(file$datapath)
+        # Load RDS format (legacy support) with security validation
+        loaded_state <- safe_readRDS(file$datapath, expected_class = "list")  # SECURITY
       }
 
       # Basic validation of loaded state

@@ -58,9 +58,9 @@ server <- function(input, output, session) {
 
   # Initialize theme module (proper moduleServer with namespace isolation)
   theme_module <- theme_module_server("theme", lang)
-  current_theme <- theme_module$current_theme
-  applied_theme <- theme_module$applied_theme
-  theme_update_trigger <- theme_module$theme_update_trigger
+  currentTheme <- theme_module$currentTheme
+  appliedTheme <- theme_module$appliedTheme
+  themeUpdateTrigger <- theme_module$themeUpdateTrigger
 
   # Initialize data management module
   data_module <- data_management_module_server(input, output, session, lang)
@@ -741,10 +741,10 @@ server <- function(input, output, session) {
   # NOTE: All theme logic is now in theme_module.R using moduleServer pattern.
   # UI: theme_module_ui("theme") in ui.R controlbar
   # Server: theme_module_server("theme", lang) initialized above
-  # Available from module:
-  # - current_theme() - Reactive bslib theme object
-  # - applied_theme() - Currently applied theme name
-  # - theme_update_trigger() - Theme change trigger
+  # Available from module (camelCase per naming conventions):
+  # - currentTheme() - Reactive bslib theme object
+  # - appliedTheme() - Currently applied theme name
+  # - themeUpdateTrigger() - Theme change trigger
 
   # =============================================================================
   # DATA MANAGEMENT (Handled by data_management_module)

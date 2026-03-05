@@ -95,7 +95,12 @@ acquire_simple_lock <- function(timeout_ms = CUSTOM_TERMS_LOCK_TIMEOUT) {
         age <- as.numeric(difftime(Sys.time(), lock_info$mtime, units = "secs"))
         if (age > 60) {
           # Stale lock - remove and retry
-          tryCatch(file.remove(lock_file), error = function(e) {})
+          tryCatch(
+            file.remove(lock_file),
+            error = function(e) {
+              log_warning(paste("Failed to remove stale lock file:", e$message))
+            }
+          )
         }
       }
     }
@@ -236,7 +241,8 @@ load_custom_terms <- function() {
 
   tryCatch({
     if (file.exists(CUSTOM_TERMS_FILE)) {
-      terms <- readRDS(CUSTOM_TERMS_FILE)
+      # SECURITY: Use safe_readRDS even for internal files (defense in depth)
+      terms <- safe_readRDS(CUSTOM_TERMS_FILE, expected_class = "list")
       # Ensure all required categories exist
       default_terms <- init_custom_terms()
       for (cat in names(default_terms)) {
@@ -281,7 +287,12 @@ save_custom_terms <- function(terms, create_backup = TRUE) {
       backups <- list.files(CUSTOM_TERMS_BACKUP_DIR, pattern = "\\.rds$", full.names = TRUE)
       if (length(backups) > 10) {
         old_backups <- sort(backups)[1:(length(backups) - 10)]
-        tryCatch(file.remove(old_backups), error = function(e) {})
+        tryCatch(
+          file.remove(old_backups),
+          error = function(e) {
+            log_warning(paste("Failed to remove old backup files:", e$message))
+          }
+        )
       }
     }
 
@@ -304,7 +315,12 @@ save_custom_terms <- function(terms, create_backup = TRUE) {
     bowtie_log(paste("Error saving custom terms:", e$message), level = "warn")
     # Clean up temp file if it exists
     if (exists("temp_file") && file.exists(temp_file)) {
-      tryCatch(file.remove(temp_file), error = function(e) {})
+      tryCatch(
+        file.remove(temp_file),
+        error = function(e2) {
+          log_warning(paste("Failed to clean up temp file:", e2$message))
+        }
+      )
     }
     return(FALSE)
   })
@@ -323,8 +339,9 @@ add_custom_term <- function(category, term, added_by = "default", project_name =
 
   tryCatch({
     # Load terms (without separate lock since we already have it)
+    # SECURITY: Use safe_readRDS even for internal files (defense in depth)
     terms <- if (file.exists(CUSTOM_TERMS_FILE)) {
-      readRDS(CUSTOM_TERMS_FILE)
+      safe_readRDS(CUSTOM_TERMS_FILE, expected_class = "list")
     } else {
       init_custom_terms()
     }
@@ -391,8 +408,9 @@ update_term_status <- function(category, term_id, new_status, reviewed_by = "adm
 
   tryCatch({
     # Load terms directly
+    # SECURITY: Use safe_readRDS even for internal files (defense in depth)
     terms <- if (file.exists(CUSTOM_TERMS_FILE)) {
-      readRDS(CUSTOM_TERMS_FILE)
+      safe_readRDS(CUSTOM_TERMS_FILE, expected_class = "list")
     } else {
       return(list(success = FALSE, message = "No custom terms file exists"))
     }
@@ -433,8 +451,9 @@ delete_custom_term <- function(category, term_id) {
 
   tryCatch({
     # Load terms directly
+    # SECURITY: Use safe_readRDS even for internal files (defense in depth)
     terms <- if (file.exists(CUSTOM_TERMS_FILE)) {
-      readRDS(CUSTOM_TERMS_FILE)
+      safe_readRDS(CUSTOM_TERMS_FILE, expected_class = "list")
     } else {
       return(list(success = FALSE, message = "No custom terms file exists"))
     }

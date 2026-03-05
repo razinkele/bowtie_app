@@ -28,9 +28,9 @@ hash_password <- function(password) {
   digest::digest(password, algo = "sha256", serialize = FALSE)
 }
 
-# Get admin password from environment variable (secure) or use default for development
+# Get admin password from environment variable (REQUIRED - no default for security)
 get_admin_password_hash <- function() {
-  # First check for hashed password in environment
+  # First check for hashed password in environment (preferred for production)
   env_hash <- Sys.getenv("BOWTIE_ADMIN_PASSWORD_HASH", "")
   if (nchar(env_hash) > 0) {
     return(env_hash)
@@ -42,10 +42,18 @@ get_admin_password_hash <- function() {
     return(hash_password(env_pass))
   }
 
-  # Development fallback - CHANGE IN PRODUCTION
-  # Set BOWTIE_ADMIN_PASSWORD environment variable for production
-  warning("Using default admin password. Set BOWTIE_ADMIN_PASSWORD environment variable for production.")
-  return(hash_password("admin"))
+  # SECURITY: No default password - admin login disabled until configured
+  # To enable admin access, set one of these environment variables:
+  #   - BOWTIE_ADMIN_PASSWORD: Plain text password (will be hashed)
+  #   - BOWTIE_ADMIN_PASSWORD_HASH: Pre-computed SHA-256 hash
+  #
+  # Example (Linux/Mac): export BOWTIE_ADMIN_PASSWORD="your_secure_password"
+
+  # Example (Windows): set BOWTIE_ADMIN_PASSWORD=your_secure_password
+  # Example (.Renviron file): BOWTIE_ADMIN_PASSWORD=your_secure_password
+  warning("SECURITY: Admin password not configured. Admin login is DISABLED. ",
+          "Set BOWTIE_ADMIN_PASSWORD or BOWTIE_ADMIN_PASSWORD_HASH environment variable.")
+  return(NULL)  # Return NULL to disable admin login
 }
 
 # User database with secure password handling
@@ -207,10 +215,20 @@ login_server <- function(id) {
     observeEvent(input$admin_login_btn, {
       password <- input$admin_password
 
+      # SECURITY: Check if admin login is configured
+      admin_hash <- USER_CREDENTIALS$admin$password_hash
+      if (is.null(admin_hash)) {
+        # Admin login is disabled (no password configured)
+        notify_warning("Admin login is disabled. Contact system administrator.", duration = 5)
+        shinyjs::runjs(sprintf("$('#%s').modal('hide');", ns("admin_login_modal")))
+        updateTextInput(session, "admin_password", value = "")
+        return()
+      }
+
       # Secure password verification using hash comparison
       password_valid <- !is.null(password) &&
                         nchar(password) > 0 &&
-                        secure_compare(hash_password(password), USER_CREDENTIALS$admin$password_hash)
+                        secure_compare(hash_password(password), admin_hash)
 
       if (password_valid) {
         # Correct password - switch to admin

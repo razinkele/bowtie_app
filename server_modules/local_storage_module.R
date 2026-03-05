@@ -461,14 +461,15 @@ local_storage_module_server <- function(input, output, session,
       newest_file <- files[which.max(file_times)]
       
       tryCatch({
-        loaded_data <- readRDS(newest_file)
-        
+        # SECURITY: Use safe_readRDS to validate file before deserialization
+        loaded_data <- safe_readRDS(newest_file, expected_class = "list")
+
         # Send loaded data to the app
         session$sendCustomMessage("localDataLoaded", list(
           data = loaded_data,
           filename = basename(newest_file)
         ))
-        
+
         notify_success(paste("✅ Loaded:", basename(newest_file)), duration = 3)
 
       }, error = function(e) {
@@ -487,21 +488,24 @@ local_storage_module_server <- function(input, output, session,
     
     tryCatch({
       if (grepl("\\.rds$", file$name, ignore.case = TRUE)) {
-        loaded_data <- readRDS(file$datapath)
+        # SECURITY: Use safe_readRDS to validate file before deserialization
+        loaded_data <- safe_readRDS(file$datapath, expected_class = "list")
       } else if (grepl("\\.json$", file$name, ignore.case = TRUE)) {
-        loaded_data <- jsonlite::fromJSON(file$datapath)
+        # SECURITY: Use safe JSON parsing with size limits
+        json_text <- paste(readLines(file$datapath, warn = FALSE), collapse = "\n")
+        loaded_data <- safe_fromJSON(json_text)
       } else {
         notify_error("Unsupported file format")
         return()
       }
-      
+
       session$sendCustomMessage("localDataLoaded", list(
         data = loaded_data,
         filename = file$name
       ))
-      
+
       notify_success(paste("✅ Loaded:", file$name))
-      
+
     }, error = function(e) {
       notify_error(paste("❌ Failed to load file:", e$message))
     })
@@ -603,9 +607,10 @@ local_storage_module_server <- function(input, output, session,
     if (!file.exists(filepath)) {
       return(NULL)
     }
-    
+
     tryCatch({
-      readRDS(filepath)
+      # SECURITY: Use safe_readRDS to validate file before deserialization
+      safe_readRDS(filepath, expected_class = "list")
     }, error = function(e) {
       log_error(paste("Local load failed:", e$message))
       return(NULL)
@@ -981,12 +986,15 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
       newest_file <- files[which.max(file_times)]
 
       tryCatch({
-        # Load based on file extension
+        # Load based on file extension with security validation
         if (grepl("\\.json$", newest_file, ignore.case = TRUE)) {
           json_content <- readLines(newest_file, warn = FALSE)
-          loaded_data <- jsonlite::fromJSON(paste(json_content, collapse = "\n"))
+          json_text <- paste(json_content, collapse = "\n")
+          # SECURITY: Use safe JSON parsing with size limits
+          loaded_data <- safe_fromJSON(json_text)
         } else {
-          loaded_data <- readRDS(newest_file)
+          # SECURITY: Use safe_readRDS to validate file before deserialization
+          loaded_data <- safe_readRDS(newest_file, expected_class = "list")
         }
 
         session$sendCustomMessage("localDataLoaded", list(
@@ -1012,21 +1020,24 @@ local_storage_server <- function(input, output, session, getCurrentData = NULL, 
     
     tryCatch({
       if (grepl("\\.rds$", file$name, ignore.case = TRUE)) {
-        loaded_data <- readRDS(file$datapath)
+        # SECURITY: Use safe_readRDS to validate file before deserialization
+        loaded_data <- safe_readRDS(file$datapath, expected_class = "list")
       } else if (grepl("\\.json$", file$name, ignore.case = TRUE)) {
-        loaded_data <- jsonlite::fromJSON(file$datapath)
+        # SECURITY: Use safe JSON parsing with size limits
+        json_text <- paste(readLines(file$datapath, warn = FALSE), collapse = "\n")
+        loaded_data <- safe_fromJSON(json_text)
       } else {
         notify_error("Unsupported file format")
         return()
       }
-      
+
       session$sendCustomMessage("localDataLoaded", list(
         data = loaded_data,
         filename = file$name
       ))
-      
+
       notify_success(paste("✅ Loaded:", file$name))
-      
+
     }, error = function(e) {
       notify_error(paste("❌ Failed to load file:", e$message))
     })
@@ -1100,14 +1111,9 @@ local_storage_js <- function() {
     console.log('Downloaded file:', message.filename);
   });
   
-  // Handler for eval (execute JavaScript code)
-  Shiny.addCustomMessageHandler('eval', function(message) {
-    try {
-      eval(message.code);
-    } catch(e) {
-      console.error('Error executing JavaScript:', e);
-    }
-  });
+  // SECURITY: eval() handler removed - use specific action handlers instead
+  // Previously: Shiny.addCustomMessageHandler('eval', ...) - REMOVED for security
+  // If you need to execute specific actions, create dedicated handlers for each action
   </script>
   ")
 }

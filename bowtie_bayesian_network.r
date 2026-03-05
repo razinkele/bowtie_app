@@ -11,13 +11,13 @@ GRAIN_AVAILABLE <- requireNamespace("gRain", quietly = TRUE)
 GRBASE_AVAILABLE <- requireNamespace("gRbase", quietly = TRUE)
 
 if (!BNLEARN_AVAILABLE) {
-  warning("bnlearn package not available - Bayesian network functionality will be limited")
+  log_warning("bnlearn package not available - Bayesian network functionality will be limited")
 }
 if (!GRAIN_AVAILABLE) {
-  warning("gRain package not available - Bayesian inference functionality will be limited")
+  log_warning("gRain package not available - Bayesian inference functionality will be limited")
 }
 if (!GRBASE_AVAILABLE) {
-  warning("gRbase package not available - Bayesian inference compilation will be limited")
+  log_warning("gRbase package not available - Bayesian inference compilation will be limited")
 }
 
 # Function to convert bowtie data to Bayesian network structure
@@ -121,13 +121,13 @@ discretize_risk_levels <- function(value, levels = c("Low", "Medium", "High")) {
 
   # Handle negative values - treat as lowest level
   if (value < 0) {
-    warning("discretize_risk_levels: Negative value ", value, " treated as lowest level")
+    log_warning(paste("discretize_risk_levels: Negative value", value, "treated as lowest level"))
     return(levels[1])
   }
 
   # Validate levels parameter
   if (length(levels) < 3) {
-    warning("discretize_risk_levels: levels should have at least 3 elements, using defaults")
+    log_warning("discretize_risk_levels: levels should have at least 3 elements, using defaults")
     levels <- c("Low", "Medium", "High")
   }
 
@@ -345,34 +345,34 @@ perform_inference <- function(fitted_bn, evidence = list(), query_nodes = NULL) 
   bowtie_log("Performing Bayesian inference...", level = "info")
 
   if (!GRAIN_AVAILABLE) {
-    warning("gRain package not available - returning empty results")
+    log_warning("gRain package not available - returning empty results")
     return(list())
   }
 
   if (!GRBASE_AVAILABLE) {
-    warning("gRbase package not available - returning empty results")
+    log_warning("gRbase package not available - returning empty results")
     return(list())
   }
 
   if (!BNLEARN_AVAILABLE) {
-    warning("bnlearn package not available - returning empty results")
+    log_warning("bnlearn package not available - returning empty results")
     return(list())
   }
 
   # Validate input - must be a bn.fit object (fitted network with CPTs)
   # Note: as.grain() only works with bn.fit, not bn (raw DAG structure)
   if (is.null(fitted_bn)) {
-    warning("fitted_bn is NULL - returning empty results")
+    log_warning("fitted_bn is NULL - returning empty results")
     return(list())
   }
 
   if (inherits(fitted_bn, "bn") && !inherits(fitted_bn, "bn.fit")) {
-    warning("Cannot perform inference on raw DAG (bn object). Need fitted network (bn.fit) with CPTs.")
+    log_warning("Cannot perform inference on raw DAG (bn object). Need fitted network (bn.fit) with CPTs.")
     return(list())
   }
 
   if (!inherits(fitted_bn, "bn.fit")) {
-    warning("Invalid fitted_bn object - must be bn.fit class, got: ", class(fitted_bn)[1])
+    log_warning(paste("Invalid fitted_bn object - must be bn.fit class, got:", class(fitted_bn)[1]))
     return(list())
   }
 
@@ -539,18 +539,18 @@ find_critical_paths <- function(fitted_bn, target_node = "Consequence_Level") {
   bowtie_log(paste("Finding critical paths to", target_node, "..."), level = "info")
 
   if (!BNLEARN_AVAILABLE) {
-    warning("bnlearn package not available - cannot find critical paths")
+    log_warning("bnlearn package not available - cannot find critical paths")
     return(list())
   }
 
   # Validate input
- if (is.null(fitted_bn)) {
-    warning("fitted_bn is NULL - cannot find critical paths")
+  if (is.null(fitted_bn)) {
+    log_warning("fitted_bn is NULL - cannot find critical paths")
     return(list())
   }
 
   if (!inherits(fitted_bn, c("bn.fit", "bn"))) {
-    warning("fitted_bn must be a bn.fit or bn object - cannot find critical paths")
+    log_warning("fitted_bn must be a bn.fit or bn object - cannot find critical paths")
     return(list())
   }
 

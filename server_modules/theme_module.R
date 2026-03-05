@@ -79,9 +79,9 @@ theme_module_ui <- function(id) {
 theme_module_server <- function(id, lang = reactive("en")) {
   moduleServer(id, function(input, output, session) {
 
-    # Theme management reactive values
-    theme_update_trigger <- reactiveVal(0)
-    applied_theme <- reactiveVal("zephyr")
+    # Theme management reactive values (camelCase per naming conventions)
+    themeUpdateTrigger <- reactiveVal(0)
+    appliedTheme <- reactiveVal("zephyr")
 
     # -------------------------------------------------------------------------
     # Translated theme header
@@ -95,11 +95,11 @@ theme_module_server <- function(id, lang = reactive("en")) {
     # -------------------------------------------------------------------------
     # Reactive: current bslib theme object
     # -------------------------------------------------------------------------
-    current_theme <- reactive({
-      trigger_val <- theme_update_trigger()
-      theme_choice <- applied_theme()
+    currentTheme <- reactive({
+      trigger_val <- themeUpdateTrigger()
+      theme_choice <- appliedTheme()
 
-      log_debug(paste("current_theme() reactive triggered. Trigger:",
+      log_debug(paste("currentTheme() reactive triggered. Trigger:",
                       trigger_val, "Choice:", theme_choice))
 
       if (theme_choice == "bootstrap") {
@@ -136,7 +136,7 @@ theme_module_server <- function(id, lang = reactive("en")) {
     # Observer: attempt to push theme to bslib session (if supported)
     # -------------------------------------------------------------------------
     observe({
-      theme <- current_theme()
+      theme <- currentTheme()
       tryCatch({
         if (exists("bs_themer") && packageVersion("bslib") >= "0.4.0") {
           if (exists("session$setCurrentTheme")) {
@@ -157,10 +157,10 @@ theme_module_server <- function(id, lang = reactive("en")) {
                       input$theme_preset))
 
       # Update reactive values
-      applied_theme(input$theme_preset)
-      old_trigger <- theme_update_trigger()
+      appliedTheme(input$theme_preset)
+      old_trigger <- themeUpdateTrigger()
       new_trigger <- old_trigger + 1
-      theme_update_trigger(new_trigger)
+      themeUpdateTrigger(new_trigger)
 
       log_debug(paste("Theme trigger updated from", old_trigger, "to",
                       new_trigger))
@@ -240,9 +240,9 @@ theme_module_server <- function(id, lang = reactive("en")) {
     # Return module API (accessible to callers via the return value)
     # -------------------------------------------------------------------------
     list(
-      current_theme = current_theme,
-      applied_theme = applied_theme,
-      theme_update_trigger = theme_update_trigger
+      currentTheme = currentTheme,
+      appliedTheme = appliedTheme,
+      themeUpdateTrigger = themeUpdateTrigger
     )
   })
 }

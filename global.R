@@ -77,6 +77,7 @@ cat("[STARTUP] Loading logging and error handling systems...\n")
 source("config/logging.R")
 source("helpers/error_handling.R")
 source("helpers/notifications.R")
+source("helpers/security_helpers.R")  # Secure file handling (safe_readRDS, etc.)
 
 # =============================================================================
 # POST-LOGGING PHASE (logging.R is now loaded - use log_*() functions)
