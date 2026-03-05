@@ -88,9 +88,10 @@ set BACKUP_CREATED=0
 set STAGING_DIR=
 set BACKUP_FILE=
 
-REM Log file
-set LOG_FILE=%SCRIPT_DIR%deploy_log_%DATE:~-4,4%%DATE:~-7,2%%DATE:~-10,2%_%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%.txt
-set LOG_FILE=%LOG_FILE: =0%
+REM Log file (build timestamp first, then combine with path)
+set _TIMESTAMP=%DATE:~-4,4%%DATE:~-7,2%%DATE:~-10,2%_%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%
+set _TIMESTAMP=%_TIMESTAMP: =0%
+set LOG_FILE=%SCRIPT_DIR%deploy_log_%_TIMESTAMP%.txt
 
 REM Retry settings
 set MAX_RETRIES=3
