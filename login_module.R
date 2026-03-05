@@ -8,17 +8,57 @@
 # USER CREDENTIALS
 # =============================================================================
 
-# User database (in production, use secure storage)
+# Security helper: constant-time string comparison to prevent timing attacks
+secure_compare <- function(a, b) {
+  if (is.null(a) || is.null(b)) return(FALSE)
+  if (nchar(a) != nchar(b)) return(FALSE)
+  # XOR comparison to prevent timing attacks
+  a_bytes <- charToRaw(a)
+  b_bytes <- charToRaw(b)
+  result <- 0L
+  for (i in seq_along(a_bytes)) {
+    result <- bitwOr(result, bitwXor(as.integer(a_bytes[i]), as.integer(b_bytes[i])))
+  }
+  return(result == 0L)
+}
+
+# Hash password using SHA-256 (use bcrypt in production for better security)
+hash_password <- function(password) {
+  if (is.null(password) || password == "") return(NULL)
+  digest::digest(password, algo = "sha256", serialize = FALSE)
+}
+
+# Get admin password from environment variable (secure) or use default for development
+get_admin_password_hash <- function() {
+  # First check for hashed password in environment
+  env_hash <- Sys.getenv("BOWTIE_ADMIN_PASSWORD_HASH", "")
+  if (nchar(env_hash) > 0) {
+    return(env_hash)
+  }
+
+  # Then check for plain password in environment (will be hashed)
+  env_pass <- Sys.getenv("BOWTIE_ADMIN_PASSWORD", "")
+  if (nchar(env_pass) > 0) {
+    return(hash_password(env_pass))
+  }
+
+  # Development fallback - CHANGE IN PRODUCTION
+  # Set BOWTIE_ADMIN_PASSWORD environment variable for production
+  warning("Using default admin password. Set BOWTIE_ADMIN_PASSWORD environment variable for production.")
+  return(hash_password("admin"))
+}
+
+# User database with secure password handling
 USER_CREDENTIALS <- list(
   default = list(
     username = "default",
-    password = NULL,  # No password required
+    password = NULL,  # No password required for default user
     role = "default",
     display_name = "Default User"
   ),
   admin = list(
     username = "admin",
-    password = "admin",  # In production, use hashed passwords
+    password_hash = get_admin_password_hash(),  # Hashed password from environment
     role = "admin",
     display_name = "Administrator"
   )
@@ -167,7 +207,12 @@ login_server <- function(id) {
     observeEvent(input$admin_login_btn, {
       password <- input$admin_password
 
-      if (!is.null(password) && password == USER_CREDENTIALS$admin$password) {
+      # Secure password verification using hash comparison
+      password_valid <- !is.null(password) &&
+                        nchar(password) > 0 &&
+                        secure_compare(hash_password(password), USER_CREDENTIALS$admin$password_hash)
+
+      if (password_valid) {
         # Correct password - switch to admin
         user$logged_in <- TRUE
         user$username <- "admin"

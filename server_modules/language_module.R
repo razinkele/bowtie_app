@@ -5,6 +5,19 @@
 # Dependencies: translations_data.R (for t() function)
 # =============================================================================
 
+#' Escape HTML special characters to prevent XSS attacks
+#' @param text Character string to escape
+#' @return HTML-safe escaped string
+escape_html <- function(text) {
+  if (is.null(text) || !is.character(text)) return("")
+  text <- gsub("&", "&amp;", text, fixed = TRUE)
+  text <- gsub("<", "&lt;", text, fixed = TRUE)
+  text <- gsub(">", "&gt;", text, fixed = TRUE)
+  text <- gsub("\"", "&quot;", text, fixed = TRUE)
+  text <- gsub("'", "&#39;", text, fixed = TRUE)
+  return(text)
+}
+
 #' Initialize language module server logic
 #'
 #' @param input Shiny input object
@@ -61,8 +74,13 @@ language_module_server <- function(input, output, session) {
     )
 
     # Generate JavaScript to update each tab - use data-value attribute
+    # SECURITY: Escape translation text to prevent XSS attacks
     js_code <- paste(
       sapply(tab_updates, function(tab) {
+        # Escape HTML special characters in translation text
+        safe_text <- escape_html(tab$text)
+        # Also escape the icon name (should be safe but defensive)
+        safe_icon <- gsub("[^a-zA-Z0-9-]", "", tab$icon)
         sprintf(
           "setTimeout(function() {
              var $tab = $('#main_tabs a.nav-link[data-value=\"%s\"]');
@@ -70,7 +88,7 @@ language_module_server <- function(input, output, session) {
                $tab.html('<i class=\"fa fa-%s\"></i> %s');
              }
            }, 100);",
-          tab$value, tab$icon, tab$text
+          tab$value, safe_icon, safe_text
         )
       }),
       collapse = "\n"
