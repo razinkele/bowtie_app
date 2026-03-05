@@ -116,7 +116,9 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
 
   # Bowtie network visualization (uses cached nodes/edges for performance)
   output$bowtieNetwork <- renderVisNetwork({
-    req(input$selectedProblem, input$showBarriers, input$editMode)
+    # Only require selectedProblem to have a value; checkboxes can be FALSE
+    req(input$selectedProblem)
+    req(!is.null(input$showBarriers), !is.null(input$editMode))
     # Use cached filtered data and nodes/edges for better performance
     problem_data <- filtered_problem_data()
     if (is.null(problem_data) || nrow(problem_data) == 0) {

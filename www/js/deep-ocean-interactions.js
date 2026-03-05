@@ -18,7 +18,7 @@
     particleCount: 30,
     enableParticles: true,
     enableRipple: true,
-    enableCardAnimations: true,
+    enableCardAnimations: false,  // Disabled - was interfering with visNetwork bowtie diagram
     defaultTheme: 'dark',
     themeStorageKey: 'bowtie_theme_preference'
   };

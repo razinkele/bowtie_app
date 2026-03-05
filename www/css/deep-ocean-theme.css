@@ -388,7 +388,7 @@ h6, .h6 { font-size: 1rem; }
 .card:hover, .box:hover {
   border-color: rgba(0, 212, 170, 0.2) !important;
   box-shadow: var(--shadow-deep), 0 0 40px rgba(0, 212, 170, 0.05);
-  transform: translateY(-2px);
+  /* Removed transform: translateY(-2px) - was causing issues with bowtie diagram display */
 }
 
 /* Card headers */
