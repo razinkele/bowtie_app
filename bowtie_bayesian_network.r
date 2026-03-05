@@ -41,17 +41,23 @@ create_bayesian_structure <- function(bowtie_data, central_problem = NULL) {
     protective_col <- rep("Unknown_Protection", nrow(bowtie_data))
   }
 
-  # Extract unique elements as nodes
-  all_nodes <- unique(c(
-    paste0("ACT_", gsub("[^A-Za-z0-9]", "_", bowtie_data$Activity)),
-    paste0("PRES_", gsub("[^A-Za-z0-9]", "_", bowtie_data$Pressure)),
-    paste0("CTRL_", gsub("[^A-Za-z0-9]", "_", bowtie_data$Preventive_Control)),
-    paste0("ESC_", gsub("[^A-Za-z0-9]", "_", bowtie_data$Escalation_Factor)),
-    paste0("PROB_", gsub("[^A-Za-z0-9]", "_", bowtie_data$Central_Problem)),
-    paste0("MIT_", gsub("[^A-Za-z0-9]", "_", protective_col)),
-    paste0("CONS_", gsub("[^A-Za-z0-9]", "_", bowtie_data$Consequence))
-  ))
-  
+  # OPTIMIZATION: Pre-compute all node IDs ONCE and reuse (Issue #13 fix)
+  # Define clean_text helper for consistent node ID generation
+  clean_text <- function(x) gsub("[^A-Za-z0-9]", "_", x)
+
+  # Compute node IDs once (avoids redundant gsub calls)
+  act_nodes <- paste0("ACT_", clean_text(bowtie_data$Activity))
+  pres_nodes <- paste0("PRES_", clean_text(bowtie_data$Pressure))
+  ctrl_nodes <- paste0("CTRL_", clean_text(bowtie_data$Preventive_Control))
+  esc_nodes <- paste0("ESC_", clean_text(bowtie_data$Escalation_Factor))
+  prob_nodes <- paste0("PROB_", clean_text(bowtie_data$Central_Problem))
+  mit_nodes <- paste0("MIT_", clean_text(protective_col))
+  cons_nodes <- paste0("CONS_", clean_text(bowtie_data$Consequence))
+
+  # Extract unique elements as nodes (reusing pre-computed node IDs)
+  all_nodes <- unique(c(act_nodes, pres_nodes, ctrl_nodes, esc_nodes,
+                        prob_nodes, mit_nodes, cons_nodes))
+
   # Create node metadata
   node_metadata <- data.frame(
     node_id = all_nodes,
@@ -67,18 +73,8 @@ create_bayesian_structure <- function(bowtie_data, central_problem = NULL) {
     original_name = gsub("^[A-Z]+_", "", all_nodes) %>% gsub("_", " ", .),
     stringsAsFactors = FALSE
   )
-  
-  # Create edges using vectorized operations (optimized - avoids O(n²) rbind loop)
-  # Pre-compute all node IDs at once using vectorized gsub
-  clean_text <- function(x) gsub("[^A-Za-z0-9]", "_", x)
 
-  act_nodes <- paste0("ACT_", clean_text(bowtie_data$Activity))
-  pres_nodes <- paste0("PRES_", clean_text(bowtie_data$Pressure))
-  ctrl_nodes <- paste0("CTRL_", clean_text(bowtie_data$Preventive_Control))
-  esc_nodes <- paste0("ESC_", clean_text(bowtie_data$Escalation_Factor))
-  prob_nodes <- paste0("PROB_", clean_text(bowtie_data$Central_Problem))
-  mit_nodes <- paste0("MIT_", clean_text(protective_col))
-  cons_nodes <- paste0("CONS_", clean_text(bowtie_data$Consequence))
+  # Create edges using vectorized operations (reusing pre-computed node IDs)
 
   # Create all edges at once using vectorized data.frame construction
   edges <- data.frame(

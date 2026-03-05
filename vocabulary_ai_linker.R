@@ -404,63 +404,77 @@ find_basic_connections <- function(vocabulary_data, max_links_per_item = 5) {
     return(data.frame())
   }
 
-  # Helper function to find word overlap
-  get_word_overlap_score <- function(text1, text2) {
-    words1 <- tolower(unlist(strsplit(text1, "\\s+")))
-    words2 <- tolower(unlist(strsplit(text2, "\\s+")))
+  # Stopwords for filtering (defined once)
+  stopwords <- c("and", "or", "the", "a", "an", "in", "on", "at", "to", "for",
+                "of", "with", "from", "by", "as", "is", "are", "was", "were")
 
-    # Remove common words
-    stopwords <- c("and", "or", "the", "a", "an", "in", "on", "at", "to", "for",
-                  "of", "with", "from", "by", "as", "is", "are", "was", "were")
-    words1 <- setdiff(words1, stopwords)
-    words2 <- setdiff(words2, stopwords)
+  # OPTIMIZATION: Pre-compute tokenized words for all items (Issue #12 fix)
+  precompute_words <- function(texts) {
+    lapply(texts, function(text) {
+      words <- tolower(unlist(strsplit(text, "\\s+")))
+      setdiff(words, stopwords)
+    })
+  }
 
+  # Vectorized word overlap score using pre-computed word sets
+  get_word_overlap_score_precomputed <- function(words1, words2) {
     if (length(words1) == 0 || length(words2) == 0) return(0)
-
     overlap <- length(intersect(words1, words2))
-    score <- overlap / min(length(words1), length(words2))
-    return(score)
+    overlap / min(length(words1), length(words2))
   }
 
-  results_list <- list()
+  # OPTIMIZATION: Vectorized connection finder using expand.grid
+  find_connections_vectorized <- function(from_df, to_df, from_type, to_type, from_words, to_words) {
+    if (safe_nrow(from_df) == 0 || safe_nrow(to_df) == 0) return(data.frame())
 
-  # Activity -> Pressure connections
-  if (nrow(vocabulary_data$activities) > 0 && nrow(vocabulary_data$pressures) > 0) {
-    for (i in 1:nrow(vocabulary_data$activities)) {
-      activity <- vocabulary_data$activities[i, ]
-      for (j in 1:nrow(vocabulary_data$pressures)) {
-        pressure <- vocabulary_data$pressures[j, ]
-        score <- get_word_overlap_score(activity$name, pressure$name)
-        if (score > VOCAB_WORD_OVERLAP_THRESHOLD) {
-          results_list[[length(results_list) + 1]] <- data.frame(
-            from_id = activity$id, from_name = activity$name, from_type = "Activity",
-            to_id = pressure$id, to_name = pressure$name, to_type = "Pressure",
-            similarity = score, method = "basic_word_overlap", stringsAsFactors = FALSE
-          )
-        }
-      }
-    }
+    # Create all pairs using expand.grid (avoids nested loops)
+    pairs <- expand.grid(from_idx = seq_len(nrow(from_df)),
+                        to_idx = seq_len(nrow(to_df)),
+                        KEEP.OUT.ATTRS = FALSE)
+
+    # Compute scores for all pairs using mapply (vectorized)
+    scores <- mapply(
+      function(i, j) get_word_overlap_score_precomputed(from_words[[i]], to_words[[j]]),
+      pairs$from_idx, pairs$to_idx
+    )
+
+    # Filter by threshold
+    valid_pairs <- scores > VOCAB_WORD_OVERLAP_THRESHOLD
+
+    if (!any(valid_pairs)) return(data.frame())
+
+    # Build result dataframe only for valid pairs
+    data.frame(
+      from_id = from_df$id[pairs$from_idx[valid_pairs]],
+      from_name = from_df$name[pairs$from_idx[valid_pairs]],
+      from_type = from_type,
+      to_id = to_df$id[pairs$to_idx[valid_pairs]],
+      to_name = to_df$name[pairs$to_idx[valid_pairs]],
+      to_type = to_type,
+      similarity = scores[valid_pairs],
+      method = "basic_word_overlap",
+      stringsAsFactors = FALSE
+    )
   }
 
-  # Pressure -> Consequence connections
-  if (nrow(vocabulary_data$pressures) > 0 && nrow(vocabulary_data$consequences) > 0) {
-    for (i in 1:nrow(vocabulary_data$pressures)) {
-      pressure <- vocabulary_data$pressures[i, ]
-      for (j in 1:nrow(vocabulary_data$consequences)) {
-        consequence <- vocabulary_data$consequences[j, ]
-        score <- get_word_overlap_score(pressure$name, consequence$name)
-        if (score > VOCAB_WORD_OVERLAP_THRESHOLD) {
-          results_list[[length(results_list) + 1]] <- data.frame(
-            from_id = pressure$id, from_name = pressure$name, from_type = "Pressure",
-            to_id = consequence$id, to_name = consequence$name, to_type = "Consequence",
-            similarity = score, method = "basic_word_overlap", stringsAsFactors = FALSE
-          )
-        }
-      }
-    }
-  }
+  # Pre-compute word sets for all vocabulary types
+  activity_words <- precompute_words(vocabulary_data$activities$name)
+  pressure_words <- precompute_words(vocabulary_data$pressures$name)
+  consequence_words <- precompute_words(vocabulary_data$consequences$name)
 
-  basic_links <- if (length(results_list) > 0) do.call(rbind, results_list) else data.frame()
+  # Find connections using vectorized approach
+  activity_pressure_links <- find_connections_vectorized(
+    vocabulary_data$activities, vocabulary_data$pressures,
+    "Activity", "Pressure", activity_words, pressure_words
+  )
+
+  pressure_consequence_links <- find_connections_vectorized(
+    vocabulary_data$pressures, vocabulary_data$consequences,
+    "Pressure", "Consequence", pressure_words, consequence_words
+  )
+
+  # Combine results
+  basic_links <- rbind(activity_pressure_links, pressure_consequence_links)
 
   # Limit links per item
   if (nrow(basic_links) > 0) {
@@ -847,48 +861,57 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
     return(data.frame())
   }
 
-  # Calculate pairwise similarities between different types
-  total_comparisons <- choose(nrow(all_items), 2)
-  bowtie_log(paste("  Processing", total_comparisons, "pairwise comparisons..."), level = "debug")
+  # OPTIMIZATION: Use expand.grid + vectorized filtering instead of nested loops (Issue #12 fix)
+  n_items <- nrow(all_items)
 
-  for (i in 1:(nrow(all_items) - 1)) {
-    for (j in (i + 1):nrow(all_items)) {
-      # Only link different types
-      if (all_items$type[i] != all_items$type[j]) {
-        # Use cached similarity calculation for performance
-        similarity <- if (exists("calculate_semantic_similarity_cached")) {
-          calculate_semantic_similarity_cached(
-            all_items$name[i],
-            all_items$name[j],
-            method = method,
-            use_cache = TRUE
-          )
-        } else {
-          calculate_semantic_similarity(
-            all_items$name[i],
-            all_items$name[j],
-            method = method
-          )
-        }
+  # Create all unique pairs (i < j) using expand.grid
+  pairs <- expand.grid(i = 1:(n_items - 1), j = 2:n_items, KEEP.OUT.ATTRS = FALSE)
+  pairs <- pairs[pairs$i < pairs$j, ]  # Keep only i < j pairs
 
-        if (similarity >= threshold) {
-          semantic_results[[length(semantic_results) + 1]] <- data.frame(
-            from_id = all_items$id[i],
-            from_name = all_items$name[i],
-            from_type = all_items$type[i],
-            to_id = all_items$id[j],
-            to_name = all_items$name[j],
-            to_type = all_items$type[j],
-            similarity = similarity,
-            method = method,
-            stringsAsFactors = FALSE
-          )
-        }
-      }
-    }
+  # Filter to only different types (vectorized)
+  different_types <- all_items$type[pairs$i] != all_items$type[pairs$j]
+  pairs <- pairs[different_types, ]
+
+  if (nrow(pairs) == 0) {
+    bowtie_log("No cross-type pairs found for semantic analysis", level = "debug")
+    return(data.frame())
   }
 
-  semantic_links <- if (length(semantic_results) > 0) do.call(rbind, semantic_results) else data.frame()
+  total_comparisons <- nrow(pairs)
+  bowtie_log(paste("  Processing", total_comparisons, "cross-type comparisons..."), level = "debug")
+
+  # Compute similarities using mapply (vectorized)
+  sim_func <- if (exists("calculate_semantic_similarity_cached")) {
+    function(i, j) calculate_semantic_similarity_cached(
+      all_items$name[i], all_items$name[j], method = method, use_cache = TRUE
+    )
+  } else {
+    function(i, j) calculate_semantic_similarity(
+      all_items$name[i], all_items$name[j], method = method
+    )
+  }
+
+  similarities <- mapply(sim_func, pairs$i, pairs$j)
+
+  # Filter by threshold (vectorized)
+  valid_pairs <- similarities >= threshold
+
+  if (!any(valid_pairs)) {
+    return(data.frame())
+  }
+
+  # Build result dataframe only for valid pairs
+  semantic_links <- data.frame(
+    from_id = all_items$id[pairs$i[valid_pairs]],
+    from_name = all_items$name[pairs$i[valid_pairs]],
+    from_type = all_items$type[pairs$i[valid_pairs]],
+    to_id = all_items$id[pairs$j[valid_pairs]],
+    to_name = all_items$name[pairs$j[valid_pairs]],
+    to_type = all_items$type[pairs$j[valid_pairs]],
+    similarity = similarities[valid_pairs],
+    method = method,
+    stringsAsFactors = FALSE
+  )
 
   bowtie_log(paste("Found", nrow(semantic_links), "semantic connections"), level = "success")
 

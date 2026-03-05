@@ -280,6 +280,46 @@ safe_length <- function(x) {
 }
 
 # =============================================================================
+# TEXT CLEANING UTILITIES (Issue #13 fix - cached string operations)
+# =============================================================================
+
+# Cache for cleaned text (avoids repeated gsub operations)
+.text_clean_cache <- new.env()
+
+#' Clean text for use as node IDs (cached for performance)
+#'
+#' Replaces non-alphanumeric characters with underscores.
+#' Results are cached to avoid repeated regex operations.
+#'
+#' @param x Character vector to clean
+#' @param use_cache Whether to use caching (default TRUE)
+#' @return Cleaned character vector with only A-Z, a-z, 0-9, and underscores
+clean_text_cached <- function(x, use_cache = TRUE) {
+  if (!use_cache || length(x) > 1000) {
+    # Skip cache for large vectors (memory efficiency)
+    return(gsub("[^A-Za-z0-9]", "_", x))
+  }
+
+  # Check cache for each element
+  sapply(x, function(text) {
+    if (exists(text, envir = .text_clean_cache)) {
+      return(.text_clean_cache[[text]])
+    }
+    cleaned <- gsub("[^A-Za-z0-9]", "_", text)
+    .text_clean_cache[[text]] <- cleaned
+    return(cleaned)
+  }, USE.NAMES = FALSE)
+}
+
+#' Clear the text cleaning cache
+#'
+#' Call this to free memory if cache grows too large
+clear_text_clean_cache <- function() {
+  rm(list = ls(envir = .text_clean_cache), envir = .text_clean_cache)
+  invisible(TRUE)
+}
+
+# =============================================================================
 # SESSION-SPECIFIC TEMP FILE UTILITIES (v5.4.1)
 # =============================================================================
 
