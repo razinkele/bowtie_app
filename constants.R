@@ -385,9 +385,9 @@ LOG_EMOJI_PROGRESS <- "\U0001F504"  # 🔄
 # These are kept for backward compatibility only.
 # Prefer using APP_CONFIG$VERSION as the single source of truth.
 
-APP_VERSION <- "5.4.0"
-APP_BUILD_DATE <- "2026-01-01"
-APP_CODENAME <- "Stability & Infrastructure Edition"
+APP_VERSION <- "5.5.0"
+APP_BUILD_DATE <- "2026-03-05"
+APP_CODENAME <- "Security Edition"
 
 # =============================================================================
 # HELPER FUNCTIONS FOR CONSTANTS

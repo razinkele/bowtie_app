@@ -2,7 +2,7 @@
 REM =============================================================================
 REM Environmental Bowtie Risk Analysis - Remote Deployment to laguna.ku.lt
 REM Enhanced CMD version with comprehensive error handling
-REM Version: 5.4.1 - Updated January 2026
+REM Version: 5.5.0 - Updated March 2026
 REM =============================================================================
 REM
 REM Features:
