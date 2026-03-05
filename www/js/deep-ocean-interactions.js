@@ -276,54 +276,16 @@
   }
 
   // =============================================================================
-  // CARD ANIMATIONS
+  // CARD ANIMATIONS - DISABLED (was causing issues with visNetwork rendering)
   // =============================================================================
   function initCardAnimations() {
-    if (!CONFIG.enableCardAnimations) return;
-
-    // Add magnetic hover effect to cards
-    document.querySelectorAll('.card, .box').forEach(card => {
-      card.addEventListener('mousemove', function(e) {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-
-        const rotateX = (y - centerY) / 30;
-        const rotateY = (centerX - x) / 30;
-
-        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
-      });
-
-      card.addEventListener('mouseleave', function() {
-        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
-        card.style.transition = 'transform 0.5s ease';
-      });
-
-      card.addEventListener('mouseenter', function() {
-        card.style.transition = 'transform 0.1s ease';
-      });
-    });
-
-    // Observe new cards added dynamically
-    observeDynamicElements('.card, .box', initSingleCardAnimation);
+    // Card tilt animations completely disabled - they interfere with diagram rendering
+    return;
   }
 
   function initSingleCardAnimation(card) {
-    if (card.dataset.animationInitialized) return;
-    card.dataset.animationInitialized = 'true';
-
-    // Add entrance animation
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(20px)';
-
-    requestAnimationFrame(() => {
-      card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-      card.style.opacity = '1';
-      card.style.transform = 'translateY(0)';
-    });
+    // Card entrance animations disabled
+    return;
   }
 
   // =============================================================================
