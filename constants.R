@@ -166,6 +166,32 @@ MAX_CONSEQUENCES_PER_SCENARIO <- 50
 MAX_TEXT_LENGTH <- 1000
 MAX_NAME_LENGTH <- 200
 MAX_DESCRIPTION_LENGTH <- 2000
+MAX_CUSTOM_ENTRY_LENGTH <- 500  # For custom vocabulary entries
+
+# =============================================================================
+# INPUT VALIDATION CONSTANTS
+# =============================================================================
+
+## File Validation
+# Excel file magic bytes (first bytes of file)
+# XLSX files are ZIP archives starting with PK (0x50 0x4B)
+# XLS files start with D0 CF 11 E0 (OLE2 format)
+EXCEL_MAGIC_BYTES_XLSX <- as.raw(c(0x50, 0x4B, 0x03, 0x04))  # PK\x03\x04
+EXCEL_MAGIC_BYTES_XLS <- as.raw(c(0xD0, 0xCF, 0x11, 0xE0))   # OLE2 header
+
+## Debounce/Throttle Settings (milliseconds)
+DEBOUNCE_REVIEW_MS <- 300
+DEBOUNCE_AUTOSAVE_MS <- 3000
+THROTTLE_STATE_HASH_MS <- 500
+THROTTLE_UI_UPDATE_MS <- 200
+
+# =============================================================================
+# AUTOSAVE LOCKING CONSTANTS
+# =============================================================================
+
+## Autosave mutex settings
+AUTOSAVE_LOCK_TIMEOUT_MS <- 10000  # Max time to hold lock
+AUTOSAVE_MIN_INTERVAL_MS <- 2000   # Minimum interval between saves
 
 # =============================================================================
 # FILE CONSTANTS

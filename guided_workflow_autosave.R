@@ -16,6 +16,7 @@
 #'
 #' Sets up autosave observers, hash-based change detection, and session restore
 #' from localStorage. Must be called inside moduleServer() with local = TRUE.
+#' Enhanced with mutex locking to prevent race conditions (Issue #5 fix).
 #'
 #' @param input Shiny input object
 #' @param output Shiny output object
@@ -24,10 +25,63 @@
 #' @return list with autosave-related reactive values (last_saved_hash, autosave_enabled)
 init_workflow_autosave <- function(input, output, session, workflow_state) {
 
+  # Get constants (with fallbacks)
+  lock_timeout_ms <- if (exists("AUTOSAVE_LOCK_TIMEOUT_MS")) AUTOSAVE_LOCK_TIMEOUT_MS else 10000
+  min_interval_ms <- if (exists("AUTOSAVE_MIN_INTERVAL_MS")) AUTOSAVE_MIN_INTERVAL_MS else 2000
+
   # Reactive values for autosave
   last_saved_hash <- reactiveVal(NULL)
   debounce_timer <- reactiveVal(NULL)
   autosave_enabled <- reactiveVal(TRUE)
+
+  # AUTOSAVE LOCK MECHANISM (Issue #5 fix - prevent race conditions)
+  # Store lock state in session$userData for cleanup on session end
+  if (is.null(session$userData)) {
+    session$userData <- new.env()
+  }
+  session$userData$autosave_lock <- FALSE
+  session$userData$autosave_lock_time <- NULL
+  session$userData$last_autosave_time <- NULL
+
+  #' Acquire autosave lock with timeout
+  #' @return TRUE if lock acquired, FALSE if already locked
+  acquire_autosave_lock <- function() {
+    # Check if lock is held
+    if (isTRUE(session$userData$autosave_lock)) {
+      # Check if lock has timed out (stale lock protection)
+      if (!is.null(session$userData$autosave_lock_time)) {
+        lock_age_ms <- as.numeric(difftime(Sys.time(), session$userData$autosave_lock_time, units = "secs")) * 1000
+        if (lock_age_ms > lock_timeout_ms) {
+          # Lock timed out - release and reacquire
+          log_warning(paste("Autosave lock timed out after", round(lock_age_ms), "ms - releasing stale lock"))
+          session$userData$autosave_lock <- FALSE
+        } else {
+          # Lock is still valid
+          return(FALSE)
+        }
+      }
+    }
+
+    # Check minimum interval since last save
+    if (!is.null(session$userData$last_autosave_time)) {
+      time_since_last_ms <- as.numeric(difftime(Sys.time(), session$userData$last_autosave_time, units = "secs")) * 1000
+      if (time_since_last_ms < min_interval_ms) {
+        log_debug(paste("Autosave skipped - too soon since last save (", round(time_since_last_ms), "ms)"))
+        return(FALSE)
+      }
+    }
+
+    # Acquire lock
+    session$userData$autosave_lock <- TRUE
+    session$userData$autosave_lock_time <- Sys.time()
+    return(TRUE)
+  }
+
+  #' Release autosave lock
+  release_autosave_lock <- function() {
+    session$userData$autosave_lock <- FALSE
+    session$userData$autosave_lock_time <- NULL
+  }
 
   # Helper: Compute state hash for change detection
   compute_state_hash <- function(state) {
@@ -58,7 +112,7 @@ init_workflow_autosave <- function(input, output, session, workflow_state) {
     })
   }
 
-  # Helper: Perform smart autosave
+  # Helper: Perform smart autosave with locking (Issue #5 fix)
   perform_smart_autosave <- function() {
     isolate({
       state <- workflow_state()
@@ -69,6 +123,15 @@ init_workflow_autosave <- function(input, output, session, workflow_state) {
       if (state$current_step <= 1) {
         return(NULL)
       }
+
+      # TRY TO ACQUIRE LOCK (Issue #5 fix - prevent race conditions)
+      if (!acquire_autosave_lock()) {
+        log_debug("Autosave skipped - lock held by another operation")
+        return(NULL)
+      }
+
+      # Ensure lock is released on exit (even if error occurs)
+      on.exit(release_autosave_lock(), add = TRUE)
 
       current_hash <- compute_state_hash(state)
 
@@ -88,6 +151,7 @@ init_workflow_autosave <- function(input, output, session, workflow_state) {
             ))
 
             last_saved_hash(current_hash)
+            session$userData$last_autosave_time <- Sys.time()  # Track last save time
             log_debug(paste("Autosaved at", timestamp, "(hash:", substr(current_hash, 1, 8), ")"))
           }
         }, error = function(e) {

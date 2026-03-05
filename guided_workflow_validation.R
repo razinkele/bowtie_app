@@ -54,12 +54,18 @@ validate_step <- function(step_number, data) {
 }
 
 #' Validate current step before proceeding
+#' Enhanced with input length validation (Issue #4 fix)
 #' @param state Current workflow state
 #' @param input Shiny input object
 #' @param current_lang Current language code (for translations)
 #' @return List with is_valid (boolean) and message
 validate_current_step <- function(state, input, current_lang = "en") {
   step <- state$current_step
+
+  # Get max lengths from constants (with fallbacks)
+  max_name_length <- if (exists("MAX_NAME_LENGTH")) MAX_NAME_LENGTH else 200
+  max_text_length <- if (exists("MAX_TEXT_LENGTH")) MAX_TEXT_LENGTH else 1000
+  max_desc_length <- if (exists("MAX_DESCRIPTION_LENGTH")) MAX_DESCRIPTION_LENGTH else 2000
 
   # Basic validation based on step number
   validation <- switch(as.character(step),
@@ -73,6 +79,9 @@ validate_current_step <- function(state, input, current_lang = "en") {
           error = function(e) "Please enter a project name"
         )
         list(is_valid = FALSE, message = msg)
+      } else if (nchar(project_name) > max_name_length) {
+        # INPUT LENGTH VALIDATION (Issue #4 fix)
+        list(is_valid = FALSE, message = paste("Project name too long. Maximum", max_name_length, "characters."))
       } else {
         list(is_valid = TRUE, message = "")
       }
@@ -86,6 +95,9 @@ validate_current_step <- function(state, input, current_lang = "en") {
           error = function(e) "Please define the central problem"
         )
         list(is_valid = FALSE, message = msg)
+      } else if (nchar(problem) > max_text_length) {
+        # INPUT LENGTH VALIDATION (Issue #4 fix)
+        list(is_valid = FALSE, message = paste("Problem statement too long. Maximum", max_text_length, "characters."))
       } else {
         list(is_valid = TRUE, message = "")
       }

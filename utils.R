@@ -353,29 +353,108 @@ init_session_isolation <- function(session, vocabulary_data = NULL) {
   ))
 }
 
-#' Clean up all session isolation features
+#' Clean up all session isolation features (Enhanced v5.4.2 - Issue #3 fix)
 #' Call this in session$onSessionEnded
 #' @param session Shiny session object
+#' @return list with cleanup statistics
 cleanup_session_isolation <- function(session) {
+  cleanup_stats <- list(
+    cache_cleared = FALSE,
+    vocabulary_cleared = FALSE,
+    temp_files_removed = 0,
+    autosave_lock_released = FALSE,
+    userData_cleared = FALSE,
+    errors = character(0)
+  )
+
+  session_id <- if (!is.null(session$token)) substr(session$token, 1, 8) else "unknown"
+
+  # 1. Clear session cache
   tryCatch({
-    # Clear session cache
     clear_session_cache(session, reset_stats = TRUE)
-
-    # Clear session vocabulary
-    clear_session_vocabulary(session)
-
-    # Clean up session temp files
-    cleanup_session_temp_files(session)
-
-    bowtie_log(paste("Session isolation cleaned up for:",
-                     substr(session$token, 1, 8)), .verbose = TRUE)
-
+    cleanup_stats$cache_cleared <- TRUE
   }, error = function(e) {
-    bowtie_log(paste("Error during session cleanup:", e$message),
-               level = "warn", .verbose = TRUE)
+    cleanup_stats$errors <- c(cleanup_stats$errors, paste("cache:", e$message))
   })
 
-  invisible(TRUE)
+  # 2. Clear session vocabulary
+  tryCatch({
+    clear_session_vocabulary(session)
+    cleanup_stats$vocabulary_cleared <- TRUE
+  }, error = function(e) {
+    cleanup_stats$errors <- c(cleanup_stats$errors, paste("vocabulary:", e$message))
+  })
+
+  # 3. Clean up session temp files
+  tryCatch({
+    cleanup_stats$temp_files_removed <- cleanup_session_temp_files(session)
+  }, error = function(e) {
+    cleanup_stats$errors <- c(cleanup_stats$errors, paste("temp_files:", e$message))
+  })
+
+  # 4. Release autosave lock if held (Issue #5 related)
+  tryCatch({
+    if (!is.null(session$userData) && !is.null(session$userData$autosave_lock)) {
+      session$userData$autosave_lock <- NULL
+      session$userData$autosave_lock_time <- NULL
+      cleanup_stats$autosave_lock_released <- TRUE
+    }
+  }, error = function(e) {
+    cleanup_stats$errors <- c(cleanup_stats$errors, paste("autosave_lock:", e$message))
+  })
+
+  # 5. Clean up any additional temp files (broader pattern)
+  tryCatch({
+    if (!is.null(session$token)) {
+      # Also clean files with session token anywhere in name
+      additional_patterns <- c(
+        paste0("*", substr(session$token, 1, 12), "*"),
+        paste0("workflow_export_", session_id, "*"),
+        paste0("bowtie_diagram_", session_id, "*"),
+        paste0("report_", session_id, "*")
+      )
+
+      for (pattern in additional_patterns) {
+        files <- list.files(tempdir(), pattern = glob2rx(pattern), full.names = TRUE)
+        if (length(files) > 0) {
+          unlink(files, recursive = TRUE)
+          cleanup_stats$temp_files_removed <- cleanup_stats$temp_files_removed + length(files)
+        }
+      }
+    }
+  }, error = function(e) {
+    cleanup_stats$errors <- c(cleanup_stats$errors, paste("additional_temp:", e$message))
+  })
+
+  # 6. Clear session userData completely (final step)
+  tryCatch({
+    if (!is.null(session$userData)) {
+      # Get all names except session_token (might be needed for logging)
+      userData_names <- ls(session$userData)
+      for (name in userData_names) {
+        if (name != "session_token") {
+          rm(list = name, envir = session$userData)
+        }
+      }
+      cleanup_stats$userData_cleared <- TRUE
+    }
+  }, error = function(e) {
+    cleanup_stats$errors <- c(cleanup_stats$errors, paste("userData:", e$message))
+  })
+
+  # Log summary
+  if (length(cleanup_stats$errors) == 0) {
+    bowtie_log(paste("✅ Session cleanup complete for:", session_id,
+                     "- Cache:", cleanup_stats$cache_cleared,
+                     "| TempFiles:", cleanup_stats$temp_files_removed),
+               .verbose = TRUE)
+  } else {
+    bowtie_log(paste("⚠️ Session cleanup for:", session_id,
+                     "completed with errors:", paste(cleanup_stats$errors, collapse = "; ")),
+               level = "warn", .verbose = TRUE)
+  }
+
+  invisible(cleanup_stats)
 }
 
 # Cache management functions

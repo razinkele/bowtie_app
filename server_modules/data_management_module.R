@@ -5,6 +5,62 @@
 # Dependencies: readxl, openxlsx, utils.R
 # =============================================================================
 
+#' Validate file is actually an Excel file using magic bytes (server-side security)
+#' @param file_path Path to the uploaded file
+#' @return list(valid = TRUE/FALSE, error = error message if invalid)
+validate_excel_file <- function(file_path) {
+  tryCatch({
+    # Check file exists
+    if (!file.exists(file_path)) {
+      return(list(valid = FALSE, error = "File does not exist"))
+    }
+
+    # Check file size (prevent DoS via huge files)
+    file_size <- file.info(file_path)$size
+    max_size <- if (exists("MAX_UPLOAD_FILE_SIZE")) MAX_UPLOAD_FILE_SIZE else 50 * 1024 * 1024
+    if (file_size > max_size) {
+      return(list(valid = FALSE, error = paste("File too large. Maximum size:", max_size / (1024 * 1024), "MB")))
+    }
+
+    # Check extension (case-insensitive)
+    ext <- tolower(tools::file_ext(file_path))
+    if (!ext %in% c("xlsx", "xls")) {
+      return(list(valid = FALSE, error = "Invalid file extension. Only .xlsx and .xls files are allowed."))
+    }
+
+    # Read first bytes and validate magic number
+    con <- file(file_path, "rb")
+    on.exit(close(con), add = TRUE)
+    first_bytes <- readBin(con, "raw", n = 8)
+
+    if (length(first_bytes) < 4) {
+      return(list(valid = FALSE, error = "File is too small to be a valid Excel file"))
+    }
+
+    # Check for XLSX (ZIP/PK signature)
+    is_xlsx <- identical(first_bytes[1:4], as.raw(c(0x50, 0x4B, 0x03, 0x04)))
+
+    # Check for XLS (OLE2 signature)
+    is_xls <- identical(first_bytes[1:4], as.raw(c(0xD0, 0xCF, 0x11, 0xE0)))
+
+    if (!is_xlsx && !is_xls) {
+      return(list(valid = FALSE, error = "File content does not match Excel format. Possible security risk detected."))
+    }
+
+    # Verify extension matches detected type
+    if (ext == "xlsx" && !is_xlsx) {
+      return(list(valid = FALSE, error = "File extension .xlsx does not match file content (appears to be .xls format)"))
+    }
+    if (ext == "xls" && !is_xls) {
+      return(list(valid = FALSE, error = "File extension .xls does not match file content (appears to be .xlsx format)"))
+    }
+
+    return(list(valid = TRUE, error = NULL))
+  }, error = function(e) {
+    return(list(valid = FALSE, error = paste("File validation error:", e$message)))
+  })
+}
+
 #' Initialize data management module server logic
 #'
 #' @param input Shiny input object
@@ -33,15 +89,28 @@ data_management_module_server <- function(input, output, session, lang = reactiv
     if (!is.null(edited)) edited else currentData()
   })
 
-  # File upload handling
+  # File upload handling with server-side validation (Issue #2 fix)
   observeEvent(input$file, {
     req(input$file)
+
+    # SERVER-SIDE FILE VALIDATION (security fix)
+    # Validates: file existence, size limits, extension, and magic bytes
+    validation_result <- validate_excel_file(input$file$datapath)
+
+    if (!validation_result$valid) {
+      notify_error(paste("❌ File validation failed:", validation_result$error), duration = 8)
+      bowtie_log(paste("File upload rejected:", validation_result$error, "- File:", input$file$name), level = "warn")
+      return()
+    }
+
     tryCatch({
       sheet_names <- excel_sheets(input$file$datapath)
       sheets(sheet_names)
       updateSelectInput(session, "sheet", choices = sheet_names, selected = sheet_names[1])
+      bowtie_log(paste("File validated and loaded:", input$file$name), level = "info")
     }, error = function(e) {
       notify_error(t("notify_error_reading_file", lang()))
+      bowtie_log(paste("Error reading Excel file:", e$message), level = "error")
     })
   })
 

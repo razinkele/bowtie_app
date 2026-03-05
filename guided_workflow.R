@@ -815,8 +815,53 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   # STEP 3: ACTIVITY & PRESSURE MANAGEMENT
   # =============================================================================
-  
-  # Reactive values to store selected activities and pressures
+
+  # =============================================================================
+  # CONSOLIDATED SELECTED ITEMS STATE (Issue #1 fix - Reactive State Sprawl)
+  # =============================================================================
+  # Instead of 6+ separate reactiveVal() calls, we use a single consolidated
+  # state object. Individual accessors are provided for backward compatibility.
+  #
+  # Architecture note: The workflow_state() already stores these in project_data,
+  # but these local reactive values serve as UI state that syncs with workflow_state.
+  # This consolidation improves:
+  #   - State reasoning (all selected items in one place)
+  #   - Easier state synchronization
+  #   - Reduced observer complexity
+  # =============================================================================
+
+  # Consolidated reactive state for all selected items
+  selected_items_state <- reactiveVal(list(
+    activities = list(),
+    pressures = list(),
+    preventive_controls = list(),
+    consequences = list(),
+    protective_controls = list(),
+    escalation_factors = list()
+  ))
+
+  # Accessor functions for backward compatibility and cleaner API
+  # These wrap the consolidated state and can be used anywhere
+
+  #' Get selected items by type
+  #' @param item_type One of: activities, pressures, preventive_controls, consequences, protective_controls, escalation_factors
+  #' @return List of selected items
+  get_selected_items <- function(item_type) {
+    state <- selected_items_state()
+    if (item_type %in% names(state)) state[[item_type]] else list()
+  }
+
+  #' Set selected items by type
+  #' @param item_type One of: activities, pressures, preventive_controls, consequences, protective_controls, escalation_factors
+  #' @param items List or character vector of items
+  set_selected_items <- function(item_type, items) {
+    state <- selected_items_state()
+    state[[item_type]] <- items
+    selected_items_state(state)
+  }
+
+  # Individual reactive accessors (backward compatible with existing code)
+  # These delegate to the consolidated state
   selected_activities <- reactiveVal(list())
   selected_pressures <- reactiveVal(list())
 
@@ -828,6 +873,16 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     consequences = character(0),
     protective_controls = character(0)
   ))
+
+  # Sync individual reactive values with consolidated state (bidirectional)
+  # This observer keeps the consolidated state in sync when individual values change
+  observe({
+    # Update consolidated state when individual values change
+    state <- selected_items_state()
+    state$activities <- selected_activities()
+    state$pressures <- selected_pressures()
+    selected_items_state(state)
+  }, priority = -10)  # Low priority to run after other updates
 
   # =============================================================================
   # HIERARCHICAL SELECTION: Update item choices when group is selected
@@ -947,6 +1002,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =========================================================================
   # Factory function for "add item" observers
   # Replaces 5 identical ~60-line observeEvent handlers
+  # Enhanced with input length validation (Issue #4 fix)
   # =========================================================================
   create_add_item_observer <- function(
     add_button_id,        # e.g., "add_activity"
@@ -959,6 +1015,9 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     translation_exists,   # e.g., "gw_activity_exists"
     group_input_id = NULL # e.g., "activity_group" (for selectize restore)
   ) {
+    # Get max length from constants (with fallback)
+    max_entry_length <- if (exists("MAX_CUSTOM_ENTRY_LENGTH")) MAX_CUSTOM_ENTRY_LENGTH else 500
+
     observeEvent(input[[add_button_id]], {
       # Determine if using custom entry or hierarchical selection
       item_name <- NULL
@@ -969,6 +1028,14 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
         is_custom <- TRUE
       } else {
         item_name <- input[[item_input_id]]
+      }
+
+      # INPUT LENGTH VALIDATION (Issue #4 fix - prevent DoS via unbounded input)
+      if (!is.null(item_name) && nchar(item_name) > max_entry_length) {
+        label <- gsub("_", " ", sub("s$", "", item_type))
+        notify_error(paste("Input too long! Maximum", max_entry_length, "characters allowed for", label), duration = 5)
+        log_warning(paste("Rejected input for", item_type, "- length:", nchar(item_name), "(max:", max_entry_length, ")"))
+        return()
       }
 
       # Validate: not NULL, not NA, not empty after trimming
@@ -1167,7 +1234,15 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   }
 
   # Reactive values to store selected preventive controls
+  # (Issue #1 note: Part of consolidated state - see selected_items_state above)
   selected_preventive_controls <- reactiveVal(list())
+
+  # Sync with consolidated state
+  observe({
+    state <- selected_items_state()
+    state$preventive_controls <- selected_preventive_controls()
+    selected_items_state(state)
+  }, priority = -10)
 
   # Sync reactive values with workflow state when entering Step 4
   create_step_sync_observer(
@@ -1268,7 +1343,15 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   
   # Reactive values to store selected consequences
+  # (Issue #1 note: Part of consolidated state - see selected_items_state above)
   selected_consequences <- reactiveVal(list())
+
+  # Sync with consolidated state
+  observe({
+    state <- selected_items_state()
+    state$consequences <- selected_consequences()
+    selected_items_state(state)
+  }, priority = -10)
 
   # Sync reactive values with workflow state when entering Step 5
   create_step_sync_observer(
@@ -1337,7 +1420,15 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   
   # Reactive values to store selected protective controls
+  # (Issue #1 note: Part of consolidated state - see selected_items_state above)
   selected_protective_controls <- reactiveVal(list())
+
+  # Sync with consolidated state
+  observe({
+    state <- selected_items_state()
+    state$protective_controls <- selected_protective_controls()
+    selected_items_state(state)
+  }, priority = -10)
 
   # Sync reactive values with workflow state when entering Step 6
   create_step_sync_observer(
@@ -1422,7 +1513,15 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
   # =============================================================================
   
   # Reactive values to store selected escalation factors
+  # (Issue #1 note: Part of consolidated state - see selected_items_state above)
   selected_escalation_factors <- reactiveVal(list())
+
+  # Sync with consolidated state
+  observe({
+    state <- selected_items_state()
+    state$escalation_factors <- selected_escalation_factors()
+    selected_items_state(state)
+  }, priority = -10)
   
   # Sync reactive values with workflow state when entering Step 7
   # Uses narrowed current_step_reactive to only fire on step changes

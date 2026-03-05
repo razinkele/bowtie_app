@@ -214,9 +214,10 @@ test_that("init_workflow_state creates valid state structure", {
   expect_true("workflow_complete" %in% names(state))
 
   # Test initial values
-  expect_equal(state$current_step, 1, "Should start at step 1")
-  expect_equal(length(state$completed_steps), 0, "No steps completed initially")
-  expect_false(state$workflow_complete, "Workflow not complete initially")
+
+  expect_equal(state$current_step, 1, label = "Should start at step 1")
+  expect_equal(length(state$completed_steps), 0, label = "No steps completed initially")
+  expect_false(state$workflow_complete, label = "Workflow not complete initially")
 })
 
 test_that("Workflow state has correct structure for autosave", {
@@ -476,7 +477,7 @@ test_that("Debounce delay calculation works correctly", {
   delay_ms <- 3000
   delay_seconds <- delay_ms / 1000
 
-  expect_equal(delay_seconds, 3, "3000ms should equal 3 seconds")
+  expect_equal(delay_seconds, 3, label = "3000ms should equal 3 seconds")
 
   # Simulate timer
   start_time <- Sys.time()
@@ -485,7 +486,7 @@ test_that("Debounce delay calculation works correctly", {
 
   should_trigger <- (as.numeric(elapsed) >= delay_seconds)
 
-  expect_false(should_trigger, "Should not trigger before delay elapsed")
+  expect_false(should_trigger, label = "Should not trigger before delay elapsed")
 })
 
 # =============================================================================
