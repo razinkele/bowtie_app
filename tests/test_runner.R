@@ -29,6 +29,21 @@ cat("Working directory:", getwd(), "\n")
 cat("Loading application modules...\n")
 
 # Source the application files with error handling
+# Load logging system first (required by vocabulary.R and other modules)
+tryCatch({
+  source("config/logging.R")
+  cat("✓ Loaded config/logging.R\n")
+}, error = function(e) {
+  cat("✗ Failed to load config/logging.R:", e$message, "\n")
+  # Create stub logging functions if logging.R fails to load
+  log_debug <<- function(...) invisible(NULL)
+  log_info <<- function(...) invisible(NULL)
+  log_success <<- function(...) invisible(NULL)
+  log_warning <<- function(...) invisible(NULL)
+  log_error <<- function(...) invisible(NULL)
+  cat("  Using stub logging functions\n")
+})
+
 tryCatch({
   source("utils.R")
   cat("✓ Loaded utils.r\n")

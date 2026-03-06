@@ -59,26 +59,26 @@ simple_reporter <- function() {
 test_results <- list()
 
 # Helper function to run tests safely
-run_test_safely <- function(test_name, test_file, skip_on_error = TRUE) {
+run_test_safely <- function(test_name, file_path, skip_on_error = TRUE) {
   cat("\n--- Running", test_name, "---\n")
 
   result <- tryCatch({
-    if (file.exists(test_file)) {
+    if (file.exists(file_path)) {
       # Load logging system first (required by other modules)
       source("config/logging.R", local = TRUE)
       # Load required modules
       source("vocabulary.R", local = TRUE)
       source("tests/fixtures/realistic_test_data.R", local = TRUE)
 
-      # Run the test
-      test_results <- test_file(test_file, reporter = "progress")
+      # Run the test - use testthat:: prefix to avoid shadowing
+      test_output <- testthat::test_file(file_path, reporter = "progress")
 
       list(
         status = "PASS",
-        passed = length(test_results[test_results$passed, ]),
-        failed = length(test_results[!test_results$passed, ]),
+        passed = sum(as.data.frame(test_output)$passed),
+        failed = sum(as.data.frame(test_output)$failed),
         errors = 0,
-        details = test_results
+        details = test_output
       )
     } else {
       list(
@@ -86,7 +86,7 @@ run_test_safely <- function(test_name, test_file, skip_on_error = TRUE) {
         passed = 0,
         failed = 0,
         errors = 1,
-        details = paste("File not found:", test_file)
+        details = paste("File not found:", file_path)
       )
     }
   }, error = function(e) {
