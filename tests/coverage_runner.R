@@ -28,14 +28,27 @@ cat("Working directory:", getwd(), "\n\n")
 source_files <- c(
   # Core files
   "utils.R",
-  "vocabulary.R",
-
-  # Server modules
-  list.files("server_modules", pattern = "\\.R$", full.names = TRUE)
+  "vocabulary.R"
 )
+
+# Add server modules if directory exists
+if (dir.exists("server_modules")) {
+  source_files <- c(
+    source_files,
+    list.files("server_modules", pattern = "\\.R$", full.names = TRUE)
+  )
+} else {
+  cat("Warning: server_modules directory not found\n")
+}
 
 # Filter to existing files
 source_files <- source_files[file.exists(source_files)]
+
+# Validate source files not empty
+if (length(source_files) == 0) {
+  cat("ERROR: No source files found\n")
+  quit(status = 1)
+}
 
 cat("Measuring coverage for", length(source_files), "source files:\n")
 for (f in source_files) {
@@ -77,7 +90,13 @@ if (!is.null(coverage)) {
   if (nrow(coverage_df) > 0) {
     total_lines <- sum(coverage_df$value >= 0, na.rm = TRUE)
     covered_lines <- sum(coverage_df$value > 0, na.rm = TRUE)
-    percentage <- round(covered_lines / total_lines * 100, 1)
+
+    # Guard clause for division by zero
+    if (total_lines > 0) {
+      percentage <- round(covered_lines / total_lines * 100, 1)
+    } else {
+      percentage <- 0
+    }
 
     cat("\n----------------------------------------\n")
     cat(sprintf("Overall Coverage: %.1f%% (%d/%d lines)\n",
