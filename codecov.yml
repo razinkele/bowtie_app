@@ -1,0 +1,20 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 60%
+        threshold: 2%
+        if_not_found: success
+    patch:
+      default:
+        target: 60%
+        if_not_found: success
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+
+ignore:
+  - "tests/**/*"
+  - "docs/**/*"
