@@ -173,8 +173,12 @@ describe("Excel File Validation", {
 
 describe("Data Column Validation", {
 
-  # Source utils.R to get validation functions
-  source(file.path(app_root, "utils.R"), local = FALSE)
+  # Source utils.R to get validation functions in a local environment
+  local_utils_env <- new.env(parent = globalenv())
+  source(file.path(app_root, "utils.R"), local = local_utils_env)
+  # Attach functions needed for this describe block
+  validate_data_columns <- local_utils_env$validate_data_columns
+  validate_data_columns_detailed <- local_utils_env$validate_data_columns_detailed
 
   it("accepts data with required columns", {
     valid_data <- data.frame(
@@ -290,10 +294,10 @@ describe("Data Column Validation", {
 
 describe("Add Default Columns Function", {
 
-  # Source utils.R if not already loaded
-  if (!exists("add_default_columns")) {
-    source(file.path(app_root, "utils.R"), local = FALSE)
-  }
+  # Source utils.R in a local environment to get add_default_columns
+  local_utils_env <- new.env(parent = globalenv())
+  source(file.path(app_root, "utils.R"), local = local_utils_env)
+  add_default_columns <- local_utils_env$add_default_columns
 
   it("adds missing Activity column", {
     data <- data.frame(
@@ -619,7 +623,10 @@ describe("Reactive State Management", {
 describe("Data Import from Excel", {
 
   skip_if_not_installed("readxl")
-  library(readxl)
+  # Safely load library after skip check
+  if (requireNamespace("readxl", quietly = TRUE)) {
+    library(readxl)
+  }
 
   it("imports all rows from valid file", {
     xlsx_path <- file.path(app_root, "CAUSES.xlsx")
@@ -695,7 +702,10 @@ describe("Data Import from Excel", {
 describe("Data Export Operations", {
 
   skip_if_not_installed("openxlsx")
-  library(openxlsx)
+  # Safely load library after skip check
+  if (requireNamespace("openxlsx", quietly = TRUE)) {
+    library(openxlsx)
+  }
 
   it("exports data frame to xlsx successfully", {
     test_dir <- create_test_dir()
@@ -785,6 +795,11 @@ describe("Data Export Operations", {
 # =============================================================================
 
 describe("Edge Cases and Error Handling", {
+
+  # Source utils.R in a local environment to get validate_data_columns
+  local_utils_env <- new.env(parent = globalenv())
+  source(file.path(app_root, "utils.R"), local = local_utils_env)
+  validate_data_columns <- local_utils_env$validate_data_columns
 
   it("handles single-row data frame", {
     single_row <- data.frame(
