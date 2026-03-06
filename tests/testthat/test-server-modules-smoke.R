@@ -7,10 +7,13 @@
 # Coverage: ~50 assertions across 13 modules (~4 tests per module)
 # =============================================================================
 
-context("Server Modules Smoke Tests")
-
 # Load required packages
 library(testthat)
+
+# Define null coalescing operator if not available
+if (!exists("%||%")) {
+  `%||%` <- function(x, y) if (is.null(x)) y else x
+}
 
 # =============================================================================
 # Setup: Find server_modules directory
@@ -148,21 +151,24 @@ test_that("server_modules directory exists and contains expected files", {
 describe("Module File Existence and Size Validation", {
 
   for (module_name in names(server_modules)) {
-    module_info <- server_modules[[module_name]]
-    file_path <- file.path(modules_dir, module_info$file)
+    local({
+      m_name <- module_name  # Force copy
+      m_info <- server_modules[[m_name]]
+      m_file_path <- file.path(modules_dir, m_info$file)
 
-    it(paste0(module_info$file, " exists and has expected content size"), {
-      # File existence
-      expect_true(file.exists(file_path),
-                  info = paste("File should exist:", module_info$file))
+      it(paste0(m_info$file, " exists and has expected content size"), {
+        # File existence
+        expect_true(file.exists(m_file_path),
+                    info = paste("File should exist:", m_info$file))
 
-      # File size check - testthat 3.x compatible
-      file_size <- file.info(file_path)$size
-      expect_true(file_size > 0,
-                  info = paste("File should not be empty:", module_info$file))
-      expect_true(file_size >= module_info$min_size,
-                  info = paste("File size should be at least", module_info$min_size,
-                               "bytes for:", module_info$file))
+        # File size check - testthat 3.x compatible
+        file_size <- file.info(m_file_path)$size
+        expect_true(file_size > 0,
+                    info = paste("File should not be empty:", m_info$file))
+        expect_true(file_size >= m_info$min_size,
+                    info = paste("File size should be at least", m_info$min_size,
+                                 "bytes for:", m_info$file))
+      })
     })
   }
 })
@@ -174,29 +180,32 @@ describe("Module File Existence and Size Validation", {
 describe("Module R Syntax Validation", {
 
   for (module_name in names(server_modules)) {
-    module_info <- server_modules[[module_name]]
-    file_path <- file.path(modules_dir, module_info$file)
+    local({
+      m_name <- module_name  # Force copy
+      m_info <- server_modules[[m_name]]
+      m_file_path <- file.path(modules_dir, m_info$file)
 
-    it(paste0(module_info$file, " has valid R syntax"), {
-      skip_if_not(file.exists(file_path),
-                  message = paste("File does not exist:", module_info$file))
+      it(paste0(m_info$file, " has valid R syntax"), {
+        skip_if_not(file.exists(m_file_path),
+                    message = paste("File does not exist:", m_info$file))
 
-      # Use parse() to validate syntax - will error on syntax issues
-      parsed <- NULL
-      parse_error <- tryCatch({
-        parsed <- parse(file_path)
-        NULL
-      }, error = function(e) {
-        conditionMessage(e)
+        # Use parse() to validate syntax - will error on syntax issues
+        parsed <- NULL
+        parse_error <- tryCatch({
+          parsed <- parse(m_file_path)
+          NULL
+        }, error = function(e) {
+          conditionMessage(e)
+        })
+
+        expect_null(parse_error,
+                    info = paste("R syntax validation failed for:", m_info$file,
+                                 "Error:", parse_error %||% "none"))
+
+        # Verify parse returned expressions
+        expect_true(length(parsed) > 0,
+                    info = paste("Parsed file should contain expressions:", m_info$file))
       })
-
-      expect_null(parse_error,
-                  info = paste("R syntax validation failed for:", module_info$file,
-                               "Error:", parse_error %||% "none"))
-
-      # Verify parse returned expressions
-      expect_true(length(parsed) > 0,
-                  info = paste("Parsed file should contain expressions:", module_info$file))
     })
   }
 })
@@ -211,33 +220,36 @@ describe("Module Sourcing Without Error", {
   skip_if_not_installed("shiny")
 
   for (module_name in names(server_modules)) {
-    module_info <- server_modules[[module_name]]
-    file_path <- file.path(modules_dir, module_info$file)
+    local({
+      m_name <- module_name  # Force copy
+      m_info <- server_modules[[m_name]]
+      m_file_path <- file.path(modules_dir, m_info$file)
 
-    it(paste0(module_info$file, " can be sourced without fatal errors"), {
-      skip_if_not(file.exists(file_path),
-                  message = paste("File does not exist:", module_info$file))
+      it(paste0(m_info$file, " can be sourced without fatal errors"), {
+        skip_if_not(file.exists(m_file_path),
+                    message = paste("File does not exist:", m_info$file))
 
-      # Some modules require specific packages - skip gracefully if missing
-      skip_if_not_installed("shiny")
+        # Some modules require specific packages - skip gracefully if missing
+        skip_if_not_installed("shiny")
 
-      # Module-specific dependency checks
-      if (module_name == "local_storage_module") {
-        skip_if_not_installed("shinyFiles")
-      }
-      if (module_name == "bayesian_module") {
-        skip_if_not_installed("bnlearn")
-      }
-      if (module_name == "export_module" || module_name == "report_generation_module") {
-        skip_if_not_installed("openxlsx")
-      }
+        # Module-specific dependency checks
+        if (m_name == "local_storage_module") {
+          skip_if_not_installed("shinyFiles")
+        }
+        if (m_name == "bayesian_module") {
+          skip_if_not_installed("bnlearn")
+        }
+        if (m_name == "export_module" || m_name == "report_generation_module") {
+          skip_if_not_installed("openxlsx")
+        }
 
-      # Attempt to source the module
-      result <- safe_source_module(file_path)
+        # Attempt to source the module
+        result <- safe_source_module(m_file_path)
 
-      expect_true(result$success,
-                  info = paste("Module should source without error:", module_info$file,
-                               "Error:", result$error %||% "none"))
+        expect_true(result$success,
+                    info = paste("Module should source without error:", m_info$file,
+                                 "Error:", result$error %||% "none"))
+      })
     })
   }
 })
