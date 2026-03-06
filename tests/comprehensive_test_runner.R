@@ -425,6 +425,38 @@ if (test_config$run_autosave_performance && file.exists("tests/testthat/test-aut
   }
 }
 
+# =============================================================================
+# Run all testthat tests using test_dir for proper discovery
+# =============================================================================
+cat("\n========================================\n")
+cat("RUNNING TESTTHAT TEST SUITE\n")
+cat("========================================\n")
+
+testthat_results <- tryCatch({
+  testthat::test_dir(
+    "tests/testthat",
+    reporter = testthat::ProgressReporter$new(show_praise = FALSE),
+    stop_on_failure = FALSE
+  )
+}, error = function(e) {
+  cat("Error running test suite:", e$message, "\n")
+  NULL
+})
+
+if (!is.null(testthat_results)) {
+  testthat_summary <- as.data.frame(testthat_results)
+  cat(sprintf("\nTestthat Summary: %d passed, %d failed, %d skipped\n",
+              sum(testthat_summary$passed),
+              sum(testthat_summary$failed),
+              sum(testthat_summary$skipped)))
+
+  all_results$testthat_suite <- list(
+    passed = sum(testthat_summary$passed),
+    failed = sum(testthat_summary$failed),
+    skipped = sum(testthat_summary$skipped)
+  )
+}
+
 # Final summary
 cat("\n========================================\n")
 cat("COMPREHENSIVE TEST SUMMARY\n")
