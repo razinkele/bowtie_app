@@ -34,7 +34,7 @@ if (!file.exists(filepath)) {
   # Check file size to prevent DoS
   file_size_mb <- file.info(filepath)$size / (1024 * 1024)
   if (file_size_mb > max_size_mb) {
-    stop(sprintf("File too large: %.2f MB (max: %d MB)", file_size_mb, max_size_mb))
+    stop(sprintf("File too large: %.2f MB (max: %.2f MB)", file_size_mb, max_size_mb))
   }
 
   # Check file extension
