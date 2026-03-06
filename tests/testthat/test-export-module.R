@@ -11,9 +11,32 @@ context("Export Module")
 library(testthat)
 
 # Load the helper setup (provides app_root, create_test_dir, cleanup_test_files)
-if (!exists("app_root")) {
-  source(file.path(getwd(), "tests/testthat/helper-setup.R"))
-}
+# Explicit source with error handling to ensure test infrastructure is available
+tryCatch({
+  # Try multiple possible locations for the helper file
+  possible_paths <- c(
+    file.path(getwd(), "tests/testthat/helper-setup.R"),  # From project root
+    file.path(getwd(), "helper-setup.R"),                  # From tests/testthat dir
+    file.path(dirname(getwd()), "testthat/helper-setup.R") # From tests dir
+  )
+
+  helper_path <- NULL
+  for (path in possible_paths) {
+    if (file.exists(path)) {
+      helper_path <- path
+      break
+    }
+  }
+
+  if (is.null(helper_path)) {
+    stop("Helper setup file not found. Searched paths:\n  - ",
+         paste(possible_paths, collapse = "\n  - "))
+  }
+
+  source(helper_path)
+}, error = function(e) {
+  stop("Failed to load test helper setup. Ensure tests are run from the project root directory or tests/testthat directory. Error: ", e$message)
+})
 
 # Load dependencies safely
 skip_if_not_installed("openxlsx")
@@ -97,8 +120,18 @@ describe("Excel Export Operations", {
 
     reimported <- openxlsx::read.xlsx(export_path)
 
-    expect_equal(ncol(reimported), ncol(original))
-    expect_equal(names(reimported), names(original))
+    expect_equal(ncol(reimported), ncol(original),
+                 info = "Column count should be preserved")
+    expect_equal(names(reimported), names(original),
+                 info = "Column names should be preserved")
+
+    # Verify column ORDER is preserved (not just names match)
+    for (i in seq_along(names(original))) {
+      expect_equal(names(reimported)[i], names(original)[i],
+                   info = paste("Column order mismatch at position", i,
+                                "- expected:", names(original)[i],
+                                "got:", names(reimported)[i]))
+    }
   })
 
   it("preserves row count on export", {
@@ -310,13 +343,32 @@ describe("Data Format Preservation", {
 
     export_path <- file.path(test_dir, "na_keepna_test.xlsx")
 
-    # Use workbook with keepNA to preserve NA values as NA in Excel
+    # Use workbook with keepNA to preserve NA values in Excel
     wb <- openxlsx::createWorkbook()
     openxlsx::addWorksheet(wb, "Data")
     openxlsx::writeData(wb, "Data", original, keepNA = TRUE)
     openxlsx::saveWorkbook(wb, export_path, overwrite = TRUE)
 
     expect_true(file.exists(export_path))
+
+    # Re-import with skipEmptyRows = FALSE to preserve rows with NA values
+    # By default, read.xlsx skips rows where all cells are empty/NA
+    reimported <- openxlsx::read.xlsx(export_path, skipEmptyRows = FALSE)
+
+    expect_equal(nrow(reimported), 3,
+                 info = "Row count should be preserved when using skipEmptyRows = FALSE")
+    expect_equal(reimported$Activity[1], "Activity 1",
+                 info = "First Activity value should be preserved")
+    expect_true(is.na(reimported$Activity[2]),
+                info = "NA in Activity column should be preserved after re-import")
+    expect_equal(reimported$Activity[3], "Activity 3",
+                 info = "Third Activity value should be preserved")
+    expect_equal(reimported$Value[1], 1,
+                 info = "First numeric value should be preserved")
+    expect_true(is.na(reimported$Value[2]),
+                info = "NA in Value column should be preserved after re-import")
+    expect_equal(reimported$Value[3], 3,
+                 info = "Third numeric value should be preserved")
   })
 
   it("handles mixed data types in data frame", {
