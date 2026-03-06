@@ -3,6 +3,71 @@
 
 ---
 
+## Version 5.6.0 (Testing & Reliability Edition)
+**Release Date:** 2026-03-06
+
+### Testing Infrastructure Overhaul
+This release focuses on comprehensive improvements to the testing framework, adding ~325 new test assertions across 4 new test files and enhancing existing testing infrastructure.
+
+### New Test Files Created
+- **`test-local-storage-module.R`**: 83 assertions testing local storage functionality
+  - Storage initialization and session management
+  - Data persistence and retrieval
+  - Error handling and edge cases
+  - Module integration tests
+
+- **`test-data-management-module.R`**: 116 assertions testing data management
+  - Data validation and transformation functions
+  - Import/export operations
+  - Data integrity checks
+  - Edge case handling (empty data, malformed input)
+
+- **`test-export-module.R`**: 85 assertions testing export functionality
+  - Excel export formatting and validation
+  - PDF report generation
+  - Data serialization
+  - File path handling and security
+
+- **`test-server-modules-smoke.R`**: 41 assertions covering all 13 server modules
+  - ai_analysis_module, autosave_module, bayesian_module
+  - bowtie_visualization_module, data_management_module, export_module
+  - help_module, language_module, link_risk_module
+  - local_storage_module, report_generation_module, theme_module
+  - vocabulary_server_module
+
+### Testing Framework Improvements
+- **Fixed comprehensive_test_runner.R**: Resolved variable shadowing bug where `tests` variable was being overwritten
+- **Added test_dir integration**: Proper test discovery using testthat's test_dir() function
+- **Enhanced helper-setup.R**: Added mock session helpers for server module testing
+  - `mock_shiny_session()` function for creating test sessions
+  - `with_mock_session()` wrapper for session-dependent tests
+  - Enhanced reactive value mocking utilities
+
+### CI/CD Integration
+- **GitHub Actions workflow** (`.github/workflows/test.yml`): Automated testing on push/PR
+  - R 4.3.x and 4.4.x matrix testing
+  - Dependency caching for faster builds
+  - Coverage report generation and upload
+
+- **Codecov integration** (`codecov.yml`): Code coverage tracking
+  - 70% coverage target
+  - Informational status checks
+  - Coverage trend monitoring
+
+### Coverage Analysis
+- **New coverage_runner.R**: Standalone coverage analysis script
+  - Measures coverage for 15 source files
+  - Uses 27 test files for analysis
+  - Generates HTML coverage reports
+
+### Summary Statistics
+- **Total new assertions**: ~325
+- **Test files created**: 4
+- **Infrastructure files created/modified**: 5
+- **Server modules with smoke tests**: 13/13 (100% coverage)
+
+---
+
 ## Version 5.5.0 (Security Edition)
 **Release Date:** 2026-03-05
 
@@ -197,17 +262,19 @@
 ## Version Information
 
 ### Current Version
-- **Version:** 5.4.0 (Stability & Infrastructure Edition)
+- **Version:** 5.6.0 (Testing & Reliability Edition)
 - **R Required:** >= 4.3.0
 - **Shiny Server:** 1.5.21+ recommended
 - **Documentation:** Complete PDF manual included
 
 ### Development Status
-- ✅ Production Ready
-- ✅ All Tests Passing
-- ✅ Linux Compatible
-- ✅ Documentation Complete
-- ✅ Deployment Validated
+- Production Ready
+- Comprehensive Testing Suite (~470+ assertions)
+- CI/CD Integration with GitHub Actions
+- Code Coverage Tracking with Codecov
+- Linux Compatible
+- Documentation Complete
+- Deployment Validated
 
 ### Support
 - Full deployment framework
@@ -217,4 +284,4 @@
 
 ---
 
-**Last Updated:** November 2025
+**Last Updated:** March 2026

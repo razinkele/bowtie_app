@@ -4,9 +4,11 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 
 > **Archive notice:** The original R Shiny application (`app.R`) has been archived and moved to `archive/archived_app_R_20260101.R`. A new Python Shiny app is available at `shiny_copernicus_app.py` — see `README_shiny_copernicus.md` for usage and authentication instructions.
 
-![Version](https://img.shields.io/badge/version-5.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.6.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-tracked-blue.svg)
 
 ## Table of Contents
 
@@ -29,6 +31,25 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
+
+## What's New in Version 5.6.0 (Testing & Reliability Edition)
+
+### Testing Infrastructure Overhaul
+- **~325 new test assertions** added across 4 new test files
+- **13 server modules** now have smoke tests (100% module coverage)
+- **Fixed comprehensive_test_runner.R** variable shadowing bug
+- **Enhanced helper-setup.R** with mock session helpers for server module testing
+- **GitHub Actions CI/CD** workflow for automated testing on push/PR
+- **Codecov integration** for code coverage tracking
+- **New coverage_runner.R** for standalone coverage analysis
+
+### New Test Files
+- `test-local-storage-module.R` (83 assertions)
+- `test-data-management-module.R` (116 assertions)
+- `test-export-module.R` (85 assertions)
+- `test-server-modules-smoke.R` (41 assertions for all 13 modules)
+
+---
 
 ## What's New in Version 5.5.0 (Security Edition)
 

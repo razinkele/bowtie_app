@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an R Shiny web application for Environmental Bowtie Risk Analysis with Bayesian Network integration. The application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks.
 
-**Version**: 5.4.0 (Stability & Infrastructure Edition)
-**Release Date**: December 2025
-**Framework Updates**: Production-ready with comprehensive bug fixes (v5.3.7-5.3.10.1), filename normalization for cross-platform compatibility, critical usability improvements including category filtering, delete functionality for all tables, enhanced data persistence, comprehensive workflow fixes, export functionality improvements, and complete guided workflow system.
+**Version**: 5.6.0 (Testing & Reliability Edition)
+**Release Date**: March 2026
+**Framework Updates**: Comprehensive testing infrastructure overhaul with ~325 new test assertions, GitHub Actions CI/CD integration, Codecov coverage tracking, enhanced test helpers for server module testing, and smoke tests for all 13 server modules. Built on v5.5.0 security hardening and v5.4.0 stability improvements.
 
 ## Running the Application
 
