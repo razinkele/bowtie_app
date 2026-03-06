@@ -47,7 +47,8 @@ test_config <- list(
   skip_problematic_tests = TRUE,  # Skip tests causing segfaults
   parallel_execution = TRUE,  # NEW: Enable parallel testing
   memory_profiling = TRUE,  # NEW: Memory usage monitoring
-  generate_coverage_report = TRUE  # NEW: Code coverage analysis
+  generate_coverage_report = TRUE,  # NEW: Code coverage analysis
+  run_full_testthat_suite = TRUE  # NEW: Run test_dir for full test discovery (may duplicate some tests above)
 )
 
 # Custom test reporter for better output
@@ -428,33 +429,35 @@ if (test_config$run_autosave_performance && file.exists("tests/testthat/test-aut
 # =============================================================================
 # Run all testthat tests using test_dir for proper discovery
 # =============================================================================
-cat("\n========================================\n")
-cat("RUNNING TESTTHAT TEST SUITE\n")
-cat("========================================\n")
+if (test_config$run_full_testthat_suite) {
+  cat("\n========================================\n")
+  cat("RUNNING TESTTHAT TEST SUITE\n")
+  cat("========================================\n")
 
-testthat_results <- tryCatch({
-  testthat::test_dir(
-    "tests/testthat",
-    reporter = testthat::ProgressReporter$new(show_praise = FALSE),
-    stop_on_failure = FALSE
-  )
-}, error = function(e) {
-  cat("Error running test suite:", e$message, "\n")
-  NULL
-})
+  testthat_results <- tryCatch({
+    testthat::test_dir(
+      "tests/testthat",
+      reporter = testthat::ProgressReporter$new(show_praise = FALSE),
+      stop_on_failure = FALSE
+    )
+  }, error = function(e) {
+    cat("Error running test suite:", e$message, "\n")
+    NULL
+  })
 
-if (!is.null(testthat_results)) {
-  testthat_summary <- as.data.frame(testthat_results)
-  cat(sprintf("\nTestthat Summary: %d passed, %d failed, %d skipped\n",
-              sum(testthat_summary$passed),
-              sum(testthat_summary$failed),
-              sum(testthat_summary$skipped)))
+  if (!is.null(testthat_results)) {
+    testthat_summary <- as.data.frame(testthat_results)
+    cat(sprintf("\nTestthat Summary: %d passed, %d failed, %d skipped\n",
+                sum(testthat_summary$passed),
+                sum(testthat_summary$failed),
+                sum(testthat_summary$skipped)))
 
-  all_results$testthat_suite <- list(
-    passed = sum(testthat_summary$passed),
-    failed = sum(testthat_summary$failed),
-    skipped = sum(testthat_summary$skipped)
-  )
+    all_results$testthat_suite <- list(
+      passed = sum(testthat_summary$passed),
+      failed = sum(testthat_summary$failed),
+      skipped = sum(testthat_summary$skipped)
+    )
+  }
 }
 
 # Final summary
