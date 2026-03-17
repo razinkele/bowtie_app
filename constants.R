@@ -311,6 +311,7 @@ VISNETWORK_LEGEND_WIDTH <- 0.15
 # =============================================================================
 
 ## Similarity Thresholds
+AI_SIMILARITY_THRESHOLD_KNOWLEDGE_BASE <- 0.5  # Knowledge base connections (peer-reviewed)
 AI_SIMILARITY_THRESHOLD_JACCARD <- 0.3
 AI_SIMILARITY_THRESHOLD_KEYWORD <- 0.5
 AI_SIMILARITY_THRESHOLD_CAUSAL <- 0.4

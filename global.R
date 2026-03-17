@@ -90,6 +90,19 @@ source("utils.R")
 source("ui_components.R")  # UI component library for enhanced UX
 source("vocabulary.R")
 
+# Load scientific causal knowledge base (peer-reviewed MSFD/DPSIR connections)
+log_debug("   Loading causal knowledge base...")
+tryCatch({
+  source("causal_knowledge_base.R")
+  kb_stats <- get_kb_stats()
+  log_success(paste("   Causal knowledge base loaded:",
+                    kb_stats$total_connections, "connections,",
+                    kb_stats$references_count, "references"))
+}, error = function(e) {
+  log_warning(paste("Causal knowledge base not available:", e$message))
+  log_info("   Application will use heuristic linking fallback")
+})
+
 # Load AI-powered vocabulary linker
 log_debug("   Loading AI-powered vocabulary linker...")
 tryCatch({

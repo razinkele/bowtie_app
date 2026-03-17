@@ -952,11 +952,89 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
 #' all_links <- result$links
 #' summary_stats <- result$summary
 #'
+# =============================================================================
+# SCIENTIFIC KNOWLEDGE BASE INTEGRATION
+# Converts CAUSAL_KB connections to the link format used by the AI linker
+# =============================================================================
+
+.find_kb_links_for_vocabulary <- function(vocabulary_data) {
+  if (!exists("CAUSAL_KB") || !exists("find_kb_connections")) {
+    return(data.frame())
+  }
+
+  # Build ID-to-name lookup from vocabulary
+  id_name_map <- list()
+  type_map <- list()
+
+  if (!is.null(vocabulary_data$activities) && nrow(vocabulary_data$activities) > 0) {
+    for (i in seq_len(nrow(vocabulary_data$activities))) {
+      id_name_map[[vocabulary_data$activities$id[i]]] <- vocabulary_data$activities$name[i]
+      type_map[[vocabulary_data$activities$id[i]]] <- "Activity"
+    }
+  }
+  if (!is.null(vocabulary_data$pressures) && nrow(vocabulary_data$pressures) > 0) {
+    for (i in seq_len(nrow(vocabulary_data$pressures))) {
+      id_name_map[[vocabulary_data$pressures$id[i]]] <- vocabulary_data$pressures$name[i]
+      type_map[[vocabulary_data$pressures$id[i]]] <- "Pressure"
+    }
+  }
+  if (!is.null(vocabulary_data$consequences) && nrow(vocabulary_data$consequences) > 0) {
+    for (i in seq_len(nrow(vocabulary_data$consequences))) {
+      id_name_map[[vocabulary_data$consequences$id[i]]] <- vocabulary_data$consequences$name[i]
+      type_map[[vocabulary_data$consequences$id[i]]] <- "Consequence"
+    }
+  }
+  if (!is.null(vocabulary_data$controls) && nrow(vocabulary_data$controls) > 0) {
+    for (i in seq_len(nrow(vocabulary_data$controls))) {
+      id_name_map[[vocabulary_data$controls$id[i]]] <- vocabulary_data$controls$name[i]
+      type_map[[vocabulary_data$controls$id[i]]] <- "Control"
+    }
+  }
+
+  # Collect all KB connections
+  kb_tables <- list(
+    CAUSAL_KB$activity_pressure,
+    CAUSAL_KB$pressure_consequence,
+    CAUSAL_KB$control_pressure
+  )
+
+  all_kb_links <- data.frame()
+  for (kb_table in kb_tables) {
+    if (is.null(kb_table) || nrow(kb_table) == 0) next
+
+    for (i in seq_len(nrow(kb_table))) {
+      fid <- kb_table$from_id[i]
+      tid <- kb_table$to_id[i]
+
+      # Only include connections where both IDs exist in vocabulary
+      from_name <- id_name_map[[fid]]
+      to_name <- id_name_map[[tid]]
+      if (is.null(from_name) || is.null(to_name)) next
+
+      row <- data.frame(
+        from_id = fid,
+        from_name = from_name,
+        from_type = type_map[[fid]],
+        to_id = tid,
+        to_name = to_name,
+        to_type = type_map[[tid]],
+        similarity = kb_table$confidence_score[i],
+        method = paste0("knowledge_base_", kb_table$msfd_descriptor[i]),
+        causal_type = paste0("kb_", tolower(type_map[[fid]]), "_", tolower(type_map[[tid]])),
+        stringsAsFactors = FALSE
+      )
+      all_kb_links <- rbind(all_kb_links, row)
+    }
+  }
+
+  all_kb_links
+}
+
 #' @export
 find_vocabulary_links <- function(vocabulary_data,
                                  similarity_threshold = 0.3,
                                  max_links_per_item = 5,
-                                 methods = c("jaccard", "keyword", "causal"),
+                                 methods = c("knowledge_base", "jaccard", "keyword", "causal"),
                                  use_domain_knowledge = TRUE) {
 
   bowtie_log("Starting AI-powered vocabulary link analysis...", level = "info")
@@ -968,7 +1046,7 @@ find_vocabulary_links <- function(vocabulary_data,
   }
 
   # Validate methods
-  valid_methods <- c("jaccard", "cosine", "keyword", "causal", "basic")
+  valid_methods <- c("knowledge_base", "jaccard", "cosine", "keyword", "causal", "basic")
   invalid_methods <- setdiff(methods, valid_methods)
   if (length(invalid_methods) > 0) {
     log_warning("Invalid methods specified: ", paste(invalid_methods, collapse = ", "))
@@ -976,12 +1054,27 @@ find_vocabulary_links <- function(vocabulary_data,
   }
 
   if (length(methods) == 0) {
-    log_warning("No valid methods specified, using default: jaccard, keyword, causal")
-    methods <- c("jaccard", "keyword", "causal")
+    log_warning("No valid methods specified, using default: knowledge_base, keyword, causal")
+    methods <- c("knowledge_base", "keyword", "causal")
   }
 
   # Initialize results
   all_links <- data.frame()
+
+  # Method 0 (Priority): Scientific knowledge base lookup
+  # Uses peer-reviewed causal connections (MSFD/DPSIR) instead of keyword heuristics
+  if ("knowledge_base" %in% methods && exists("CAUSAL_KB")) {
+    tryCatch({
+      kb_links <- .find_kb_links_for_vocabulary(vocabulary_data)
+      if (nrow(kb_links) > 0) {
+        all_links <- dplyr::bind_rows(all_links, kb_links)
+        bowtie_log(paste("Knowledge base: found", nrow(kb_links),
+                         "scientifically validated connections"), level = "success")
+      }
+    }, error = function(e) {
+      log_warning(paste("Knowledge base lookup failed:", e$message))
+    })
+  }
 
   # Method 1: Semantic similarity analysis
   if (("jaccard" %in% methods || "cosine" %in% methods) && !AI_LINKER_CAPABILITIES$basic_only) {
@@ -1850,7 +1943,9 @@ calculate_confidence_score <- function(link, context = list()) {
 
   # Factor 1: Method Reliability
   # Based on empirical observation: causal > keyword > semantic
-  method_multiplier <- if (grepl("causal_chain", method)) {
+  method_multiplier <- if (grepl("knowledge_base", method)) {
+    1.25  # 25% boost for peer-reviewed scientific connections
+  } else if (grepl("causal_chain", method)) {
     1.20  # 20% boost for complete causal chains
   } else if (grepl("causal_environmental_logic", method)) {
     1.15  # 15% boost for environmental logic

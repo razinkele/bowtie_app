@@ -139,7 +139,9 @@ create_suggestion_card_ui <- function(ns, suggestion, index, suggestion_type) {
   }
 
   # Determine method icon
-  method_icon <- if (grepl("causal", suggestion$method)) {
+  method_icon <- if (grepl("knowledge_base", suggestion$method)) {
+    "fa-book"
+  } else if (grepl("causal", suggestion$method)) {
     "fa-link"
   } else if (grepl("keyword", suggestion$method)) {
     "fa-key"
@@ -178,7 +180,7 @@ create_suggestion_card_ui <- function(ns, suggestion, index, suggestion_type) {
               style = "font-size: 10px;",
               tags$i(class = paste("fas", method_icon)),
               " ",
-              if (grepl("causal", suggestion$method)) "Causal" else if (grepl("keyword", suggestion$method)) "Thematic" else "Semantic"
+              if (grepl("knowledge_base", suggestion$method)) "Scientific" else if (grepl("causal", suggestion$method)) "Causal" else if (grepl("keyword", suggestion$method)) "Thematic" else "Semantic"
             )
           ),
 
@@ -363,7 +365,12 @@ generate_ai_suggestions <- function(vocabulary_data,
     relevant_links$reasoning <- sapply(1:nrow(relevant_links), function(i) {
       link <- relevant_links[i, ]
 
-      if (grepl("causal_chain", link$method)) {
+      if (grepl("knowledge_base", link$method)) {
+        # Extract MSFD descriptor from method name (e.g., "knowledge_base_D6")
+        descriptor <- sub("knowledge_base_", "", link$method)
+        paste0("Scientifically validated connection (MSFD ", descriptor,
+               ") based on peer-reviewed literature")
+      } else if (grepl("causal_chain", link$method)) {
         "Complete causal pathway detected through environmental processes"
       } else if (grepl("causal_environmental_logic", link$method)) {
         "Environmental logic suggests strong cause-effect relationship"
