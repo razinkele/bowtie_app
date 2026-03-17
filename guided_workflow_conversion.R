@@ -126,8 +126,8 @@ convert_to_main_data_format <- function(project_data) {
 
     # Calculate risk level
     bowtie_data$Risk_Level <- ifelse(
-      bowtie_data$Likelihood * bowtie_data$Severity > 15, "High",
-      ifelse(bowtie_data$Likelihood * bowtie_data$Severity > 8, "Medium", "Low")
+      bowtie_data$Likelihood * bowtie_data$Severity <= 6, "Low",
+      ifelse(bowtie_data$Likelihood * bowtie_data$Severity <= 15, "Medium", "High")
     )
 
     # Add metadata

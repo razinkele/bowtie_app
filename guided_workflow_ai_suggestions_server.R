@@ -223,7 +223,7 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
             # Only include level 2+ items (not category headers)
             if (!is.na(vocab_data$activities$level[i]) && vocab_data$activities$level[i] >= 2) {
               matching_activities <- c(matching_activities, list(list(
-                id = vocab_data$activities$id[i],
+                to_id = vocab_data$activities$id[i],
                 to_name = vocab_data$activities$name[i],  # Use 'to_name' to match expected field
                 to_type = "Activity",
                 confidence = 0.8,  # High confidence for keyword match
@@ -443,20 +443,20 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     if (is.null(selected_activities_names) || length(selected_activities_names) == 0) {
       # Hide suggestions (use session$ns for proper namespacing in module)
-      shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
-      shinyjs::hide(id = "suggestions_list_pressure", asis = FALSE)
-      shinyjs::hide(id = "no_suggestions_pressure", asis = FALSE)
-      shinyjs::hide(id = "suggestion_error_pressure", asis = FALSE)
-      shinyjs::show(id = "suggestion_status_pressure", asis = FALSE)
+      shinyjs::hide(id = session$ns("suggestion_loading_pressure"))
+      shinyjs::hide(id = session$ns("suggestions_list_pressure"))
+      shinyjs::hide(id = session$ns("no_suggestions_pressure"))
+      shinyjs::hide(id = session$ns("suggestion_error_pressure"))
+      shinyjs::show(id = session$ns("suggestion_status_pressure"))
       return()
     }
 
     # Show loading (use session$ns for proper namespacing in module)
-    shinyjs::hide(id = "suggestion_status_pressure", asis = FALSE)
-    shinyjs::hide(id = "suggestions_list_pressure", asis = FALSE)
-    shinyjs::hide(id = "no_suggestions_pressure", asis = FALSE)
-    shinyjs::hide(id = "suggestion_error_pressure", asis = FALSE)
-    shinyjs::show(id = "suggestion_loading_pressure", asis = FALSE)
+    shinyjs::hide(id = session$ns("suggestion_status_pressure"))
+    shinyjs::hide(id = session$ns("suggestions_list_pressure"))
+    shinyjs::hide(id = session$ns("no_suggestions_pressure"))
+    shinyjs::hide(id = session$ns("suggestion_error_pressure"))
+    shinyjs::show(id = session$ns("suggestion_loading_pressure"))
 
     # Generate suggestions
     tryCatch({
@@ -558,8 +558,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     }, error = function(e) {
       bowtie_log(paste("Error generating pressure suggestions:", e$message), level = "error")
       bowtie_log(paste("Error call:", deparse(e$call)), level = "debug")
-      shinyjs::hide(id = "suggestion_loading_pressure", asis = FALSE)
-      shinyjs::show(id = "suggestion_error_pressure", asis = FALSE)
+      shinyjs::hide(id = session$ns("suggestion_loading_pressure"))
+      shinyjs::show(id = session$ns("suggestion_error_pressure"))
     })
   })
 
@@ -634,20 +634,20 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
 
     if ((is.null(activity_names) || length(activity_names) == 0) &&
         (is.null(pressure_names) || length(pressure_names) == 0)) {
-      shinyjs::hide("suggestion_loading_control_preventive")
-      shinyjs::hide("suggestions_list_control_preventive")
-      shinyjs::hide("no_suggestions_control_preventive")
-      shinyjs::hide("suggestion_error_control_preventive")
-      shinyjs::show("suggestion_status_control_preventive")
+      shinyjs::hide(id = session$ns("suggestion_loading_control_preventive"))
+      shinyjs::hide(id = session$ns("suggestions_list_control_preventive"))
+      shinyjs::hide(id = session$ns("no_suggestions_control_preventive"))
+      shinyjs::hide(id = session$ns("suggestion_error_control_preventive"))
+      shinyjs::show(id = session$ns("suggestion_status_control_preventive"))
       return()
     }
 
     # Show loading
-    shinyjs::hide("suggestion_status_control_preventive")
-    shinyjs::hide("suggestions_list_control_preventive")
-    shinyjs::hide("no_suggestions_control_preventive")
-    shinyjs::hide("suggestion_error_control_preventive")
-    shinyjs::show("suggestion_loading_control_preventive")
+    shinyjs::hide(id = session$ns("suggestion_status_control_preventive"))
+    shinyjs::hide(id = session$ns("suggestions_list_control_preventive"))
+    shinyjs::hide(id = session$ns("no_suggestions_control_preventive"))
+    shinyjs::hide(id = session$ns("suggestion_error_control_preventive"))
+    shinyjs::show(id = session$ns("suggestion_loading_control_preventive"))
 
     # Generate suggestions
     tryCatch({
@@ -662,7 +662,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         vocab_data,
         selected_items,
         target_type = "Control",
-        max_suggestions = 5
+        max_suggestions = ai_max_suggestions(),
+        methods = ai_methods()
       )
 
       if (length(suggestions) == 0) {
@@ -739,8 +740,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       }
     }, error = function(e) {
       log_warning(paste("Error generating control suggestions:", e$message))
-      shinyjs::hide("suggestion_loading_control_preventive")
-      shinyjs::show("suggestion_error_control_preventive")
+      shinyjs::hide(id = session$ns("suggestion_loading_control_preventive"))
+      shinyjs::show(id = session$ns("suggestion_error_control_preventive"))
     })
   })
 
@@ -809,19 +810,19 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     pressure_names <- state$project_data$pressures
 
     if (is.null(pressure_names) || length(pressure_names) == 0) {
-      shinyjs::hide("suggestion_loading_consequence")
-      shinyjs::hide("suggestions_list_consequence")
-      shinyjs::hide("no_suggestions_consequence")
-      shinyjs::hide("suggestion_error_consequence")
-      shinyjs::show("suggestion_status_consequence")
+      shinyjs::hide(id = session$ns("suggestion_loading_consequence"))
+      shinyjs::hide(id = session$ns("suggestions_list_consequence"))
+      shinyjs::hide(id = session$ns("no_suggestions_consequence"))
+      shinyjs::hide(id = session$ns("suggestion_error_consequence"))
+      shinyjs::show(id = session$ns("suggestion_status_consequence"))
       return()
     }
 
-    shinyjs::hide("suggestion_status_consequence")
-    shinyjs::hide("suggestions_list_consequence")
-    shinyjs::hide("no_suggestions_consequence")
-    shinyjs::hide("suggestion_error_consequence")
-    shinyjs::show("suggestion_loading_consequence")
+    shinyjs::hide(id = session$ns("suggestion_status_consequence"))
+    shinyjs::hide(id = session$ns("suggestions_list_consequence"))
+    shinyjs::hide(id = session$ns("no_suggestions_consequence"))
+    shinyjs::hide(id = session$ns("suggestion_error_consequence"))
+    shinyjs::show(id = session$ns("suggestion_loading_consequence"))
 
     tryCatch({
       # Convert character vector to item list format
@@ -832,7 +833,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         vocab_data,
         selected_pressures,
         target_type = "Consequence",
-        max_suggestions = 5
+        max_suggestions = ai_max_suggestions(),
+        methods = ai_methods()
       )
 
       if (length(suggestions) == 0) {
@@ -909,8 +911,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       }
     }, error = function(e) {
       log_warning(paste("Error generating consequence suggestions:", e$message))
-      shinyjs::hide("suggestion_loading_consequence")
-      shinyjs::show("suggestion_error_consequence")
+      shinyjs::hide(id = session$ns("suggestion_loading_consequence"))
+      shinyjs::show(id = session$ns("suggestion_error_consequence"))
     })
   })
 
@@ -979,19 +981,19 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
     consequence_names <- state$project_data$consequences
 
     if (is.null(consequence_names) || length(consequence_names) == 0) {
-      shinyjs::hide("suggestion_loading_control_protective")
-      shinyjs::hide("suggestions_list_control_protective")
-      shinyjs::hide("no_suggestions_control_protective")
-      shinyjs::hide("suggestion_error_control_protective")
-      shinyjs::show("suggestion_status_control_protective")
+      shinyjs::hide(id = session$ns("suggestion_loading_control_protective"))
+      shinyjs::hide(id = session$ns("suggestions_list_control_protective"))
+      shinyjs::hide(id = session$ns("no_suggestions_control_protective"))
+      shinyjs::hide(id = session$ns("suggestion_error_control_protective"))
+      shinyjs::show(id = session$ns("suggestion_status_control_protective"))
       return()
     }
 
-    shinyjs::hide("suggestion_status_control_protective")
-    shinyjs::hide("suggestions_list_control_protective")
-    shinyjs::hide("no_suggestions_control_protective")
-    shinyjs::hide("suggestion_error_control_protective")
-    shinyjs::show("suggestion_loading_control_protective")
+    shinyjs::hide(id = session$ns("suggestion_status_control_protective"))
+    shinyjs::hide(id = session$ns("suggestions_list_control_protective"))
+    shinyjs::hide(id = session$ns("no_suggestions_control_protective"))
+    shinyjs::hide(id = session$ns("suggestion_error_control_protective"))
+    shinyjs::show(id = session$ns("suggestion_loading_control_protective"))
 
     tryCatch({
       # Convert character vector to item list format
@@ -1002,7 +1004,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
         vocab_data,
         selected_consequences,
         target_type = "Control",
-        max_suggestions = 5
+        max_suggestions = ai_max_suggestions(),
+        methods = ai_methods()
       )
 
       if (length(suggestions) == 0) {
@@ -1079,8 +1082,8 @@ init_ai_suggestion_handlers <- function(input, output, session, workflow_state, 
       }
     }, error = function(e) {
       log_warning(paste("Error generating protective control suggestions:", e$message))
-      shinyjs::hide("suggestion_loading_control_protective")
-      shinyjs::show("suggestion_error_control_protective")
+      shinyjs::hide(id = session$ns("suggestion_loading_control_protective"))
+      shinyjs::show(id = session$ns("suggestion_error_control_protective"))
     })
   })
 

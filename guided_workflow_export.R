@@ -251,6 +251,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
 
       # Create PDF with summary information
       pdf(temp_file, width = 11, height = 8.5)
+      on.exit(dev.off(), add = TRUE)
 
       # Title page
       plot.new()
@@ -272,6 +273,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
       y_pos <- y_pos - 3 * line_height
 
       # Activities
+      if (y_pos < 0.05) { plot.new(); y_pos <- 0.95 }
       activities <- state$project_data$activities %||% list()
       text(0.1, y_pos, paste("Human Activities (", length(activities), "):"),
            pos = 4, cex = 1.3, font = 2)
@@ -285,6 +287,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
       }
 
       # Pressures
+      if (y_pos < 0.05) { plot.new(); y_pos <- 0.95 }
       pressures <- state$project_data$pressures %||% list()
       text(0.1, y_pos, paste("Environmental Pressures (", length(pressures), "):"),
            pos = 4, cex = 1.3, font = 2)
@@ -315,6 +318,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
       }
 
       # Consequences
+      if (y_pos < 0.05) { plot.new(); y_pos <- 0.95 }
       consequences <- state$project_data$consequences %||% list()
       text(0.1, y_pos, paste("Consequences (", length(consequences), "):"),
            pos = 4, cex = 1.3, font = 2)
@@ -325,8 +329,9 @@ init_workflow_export <- function(input, output, session, workflow_state,
       }
 
       # Protective Controls
+      if (y_pos < 0.05) { plot.new(); y_pos <- 0.95 }
       prot_controls <- state$project_data$protective_controls %||% list()
-      if (length(prot_controls) > 0 && y_pos > 0.3) {
+      if (length(prot_controls) > 0) {
         y_pos <- y_pos - (min(8, length(consequences)) + 2) * line_height
         text(0.1, y_pos, paste("Protective Controls (", length(prot_controls), "):"),
              pos = 4, cex = 1.3, font = 2)
@@ -334,8 +339,6 @@ init_workflow_export <- function(input, output, session, workflow_state,
           text(0.15, y_pos - i * line_height, paste("-", prot_controls[i]), pos = 4, cex = 1)
         }
       }
-
-      dev.off()
 
       notify_success(paste("\u2705 PDF report generated:", filename), duration = NOTIFICATION_DURATION_ERROR)
 
@@ -440,8 +443,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
   # Trigger hidden file input for loading
   observeEvent(input$workflow_load_btn, {
     # Check if user has selected local folder storage mode
-    storage_mode <- session$input$storage_mode
-    local_path <- session$input$local_folder_path
+    storage_mode <- input$storage_mode
+    local_path <- input$local_folder_path
 
     if (!is.null(storage_mode) && storage_mode == "local" &&
         !is.null(local_path) && nchar(local_path) > 0 && dir.exists(local_path)) {
@@ -479,7 +482,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
 
   # Handle loading from local folder selection
   observeEvent(input$load_local_workflow_confirm, {
-    local_path <- session$input$local_folder_path
+    local_path <- input$local_folder_path
     selected_file <- input$local_workflow_file
 
     if (!is.null(local_path) && !is.null(selected_file)) {
@@ -668,8 +671,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
       writeLines(json_content, file)
 
       # Check if local storage mode is selected - save backup copy
-      storage_mode <- session$input$storage_mode
-      local_path <- session$input$local_folder_path
+      storage_mode <- input$storage_mode
+      local_path <- input$local_folder_path
 
       # Additionally save to local folder if that mode is selected
       if (!is.null(storage_mode) && storage_mode == "local" &&

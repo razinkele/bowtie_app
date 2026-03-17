@@ -958,7 +958,7 @@ find_semantic_connections <- function(vocabulary_data, method = "jaccard", thres
 # =============================================================================
 
 .find_kb_links_for_vocabulary <- function(vocabulary_data) {
-  if (!exists("CAUSAL_KB") || !exists("find_kb_connections")) {
+  if (!exists("CAUSAL_KB")) {
     return(data.frame())
   }
 
@@ -1134,8 +1134,8 @@ find_vocabulary_links <- function(vocabulary_data,
   # Post-processing: Remove duplicates and limit links per item
   if (nrow(all_links) > 0) {
     all_links <- all_links %>%
-      distinct(from_id, to_id, .keep_all = TRUE) %>%
       arrange(desc(similarity)) %>%
+      distinct(from_id, to_id, .keep_all = TRUE) %>%
       group_by(from_id) %>%
       slice_head(n = max_links_per_item) %>%
       ungroup()

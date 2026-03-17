@@ -132,19 +132,19 @@ discretize_risk_levels <- function(value, levels = c("Low", "Medium", "High")) {
   }
 
   # Auto-detect scale based on value range
-  # Values strictly less than 1 are treated as 0-1 probability scale
-  # Values >= 1 are treated as 1-5 risk rating scale
-  if (value < 1) {
-    # 0-1 probability scale (0.0 to 0.99...)
-    if (value <= 0.33) return(levels[1])
-    else if (value <= 0.66) return(levels[2])
-    else return(levels[3])
-  } else {
-    # 1-5 risk rating scale (1, 2, 3, 4, 5)
-    if (value <= 2) return(levels[1])
-    else if (value <= 3.5) return(levels[2])
-    else return(levels[3])
+  # Values 0-1.0 (inclusive) are treated as probability scale
+  # Values > 1.0 are treated as risk rating scale (typically 1-5)
+  if (value >= 0 && value <= 1.0) {
+    # 0-1 probability scale (0.0 to 1.0)
+    if (value < 0.33) return(levels[1])
+    if (value < 0.67) return(levels[2])
+    return(levels[3])
   }
+
+  # Risk rating scale: values > 1.0, typically 1-5
+  if (value <= 2) return(levels[1])
+  if (value <= 4) return(levels[2])
+  return(levels[3])
 }
 
 # Function to create conditional probability tables (CPTs)
@@ -383,7 +383,9 @@ perform_inference <- function(fitted_bn, evidence = list(), query_nodes = NULL) 
 
     # Set evidence if provided
     if (length(evidence) > 0) {
-      junction <- gRain::setEvidence(junction, evidence = evidence)
+      junction <- gRain::setEvidence(junction,
+        nodes = names(evidence),
+        states = as.character(unlist(evidence)))
     }
 
     # Query specific nodes or all nodes
@@ -750,9 +752,9 @@ example_bayesian_analysis <- function(bowtie_data) {
 
   # Example 3: Risk propagation
   bowtie_log("3. RISK PROPAGATION", level = "info")
-  if (exists("fitted_bn")) {
+  if (!is.null(bn_result) && !is.null(bn_result$network)) {
     scenario <- list(Activity = "Present", Control_Effect = "Failed")
-    risk_changes <- calculate_risk_propagation(fitted_bn, scenario)
+    risk_changes <- calculate_risk_propagation(bn_result$network, scenario)
 
     bowtie_log("Risk changes with failed controls:", level = "info")
     for (node in names(risk_changes)) {

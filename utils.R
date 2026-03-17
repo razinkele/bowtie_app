@@ -1335,7 +1335,7 @@ generate_environmental_data_fixed <- function() {
   # Calculate overall pathway risk using chain multiplication
   # Overall Likelihood = Product of all likelihood values in the chain (with some adjustment to prevent overly low values)
   overall_likelihood_raw <- with(sample_data,
-    Activity_to_Pressure_Likelihood *
+    (Activity_to_Pressure_Likelihood/5) *
     (Pressure_to_Control_Likelihood/5) *
     (Control_to_Escalation_Likelihood/5) *
     (Escalation_to_Central_Likelihood/5) *
@@ -1504,7 +1504,7 @@ add_default_columns <- function(data, scenario_type = "") {
   if (all(c("Activity_to_Pressure_Likelihood", "Mitigation_to_Consequence_Severity") %in% names(data))) {
     # Calculate overall likelihood using chain multiplication
     overall_likelihood_raw <- with(data,
-      Activity_to_Pressure_Likelihood *
+      (Activity_to_Pressure_Likelihood/5) *
       (Pressure_to_Control_Likelihood/5) *
       (Control_to_Escalation_Likelihood/5) *
       (Escalation_to_Central_Likelihood/5) *

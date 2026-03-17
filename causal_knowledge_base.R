@@ -65,7 +65,7 @@ KB_REFERENCES <- data.frame(
     2017, 1973, 2013, 1991, 1991, 2001
   ),
   title = c(
-    "Frontloading and Reign: Options for Delivering Ecosystem-based Marine Management",
+    "Setting an ecological baseline for the management of European seas using the ODEMM approach",
     "Exploring variability in environmental impact risk from human activities across aquatic ecosystems",
     "Combined effects of human pressures on Europe's marine ecosystems",
     "Spatial and temporal changes in cumulative human impacts on the world's ocean",
@@ -798,9 +798,7 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     "P3.5", "P3.5",
     "P3.6", "P3.6",
     # P3.7: Brine input (NEW)
-    "P3.7",
-    # P4: Climate change indicators (existing)
-    "P4.3(indicator)", "P4.3(indicator)"
+    "P3.7"
   ),
   to_id = c(
     # P1.1 Non-indigenous species (existing)
@@ -854,9 +852,7 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     # P3.6 Other energy (existing)
     "C1.1", "C3.1",
     # P3.7 (NEW)
-    "C1.1",
-    # P4 Climate (existing)
-    "C1.3.2", "C1.1"
+    "C1.1"
   ),
   confidence = c(
     # P1.1 (existing)
@@ -910,9 +906,7 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     # P3.6 (existing)
     "MEDIUM", "MEDIUM",
     # P3.7 (NEW)
-    "MEDIUM",
-    # P4 (existing)
-    "HIGH", "HIGH"
+    "MEDIUM"
   ),
   msfd_descriptor = c(
     "D2", "D2", "D2",
@@ -952,8 +946,7 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     "D11", "D11",
     "D11", "D11",
     # P3.7 (NEW)
-    "D7",
-    "D7", "D1"
+    "D7"
   ),
   mechanism = c(
     # P1.1 (existing)
@@ -1043,10 +1036,7 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     "Thermal discharge and light pollution alter local communities",
     "Artificial light and thermal plumes degrade environmental aesthetics",
     # P3.7 (NEW)
-    "Brine discharge alters local salinity and causes osmotic stress on benthic biota",
-    # P4 (existing)
-    "Sea level rise and storm surges damage coastal protection infrastructure",
-    "Climate-driven temperature and acidification shifts alter ecosystems"
+    "Brine discharge alters local salinity and causes osmotic stress on benthic biota"
   ),
   citation = c(
     rep("korpinen_2021", 3),
@@ -1086,8 +1076,7 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     "msfd_2017_848", "msfd_2017_848",
     rep("borgwardt_2019", 2),
     # P3.7 (NEW)
-    "korpinen_2021",
-    rep("korpinen_2021", 2)
+    "korpinen_2021"
   ),
   # Recovery time and reversibility columns
   recovery_years_min = c(
@@ -1105,8 +1094,8 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     5, 5, 5, 5, 5, 5, 5,
     # P2.1 (existing 2 + NEW 1)
     2, 2, 2,
-    # P2.2 (existing 3 + NEW 2)
-    50, 50, 50, 50, 50,
+    # P2.2 (permanent loss — effectively irreversible)
+    100, 100, 100, 100, 100,
     # P2.3 (existing 3)
     5, 5, 5,
     # P2.4 (NEW 2)
@@ -1125,10 +1114,8 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     0, 0, 0, 0,
     # P3.6 (existing 2)
     0, 0,
-    # P3.7 (NEW 1)
-    1,
-    # P4 (existing 2)
-    50, 50
+    # P3.7 (NEW)
+    1
   ),
   recovery_years_max = c(
     # P1.1
@@ -1160,15 +1147,13 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     # P3.3
     100, 100, 100, 100, 100, 100,
     # P3.4
-    500, 500, 500, 500, 500,
+    100, 100, 100, 100, 100,
     # P3.5
     1, 1, 1, 1,
     # P3.6
     1, 1,
     # P3.7
-    5,
-    # P4
-    200, 200
+    5
   ),
   reversibility = c(
     # P1.1
@@ -1185,8 +1170,8 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     "slowly_reversible", "slowly_reversible", "slowly_reversible", "slowly_reversible", "slowly_reversible", "slowly_reversible", "slowly_reversible",
     # P2.1
     "reversible", "reversible", "reversible",
-    # P2.2
-    "partially_reversible", "partially_reversible", "partially_reversible", "partially_reversible", "partially_reversible",
+    # P2.2 (permanent habitat loss is effectively irreversible at management timescales)
+    "irreversible", "irreversible", "irreversible", "irreversible", "irreversible",
     # P2.3
     "slowly_reversible", "slowly_reversible", "slowly_reversible",
     # P2.4
@@ -1199,16 +1184,14 @@ KB_PRESSURE_CONSEQUENCE <- data.frame(
     "reversible", "reversible",
     # P3.3
     "partially_reversible", "partially_reversible", "partially_reversible", "partially_reversible", "partially_reversible", "partially_reversible",
-    # P3.4
-    "partially_reversible", "partially_reversible", "partially_reversible", "partially_reversible", "partially_reversible",
+    # P3.4 (marine litter persists but cleanup possible)
+    "slowly_reversible", "slowly_reversible", "slowly_reversible", "slowly_reversible", "slowly_reversible",
     # P3.5
     "reversible", "reversible", "reversible", "reversible",
     # P3.6
     "reversible", "reversible",
     # P3.7
-    "reversible",
-    # P4
-    "partially_reversible", "partially_reversible"
+    "reversible"
   ),
   stringsAsFactors = FALSE
 )
