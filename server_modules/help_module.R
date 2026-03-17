@@ -498,5 +498,120 @@ init_help_module <- function(input, output, session, lang) {
     )
   })
 
+  # ===========================================================================
+  # DEDICATED REFERENCES HELP PAGE
+  # ===========================================================================
+
+  # References panel (dedicated page - reuses same data, different output IDs)
+  output$kb_references_panel <- renderUI({
+    if (!exists("CAUSAL_KB") || !exists("get_kb_references")) {
+      return(p(class = "text-muted", "Knowledge base not available."))
+    }
+
+    refs <- get_kb_references()
+    ref_items <- lapply(seq_len(nrow(refs)), function(i) {
+      ref <- refs[i, ]
+      tags$li(
+        class = "mb-3 pb-2 border-bottom",
+        tags$strong(paste0(ref$authors, " (", ref$year, ").")),
+        " ",
+        tags$em(ref$title),
+        ". ",
+        ref$journal, ".",
+        if (nzchar(ref$doi)) tagList(
+          br(),
+          tags$small(class = "text-muted", "DOI: "),
+          tags$a(href = paste0("https://doi.org/", ref$doi), target = "_blank",
+                 class = "text-primary", ref$doi)
+        ),
+        if (nzchar(ref$url)) tagList(
+          " ",
+          tags$a(href = ref$url, target = "_blank",
+                 class = "btn btn-sm btn-outline-primary ms-2",
+                 icon("external-link-alt"), " Access")
+        )
+      )
+    })
+
+    tags$ol(ref_items)
+  })
+
+  # Stats panel (dedicated page)
+  output$kb_stats_panel <- renderUI({
+    if (!exists("CAUSAL_KB") || !exists("get_kb_stats")) {
+      return(p(class = "text-muted", "Knowledge base not loaded."))
+    }
+
+    stats <- get_kb_stats()
+    fluidRow(
+      column(2, div(class = "text-center p-2",
+        h3(class = "text-primary mb-0", stats$total_connections),
+        tags$small(class = "text-muted", "Total connections")
+      )),
+      column(2, div(class = "text-center p-2",
+        h3(class = "text-success mb-0", stats$activity_pressure_links),
+        tags$small(class = "text-muted", "Activity-Pressure")
+      )),
+      column(2, div(class = "text-center p-2",
+        h3(class = "text-warning mb-0", stats$pressure_consequence_links),
+        tags$small(class = "text-muted", "Pressure-Consequence")
+      )),
+      column(2, div(class = "text-center p-2",
+        h3(class = "text-info mb-0", stats$control_pressure_links),
+        tags$small(class = "text-muted", "Control-Pressure")
+      )),
+      column(2, div(class = "text-center p-2",
+        h3(class = "text-dark mb-0", stats$references_count),
+        tags$small(class = "text-muted", "References cited")
+      )),
+      column(2, div(class = "text-center p-2",
+        h3(class = "text-primary mb-0", paste0(stats$high_confidence_pct, "%")),
+        tags$small(class = "text-muted", "High confidence")
+      ))
+    )
+  })
+
+  # Recovery info panel (dedicated page)
+  output$kb_recovery_panel <- renderUI({
+    if (!exists("CAUSAL_KB")) {
+      return(p(class = "text-muted", "Knowledge base not available."))
+    }
+
+    pc <- CAUSAL_KB$pressure_consequence
+    # Get unique pressures with recovery info
+    pressures <- unique(pc$from_id)
+    rows <- lapply(pressures, function(pid) {
+      subset <- pc[pc$from_id == pid, ]
+      tags$tr(
+        tags$td(pid),
+        tags$td(subset$recovery_years_min[1]),
+        tags$td(subset$recovery_years_max[1]),
+        tags$td(
+          span(class = paste0("badge bg-",
+            switch(subset$reversibility[1],
+              reversible = "success",
+              slowly_reversible = "info",
+              partially_reversible = "warning",
+              irreversible = "danger",
+              "secondary"
+            )),
+            gsub("_", " ", subset$reversibility[1])
+          )
+        )
+      )
+    })
+
+    tags$table(
+      class = "table table-striped table-sm",
+      tags$thead(tags$tr(
+        tags$th("Pressure ID"),
+        tags$th("Min recovery (years)"),
+        tags$th("Max recovery (years)"),
+        tags$th("Reversibility")
+      )),
+      tags$tbody(rows)
+    )
+  })
+
   bowtie_log("Help & documentation module initialized", level = "info")
 }

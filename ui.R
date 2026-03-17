@@ -225,6 +225,11 @@ ui <- dashboardPage(
           icon = icon("file-pdf")
         ),
         menuSubItem(
+          text = "Scientific References",
+          tabName = "references_help",
+          icon = icon("book-open")
+        ),
+        menuSubItem(
           text = "About",
           tabName = "about",
           icon = icon("info-circle")
@@ -930,6 +935,11 @@ ui <- dashboardPage(
       tabItem(
         tabName = "user_manual_help",
         get_user_manual_help_content()
+      ),
+
+      tabItem(
+        tabName = "references_help",
+        get_references_help_content()
       ),
 
       tabItem(

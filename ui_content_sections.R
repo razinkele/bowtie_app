@@ -857,6 +857,68 @@ get_user_manual_help_content <- function() {
   )
 }
 
+get_references_help_content <- function() {
+  tagList(
+    h2(tagList(icon("book-open"), "Scientific References"), class = "mb-4"),
+    box(
+      title = tagList(icon("chart-bar"), "Knowledge Base Overview"),
+      status = "info",
+      solidHeader = TRUE,
+      width = 12,
+      p("The causal connections in this application are based on peer-reviewed",
+        "marine science literature and EU regulatory frameworks.",
+        "Each connection includes a confidence level, MSFD descriptor alignment,",
+        "causal mechanism description, and literature citation."),
+      uiOutput("kb_stats_panel")
+    ),
+    box(
+      title = tagList(icon("book"), "Cited References"),
+      status = "primary",
+      solidHeader = TRUE,
+      width = 12,
+      p(class = "text-muted",
+        "Full reference list for all sources used in the causal knowledge base.",
+        "Click ", icon("external-link-alt"), " to access the original publication."),
+      uiOutput("kb_references_panel")
+    ),
+    box(
+      title = tagList(icon("link"), "ODEMM Risk Scoring Framework"),
+      status = "success",
+      solidHeader = TRUE,
+      width = 12,
+      collapsible = TRUE,
+      p("Activity-pressure connections are scored using the ODEMM framework",
+        "(Knights et al. 2015) with four criteria on a 1-5 scale:"),
+      tags$table(
+        class = "table table-bordered table-sm",
+        tags$thead(tags$tr(
+          tags$th("Criterion"), tags$th("Scale"), tags$th("Description")
+        )),
+        tags$tbody(
+          tags$tr(tags$td("Spatial extent"), tags$td("1-5"),
+                  tags$td("1=site, 2=local, 3=subregional, 4=regional, 5=widespread")),
+          tags$tr(tags$td("Frequency"), tags$td("1-5"),
+                  tags$td("1=rare, 2=occasional, 3=seasonal, 4=regular, 5=continuous")),
+          tags$tr(tags$td("Persistence"), tags$td("1-5"),
+                  tags$td("1=<1yr, 2=1-5yr, 3=5-15yr, 4=15-25yr, 5=>25yr")),
+          tags$tr(tags$td("Severity"), tags$td("1-5"),
+                  tags$td("1=negligible, 2=minor, 3=moderate, 4=severe, 5=catastrophic"))
+        )
+      )
+    ),
+    box(
+      title = tagList(icon("clock"), "Recovery Time Estimates"),
+      status = "warning",
+      solidHeader = TRUE,
+      width = 12,
+      collapsible = TRUE,
+      p("Pressure-consequence connections include estimated ecosystem recovery times",
+        "and reversibility classifications based on published literature:"),
+      uiOutput("kb_recovery_panel")
+    )
+  )
+}
+
 get_about_content <- function() {
   tagList(
     h2(tagList(icon("info-circle"), "About"), class = "mb-4"),
