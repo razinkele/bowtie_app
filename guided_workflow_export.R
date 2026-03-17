@@ -206,6 +206,18 @@ init_workflow_export <- function(input, output, session, workflow_state,
         )
         writeData(wb, "Summary", summary_data)
 
+        # Add references sheet if knowledge base is available
+        if (exists("CAUSAL_KB") && exists("get_kb_references")) {
+          refs <- get_kb_references()
+          ref_sheet <- data.frame(
+            Citation = refs$formatted,
+            URL = refs$url,
+            stringsAsFactors = FALSE
+          )
+          addWorksheet(wb, "References")
+          writeData(wb, "References", ref_sheet)
+        }
+
         # Save workbook
         saveWorkbook(wb, temp_file, overwrite = TRUE)
 

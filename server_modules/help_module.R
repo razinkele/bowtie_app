@@ -445,5 +445,58 @@ init_help_module <- function(input, output, session, lang) {
     }
   )
 
+  # ===========================================================================
+  # SCIENTIFIC KNOWLEDGE BASE REFERENCES
+  # ===========================================================================
+
+  # Scientific Knowledge Base References
+  output$kb_references_content <- renderUI({
+    if (!exists("CAUSAL_KB") || !exists("get_kb_references")) {
+      return(p(class = "text-muted", "Knowledge base not available."))
+    }
+
+    refs <- get_kb_references()
+    ref_items <- lapply(seq_len(nrow(refs)), function(i) {
+      ref <- refs[i, ]
+      tags$li(
+        class = "mb-2",
+        tags$strong(paste0(ref$authors, " (", ref$year, ").")),
+        " ",
+        tags$em(ref$title),
+        ". ",
+        ref$journal, ".",
+        if (nzchar(ref$doi)) tagList(
+          " DOI: ",
+          tags$a(href = paste0("https://doi.org/", ref$doi), target = "_blank", ref$doi)
+        ),
+        if (nzchar(ref$url)) tagList(
+          " ",
+          tags$a(href = ref$url, target = "_blank", class = "btn btn-sm btn-outline-primary ms-2",
+                 icon("external-link-alt"), " Open")
+        )
+      )
+    })
+
+    tags$ol(class = "list-unstyled", ref_items)
+  })
+
+  output$kb_stats_content <- renderUI({
+    if (!exists("CAUSAL_KB") || !exists("get_kb_stats")) {
+      return(NULL)
+    }
+
+    stats <- get_kb_stats()
+    div(
+      class = "mt-3 p-3 bg-light rounded",
+      h5(icon("chart-bar"), " Knowledge Base Statistics"),
+      fluidRow(
+        column(3, tags$strong(stats$total_connections), br(), tags$small(class = "text-muted", "Total connections")),
+        column(3, tags$strong(stats$references_count), br(), tags$small(class = "text-muted", "References cited")),
+        column(3, tags$strong(paste0(stats$high_confidence_pct, "%")), br(), tags$small(class = "text-muted", "High confidence")),
+        column(3, tags$strong(paste0(stats$unique_activities, "/", stats$unique_pressures, "/", stats$unique_consequences)), br(), tags$small(class = "text-muted", "Act/Pres/Cons covered"))
+      )
+    )
+  })
+
   bowtie_log("Help & documentation module initialized", level = "info")
 }

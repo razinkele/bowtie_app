@@ -866,6 +866,17 @@ get_about_content <- function() {
       solidHeader = TRUE,
       width = 12,
       uiOutput("about_content")
+    ),
+    box(
+      title = tagList(icon("book"), "Scientific References"),
+      status = "primary",
+      solidHeader = TRUE,
+      width = 12,
+      collapsible = TRUE,
+      collapsed = FALSE,
+      p(class = "text-muted", "Causal connections in this application are based on peer-reviewed marine science literature and EU regulatory frameworks."),
+      uiOutput("kb_references_content"),
+      uiOutput("kb_stats_content")
     )
   )
 }
