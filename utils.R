@@ -55,7 +55,7 @@ init_session_cache <- function(session, max_size = 50, max_age_seconds = 1800) {
   session$userData$session_token <- session$token
 
   bowtie_log(paste("Session cache initialized for session:",
-                   substr(session$token, 1, 8)), .verbose = TRUE)
+                   substr(session$token, 1, 8)))
 
   invisible(TRUE)
 }
@@ -179,7 +179,7 @@ clear_session_cache <- function(session, reset_stats = FALSE) {
     cache$expirations <- 0
   }
 
-  bowtie_log("Session cache cleared", .verbose = TRUE)
+  bowtie_log("Session cache cleared")
   invisible(TRUE)
 }
 
@@ -583,7 +583,7 @@ init_session_vocabulary <- function(session, vocabulary_data) {
   session$userData$vocabulary_initialized <- TRUE
 
   bowtie_log(paste("Session vocabulary initialized for session:",
-                   substr(session$token, 1, 8)), .verbose = TRUE)
+                   substr(session$token, 1, 8)))
 
   invisible(TRUE)
 }
@@ -643,7 +643,7 @@ init_session_isolation <- function(session, vocabulary_data = NULL) {
   session$userData$session_start <- Sys.time()
 
   bowtie_log(paste("Session isolation initialized for:",
-                   substr(session$token, 1, 8)), .verbose = TRUE)
+                   substr(session$token, 1, 8)))
 
   invisible(list(
     session_token = session$token,
@@ -750,7 +750,7 @@ cleanup_session_isolation <- function(session) {
   } else {
     bowtie_log(paste("⚠️ Session cleanup for:", session_id,
                      "completed with errors:", paste(cleanup_stats$errors, collapse = "; ")),
-               level = "warn", .verbose = TRUE)
+               level = "warn")
   }
 
   invisible(cleanup_stats)
@@ -885,7 +885,7 @@ clear_cache <- function(reset_stats = FALSE) {
     .cache$expirations <- 0
   }
 
-  bowtie_log("🧹 Cache cleared successfully", .verbose = TRUE)
+  bowtie_log("🧹 Cache cleared successfully")
 }
 
 # Check if a cache entry has expired (TTL)
@@ -916,7 +916,7 @@ cleanup_expired_cache <- function() {
   }
 
   if (expired_count > 0) {
-    bowtie_log(paste("🕐 Expired", expired_count, "cache entries (TTL)"), .verbose = TRUE)
+    bowtie_log(paste("🕐 Expired", expired_count, "cache entries (TTL)"))
   }
 
   return(expired_count)
@@ -941,7 +941,7 @@ evict_lru <- function() {
   .cache$current_size <- .cache$current_size - 1
   .cache$evictions <- .cache$evictions + 1
 
-  bowtie_log(paste("♻️ Evicted LRU cache entry:", lru_key), .verbose = TRUE)
+  bowtie_log(paste("♻️ Evicted LRU cache entry:", lru_key))
 }
 
 # Memory-aware cache setter with LRU eviction and TTL support
@@ -1059,7 +1059,7 @@ invalidate_bowtie_caches <- function() {
     .cache$current_size <- .cache$current_size - 1
   }
 
-  bowtie_log(paste("🔄 Invalidated", length(nodes_edges_keys), "bowtie-related cache entries"), .verbose = TRUE)
+  bowtie_log(paste("🔄 Invalidated", length(nodes_edges_keys), "bowtie-related cache entries"))
 }
 
 # Performance monitoring utilities
@@ -1118,7 +1118,7 @@ end_timer <- function(operation = "task", silent = FALSE) {
 check_memory <- function() {
   gc_info <- gc()
   memory_mb <- round(sum(gc_info[, "used"] * c(8, 8)) / 1024 / 1024, 2)
-  bowtie_log(paste0("💾 Memory usage: ", memory_mb, " MB"), .verbose = TRUE)
+  bowtie_log(paste0("💾 Memory usage: ", memory_mb, " MB"))
   return(memory_mb)
 }
 
@@ -1162,14 +1162,14 @@ benchmark_function <- function(fn, name = "function", iterations = 1, ...) {
     " | Mean: ", round(benchmark_result$mean_time, 3), "s",
     " | Median: ", round(benchmark_result$median_time, 3), "s",
     " | Memory Δ: ", round(memory_delta, 2), " MB"
-  ), .verbose = TRUE)
+  ))
 
   return(benchmark_result)
 }
 
 # Function to generate environmental management sample data with connections and granular risk values
 generate_environmental_data_fixed <- function() {
-  bowtie_log("🔄 Generating environmental management data with granular connection risks", .verbose = TRUE)
+  bowtie_log("🔄 Generating environmental management data with granular connection risks")
   
   # Create comprehensive data with PROPERLY MAPPED protective mitigations
   sample_data <- data.frame(
@@ -1367,10 +1367,10 @@ generate_environmental_data_fixed <- function() {
   sample_data$Likelihood <- sample_data$Overall_Likelihood
   sample_data$Severity <- sample_data$Overall_Severity
   
-  bowtie_log(paste("✅ Generated", nrow(sample_data), "rows of environmental data with granular connection risks"), .verbose = TRUE)
-  bowtie_log("🔗 Each protective mitigation is properly mapped to its corresponding consequence", .verbose = TRUE)
-  bowtie_log("📊 Added granular likelihood/severity for 6 bowtie connections per scenario", .verbose = TRUE)
-  bowtie_log("🎯 Overall risk calculated from pathway chain analysis", .verbose = TRUE)
+  bowtie_log(paste("✅ Generated", nrow(sample_data), "rows of environmental data with granular connection risks"))
+  bowtie_log("🔗 Each protective mitigation is properly mapped to its corresponding consequence")
+  bowtie_log("📊 Added granular likelihood/severity for 6 bowtie connections per scenario")
+  bowtie_log("🎯 Overall risk calculated from pathway chain analysis")
 
   # Backwards-compatibility: provide columns expected by older tests and callers
   if (!"Problem" %in% names(sample_data)) sample_data$Problem <- as.character(sample_data$Central_Problem)

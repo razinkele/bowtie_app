@@ -1,7 +1,7 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application Launcher
-# Version: 5.4.0 (Stability & Infrastructure Edition)
-# Date: December 2025
+# Version: 5.6.0 (Testing & Reliability Edition)
+# Date: March 2026
 # Author: Marbefes Team & AI Assistant
 # Description: Production-ready with comprehensive bug fixes and filename normalization
 # =============================================================================
@@ -42,19 +42,19 @@ if (is.null(app_dir) || !nzchar(app_dir)) {
 source(file.path(app_dir, "global.R"))
 
 # Load UI definition
-bowtie_log("🎨 Loading user interface...", .verbose = TRUE)
+bowtie_log("🎨 Loading user interface...")
 source(file.path(app_dir, "ui.R"))
 
 # Load server logic
-bowtie_log("⚙️ Loading server logic...", .verbose = TRUE)
+bowtie_log("⚙️ Loading server logic...")
 source(file.path(app_dir, "server.R"))
 
 # Launch the application
-bowtie_log("🌐 Starting Shiny web server...", .verbose = TRUE)
-bowtie_log("🎉 Environmental Bowtie Risk Analysis Application ready to launch!", .verbose = TRUE)
-bowtie_log("📋 Features: Bowtie diagrams, Bayesian networks, Guided workflow, Save/Load progress", .verbose = TRUE)
+bowtie_log("🌐 Starting Shiny web server...")
+bowtie_log("🎉 Environmental Bowtie Risk Analysis Application ready to launch!")
+bowtie_log("📋 Features: Bowtie diagrams, Bayesian networks, Guided workflow, Save/Load progress")
 # Visual separators are optional in verbose mode
-bowtie_log("═══════════════════════════════════════════════════════════════", .verbose = TRUE)
+bowtie_log("═══════════════════════════════════════════════════════════════")
 
 # Only launch the Shiny app when running interactively (avoid launching during test sourcing)
 if (interactive()) {

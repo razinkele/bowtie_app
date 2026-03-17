@@ -1,5 +1,5 @@
 # Server Logic for Environmental Bowtie Risk Analysis Application
-# Version: 5.4.1 (Multi-User Session Isolation)
+# Version: 5.6.0 (Testing & Reliability Edition)
 # =============================================================================
 
 server <- function(input, output, session) {
@@ -101,16 +101,13 @@ server <- function(input, output, session) {
   # Initialize AI Analysis module
   ai_analysis_module_server(input, output, session, vocabulary_data, lang)
 
-  # Initialize Help & Documentation module
-  source("server_modules/help_module.R", local = TRUE)
+  # Initialize Help & Documentation module (sourced once in global.R)
   init_help_module(input, output, session, lang)
 
-  # Initialize Vocabulary Management module
-  source("server_modules/vocabulary_server_module.R", local = TRUE)
+  # Initialize Vocabulary Management module (sourced once in global.R)
   init_vocabulary_server_module(input, output, session, vocabulary_data)
 
-  # Initialize Link Risk Assessment module
-  source("server_modules/link_risk_module.R", local = TRUE)
+  # Initialize Link Risk Assessment module (sourced once in global.R)
   init_link_risk_module(input, output, session, getCurrentData,
                         currentData, editedData, dataVersion, lang)
 
@@ -118,7 +115,7 @@ server <- function(input, output, session) {
   # SESSION CLEANUP HANDLER (v5.4.1 - Enhanced Multi-User Isolation)
   # =============================================================================
   session$onSessionEnded(function() {
-    bowtie_log("🧹 Session ended - cleaning up resources...", .verbose = TRUE)
+    bowtie_log("🧹 Session ended - cleaning up resources...")
     tryCatch({
       # Clear reactive values to prevent memory leaks
       if (exists("currentData") && is.function(currentData)) currentData(NULL)
@@ -138,9 +135,9 @@ server <- function(input, output, session) {
       # Force garbage collection
       gc(verbose = FALSE)
 
-      bowtie_log("✅ Session cleanup complete", .verbose = TRUE)
+      bowtie_log("✅ Session cleanup complete")
     }, error = function(e) {
-      bowtie_log(paste("⚠️ Error during session cleanup:", e$message), level = "warn", .verbose = TRUE)
+      bowtie_log(paste("⚠️ Error during session cleanup:", e$message), level = "warn")
     })
   })
 

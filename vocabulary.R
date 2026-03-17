@@ -1,7 +1,7 @@
 # vocabulary.R
 # Reads hierarchical data from Excel files for activities, pressures, consequences, and controls
-# Version 5.4.0 - Modern framework with enhanced error handling and validation
-# Date: January 2026
+# Version 5.6.0 - Modern framework with enhanced error handling and validation
+# Date: March 2026
 #
 # NOTE: All packages are loaded via global.R - do not add library() calls here
 # Required packages: readxl, dplyr, tidyr
@@ -13,33 +13,33 @@ read_hierarchical_data <- function(file_path, sheet_name = NULL) {
     stop(paste("File not found:", file_path))
   }
   
-  tryCatch({
+  data <- tryCatch({
     # Read Excel file with enhanced error handling
     if (!is.null(sheet_name)) {
-      data <- read_excel(file_path, sheet = sheet_name, .name_repair = "minimal")
+      raw_data <- read_excel(file_path, sheet = sheet_name, .name_repair = "minimal")
     } else {
-      data <- read_excel(file_path, .name_repair = "minimal")
+      raw_data <- read_excel(file_path, .name_repair = "minimal")
     }
-    
+
     # Validate data is not empty
-    if (nrow(data) == 0) {
-      warning(paste("No data found in file:", file_path))
+    if (nrow(raw_data) == 0) {
+      log_warning(paste("No data found in file:", file_path))
       return(data.frame(hierarchy = character(), id = character(), name = character()))
     }
-    
+
     # Clean column names - remove trailing spaces and normalize
-    names(data) <- trimws(names(data))
-    
+    names(raw_data) <- trimws(names(raw_data))
+
     # Ensure required columns exist
     required_cols <- c("Hierarchy", "ID#", "name")
-    if (!all(required_cols %in% names(data))) {
-      available_cols <- names(data)
-      stop(paste("Missing required columns. Expected:", paste(required_cols, collapse = ", "), 
+    if (!all(required_cols %in% names(raw_data))) {
+      available_cols <- names(raw_data)
+      stop(paste("Missing required columns. Expected:", paste(required_cols, collapse = ", "),
                 ". Available:", paste(available_cols, collapse = ", ")))
     }
-    
-    log_debug(paste("Successfully read", nrow(data), "rows from", basename(file_path)))
-    
+
+    log_debug(paste("Successfully read", nrow(raw_data), "rows from", basename(file_path)))
+    raw_data
   }, error = function(e) {
     stop(paste("Error reading Excel file:", file_path, "-", e$message))
   })
@@ -299,20 +299,15 @@ search_vocabulary <- function(data, search_term, search_in = c("id", "name")) {
   
   results <- data %>%
     filter(
-      if ("id" %in% search_in) grepl(search_term, tolower(id), fixed = TRUE) else FALSE |
-      if ("name" %in% search_in) grepl(search_term, tolower(name), fixed = TRUE) else FALSE
+      (if ("id" %in% search_in) grepl(search_term, tolower(id), fixed = TRUE) else FALSE) |
+      (if ("name" %in% search_in) grepl(search_term, tolower(name), fixed = TRUE) else FALSE)
     )
   
   return(results)
 }
 
-# Source AI linker if available
-if (file.exists("vocabulary_ai_linker.R")) {
-  source("vocabulary_ai_linker.R")
-  log_success("AI vocabulary linker loaded")
-} else {
-  log_info("AI vocabulary linker not found - basic functionality only")
-}
+# NOTE: vocabulary_ai_linker.R is sourced by global.R - do not source it here
+# to avoid double-loading and duplicate side effects
 
 # Function to find basic keyword connections (fallback if AI linker not available)
 find_basic_connections <- function(vocabulary_data) {

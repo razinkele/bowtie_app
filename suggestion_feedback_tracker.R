@@ -52,11 +52,11 @@ init_feedback_tracker <- function(data_file = "data/suggestion_feedback.rds") {
   # Load existing feedback if available
   if (file.exists(data_file)) {
     tryCatch({
-      loaded_data <- readRDS(data_file)
+      loaded_data <- safe_readRDS(data_file)
       .feedback_data$records <- loaded_data
       bowtie_log(sprintf("Loaded %d historical feedback records", nrow(loaded_data)), level = "success")
     }, error = function(e) {
-      warning("Failed to load feedback data: ", e$message)
+      log_warning(paste("Failed to load feedback data:", e$message))
       bowtie_log("Starting with empty feedback database", level = "warning")
     })
   } else {

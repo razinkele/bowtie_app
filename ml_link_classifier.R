@@ -283,17 +283,17 @@ load_classifier <- function(file_path = "models/link_classifier.rds") {
   }
 
   if (!ML_CLASSIFIER_CAPABILITIES$randomForest) {
-    warning("randomForest package not available")
+    log_warning("randomForest package not available")
     return(NULL)
   }
 
   tryCatch({
-    model <- readRDS(file_path)
+    model <- safe_readRDS(file_path)
     bowtie_log(sprintf("Loaded classifier from %s (trees: %d, OOB error: %.2f%%)",
                        file_path, model$ntree, model$err.rate[model$ntree, "OOB"] * 100), level = "success")
     return(model)
   }, error = function(e) {
-    warning("Failed to load classifier: ", e$message)
+    log_warning(paste("Failed to load classifier:", e$message))
     return(NULL)
   })
 }

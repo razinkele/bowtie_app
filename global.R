@@ -1,7 +1,7 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application with Bayesian Networks
-# Version: 5.4.0 (Stability & Infrastructure Edition)
-# Date: January 2026
+# Version: 5.6.0 (Testing & Reliability Edition)
+# Date: March 2026
 # Author: Marbefes Team & AI Assistant
 # Description: Production-ready with comprehensive deployment framework, UI improvements, and bug fixes
 # =============================================================================
@@ -194,7 +194,11 @@ tryCatch({
   source("server_modules/bowtie_visualization_module.R")
   source("server_modules/report_generation_module.R")
   source("server_modules/ai_analysis_module.R")
-  log_success("   Server modules loaded successfully (10 modules)")
+  # Modules previously sourced per-session in server.R (moved here for efficiency)
+  source("server_modules/help_module.R")
+  source("server_modules/vocabulary_server_module.R")
+  source("server_modules/link_risk_module.R")
+  log_success("   Server modules loaded successfully (13 modules)")
 }, error = function(e) {
   log_warning(paste("Failed to load server modules:", e$message))
   log_info("   Application will use legacy inline server code")

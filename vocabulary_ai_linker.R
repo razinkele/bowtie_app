@@ -1220,7 +1220,7 @@ load_cache <- function(file_path = "cache/similarity_cache.rds") {
 
   tryCatch({
     # Load cache from disk
-    cache_list <- readRDS(file_path)
+    cache_list <- safe_readRDS(file_path)
 
     # Populate environment
     list2env(cache_list, envir = .similarity_cache)

@@ -354,12 +354,12 @@ load_ensemble <- function(file_path = "models/ensemble_predictor.rds") {
   }
 
   tryCatch({
-    ensemble <- readRDS(file_path)
+    ensemble <- safe_readRDS(file_path)
     bowtie_log(sprintf("Loaded ensemble from %s (models: %s, trained on %d samples)",
                        file_path, paste(names(ensemble$models), collapse = ", "), ensemble$trained_on), level = "success")
     return(ensemble)
   }, error = function(e) {
-    warning("Failed to load ensemble: ", e$message)
+    log_warning(paste("Failed to load ensemble:", e$message))
     return(NULL)
   })
 }

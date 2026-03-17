@@ -37,7 +37,7 @@ acquire_custom_terms_lock <- function(timeout_ms = CUSTOM_TERMS_LOCK_TIMEOUT) {
     return(lock)
   }, error = function(e) {
     bowtie_log(paste("Warning: Could not acquire file lock:", e$message),
-               level = "warn", .verbose = TRUE)
+               level = "warn")
     return(NULL)
   })
 }
@@ -56,7 +56,7 @@ release_custom_terms_lock <- function(lock) {
     filelock::unlock(lock)
   }, error = function(e) {
     bowtie_log(paste("Warning: Error releasing lock:", e$message),
-               level = "warn", .verbose = TRUE)
+               level = "warn")
   })
 
   invisible(NULL)
@@ -108,7 +108,7 @@ acquire_simple_lock <- function(timeout_ms = CUSTOM_TERMS_LOCK_TIMEOUT) {
     Sys.sleep(0.1)  # Wait before retry
   }
 
-  bowtie_log("Warning: Lock acquisition timed out", level = "warn", .verbose = TRUE)
+  bowtie_log("Warning: Lock acquisition timed out", level = "warn")
   return(NULL)
 }
 
