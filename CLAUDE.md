@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an R Shiny web application for Environmental Bowtie Risk Analysis with Bayesian Network integration. The application enables environmental risk assessment using bowtie diagrams enhanced with probabilistic modeling through Bayesian networks.
 
-**Version**: 5.6.0 (Testing & Reliability Edition)
+**Version**: 5.7.0 (Scientific Foundations Edition)
 **Release Date**: March 2026
-**Framework Updates**: Comprehensive testing infrastructure overhaul with ~325 new test assertions, GitHub Actions CI/CD integration, Codecov coverage tracking, enhanced test helpers for server module testing, and smoke tests for all 13 server modules. Built on v5.5.0 security hardening and v5.4.0 stability improvements.
+**Framework Updates**: Scientific causal knowledge base with 301 peer-reviewed connections, ODEMM risk scoring, recovery time estimates, Bayesian network topology redesign, and comprehensive code quality fixes. Built on v5.6.0 testing infrastructure.
 
 ## Running the Application
 
@@ -93,11 +93,21 @@ The application follows a modular Shiny architecture with separate files for dif
 - Probabilistic risk modeling and inference
 - Network visualization and analysis functions
 
+**Bayesian Network Topology (v5.7.0)**: Uses proper bowtie fan-in/fan-out structure where Activities→Pressures converge on the Central Problem, which then fans out to Consequences. Controls and Mitigations connect as barriers on their respective sides.
+
 ### `vocabulary_bowtie_generator.R` (Vocabulary-Based Network Generator)
 - Generates bow-tie networks using vocabulary elements from Excel files
 - AI-powered intelligent linking between vocabulary components
 - Creates Excel output compatible with main application
 - Supports multiple central problems and configurable parameters
+
+### `causal_knowledge_base.R` (Scientific Knowledge Base)
+- 301 peer-reviewed causal connections (MSFD/DPSIR framework)
+- Activity→Pressure (106), Pressure→Consequence (62), Control→Pressure (133)
+- ODEMM risk scoring: spatial_extent, frequency, persistence, severity (1-5)
+- Recovery time estimates: recovery_years_min/max, reversibility
+- 16 cited references with DOIs and URLs
+- Lookup functions: find_kb_connections(), get_kb_references(), calculate_odemm_risk()
 
 ### `guided_workflow.R` (Guided Workflow System)
 - Step-by-step wizard for creating bowtie diagrams
@@ -350,6 +360,7 @@ source("tests/testthat/test-bayesian-network.R")
 - `tests/testthat/test-shiny-app.R`: Integration tests for Shiny application components with UI/server validation
 - `tests/testthat/test-vocabulary-bowtie-generator.R`: Vocabulary-based bow-tie generation with AI linking validation
 - `tests/testthat/test-integration-workflow.R`: End-to-end integration tests with complete workflow coverage
+- `tests/testthat/test-causal-knowledge-base.R`: Scientific knowledge base validation (28 tests)
 
 #### **Advanced Test Suites:**
 - `tests/testthat/test-consistency-fixes.R`: Validates consistency fixes (circular dependencies, icon standardization)

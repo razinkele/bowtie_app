@@ -4,7 +4,7 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 
 > **Archive notice:** The original R Shiny application (`app.R`) has been archived and moved to `archive/archived_app_R_20260101.R`. A new Python Shiny app is available at `shiny_copernicus_app.py` — see `README_shiny_copernicus.md` for usage and authentication instructions.
 
-![Version](https://img.shields.io/badge/version-5.6.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.7.0-blue.svg)
 ![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
@@ -31,6 +31,18 @@ A comprehensive R Shiny web application for environmental risk assessment using 
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
+
+## What's New in Version 5.7.0 (Scientific Knowledge Base Edition)
+
+### Scientific Causal Knowledge Base
+- **301 peer-reviewed causal connections** between MSFD/DPSIR vocabulary items
+- **ODEMM risk scoring** with spatial extent, frequency, persistence, and severity dimensions
+- **Recovery time estimates** and reversibility classifications for all connections
+- **16 cited references** with DOIs and URLs from peer-reviewed literature
+- **New module**: `causal_knowledge_base.R` with lookup functions for connection queries and reference formatting
+- **28 new tests** validating knowledge base integrity, scoring, and lookups
+
+---
 
 ## What's New in Version 5.6.0 (Testing & Reliability Edition)
 
@@ -166,6 +178,7 @@ This application provides a comprehensive platform for environmental risk assess
 - **📋 Structured Data Management**: Hierarchical vocabulary with Excel import/export
 - **🎨 Customizable Visualizations**: Multiple color schemes, node sizes, and display options
 - **💾 Data Persistence**: Save and load projects with complete data integrity
+- **Scientific Causal Knowledge Base**: 301 peer-reviewed connections from MSFD/DPSIR framework with ODEMM risk scoring, recovery time estimates, and 16 cited references
 
 ### Advanced Features
 
@@ -571,6 +584,13 @@ The application follows a **modular architecture** with separate files for diffe
 - **State Management**: Maintains workflow progress and user selections
 
 
+#### `causal_knowledge_base.R` - Scientific Knowledge Base
+- **301 Validated Connections**: Peer-reviewed causal connections between MSFD vocabulary items
+- **ODEMM Risk Scoring**: Spatial extent, frequency, persistence, and severity dimensions
+- **Recovery Estimates**: Recovery time estimates and reversibility classifications
+- **16 References**: Peer-reviewed references with DOIs and URLs
+- **Lookup Functions**: Connection queries and reference formatting utilities
+
 #### `vocabulary_bowtie_generator.R` - Network Generator
 - **Automated Generation**: `generate_vocabulary_bowtie()` - Create bow-ties from vocabulary
 - **AI Integration**: Uses vocabulary linking for intelligent connections
@@ -831,6 +851,7 @@ make test-performance         # Performance benchmarking (new in v5.1)
 - **Quality Tests**: Data consistency validation
 - **Compatibility Tests**: Excel format verification
 - **Guided Workflow Tests**: Comprehensive testing of vocabulary integration and server functionality
+- **Knowledge Base Tests**: 28 tests validating causal connections, ODEMM scoring, recovery estimates, and reference integrity
 
 ### Writing Custom Tests
 
@@ -911,8 +932,9 @@ make app
 │   ├── check_deployment_readiness.sh  # Linux validation
 │   ├── check_deployment_readiness.ps1 # Windows validation (NEW)
 │   └── docker-compose.yml         # Docker deployment
+├── causal_knowledge_base.R        # Scientific knowledge base (301 connections)
 ├── tests/                         # Testing framework
-│   ├── testthat/                  # Test suites (11+ tests)
+│   ├── testthat/                  # Test suites (12+ tests, incl. KB tests)
 │   ├── fixtures/                  # Test data
 │   ├── test_runner.R              # Quick test execution
 │   └── comprehensive_test_runner.R  # Full test suite

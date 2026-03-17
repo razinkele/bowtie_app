@@ -10,7 +10,7 @@
 APP_CONFIG <- list(
   # Application Metadata
   APP_NAME = "bowtie_app",
-  VERSION = "5.6.0",
+  VERSION = "5.7.0",
   TITLE = "Environmental Bowtie Risk Analysis",
   SUBTITLE = "Marine Biodiversity and Ecosystem Services Assessment",
   AUTHOR = "Marbefes Team & AI Assistant",

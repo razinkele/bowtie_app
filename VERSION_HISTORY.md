@@ -3,6 +3,70 @@
 
 ---
 
+## Version 5.7.0 (Scientific Foundations Edition)
+**Release Date:** 2026-03-17
+
+### Scientific Causal Knowledge Base
+- **301 peer-reviewed causal connections** encoding MSFD/DPSIR framework relationships
+  - 106 Activity → Pressure connections (39 unique activities)
+  - 62 Pressure → Consequence connections (22 unique consequences)
+  - 133 Control → Pressure connections (95 unique controls)
+- **16 cited scientific references** with DOIs and URLs from:
+  - Knights et al. (2015) — ODEMM impact chain framework
+  - Borgwardt et al. (2019) — Cross-aquatic ecosystem assessment
+  - Korpinen et al. (2021) — Combined effects on European marine ecosystems
+  - Halpern et al. (2015) — Global cumulative human impact
+  - HELCOM HOLAS 3, MSFD 2017/848, OSPAR QSR 2023
+  - IMO BWM/MARPOL/AFS conventions, EU CFP/UWWTD/Nitrates Directive
+- **ODEMM risk scoring**: Spatial extent, frequency, persistence, severity (1-5 scales) per Knights et al. framework
+- **Recovery time estimates**: Min/max recovery years and reversibility classification per pressure-consequence pair
+- **Knowledge base replaces keyword heuristics** as primary connection method in AI linker
+
+### Bayesian Network Redesign
+- **Fixed bowtie topology** (C1): Proper fan-in/fan-out structure replacing linear chains
+- **Fixed MLE learning** (C2): Removed random sampling, uses actual data columns
+- **Fixed CPT fitting** (C3): Correct marginal distributions for multi-parent nodes
+- **Fixed arc construction** (C4): Proper variable scoping in fallback loop
+- **Fixed discretize_risk_levels**: Value 1.0 correctly treated as probability
+- **Fixed gRain API**: Updated to current setEvidence interface
+
+### AI Linker Integration Fixes
+- Knowledge base method checked first (before keyword/jaccard)
+- Fixed guard condition that silently disabled KB
+- Fixed deduplication order (arrange before distinct)
+- Added session$ns() to 48 shinyjs calls across all suggestion observers
+- Methods parameter now passed in Steps 4/5/6 (KB consulted for all target types)
+
+### Code Quality Fixes (17 issues from deep review)
+- Fixed vocabulary.R scoping bug in read_hierarchical_data
+- Fixed search_vocabulary operator precedence bug
+- Removed double-sourcing of vocabulary_ai_linker.R
+- Renamed vocabulary.r → vocabulary.R for Linux compatibility
+- Moved 3 server module source() calls from server() to global.R
+- Replaced bare readRDS() with safe_readRDS() in 4 ML modules
+- Removed dead .verbose=TRUE parameter from 28 call sites
+- Fixed session$input (invalid API) in export module
+- Added on.exit(dev.off()) for PDF export safety
+- Normalized risk chain multiplication
+- Unified risk thresholds across utils.R and conversion.R
+
+### UI Enhancements
+- **Scientific References help page** in Help Center sidebar
+  - Knowledge base statistics panel (6 columns)
+  - Formatted reference list with DOI links and access buttons
+  - ODEMM risk scoring framework explanation table
+  - Recovery time estimates table with reversibility badges
+- References section added to About page
+- References sheet included in guided workflow Excel export
+- "Scientific" badge for knowledge-base suggestions in guided workflow
+
+### Testing
+- 28 knowledge base tests covering data integrity, ODEMM scores, recovery times
+- Updated Bayesian network tests (128 passing, aligned with redesign)
+- All tests passing: 0 failures across KB + BN test suites
+
+---
+
 ## Version 5.6.0 (Testing & Reliability Edition)
 **Release Date:** 2026-03-06
 
