@@ -21,15 +21,32 @@ if (basename(getwd()) == "tests") {
 }
 
 # Verify we're in the correct directory
-if (!file.exists("app.r")) {
-  stop("ERROR: app.r not found. Please run this script from the app root directory.")
+if (!file.exists("app.R")) {
+  stop("ERROR: app.R not found. Please run this script from the app root directory.")
 }
 
 cat("Working directory:", getwd(), "\n")
 cat("Loading application modules...\n")
 
 # Source the application files with error handling
-# Load logging system first (required by vocabulary.R and other modules)
+# Load configuration first (required by other modules)
+tryCatch({
+  source("config.R")
+  cat("✓ Loaded config.R\n")
+}, error = function(e) {
+  cat("✗ Failed to load config.R:", e$message, "\n")
+  stop("Cannot proceed without config.R")
+})
+
+tryCatch({
+  source("constants.R")
+  cat("✓ Loaded constants.R\n")
+}, error = function(e) {
+  cat("✗ Failed to load constants.R:", e$message, "\n")
+  stop("Cannot proceed without constants.R")
+})
+
+# Load logging system (required by vocabulary.R and other modules)
 tryCatch({
   source("config/logging.R")
   cat("✓ Loaded config/logging.R\n")
@@ -44,9 +61,17 @@ tryCatch({
   cat("  Using stub logging functions\n")
 })
 
+# Load error handling helpers
+tryCatch({
+  source("helpers/error_handling.R")
+  cat("✓ Loaded helpers/error_handling.R\n")
+}, error = function(e) {
+  cat("✗ Failed to load helpers/error_handling.R:", e$message, "\n")
+})
+
 tryCatch({
   source("utils.R")
-  cat("✓ Loaded utils.r\n")
+  cat("✓ Loaded utils.R\n")
 }, error = function(e) {
   cat("✗ Failed to load utils.R:", e$message, "\n")
   stop("Cannot proceed without utils.R")
@@ -95,21 +120,25 @@ cat("========================================\n\n")
 # Function to run a specific test file and capture results
 run_test_file <- function(test_file) {
   cat("Running", test_file, "...\n")
-  
+
   tryCatch({
-    results <- test_file(test_file, reporter = "minimal")
-    
-    # Extract test summary
-    if (length(results) > 0) {
-      passed <- sum(sapply(results, function(x) x$nb))
-      failed <- sum(sapply(results, function(x) length(x$failed)))
-      
+    results <- testthat::test_file(test_file, reporter = testthat::SilentReporter$new())
+
+    # Extract test summary from testthat results (data.frame-like object)
+    df <- as.data.frame(results)
+    if (nrow(df) > 0) {
+      passed <- sum(df$passed, na.rm = TRUE)
+      failed <- sum(df$failed, na.rm = TRUE)
+      skipped <- sum(df$skipped, na.rm = TRUE)
+
       if (failed == 0) {
-        cat("✓", test_file, "- All", passed, "tests passed\n")
+        cat("✓", test_file, "- All", passed, "tests passed")
+        if (skipped > 0) cat(" (", skipped, "skipped)")
+        cat("\n")
         return(list(passed = passed, failed = 0, file = test_file))
       } else {
-        cat("✗", test_file, "-", failed, "failed,", passed - failed, "passed\n")
-        return(list(passed = passed - failed, failed = failed, file = test_file))
+        cat("✗", test_file, "-", failed, "failed,", passed, "passed\n")
+        return(list(passed = passed, failed = failed, file = test_file))
       }
     } else {
       cat("⚠", test_file, "- No tests found\n")

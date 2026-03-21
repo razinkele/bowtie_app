@@ -33,10 +33,14 @@ AI_LINKER_CAPABILITIES <- list(
 load_optional_package <- function(package_name, quiet = TRUE) {
   tryCatch({
     if (!requireNamespace(package_name, quietly = quiet)) {
-      if (!quiet) {
-        bowtie_log(paste("Installing optional package:", package_name), level = "info")
+      if (identical(Sys.getenv("BOWTIE_AUTO_INSTALL"), "true")) {
+        if (!quiet) {
+          bowtie_log(paste("Installing optional package:", package_name), level = "info")
+        }
+        install.packages(package_name, quiet = quiet)
+      } else {
+        return(FALSE)
       }
-      install.packages(package_name, quiet = quiet)
     }
     library(package_name, character.only = TRUE, quietly = quiet)
     TRUE
@@ -75,16 +79,8 @@ if (exists("EMBEDDING_CAPABILITIES") && exists("calculate_embedding_similarity")
   }
 }
 
-# Core packages (required)
-if (!requireNamespace("dplyr", quietly = TRUE)) {
-  install.packages("dplyr")
-}
-library(dplyr)
-
-if (!requireNamespace("tidyr", quietly = TRUE)) {
-  install.packages("tidyr")
-}
-library(tidyr)
+# NOTE: Core packages (dplyr, tidyr) are loaded via global.R — do not add
+# library() or install.packages() calls here.
 
 # Update basic_only flag
 AI_LINKER_CAPABILITIES$basic_only <- !(AI_LINKER_CAPABILITIES$text_mining ||

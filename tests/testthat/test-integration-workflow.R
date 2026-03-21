@@ -4,15 +4,19 @@
 library(testthat)
 
 # Source required files
-source("tests/fixtures/test_data.R")
+fixtures_path <- file.path(app_root, "tests/fixtures/test_data.R")
+if (file.exists(fixtures_path)) {
+  source(fixtures_path)
+} else if (file.exists("fixtures/test_data.R")) {
+  source("fixtures/test_data.R")
+}
 
 # Test complete workflow integration
 test_that("complete vocabulary bowtie workflow works end-to-end", {
   skip_if_not_installed("openxlsx")
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
-  
-  # Source the generator
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  # vocabulary_bowtie_generator.R is loaded by helper-setup.R
+  skip_if_not(exists("generate_vocabulary_bowtie"), "generate_vocabulary_bowtie not available")
+  skip_if_not(exists("create_problem_specific_bowtie"), "create_problem_specific_bowtie not available (incomplete module)")
   
   # Create temporary file
   temp_file <- get_test_temp_file(".xlsx")
@@ -53,9 +57,9 @@ test_that("complete vocabulary bowtie workflow works end-to-end", {
 # Test workflow with different scenarios
 test_that("workflow handles different generation scenarios", {
   skip_if_not_installed("openxlsx")
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   scenarios <- get_bowtie_test_scenarios()
   
   for (scenario_name in c("minimal", "standard")) {  # Test subset for performance
@@ -79,9 +83,9 @@ test_that("workflow handles different generation scenarios", {
 
 # Test vocabulary loading integration
 test_that("workflow integrates correctly with vocabulary system", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   
   # Test with mock vocabulary data
   mock_vocab <- create_test_vocabulary_for_bowtie()
@@ -103,10 +107,10 @@ test_that("workflow integrates correctly with vocabulary system", {
 # Test AI linking integration (if available)
 test_that("workflow integrates with AI linking when available", {
   skip_if_not(exists("find_vocabulary_links"), "AI linking functions not available")
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   temp_file <- get_test_temp_file(".xlsx")
   
   expect_no_error({
@@ -130,10 +134,10 @@ test_that("workflow integrates with AI linking when available", {
 
 # Test error handling in complete workflow
 test_that("workflow handles errors gracefully", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   
   # Test with invalid output path
   invalid_path <- "/invalid/path/test.xlsx"
@@ -162,11 +166,11 @@ test_that("workflow handles errors gracefully", {
 
 # Test performance with larger datasets
 test_that("workflow performs adequately with larger vocabularies", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   skip("Performance test - run manually if needed")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   
   # Create larger vocabulary dataset
   large_vocab <- create_large_vocabulary_dataset(size_multiplier = 5)
@@ -195,10 +199,10 @@ test_that("workflow performs adequately with larger vocabularies", {
 
 # Test data quality and consistency
 test_that("generated data maintains quality and consistency", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   temp_file <- get_test_temp_file(".xlsx")
   
   result <- generate_vocabulary_bowtie(
@@ -235,10 +239,10 @@ test_that("generated data maintains quality and consistency", {
 
 # Test Excel file structure and readability
 test_that("Excel output has correct structure for main app", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   temp_file <- get_test_temp_file(".xlsx")
   
   result <- generate_vocabulary_bowtie(
@@ -268,9 +272,9 @@ test_that("Excel output has correct structure for main app", {
 
 # Test fallback mechanisms
 test_that("workflow uses fallback mechanisms when needed", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   
   # Test fallback vocabulary creation
   fallback_vocab <- create_sample_vocabulary_data()
@@ -288,10 +292,10 @@ test_that("workflow uses fallback mechanisms when needed", {
 
 # Test reproducibility
 test_that("workflow produces consistent results", {
-  skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
+  skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
   skip_if_not_installed("openxlsx")
   
-  source("vocabulary_bowtie_generator.r", local = TRUE)
+  source("vocabulary_bowtie_generator.R", local = TRUE)
   
   # Set seed for reproducibility
   set.seed(12345)

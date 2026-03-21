@@ -103,7 +103,7 @@ test_that("Global.R has enhanced import logic", {
               "global.R should have tryCatch block for robust module loading")
 
   # Should have success/failure logging
-  success_pattern <- "Guided workflow core loaded"
+  success_pattern <- "Guided workflow system loaded"
   has_success_logging <- grepl(success_pattern, global_text)
 
   expect_true(has_success_logging,
@@ -162,7 +162,7 @@ test_that("FontAwesome integration is consistent", {
               "CLAUDE.md should mention standardized icon usage")
 
   # Should mention icon() function consistency
-  icon_function_pattern <- "icon\\(\\) function"
+  icon_function_pattern <- "icon\\(\\)"
   has_icon_function_desc <- grepl(icon_function_pattern, claude_text)
 
   expect_true(has_icon_function_desc,

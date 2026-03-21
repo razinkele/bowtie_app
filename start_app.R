@@ -70,7 +70,12 @@ if (host == "0.0.0.0") {
 cat("\n")
 
 # Set options before running
-options(shiny.maxRequestSize = 30*1024^2)  # 30MB max file size
+max_size_mb <- if (exists("APP_CONFIG") && !is.null(APP_CONFIG$UPLOAD$MAX_FILE_SIZE_MB)) {
+  APP_CONFIG$UPLOAD$MAX_FILE_SIZE_MB
+} else {
+  100  # Default fallback matching config.R
+}
+options(shiny.maxRequestSize = max_size_mb * 1024^2)
 
 # Launch the app using runApp (will source global.R, ui.R, server.R automatically)
 shiny::runApp(

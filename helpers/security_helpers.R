@@ -26,8 +26,7 @@
 #'
 safe_readRDS <- function(filepath, expected_class = NULL, max_size_mb = 50) {
   # Validate file exists
-
-if (!file.exists(filepath)) {
+  if (!file.exists(filepath)) {
     stop("File not found: ", filepath)
   }
 
@@ -44,7 +43,9 @@ if (!file.exists(filepath)) {
 
   # Attempt to read the file with error handling
   tryCatch({
-    # Read in a fresh environment to isolate any side effects
+    # Note: readRDS deserializes in the current process; active bindings or
+    # finalizers in the serialized object will execute here. For full isolation,
+    # consider using callr::r(function(p) readRDS(p), args = list(filepath)).
     obj <- readRDS(filepath)
 
     # Validate object structure
@@ -75,7 +76,7 @@ if (!file.exists(filepath)) {
 validate_rds_object <- function(obj, expected_class = NULL, depth = 0) {
   # Prevent infinite recursion
   if (depth > 100) {
-    warning("Object nesting too deep, skipping further validation")
+    log_warning("RDS validation: object nesting too deep, skipping further validation")
     return(TRUE)
   }
 
@@ -83,7 +84,7 @@ validate_rds_object <- function(obj, expected_class = NULL, depth = 0) {
   if (!is.null(expected_class) && depth == 0) {
     obj_class <- class(obj)[1]
     if (!obj_class %in% expected_class) {
-      warning(sprintf("Unexpected object class: %s (expected: %s)",
+      log_warning(sprintf("RDS validation: unexpected object class: %s (expected: %s)",
                       obj_class, paste(expected_class, collapse = ", ")))
       return(FALSE)
     }
@@ -91,7 +92,7 @@ validate_rds_object <- function(obj, expected_class = NULL, depth = 0) {
 
   # Dangerous types that should not be in data files
   if (is.function(obj)) {
-    warning("RDS contains function - potentially dangerous")
+    log_warning("RDS validation: contains function - potentially dangerous")
     return(FALSE)
   }
 
@@ -100,14 +101,14 @@ validate_rds_object <- function(obj, expected_class = NULL, depth = 0) {
     bindings <- tryCatch(names(obj), error = function(e) character(0))
     for (name in bindings) {
       if (tryCatch(bindingIsActive(name, obj), error = function(e) FALSE)) {
-        warning("RDS contains environment with active bindings - potentially dangerous")
+        log_warning("RDS validation: contains environment with active bindings - potentially dangerous")
         return(FALSE)
       }
     }
   }
 
   if (typeof(obj) == "externalptr") {
-    warning("RDS contains external pointer - potentially dangerous")
+    log_warning("RDS validation: contains external pointer - potentially dangerous")
     return(FALSE)
   }
 
@@ -116,7 +117,7 @@ validate_rds_object <- function(obj, expected_class = NULL, depth = 0) {
     safe_s4_classes <- c("data.table", "tibble", "sf", "SpatialPoints",
                          "SpatialPolygons", "Matrix", "dgCMatrix")
     if (!any(class(obj) %in% safe_s4_classes)) {
-      warning(sprintf("RDS contains S4 object of class '%s' - verify source is trusted",
+      log_warning(sprintf("RDS validation: contains S4 object of class '%s' - verify source is trusted",
                       paste(class(obj), collapse = ", ")))
     }
   }
@@ -157,14 +158,14 @@ validate_file_path <- function(filepath, allowed_dirs = NULL) {
     stop("Empty file path provided")
   }
 
-  # Normalize the path to resolve .. and . sequences
-  normalized <- normalizePath(filepath, mustWork = FALSE)
-
-  # Check for path traversal attempts in original path
-  if (grepl("\\.\\./|\\.\\\\", filepath)) {
-    warning("Path traversal attempt detected: ", filepath)
+  # Check for path traversal attempts before normalization
+  if (grepl("(^|[\\\\/])\\.\\.([\\\\/]|$)", filepath)) {
+    log_warning(paste("Path traversal attempt detected:", substr(filepath, 1, 100)))
     stop("Invalid file path: path traversal not allowed")
   }
+
+  # Normalize the path to resolve .. and . sequences
+  normalized <- normalizePath(filepath, mustWork = FALSE)
 
   # If allowed_dirs specified, verify path is within them
   if (!is.null(allowed_dirs) && length(allowed_dirs) > 0) {

@@ -577,4 +577,4 @@ get_all_custom_terms_flat <- function() {
   return(all_terms)
 }
 
-cat("Custom terms storage module loaded successfully\n")
+log_success("Custom terms storage module loaded successfully")

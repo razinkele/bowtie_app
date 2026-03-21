@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application Launcher
-# Version: 5.6.0 (Testing & Reliability Edition)
+# Version: 5.7.0 (Scientific Foundations Edition)
 # Date: March 2026
 # Author: Marbefes Team & AI Assistant
 # Description: Production-ready with comprehensive bug fixes and filename normalization
@@ -40,6 +40,14 @@ if (is.null(app_dir) || !nzchar(app_dir)) {
 
 # Source files from the determined app directory
 source(file.path(app_dir, "global.R"))
+
+# Set upload size limit from config (must be after global.R loads APP_CONFIG)
+max_size_mb <- if (exists("APP_CONFIG") && !is.null(APP_CONFIG$UPLOAD$MAX_FILE_SIZE_MB)) {
+  APP_CONFIG$UPLOAD$MAX_FILE_SIZE_MB
+} else {
+  100
+}
+options(shiny.maxRequestSize = max_size_mb * 1024^2)
 
 # Load UI definition
 bowtie_log("🎨 Loading user interface...")

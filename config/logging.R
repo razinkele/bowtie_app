@@ -193,7 +193,8 @@ write_to_log_file <- function(entry) {
   tryCatch({
     cat(entry, "\n", file = log_file, append = TRUE)
   }, error = function(e) {
-    warning("Failed to write to log file: ", e$message)
+    # Use cat(file=stderr()) here since we ARE the logging system (avoid recursion)
+    cat("[LOGGING] Failed to write to log file:", e$message, "\n", file = stderr())
   })
 
   invisible(NULL)
@@ -435,7 +436,7 @@ stop_timer <- function(name, log_level = "DEBUG") {
 measure_time <- function(expr, name = "operation", log_level = "DEBUG") {
   start_time <- Sys.time()
 
-  result <- eval(expr, envir = parent.frame())
+  result <- eval(substitute(expr), envir = parent.frame())
 
   duration <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
 
@@ -454,15 +455,16 @@ measure_time <- function(expr, name = "operation", log_level = "DEBUG") {
 
 #' Search log file for pattern
 #'
-#' @param pattern Regex pattern to search
+#' @param pattern Text pattern to search (literal by default; set fixed=FALSE for regex)
 #' @param n_lines Number of lines to return (default: 100)
 #' @param level Filter by log level
 #' @return Vector of matching log lines
-search_logs <- function(pattern, n_lines = 100, level = NULL) {
+search_logs <- function(pattern, n_lines = 100, level = NULL, fixed = TRUE) {
   log_file <- LOGGING_CONFIG$file_path
 
   if (!file.exists(log_file)) {
-    warning("Log file does not exist")
+    # Use cat(file=stderr()) here since we ARE the logging system (avoid recursion)
+    cat("[LOGGING] Log file does not exist\n", file = stderr())
     return(character(0))
   }
 
@@ -472,11 +474,17 @@ search_logs <- function(pattern, n_lines = 100, level = NULL) {
   # Filter by level if specified
   if (!is.null(level)) {
     level_pattern <- paste0("] ", toupper(level), ":")
-    all_lines <- all_lines[grepl(level_pattern, all_lines)]
+    all_lines <- all_lines[grepl(level_pattern, all_lines, fixed = TRUE)]
   }
 
-  # Filter by pattern
-  matching_lines <- all_lines[grepl(pattern, all_lines, ignore.case = TRUE)]
+  # Filter by pattern (use fixed matching to prevent regex injection)
+  matching_lines <- tryCatch(
+    all_lines[grepl(pattern, all_lines, ignore.case = TRUE, fixed = fixed)],
+    error = function(e) {
+      cat("[LOGGING] search_logs failed:", e$message, "\n", file = stderr())
+      character(0)
+    }
+  )
 
   # Return last n lines
   tail(matching_lines, n_lines)
@@ -595,10 +603,12 @@ if (LOGGING_CONFIG$file) {
   }
 }
 
-cat("✅ Logging configuration loaded successfully\n")
-cat(paste0("   Log level: ", LOGGING_CONFIG$level, "\n"))
-cat(paste0("   Console output: ", LOGGING_CONFIG$console, "\n"))
-cat(paste0("   File output: ", LOGGING_CONFIG$file, "\n"))
+if (interactive()) {
+  cat("✅ Logging configuration loaded successfully\n")
+  cat(paste0("   Log level: ", LOGGING_CONFIG$level, "\n"))
+  cat(paste0("   Console output: ", LOGGING_CONFIG$console, "\n"))
+  cat(paste0("   File output: ", LOGGING_CONFIG$file, "\n"))
+}
 
 # =============================================================================
 # END OF LOGGING CONFIGURATION

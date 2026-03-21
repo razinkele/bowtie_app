@@ -1,6 +1,6 @@
 # =============================================================================
 # Environmental Bowtie Risk Analysis Shiny Application with Bayesian Networks
-# Version: 5.6.0 (Testing & Reliability Edition)
+# Version: 5.7.0 (Scientific Foundations Edition)
 # Date: March 2026
 # Author: Marbefes Team & AI Assistant
 # Description: Production-ready with comprehensive deployment framework, UI improvements, and bug fixes
@@ -40,13 +40,20 @@ load_packages <- function() {
 
   bayesian_packages <- c("bnlearn", "gRain", "gRbase", "igraph", "DiagrammeR")
 
+  auto_install <- identical(Sys.getenv("BOWTIE_AUTO_INSTALL"), "true")
+
   # Load core packages
   cat("   • Loading core Shiny and visualization packages...\n")
   for (pkg in required_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      cat("     Installing missing package:", pkg, "\n")
-      install.packages(pkg, dependencies = TRUE)
-      library(pkg, character.only = TRUE)
+      if (auto_install) {
+        cat("     Installing missing package:", pkg, "\n")
+        install.packages(pkg, dependencies = TRUE)
+        library(pkg, character.only = TRUE)
+      } else {
+        stop("Required package '", pkg, "' is not installed. ",
+             "Install it manually or set BOWTIE_AUTO_INSTALL=true to auto-install.")
+      }
     }
   }
 
@@ -54,16 +61,21 @@ load_packages <- function() {
   cat("   • Loading Bayesian network analysis packages...\n")
   for (pkg in bayesian_packages) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      cat("     Installing Bayesian package:", pkg, "\n")
-      if (pkg %in% c("gRain", "gRbase") && !requireNamespace("BiocManager", quietly = TRUE)) {
-        install.packages("BiocManager")
-      }
-      if (pkg %in% c("gRain", "gRbase")) {
-        BiocManager::install(pkg, dependencies = TRUE)
+      if (auto_install) {
+        cat("     Installing Bayesian package:", pkg, "\n")
+        if (pkg %in% c("gRain", "gRbase") && !requireNamespace("BiocManager", quietly = TRUE)) {
+          install.packages("BiocManager")
+        }
+        if (pkg %in% c("gRain", "gRbase")) {
+          BiocManager::install(pkg, dependencies = TRUE)
+        } else {
+          install.packages(pkg, dependencies = TRUE)
+        }
+        library(pkg, character.only = TRUE)
       } else {
-        install.packages(pkg, dependencies = TRUE)
+        stop("Required package '", pkg, "' is not installed. ",
+             "Install it manually or set BOWTIE_AUTO_INSTALL=true to auto-install.")
       }
-      library(pkg, character.only = TRUE)
     }
   }
   cat("✅ All packages loaded successfully!\n")

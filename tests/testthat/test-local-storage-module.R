@@ -594,10 +594,8 @@ describe("Security Validations", {
     # Function object should be rejected
     dangerous_obj <- function(x) x + 1
 
-    expect_warning(
-      result <- local_env$validate_rds_object(dangerous_obj),
-      "function"
-    )
+    # validate_rds_object uses log_warning() (not warning()), so no R warning emitted
+    result <- local_env$validate_rds_object(dangerous_obj)
     expect_false(result, info = "Function objects should be rejected")
   })
 
@@ -631,11 +629,8 @@ describe("Security Validations", {
       local_env$validate_rds_object(list(a = 1), expected_class = "list")
     )
 
-    # Data frame expecting list class - should warn and fail
-    expect_warning(
-      result <- local_env$validate_rds_object(data.frame(x = 1), expected_class = "list"),
-      "Unexpected object class"
-    )
+    # Data frame expecting list class - should fail (uses log_warning, not warning())
+    result <- local_env$validate_rds_object(data.frame(x = 1), expected_class = "list")
     expect_false(result)
   })
 

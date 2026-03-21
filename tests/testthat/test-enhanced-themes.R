@@ -8,7 +8,7 @@ library(bslib)
 # Test theme choices availability
 test_that("Enhanced theme choices are properly defined", {
   # Source the app to get theme choices
-  source("app.r", local = TRUE)
+  source(file.path(app_root, "app.R"), local = TRUE)
   
   # Check that theme choices include all new themes
   expect_true(exists("ui"))

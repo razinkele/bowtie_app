@@ -217,6 +217,16 @@ get_config <- function(path, default = NULL) {
 #' @param probability Numeric probability value (0-1)
 #' @return List with risk level details (label, color, threshold)
 get_risk_level <- function(probability) {
+  if (is.null(probability) || length(probability) != 1 ||
+      !is.numeric(probability) || is.na(probability)) {
+    # config.R loads before logging, but this function runs at runtime when logging is available
+    if (exists("log_warning", mode = "function")) {
+      log_warning(paste0("get_risk_level received invalid probability: ", deparse(probability), ", defaulting to LOW"))
+    } else if (interactive()) {
+      cat("[CONFIG] get_risk_level received invalid probability, defaulting to LOW\n")
+    }
+    return(APP_CONFIG$RISK_LEVELS$LOW)
+  }
   if (probability >= APP_CONFIG$RISK_LEVELS$HIGH$threshold) {
     return(APP_CONFIG$RISK_LEVELS$HIGH)
   } else if (probability >= APP_CONFIG$RISK_LEVELS$MEDIUM$threshold) {

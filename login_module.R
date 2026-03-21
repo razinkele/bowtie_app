@@ -51,8 +51,8 @@ get_admin_password_hash <- function() {
 
   # Example (Windows): set BOWTIE_ADMIN_PASSWORD=your_secure_password
   # Example (.Renviron file): BOWTIE_ADMIN_PASSWORD=your_secure_password
-  warning("SECURITY: Admin password not configured. Admin login is DISABLED. ",
-          "Set BOWTIE_ADMIN_PASSWORD or BOWTIE_ADMIN_PASSWORD_HASH environment variable.")
+  log_warning(paste0("SECURITY: Admin password not configured. Admin login is DISABLED. ",
+              "Set BOWTIE_ADMIN_PASSWORD or BOWTIE_ADMIN_PASSWORD_HASH environment variable."))
   return(NULL)  # Return NULL to disable admin login
 }
 
@@ -346,4 +346,4 @@ login_css <- function() {
   "))
 }
 
-cat("Login module loaded successfully (auto-login as default user)\n")
+log_success("Login module loaded successfully (auto-login as default user)")

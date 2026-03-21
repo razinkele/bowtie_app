@@ -234,7 +234,7 @@ SUPPORTED_RDS_EXTENSIONS <- c(".rds", ".RDS")
 SUPPORTED_EXPORT_FORMATS <- c("xlsx", "csv", "rds", "pdf")
 
 ## File Size Limits (bytes)
-MAX_UPLOAD_FILE_SIZE <- 50 * 1024 * 1024  # 50 MB
+MAX_UPLOAD_FILE_SIZE <- 100 * 1024 * 1024  # 100 MB (must match APP_CONFIG$UPLOAD$MAX_FILE_SIZE_MB)
 MAX_EXPORT_FILE_SIZE <- 100 * 1024 * 1024  # 100 MB
 
 ## Default File Names
@@ -386,9 +386,9 @@ LOG_EMOJI_PROGRESS <- "\U0001F504"  # 🔄
 # These are kept for backward compatibility only.
 # Prefer using APP_CONFIG$VERSION as the single source of truth.
 
-APP_VERSION <- "5.5.0"
-APP_BUILD_DATE <- "2026-03-05"
-APP_CODENAME <- "Security Edition"
+APP_VERSION <- "5.7.0"
+APP_BUILD_DATE <- "2026-03-21"
+APP_CODENAME <- "Scientific Foundations Edition"
 
 # =============================================================================
 # HELPER FUNCTIONS FOR CONSTANTS

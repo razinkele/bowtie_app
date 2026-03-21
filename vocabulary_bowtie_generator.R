@@ -5,35 +5,12 @@
 # and AI-powered linking, then exports to Excel format suitable for main app
 # =============================================================================
 
-# Load required libraries (do not auto-install at load time)
-if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Package 'openxlsx' is required")
-if (!requireNamespace("dplyr", quietly = TRUE)) stop("Package 'dplyr' is required")
-if (!requireNamespace("readxl", quietly = TRUE)) stop("Package 'readxl' is required")
+# NOTE: All packages and modules are loaded via global.R — do not add
+# library() or source() calls here. vocabulary.R and vocabulary_ai_linker.R
+# are already sourced before this file in global.R's loading sequence.
 
-library(openxlsx)
-library(dplyr)
-library(readxl)
-
-# Source required functions
-if (file.exists("vocabulary.R")) {
-  source("vocabulary.R")
-} else {
-  stop("vocabulary.R file not found. Please ensure it's in the working directory.")
-}
-
-# Try to load AI linker with correct filename
-ai_linker_loaded <- FALSE
-if (file.exists("vocabulary_ai_linker.R")) {
-  tryCatch({
-    source("vocabulary_ai_linker.R")
-    ai_linker_loaded <- TRUE
-    log_success("AI linker loaded successfully")
-  }, error = function(e) {
-    log_warning(paste("Failed to load vocabulary_ai_linker.R:", e$message))
-  })
-} else {
-  log_warning("vocabulary_ai_linker.R not found. Will use basic linking only.")
-}
+# Check if AI linker is available (loaded by global.R)
+ai_linker_loaded <- exists("find_vocabulary_links")
 
 # =============================================================================
 # MAIN FUNCTION: Generate Bow-Tie Network from Vocabulary
@@ -57,7 +34,7 @@ generate_vocabulary_bowtie <- function(
     load_vocabulary()
   }, error = function(e) {
     log_warning(paste("Could not load vocabulary from Excel files:", e$message))
-    log_info("Creating sample vocabulary data instead...")
+    log_warning("NOTICE: Using sample vocabulary data - results will NOT reflect real environmental data")
     create_sample_vocabulary_data()
   })
 
@@ -83,11 +60,10 @@ generate_vocabulary_bowtie <- function(
     log_info("Using basic connection method...")
     if (exists("find_basic_connections")) {
       vocabulary_links <- find_basic_connections(
-        vocabulary_data,
-        max_links_per_item = max_connections_per_item
+        vocabulary_data
       )
     } else {
-      warning("No linking functions available. Creating empty links dataframe.")
+      log_warning("No linking functions available. Creating empty links dataframe.")
       vocabulary_links <- data.frame()
     }
   }

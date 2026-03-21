@@ -1,11 +1,11 @@
-# Test suite for vocabulary_bowtie_generator.r
+# Test suite for vocabulary_bowtie_generator.R
 # Tests bow-tie network generation from vocabulary elements
 
 library(testthat)
 
 # Source the generator file only if it exists
-skip_if_not(file.exists("vocabulary_bowtie_generator.r"), "vocabulary_bowtie_generator.r not available")
-source("vocabulary_bowtie_generator.r", local = TRUE)
+skip_if_not(file.exists("vocabulary_bowtie_generator.R"), "vocabulary_bowtie_generator.R not available")
+source("vocabulary_bowtie_generator.R", local = TRUE)
 
 # Test main generation function
 test_that("generate_vocabulary_bowtie creates valid output", {
