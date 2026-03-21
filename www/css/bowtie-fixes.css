@@ -1,0 +1,25 @@
+/* ==========================================================================
+   Bowtie Diagram Fixes (Feedback AF 2026-03-20)
+   ========================================================================== */
+
+/* Fix #14: visNetwork tooltip readability */
+.vis-tooltip {
+  color: #333333 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cccccc !important;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 350px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Fix #16: cursor style for diagram canvas */
+.vis-network canvas {
+  cursor: grab;
+}
+.vis-network canvas:active {
+  cursor: grabbing;
+}

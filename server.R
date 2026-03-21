@@ -11,6 +11,11 @@ server <- function(input, output, session) {
   # This MUST be called at the start of the server function
   init_session_isolation(session, vocabulary_data)
 
+  # Keepalive handler — receives heartbeat pings from client JS (Feedback #1)
+  observeEvent(input$keepalive, {
+    # No-op: receiving the input keeps the WebSocket session alive
+  }, ignoreInit = TRUE)
+
   # =============================================================================
   # HELPER FUNCTION FOR SAFE UI RENDERING
   # =============================================================================

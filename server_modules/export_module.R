@@ -66,7 +66,7 @@ export_module_server <- function(input, output, session, getCurrentData) {
   output$downloadBowtieJPEG <- downloadHandler(
     filename = function() {
       req(input$selectedProblem)
-      paste("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), ".jpeg")
+      paste0("bowtie_", gsub(" ", "_", input$selectedProblem), "_", Sys.Date(), "_interactive.html")
     },
     content = function(file) {
       data <- getCurrentData()
@@ -103,7 +103,10 @@ export_module_server <- function(input, output, session, getCurrentData) {
       # For server-side export, we'll use the HTML with export functionality
       file.copy(temp_html, file)
 
-      notify_info("JPEG export: Click the 'Export JPEG' button in the opened diagram", duration = 10)
+      showNotification(
+        "Downloaded as interactive HTML. Open in a browser, then click the 'Export JPEG' button in the top-left to save as image.",
+        type = "message", duration = 10
+      )
     },
     contentType = "text/html"
   )

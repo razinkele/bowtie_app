@@ -105,11 +105,11 @@ if (file.exists("guided_workflow_conversion.R")) {
 #' Reduces code duplication across multiple renderDT calls
 #' @param items Character vector of items to display
 #' @param column_name Name of the column to display
-#' @param page_length Number of rows per page (default 5)
+#' @param page_length Number of rows per page (default 25)
 #' @param show_search Whether to show search box (default FALSE)
 #' @param selection Selection mode: 'none', 'single', 'multiple' (default 'none')
 #' @return DT::datatable object
-create_simple_datatable <- function(items, column_name, page_length = 5,
+create_simple_datatable <- function(items, column_name, page_length = 25,
                                     show_search = FALSE, selection = "none") {
   # Handle empty or NULL items
   if (is.null(items) || length(items) == 0) {
@@ -129,7 +129,9 @@ create_simple_datatable <- function(items, column_name, page_length = 5,
       lengthChange = FALSE,
       info = show_search,
       dom = dom_string,
-      language = list(emptyTable = "No items added yet")
+      language = list(emptyTable = "No items added yet"),
+      scrollY = if (page_length > 15) "400px" else NULL,
+      scrollCollapse = TRUE
     ),
     rownames = FALSE,
     selection = selection,

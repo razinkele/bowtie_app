@@ -1605,7 +1605,7 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
   }
 
   # Check cache first using LRU-aware get_cache()
-  cache_key <- paste0("nodes_updated_v432_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
+  cache_key <- paste0("nodes_updated_v570_fb_", selected_problem, "_", node_size, "_", show_risk_levels, "_", show_barriers, "_", nrow(hazard_data))
   cached_nodes <- get_cache(cache_key)
   if (!is.null(cached_nodes)) {
     bowtie_log("📋 Using cached nodes", level = "debug")
@@ -1663,9 +1663,9 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
   
   if (show_barriers) {
     # Pre-calculate unique values for barrier elements
-    preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
-    escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
-    protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
+    preventive_controls <- unique(hazard_data$Preventive_Control[!is.na(hazard_data$Preventive_Control) & hazard_data$Preventive_Control != ""])
+    escalation_factors <- unique(hazard_data$Escalation_Factor[!is.na(hazard_data$Escalation_Factor) & hazard_data$Escalation_Factor != ""])
+    protective_mitigations <- unique(hazard_data$Protective_Mitigation[!is.na(hazard_data$Protective_Mitigation) & hazard_data$Protective_Mitigation != ""])
     n_barriers <- length(preventive_controls) + length(escalation_factors) + length(protective_mitigations)
 
     bowtie_log("🛡️ Found", length(protective_mitigations), "unique protective mitigations", level = "debug")
@@ -1692,8 +1692,8 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
   labels[idx] <- wrap_label(selected_problem, max_width = 25)
   groups[idx] <- "central_problem"
   colors[idx] <- CENTRAL_PROBLEM_COLOR
-  shapes[idx] <- "diamond"
-  sizes[idx] <- node_size_numeric * 1.8
+  shapes[idx] <- "star"  # Feedback #13: unique shape per type (was "diamond")
+  sizes[idx] <- node_size_numeric * 2.0  # Feedback #11: increased from 1.8
   font_sizes[idx] <- 16
   x_coords[idx] <- 0     # Center horizontally
   y_coords[idx] <- 0     # Center vertically
@@ -1705,22 +1705,14 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
   
   # Activity nodes (far left) - Improved
   if (n_activities > 0) {
-    activity_colors <- if (show_risk_levels) {
-      sapply(activities, function(a) {
-        risk <- hazard_data$Risk_Level[hazard_data$Activity == a][1]
-        get_risk_color(risk, TRUE)
-      })
-    } else {
-      rep(ACTIVITY_COLOR, n_activities)
-    }
-
+    # Activity colors are always ACTIVITY_COLOR (purple) — no risk-based coloring
     activity_indices <- idx:(idx + n_activities - 1)
     ids[activity_indices] <- 50 + seq_len(n_activities)
     labels[activity_indices] <- sapply(activities, wrap_label, max_width = 18)
     groups[activity_indices] <- "activity_custom"
     colors[activity_indices] <- "#8E44AD"  # Force purple color
-    shapes[activity_indices] <- "square"    # Square shape
-    sizes[activity_indices] <- node_size_numeric * 0.85  # Reduced from node_size_numeric
+    shapes[activity_indices] <- "diamond"    # Feedback #13: unique shape (was "square")
+    sizes[activity_indices] <- node_size_numeric * 1.1  # Feedback #11: increased from 0.85
     font_sizes[activity_indices] <- 11  # Reduced from 12
 
     # Set positions for activities (far left) - FURTHER INCREASED SPACING
@@ -1752,22 +1744,14 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
   
   # Pressure nodes (left side) - Improved
   if (n_pressures > 0) {
-    pressure_colors <- if (show_risk_levels) {
-      sapply(pressures, function(p) {
-        risk <- hazard_data$Risk_Level[hazard_data$Pressure == p][1]
-        get_risk_color(risk, TRUE)
-      })
-    } else {
-      rep(PRESSURE_COLOR, n_pressures)
-    }
-
+    # Feedback #12: always use constant color so legend matches nodes
     pressure_indices <- idx:(idx + n_pressures - 1)
     ids[pressure_indices] <- 100 + seq_len(n_pressures)
     labels[pressure_indices] <- sapply(pressures, wrap_label, max_width = 18)
     groups[pressure_indices] <- "pressure"
-    colors[pressure_indices] <- pressure_colors
+    colors[pressure_indices] <- PRESSURE_COLOR  # Always #E74C3C, not risk-based (Feedback #12)
     shapes[pressure_indices] <- "triangle"
-    sizes[pressure_indices] <- node_size_numeric * 0.85  # Reduced from node_size_numeric
+    sizes[pressure_indices] <- node_size_numeric * 1.1  # Feedback #11: increased from 0.85
     font_sizes[pressure_indices] <- 11  # Reduced from 12
 
     # Set positions for pressures (left side, between activities and central problem) - FURTHER INCREASED SPACING
@@ -1802,22 +1786,14 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
   
   # Consequence nodes (right side) - Improved
   if (n_consequences > 0) {
-    cons_colors <- if (show_risk_levels) {
-      sapply(consequences, function(c) {
-        risk <- hazard_data$Risk_Level[hazard_data$Consequence == c][1]
-        get_risk_color(risk, TRUE)
-      })
-    } else {
-      rep(CONSEQUENCE_COLOR, n_consequences)
-    }
-
+    # Feedback #12: always use constant color so legend matches nodes
     cons_indices <- idx:(idx + n_consequences - 1)
     ids[cons_indices] <- 200 + seq_len(n_consequences)
     labels[cons_indices] <- sapply(consequences, wrap_label, max_width = 18)
     groups[cons_indices] <- "consequence"
-    colors[cons_indices] <- cons_colors
+    colors[cons_indices] <- CONSEQUENCE_COLOR  # Always #E67E22, not risk-based (Feedback #12)
     shapes[cons_indices] <- "hexagon"
-    sizes[cons_indices] <- node_size_numeric * 0.85  # Reduced from node_size_numeric
+    sizes[cons_indices] <- node_size_numeric * 1.1  # Feedback #11: increased from 0.85
     font_sizes[cons_indices] <- 11  # Reduced from 12
 
     # Set positions for consequences (right side) - FURTHER INCREASED SPACING
@@ -1856,7 +1832,7 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
       groups[prev_indices] <- "preventive_control"
       colors[prev_indices] <- PREVENTIVE_COLOR
       shapes[prev_indices] <- "square"
-      sizes[prev_indices] <- node_size_numeric * 0.7  # Reduced from 0.8
+      sizes[prev_indices] <- node_size_numeric * 0.9  # Feedback #11: increased from 0.7
       font_sizes[prev_indices] <- 9  # Reduced from 10
 
       # Set positions for preventive controls (between activities/pressures and central problem) - FURTHER INCREASED SPACING
@@ -1888,7 +1864,7 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
       groups[esc_indices] <- "escalation_factor"
       colors[esc_indices] <- ESCALATION_COLOR
       shapes[esc_indices] <- "triangleDown"
-      sizes[esc_indices] <- node_size_numeric * 0.7  # Reduced from 0.8
+      sizes[esc_indices] <- node_size_numeric * 0.9  # Feedback #11: increased from 0.7
       font_sizes[esc_indices] <- 9  # Reduced from 10
 
       # Set positions for escalation factors (near preventive controls) - FURTHER INCREASED SPACING
@@ -1923,7 +1899,7 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
       groups[prot_indices] <- "protective_mitigation"
       colors[prot_indices] <- PROTECTIVE_COLOR
       shapes[prot_indices] <- "square"
-      sizes[prot_indices] <- node_size_numeric * 0.75  # Reduced from 0.9
+      sizes[prot_indices] <- node_size_numeric * 0.9  # Feedback #11: increased from 0.75
       font_sizes[prot_indices] <- 10  # Reduced from 11
 
       # Set positions for protective mitigations (between central problem and consequences) - FURTHER INCREASED SPACING
@@ -1950,6 +1926,17 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
     }
   }
 
+  # Feedback #11: Calculate font.vadjust per node type - negative values pull label UP into shape
+  central_problem_idx <- which(groups == "central_problem")
+  font_vadjust_values <- rep(-30, length(ids))
+  font_vadjust_values[central_problem_idx] <- -40
+  prev_vadjust_idx <- which(groups == "preventive_control")
+  prot_vadjust_idx <- which(groups == "protective_mitigation")
+  esc_vadjust_idx <- which(groups == "escalation_factor")
+  if (length(prev_vadjust_idx) > 0) font_vadjust_values[prev_vadjust_idx] <- -20
+  if (length(prot_vadjust_idx) > 0) font_vadjust_values[prot_vadjust_idx] <- -20
+  if (length(esc_vadjust_idx) > 0) font_vadjust_values[esc_vadjust_idx] <- -20
+
   nodes <- data.frame(
     id = ids,
     label = labels,
@@ -1958,6 +1945,7 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
     shape = shapes,
     size = sizes,
     font.size = font_sizes,
+    font.vadjust = font_vadjust_values,
     title = titles,
     x = x_coords,
     y = y_coords,
@@ -2061,9 +2049,9 @@ create_bowtie_edges_fixed <- function(hazard_data, show_barriers) {
   } else {
     # Updated Complex flow with PROPER protective mitigation mapping
     
-    preventive_controls <- unique(hazard_data$Preventive_Control[hazard_data$Preventive_Control != ""])
-    escalation_factors <- unique(hazard_data$Escalation_Factor[hazard_data$Escalation_Factor != ""])
-    protective_mitigations <- unique(hazard_data$Protective_Mitigation[hazard_data$Protective_Mitigation != ""])
+    preventive_controls <- unique(hazard_data$Preventive_Control[!is.na(hazard_data$Preventive_Control) & hazard_data$Preventive_Control != ""])
+    escalation_factors <- unique(hazard_data$Escalation_Factor[!is.na(hazard_data$Escalation_Factor) & hazard_data$Escalation_Factor != ""])
+    protective_mitigations <- unique(hazard_data$Protective_Mitigation[!is.na(hazard_data$Protective_Mitigation) & hazard_data$Protective_Mitigation != ""])
 
     bowtie_log("🛡️ Found", length(protective_mitigations), "unique protective mitigations", level = "debug")
     bowtie_log("🎯 Found", length(consequences), "unique consequences", level = "debug")

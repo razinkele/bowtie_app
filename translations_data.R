@@ -491,10 +491,14 @@ TRANSLATIONS <- list(
     gw_link_escalation_factors_desc = "Specify which controls are affected by each escalation factor:",
     gw_preventive_controls_at_risk_title = "Preventive Controls at Risk:",
     gw_protective_controls_at_risk_title = "Protective Controls at Risk:",
-    # Step 8: Finalize & Export
-    gw_step8_title = "Finalize & Export",
-    gw_step8_desc = "Complete your bowtie and generate reports",
-    gw_step8_time = "2-3 minutes",
+    # Step 8: Review & Adjust
+    gw_step8_title = "Review & Adjust",
+    gw_step8_desc = "Review selections, toggle connections, exclude items",
+    gw_step8_time = "3-5 minutes",
+    # Step 9: Finalize & Export
+    gw_step9_title = "Finalize & Export",
+    gw_step9_desc = "Complete your bowtie and generate reports",
+    gw_step9_time = "2-3 minutes",
     gw_review_finalize = "Review & Finalize Your Bowtie",
     gw_review_desc = "Review your complete bowtie diagram and export your assessment.",
     gw_bowtie_review = "Complete Bowtie Review",
@@ -1091,10 +1095,14 @@ TRANSLATIONS <- list(
     gw_link_escalation_factors_desc = "Specifiez quels controles sont affectes par chaque facteur d'escalade :",
     gw_preventive_controls_at_risk_title = "Controles Preventifs a Risque :",
     gw_protective_controls_at_risk_title = "Controles Protecteurs a Risque :",
-    # Step 8: Finalize & Export
-    gw_step8_title = "Finaliser et Exporter",
-    gw_step8_desc = "Terminez votre noeud papillon et generez des rapports",
-    gw_step8_time = "2-3 minutes",
+    # Step 8: Review & Adjust
+    gw_step8_title = "Reviser et Ajuster",
+    gw_step8_desc = "Reviser les selections, basculer les connexions, exclure des elements",
+    gw_step8_time = "3-5 minutes",
+    # Step 9: Finalize & Export
+    gw_step9_title = "Finaliser et Exporter",
+    gw_step9_desc = "Terminez votre noeud papillon et generez des rapports",
+    gw_step9_time = "2-3 minutes",
     gw_review_finalize = "Reviser et Finaliser Votre Noeud Papillon",
     gw_review_desc = "Revisez votre diagramme en noeud papillon complet et exportez votre evaluation.",
     gw_bowtie_review = "Revision Complete du Noeud Papillon",

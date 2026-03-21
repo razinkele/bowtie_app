@@ -194,15 +194,18 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
                smooth = list(enabled = TRUE, type = "curvedCW", roundness = 0.2)) %>%
       visLayout(randomSeed = 123, improvedLayout = FALSE) %>%
       visPhysics(enabled = FALSE, stabilization = FALSE) %>%
-      visOptions(highlightNearest = list(enabled = TRUE, degree = 1),
-                nodesIdSelection = TRUE, collapse = FALSE,
+      visOptions(highlightNearest = list(enabled = TRUE, degree = 1, hideColor = "rgba(200,200,200,0.3)", hideLabel = FALSE),
+                nodesIdSelection = list(enabled = TRUE, style = "width: 250px; padding: 5px;"), collapse = FALSE,
                 manipulation = if(input$editMode) list(enabled = TRUE, addNode = TRUE, addEdge = TRUE,
                                                       editNode = TRUE, editEdge = TRUE, deleteNode = TRUE,
                                                       deleteEdge = TRUE) else list(enabled = FALSE)) %>%
-      visInteraction(navigationButtons = TRUE, dragNodes = TRUE, dragView = TRUE, zoomView = TRUE) %>%
+      visInteraction(navigationButtons = TRUE, dragNodes = TRUE,
+                    dragView = TRUE, zoomView = TRUE,
+                    zoomSpeed = 0.5) %>%
+      visEvents(type = "once", afterDrawing = "function() { this.fit({animation: {duration: 500}}); }") %>%
       visLegend(useGroups = FALSE, addNodes = list(
         list(label = "Activities (Human Actions)",
-             color = "#8E44AD", shape = "square", size = 15),
+             color = "#8E44AD", shape = "diamond", size = 15),
         list(label = "Pressures (Environmental Threats)",
              color = "#E74C3C", shape = "triangle", size = 15),
         list(label = "Preventive Controls",
@@ -210,7 +213,7 @@ bowtie_visualization_module_server <- function(input, output, session, getCurren
         list(label = "Escalation Factors",
              color = "#F39C12", shape = "triangleDown", size = 15),
         list(label = "Central Problem (Main Risk)",
-             color = "#C0392B", shape = "diamond", size = 18),
+             color = "#C0392B", shape = "star", size = 18),
         list(label = "Protective Mitigation",
              color = "#3498DB", shape = "square", size = 15),
         list(label = "Consequences (Impacts)",

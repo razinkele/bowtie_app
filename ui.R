@@ -640,6 +640,7 @@ ui <- dashboardPage(
       # Custom theme CSS
       tags$link(rel = "stylesheet", type = "text/css", href = "css/deep-ocean-theme.css"),
       tags$link(rel = "stylesheet", type = "text/css", href = "css/light-theme.css"),
+      tags$link(rel = "stylesheet", type = "text/css", href = "css/bowtie-fixes.css"),
       # Custom micro-interactions JavaScript
       tags$script(src = "js/deep-ocean-interactions.js")
     ),
@@ -950,5 +951,15 @@ ui <- dashboardPage(
   ),
 
   # Dashboard options
-  title = "Environmental Bowtie Risk Analysis"
+  title = "Environmental Bowtie Risk Analysis",
+
+  # Keepalive heartbeat — prevents WebSocket disconnect during idle periods
+  # Sends a ping every 30 seconds to keep the connection alive (Feedback #1)
+  tags$script(HTML("
+    setInterval(function() {
+      if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.isConnected()) {
+        Shiny.setInputValue('keepalive', new Date().getTime());
+      }
+    }, 30000);
+  "))
 )
