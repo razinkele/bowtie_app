@@ -25,7 +25,7 @@
 #' @param state Current workflow state
 #' @return Estimated minutes remaining
 estimate_remaining_time <- function(state) {
-  step_durations <- c(2.5, 4, 7.5, 6.5, 4, 6.5, 4, 2.5)  # Average minutes per step
+  step_durations <- c(2.5, 4, 7.5, 6.5, 4, 6.5, 4, 5, 2.5)  # Average minutes per step (9 steps)
   remaining_steps <- setdiff(1:state$total_steps, state$completed_steps)
   sum(step_durations[remaining_steps])
 }
@@ -47,7 +47,8 @@ validate_step <- function(step_number, data) {
          "5" = validate_step5(data),
          "6" = validate_step6(data),
          "7" = validate_step7(data),
-         "8" = validate_step8(data),
+         "8" = validate_step8_review(data),
+         "9" = validate_step9(data),
          # Default
          list(valid = TRUE, message = "")
   )
@@ -101,7 +102,26 @@ validate_current_step <- function(state, input, current_lang = "en") {
                               "gw_enter_project_name", current_lang),
     "2" = validate_text_field(input$problem_statement, "Problem statement", max_text_length,
                               "gw_define_central_problem", current_lang),
-    # Steps 3-8: Optional validation - can proceed without entries
+    # Step 8: Review & Adjust — require at least 1 activity, pressure, consequence
+    "8" = {
+      state_data <- if (!is.null(input$review_activities)) {
+        list(
+          activities = input$review_activities,
+          pressures = input$review_pressures,
+          consequences = input$review_consequences,
+          excluded_activities = character(0),
+          excluded_pressures = character(0),
+          excluded_consequences = character(0)
+        )
+      } else {
+        list(activities = list(), pressures = list(), consequences = list(),
+             excluded_activities = character(0), excluded_pressures = character(0),
+             excluded_consequences = character(0))
+      }
+      result <- validate_step8_review(state_data)
+      list(is_valid = result$valid, message = result$message)
+    },
+    # Steps 3-7, 9: Optional validation
     list(is_valid = TRUE, message = "")
   )
 
@@ -164,10 +184,40 @@ validate_step7 <- function(data) {
   list(valid = TRUE, message = "")
 }
 
-#' Step 8 validation: Export
+#' Step 8 validation: Review & Adjust
+#' Requires at least 1 activity, 1 pressure, and 1 consequence
+#' @param data Project data (with exclusion lists)
+#' @return List with valid and message
+validate_step8_review <- function(data) {
+  activities <- data$activities %||% list()
+  excluded_act <- data$excluded_activities %||% character(0)
+  included_act <- setdiff(as.character(activities), excluded_act)
+
+  pressures <- data$pressures %||% list()
+  excluded_pres <- data$excluded_pressures %||% character(0)
+  included_pres <- setdiff(as.character(pressures), excluded_pres)
+
+  consequences <- data$consequences %||% list()
+  excluded_cons <- data$excluded_consequences %||% character(0)
+  included_cons <- setdiff(as.character(consequences), excluded_cons)
+
+  if (length(included_act) == 0) {
+    return(list(valid = FALSE, message = "At least one activity must be selected to proceed."))
+  }
+  if (length(included_pres) == 0) {
+    return(list(valid = FALSE, message = "At least one pressure must be selected to proceed."))
+  }
+  if (length(included_cons) == 0) {
+    return(list(valid = FALSE, message = "At least one consequence must be selected to proceed."))
+  }
+
+  list(valid = TRUE, message = "")
+}
+
+#' Step 9 validation: Finalize & Export
 #' @param data Project data
 #' @return List with valid and message
-validate_step8 <- function(data) {
+validate_step9 <- function(data) {
   list(valid = TRUE, message = "")
 }
 
@@ -200,45 +250,42 @@ save_step_data <- function(state, input) {
     state$central_problem <- input$problem_statement  # Also save at top level
   } else if (step == 3) {
     # Save activities and pressures data
-    # Note: The data is already being saved in real-time by the Add Activity/Pressure handlers
-    # We just need to ensure it's preserved in the state
-    # Don't overwrite with empty values
     if (is.null(state$project_data$activities)) {
       state$project_data$activities <- list()
     }
     if (is.null(state$project_data$pressures)) {
       state$project_data$pressures <- list()
     }
+    # Note: Connection persistence (activity_pressure_connections) happens in
+    # the next_step observer in guided_workflow.R where reactiveVals are in scope.
   } else if (step == 4) {
     # Save preventive controls data
-    # Note: The data is already being saved in real-time by the Add Control handler
-    # We just need to ensure it's preserved in the state
     if (is.null(state$project_data$preventive_controls)) {
       state$project_data$preventive_controls <- list()
     }
+    # Note: Connection persistence (preventive_control_links) happens in
+    # the next_step observer in guided_workflow.R where reactiveVals are in scope.
   } else if (step == 5) {
     # Save consequences data
-    # Note: The data is already being saved in real-time by the Add Consequence handler
-    # We just need to ensure it's preserved in the state
     if (is.null(state$project_data$consequences)) {
       state$project_data$consequences <- list()
     }
   } else if (step == 6) {
     # Save protective controls data
-    # Note: The data is already being saved in real-time by the Add Protective Control handler
-    # We just need to ensure it's preserved in the state
     if (is.null(state$project_data$protective_controls)) {
       state$project_data$protective_controls <- list()
     }
+    # Note: Connection persistence (consequence_protective_links) happens in
+    # the next_step observer in guided_workflow.R where reactiveVals are in scope.
   } else if (step == 7) {
     # Save escalation factors data
-    # Note: The data is already being saved in real-time by the Add Escalation Factor handler
-    # We just need to ensure it's preserved in the state
     if (is.null(state$project_data$escalation_factors)) {
       state$project_data$escalation_factors <- list()
     }
+  } else if (step == 8) {
+    # Review exclusions are saved by the next_step observer in guided_workflow.R
   }
-  # Step 8 is review only - no data to save
+  # Step 9 is finalize only - no data to save
 
   # Record timestamp for this step
   state$step_times[[paste0("step_", step)]] <- Sys.time()
@@ -246,4 +293,4 @@ save_step_data <- function(state, input) {
   return(state)
 }
 
-cat("   - guided_workflow_validation.R loaded (validation + save functions)\n")
+bowtie_log("   - guided_workflow_validation.R loaded (validation + save functions)", level = "debug")

@@ -23,12 +23,6 @@ validate_guided_workflow_dependencies <- function() {
   for (pkg in required_packages) {
     if (!requireNamespace(pkg, quietly = TRUE)) {
       missing_required <- c(missing_required, pkg)
-    } else {
-      tryCatch({
-        library(pkg, character.only = TRUE, quietly = TRUE)
-      }, error = function(e) {
-        missing_required <- c(missing_required, pkg)
-      })
     }
   }
 
@@ -665,7 +659,7 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     if (exists(ui_function_name, mode = "function")) {
       ui_function <- get(ui_function_name)
       # Call with session parameter and vocabulary_data for steps that need it
-      if (step_num %in% c(3, 4, 5, 6)) {
+      if (step_num %in% c(3, 4, 5, 6, 8)) {
         ui_function(vocabulary_data = vocabulary_data, session = session, current_lang = lang())
       } else {
         ui_function(session = session, current_lang = lang())
@@ -770,6 +764,46 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
       return()
     }
     
+    # Persist connection data when leaving steps 3, 4, 6 (reactiveVals in scope here)
+    if (state$current_step == 3) {
+      conn <- tryCatch(activity_pressure_connections(), error = function(e) NULL)
+      if (!is.null(conn) && is.data.frame(conn) && nrow(conn) > 0) {
+        state$project_data$connections_act_pres <- conn
+      }
+    } else if (state$current_step == 4) {
+      conn <- tryCatch(preventive_control_links(), error = function(e) NULL)
+      if (!is.null(conn) && is.data.frame(conn) && nrow(conn) > 0) {
+        state$project_data$connections_ctrl_pres <- conn
+      }
+    } else if (state$current_step == 6) {
+      conn <- tryCatch(consequence_protective_links(), error = function(e) NULL)
+      if (!is.null(conn) && is.data.frame(conn) && nrow(conn) > 0) {
+        state$project_data$connections_cons_prot <- conn
+      }
+    }
+
+    # Persist review exclusions for step 8
+    if (state$current_step == 8) {
+      all_act <- as.character(state$project_data$activities %||% list())
+      state$project_data$excluded_activities <- setdiff(all_act, input$review_activities %||% character(0))
+
+      all_pres <- as.character(state$project_data$pressures %||% list())
+      state$project_data$excluded_pressures <- setdiff(all_pres, input$review_pressures %||% character(0))
+
+      all_prev <- as.character(state$project_data$preventive_controls %||% list())
+      state$project_data$excluded_preventive <- setdiff(all_prev, input$review_preventive %||% character(0))
+
+      all_cons <- as.character(state$project_data$consequences %||% list())
+      state$project_data$excluded_consequences <- setdiff(all_cons, input$review_consequences %||% character(0))
+
+      all_prot <- as.character(state$project_data$protective_controls %||% list())
+      state$project_data$excluded_protective <- setdiff(all_prot, input$review_protective %||% character(0))
+
+      conn <- review_connections_data()
+      disabled_conn <- conn[!conn$enabled, c("from", "to", "type")]
+      state$project_data$disabled_connections <- disabled_conn
+    }
+
     # Save data from current step
     state <- save_step_data(state, input)
     
@@ -2067,8 +2101,276 @@ guided_workflow_server <- function(id, vocabulary_data, lang = reactive({"en"}),
     )
   })
 
+  # =========================================================================
+  # STEP 8: Review & Adjust — Server Logic
+  # =========================================================================
+
+  # Reactive store for connections data (with enabled toggles)
+  review_connections_data <- reactiveVal(data.frame(
+    from = character(0), to = character(0), type = character(0), enabled = logical(0),
+    stringsAsFactors = FALSE
+  ))
+
+  # Build unified connections from project_data's three connection sources
+  build_unified_connections <- function(pd) {
+    rows <- list()
+
+    conn1 <- pd$connections_act_pres
+    if (!is.null(conn1) && is.data.frame(conn1) && nrow(conn1) > 0) {
+      for (i in seq_len(nrow(conn1))) {
+        rows[[length(rows) + 1]] <- data.frame(
+          from = conn1$Activity[i], to = conn1$Pressure[i],
+          type = "activity_pressure", enabled = TRUE, stringsAsFactors = FALSE)
+      }
+    }
+
+    conn2 <- pd$connections_ctrl_pres
+    if (!is.null(conn2) && is.data.frame(conn2) && nrow(conn2) > 0) {
+      for (i in seq_len(nrow(conn2))) {
+        rows[[length(rows) + 1]] <- data.frame(
+          from = conn2$Control[i], to = conn2$Target[i],
+          type = "control_pressure", enabled = TRUE, stringsAsFactors = FALSE)
+      }
+    }
+
+    conn3 <- pd$connections_cons_prot
+    if (!is.null(conn3) && is.data.frame(conn3) && nrow(conn3) > 0) {
+      for (i in seq_len(nrow(conn3))) {
+        rows[[length(rows) + 1]] <- data.frame(
+          from = conn3$Consequence[i], to = conn3$Control[i],
+          type = "consequence_protective", enabled = TRUE, stringsAsFactors = FALSE)
+      }
+    }
+
+    result <- if (length(rows) > 0) do.call(rbind, rows) else {
+      data.frame(from = character(0), to = character(0), type = character(0),
+                 enabled = logical(0), stringsAsFactors = FALSE)
+    }
+
+    # Apply saved disabled connections (restore from persisted state)
+    disabled <- pd$disabled_connections
+    if (!is.null(disabled) && is.data.frame(disabled) && nrow(disabled) > 0 && nrow(result) > 0) {
+      for (i in seq_len(nrow(disabled))) {
+        match_idx <- which(result$from == disabled$from[i] &
+                           result$to == disabled$to[i] &
+                           result$type == disabled$type[i])
+        if (length(match_idx) > 0) {
+          result$enabled[match_idx] <- FALSE
+        }
+      }
+    }
+
+    result
+  }
+
+  # Initialize Step 8 checkboxes when entering the step
+  observeEvent(current_step_reactive(), {
+    req(current_step_reactive() == 8)
+    state <- workflow_state()
+    pd <- state$project_data
+
+    activities <- as.character(pd$activities %||% list())
+    pressures <- as.character(pd$pressures %||% list())
+    preventive <- as.character(pd$preventive_controls %||% list())
+    consequences <- as.character(pd$consequences %||% list())
+    protective <- as.character(pd$protective_controls %||% list())
+
+    excl_act <- pd$excluded_activities %||% character(0)
+    excl_pres <- pd$excluded_pressures %||% character(0)
+    excl_prev <- pd$excluded_preventive %||% character(0)
+    excl_cons <- pd$excluded_consequences %||% character(0)
+    excl_prot <- pd$excluded_protective %||% character(0)
+
+    updateCheckboxGroupInput(session, "review_activities",
+      choices = activities, selected = setdiff(activities, excl_act))
+    updateCheckboxGroupInput(session, "review_pressures",
+      choices = pressures, selected = setdiff(pressures, excl_pres))
+    updateCheckboxGroupInput(session, "review_preventive",
+      choices = preventive, selected = setdiff(preventive, excl_prev))
+    updateCheckboxGroupInput(session, "review_consequences",
+      choices = consequences, selected = setdiff(consequences, excl_cons))
+    updateCheckboxGroupInput(session, "review_protective",
+      choices = protective, selected = setdiff(protective, excl_prot))
+
+    connections <- build_unified_connections(pd)
+    review_connections_data(connections)
+  })
+
+  # Select All / Deselect All button handlers
+  observeEvent(input$select_all_activities, {
+    all_items <- as.character(workflow_state()$project_data$activities %||% list())
+    updateCheckboxGroupInput(session, "review_activities", selected = all_items)
+  })
+  observeEvent(input$deselect_all_activities, {
+    updateCheckboxGroupInput(session, "review_activities", selected = character(0))
+  })
+  observeEvent(input$select_all_pressures, {
+    all_items <- as.character(workflow_state()$project_data$pressures %||% list())
+    updateCheckboxGroupInput(session, "review_pressures", selected = all_items)
+  })
+  observeEvent(input$deselect_all_pressures, {
+    updateCheckboxGroupInput(session, "review_pressures", selected = character(0))
+  })
+  observeEvent(input$select_all_preventive, {
+    all_items <- as.character(workflow_state()$project_data$preventive_controls %||% list())
+    updateCheckboxGroupInput(session, "review_preventive", selected = all_items)
+  })
+  observeEvent(input$deselect_all_preventive, {
+    updateCheckboxGroupInput(session, "review_preventive", selected = character(0))
+  })
+  observeEvent(input$select_all_consequences, {
+    all_items <- as.character(workflow_state()$project_data$consequences %||% list())
+    updateCheckboxGroupInput(session, "review_consequences", selected = all_items)
+  })
+  observeEvent(input$deselect_all_consequences, {
+    updateCheckboxGroupInput(session, "review_consequences", selected = character(0))
+  })
+  observeEvent(input$select_all_protective, {
+    all_items <- as.character(workflow_state()$project_data$protective_controls %||% list())
+    updateCheckboxGroupInput(session, "review_protective", selected = all_items)
+  })
+  observeEvent(input$deselect_all_protective, {
+    updateCheckboxGroupInput(session, "review_protective", selected = character(0))
+  })
+
+  # Count summaries for each tab
+  output$activities_count_summary <- renderUI({
+    total <- length(as.character(workflow_state()$project_data$activities %||% list()))
+    selected <- length(input$review_activities)
+    tags$span(class = if (selected == 0 && total > 0) "text-danger" else "text-muted",
+              paste(selected, "of", total, "included"))
+  })
+  output$pressures_count_summary <- renderUI({
+    total <- length(as.character(workflow_state()$project_data$pressures %||% list()))
+    selected <- length(input$review_pressures)
+    tags$span(class = if (selected == 0 && total > 0) "text-danger" else "text-muted",
+              paste(selected, "of", total, "included"))
+  })
+  output$preventive_count_summary <- renderUI({
+    total <- length(as.character(workflow_state()$project_data$preventive_controls %||% list()))
+    selected <- length(input$review_preventive)
+    tags$span(class = "text-muted", paste(selected, "of", total, "included"))
+  })
+  output$consequences_count_summary <- renderUI({
+    total <- length(as.character(workflow_state()$project_data$consequences %||% list()))
+    selected <- length(input$review_consequences)
+    tags$span(class = if (selected == 0 && total > 0) "text-danger" else "text-muted",
+              paste(selected, "of", total, "included"))
+  })
+  output$protective_count_summary <- renderUI({
+    total <- length(as.character(workflow_state()$project_data$protective_controls %||% list()))
+    selected <- length(input$review_protective)
+    tags$span(class = "text-muted", paste(selected, "of", total, "included"))
+  })
+  output$connections_count_summary <- renderUI({
+    conn <- review_connections_data()
+    total <- nrow(conn)
+    enabled <- sum(conn$enabled)
+    tags$span(class = "text-muted", paste(enabled, "of", total, "connections enabled"))
+  })
+
+  # Read-only DT tables showing included items
+  output$review_activities_table <- DT::renderDT({
+    items <- input$review_activities
+    if (length(items) > 0) {
+      DT::datatable(data.frame(Activity = items), options = list(pageLength = 10, dom = 't'),
+                    rownames = FALSE, selection = 'none')
+    }
+  })
+  output$review_pressures_table <- DT::renderDT({
+    items <- input$review_pressures
+    if (length(items) > 0) {
+      DT::datatable(data.frame(Pressure = items), options = list(pageLength = 10, dom = 't'),
+                    rownames = FALSE, selection = 'none')
+    }
+  })
+  output$review_preventive_table <- DT::renderDT({
+    items <- input$review_preventive
+    if (length(items) > 0) {
+      DT::datatable(data.frame(Preventive_Control = items), options = list(pageLength = 10, dom = 't'),
+                    rownames = FALSE, selection = 'none')
+    }
+  })
+  output$review_consequences_table <- DT::renderDT({
+    items <- input$review_consequences
+    if (length(items) > 0) {
+      DT::datatable(data.frame(Consequence = items), options = list(pageLength = 10, dom = 't'),
+                    rownames = FALSE, selection = 'none')
+    }
+  })
+  output$review_protective_table <- DT::renderDT({
+    items <- input$review_protective
+    if (length(items) > 0) {
+      DT::datatable(data.frame(Protective_Control = items), options = list(pageLength = 10, dom = 't'),
+                    rownames = FALSE, selection = 'none')
+    }
+  })
+
+  # Connections table with type filter
+  output$review_connections_table <- DT::renderDT({
+    conn <- review_connections_data()
+    if (nrow(conn) == 0) return(NULL)
+
+    filter_type <- input$connection_type_filter
+    if (!is.null(filter_type) && filter_type != "All") {
+      type_map <- c(
+        "Activity -> Pressure" = "activity_pressure",
+        "Control -> Pressure" = "control_pressure",
+        "Consequence -> Protective" = "consequence_protective"
+      )
+      if (filter_type %in% names(type_map)) {
+        conn <- conn[conn$type == type_map[[filter_type]], ]
+      }
+    }
+
+    display_type <- dplyr::case_when(
+      conn$type == "activity_pressure" ~ "Activity -> Pressure",
+      conn$type == "control_pressure" ~ "Control -> Pressure",
+      conn$type == "consequence_protective" ~ "Consequence -> Protective",
+      TRUE ~ conn$type
+    )
+
+    display_df <- data.frame(
+      From = conn$from,
+      To = conn$to,
+      Type = display_type,
+      Enabled = ifelse(conn$enabled, "Yes", "No"),
+      stringsAsFactors = FALSE
+    )
+
+    DT::datatable(display_df, options = list(pageLength = 20, dom = 'tp'),
+                  rownames = FALSE, selection = 'single')
+  })
+
+  # Toggle connection enabled/disabled when row is clicked
+  observeEvent(input$review_connections_table_rows_selected, {
+    row <- input$review_connections_table_rows_selected
+    if (!is.null(row) && row > 0) {
+      conn <- review_connections_data()
+      if (row <= nrow(conn)) {
+        conn$enabled[row] <- !conn$enabled[row]
+        review_connections_data(conn)
+      }
+    }
+  })
+
+  # Reactive: final reviewed selections ready for conversion
+  reviewed_selections <- reactive({
+    list(
+      activities = input$review_activities %||% character(0),
+      pressures = input$review_pressures %||% character(0),
+      preventive_controls = input$review_preventive %||% character(0),
+      consequences = input$review_consequences %||% character(0),
+      protective_controls = input$review_protective %||% character(0),
+      connections = {
+        conn <- review_connections_data()
+        conn[conn$enabled, , drop = FALSE]
+      }
+    )
+  })
+
   # =============================================================================
-  # STEP 8: FINALIZE & EXPORT SECTION
+  # STEP 9: FINALIZE & EXPORT SECTION
   # =============================================================================
 
   # Render the finalize/export section based on workflow completion status

@@ -118,10 +118,10 @@ server <- function(input, output, session) {
     bowtie_log("🧹 Session ended - cleaning up resources...")
     tryCatch({
       # Clear reactive values to prevent memory leaks
-      if (exists("currentData") && is.function(currentData)) currentData(NULL)
-      if (exists("editedData") && is.function(editedData)) editedData(NULL)
-      if (exists("bayesianNetwork") && is.function(bayesianNetwork)) bayesianNetwork(NULL)
-      if (exists("inferenceResults") && is.function(inferenceResults)) inferenceResults(NULL)
+      if (exists("currentData") && is.reactive(currentData)) currentData(NULL)
+      if (exists("editedData") && is.reactive(editedData)) editedData(NULL)
+      if (exists("bayesianNetwork") && is.reactive(bayesianNetwork)) bayesianNetwork(NULL)
+      if (exists("inferenceResults") && is.reactive(inferenceResults)) inferenceResults(NULL)
 
       # Use comprehensive session isolation cleanup (v5.4.1)
       # This clears: session cache, session vocabulary, session temp files
@@ -474,10 +474,10 @@ server <- function(input, output, session) {
       filtered <- filtered[filtered$status == input$filter_term_status, ]
     }
 
-    # Search filter
+    # Search filter (use fixed = TRUE to prevent regex injection from user input)
     if (!is.null(input$filter_term_search) && nchar(input$filter_term_search) > 0) {
       search_term <- tolower(input$filter_term_search)
-      filtered <- filtered[grepl(search_term, tolower(filtered$term)), ]
+      filtered <- filtered[grepl(search_term, tolower(filtered$term), fixed = TRUE), ]
     }
 
     if (nrow(filtered) == 0) return(NULL)
@@ -1103,8 +1103,8 @@ server <- function(input, output, session) {
     if (!is.null(state) &&
         isTRUE(state$workflow_complete) &&  # Use isTRUE for safer boolean check
         !is.null(state$current_step) &&
-        state$current_step >= 8 &&
-        length(state$completed_steps) >= 7) {  # Must have completed at least 7 steps
+        state$current_step >= state$total_steps &&
+        length(state$completed_steps) >= (state$total_steps - 1)) {  # Must have completed at least total_steps-1 steps
 
       notify_success("🎉 Bowtie workflow completed successfully!", duration = 5)
 
@@ -1359,7 +1359,7 @@ server <- function(input, output, session) {
     # Check if workflow is active
     if (exists("workflow_state") && !is.null(workflow_state$current_step)) {
       current_step <- workflow_state$current_step
-      if (current_step > 0 && current_step <= 8) {
+      if (current_step > 0 && current_step <= 9) {
         return(paste0("Step ", current_step))
       }
     }

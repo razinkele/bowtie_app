@@ -87,7 +87,7 @@ create_mock_vocabulary <- function() {
 create_test_workflow_state <- function() {
   list(
     current_step = 1,
-    total_steps = 8,
+    total_steps = 9,
     completed_steps = integer(0),
     progress_percentage = 0,
     project_name = "",
@@ -169,7 +169,7 @@ test_that("Workflow state initializes correctly", {
   state <- create_test_workflow_state()
   
   expect_equal(state$current_step, 1)
-  expect_equal(state$total_steps, 8)
+  expect_equal(state$total_steps, 9)
   expect_equal(length(state$completed_steps), 0)
   expect_equal(state$progress_percentage, 0)
   expect_type(state$project_data, "list")
@@ -220,7 +220,7 @@ test_that("Step 2 validation works correctly", {
   
   result1 <- validate_current_step(state1, input1)
   expect_false(result1$is_valid)
-  expect_match(result1$message, "central problem", ignore.case = TRUE)
+  expect_match(result1$message, "problem", ignore.case = TRUE)
   
   # Test with valid problem statement
   input2 <- list(problem_statement = "Nutrient pollution causing algal blooms")
@@ -300,7 +300,7 @@ test_that("Workflow progresses through steps correctly", {
   
   # Progress percentage updates
   state$progress_percentage <- (length(state$completed_steps) / state$total_steps) * 100
-  expect_equal(state$progress_percentage, 12.5)
+  expect_equal(round(state$progress_percentage, 4), round(100/9, 4))
 })
 
 test_that("Cannot skip steps without completing previous", {
@@ -445,18 +445,21 @@ test_that("Handles empty vocabulary gracefully", {
 test_that("Handles very long text inputs", {
   state <- create_test_workflow_state()
   state$current_step <- 1
-  
-  long_text <- paste(rep("A", 1000), collapse = "")
-  input <- list(
-    project_name = long_text,
-    project_description = long_text
-  )
-  
-  validation <- validate_current_step(state, input)
-  expect_true(validation$is_valid)
-  
-  updated_state <- save_step_data(state, input)
-  expect_equal(nchar(updated_state$project_data$project_name), 1000)
+
+  # MAX_NAME_LENGTH defaults to 200, so test within and over limit
+  within_limit <- paste(rep("A", 200), collapse = "")
+  input_ok <- list(project_name = within_limit, project_description = within_limit)
+  validation_ok <- validate_current_step(state, input_ok)
+  expect_true(validation_ok$is_valid)
+
+  updated_state <- save_step_data(state, input_ok)
+  expect_equal(nchar(updated_state$project_data$project_name), 200)
+
+  # Over limit should fail validation
+  over_limit <- paste(rep("A", 1000), collapse = "")
+  input_too_long <- list(project_name = over_limit)
+  validation_fail <- validate_current_step(state, input_too_long)
+  expect_false(validation_fail$is_valid)
 })
 
 test_that("Handles special characters in inputs", {
@@ -483,13 +486,13 @@ test_that("Progress percentage calculates correctly", {
   progress <- (length(state$completed_steps) / state$total_steps) * 100
   expect_equal(progress, 0)
   
-  # 4 steps completed
+  # 4 steps completed (4/9 ≈ 44.44%)
   state$completed_steps <- c(1, 2, 3, 4)
   progress <- (length(state$completed_steps) / state$total_steps) * 100
-  expect_equal(progress, 50)
+  expect_equal(round(progress, 4), round(400/9, 4))
   
   # All steps completed
-  state$completed_steps <- 1:8
+  state$completed_steps <- 1:9
   progress <- (length(state$completed_steps) / state$total_steps) * 100
   expect_equal(progress, 100)
 })

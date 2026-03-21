@@ -307,7 +307,7 @@ test_that("Autosave should skip step 1", {
 test_that("Autosave should proceed for step 2 and above", {
   skip_if(!workflow_loaded, "Guided workflow not available")
 
-  for (step in 2:8) {
+  for (step in 2:9) {
     state <- init_workflow_state()
     state$current_step <- step
 

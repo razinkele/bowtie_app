@@ -32,11 +32,13 @@
 #' @param selected_consequences reactiveVal for consequences list
 #' @param selected_protective_controls reactiveVal for protective controls list
 #' @param selected_escalation_factors reactiveVal for escalation factors list
+#' @param reviewed_selections Optional reactive returning reviewed/filtered selections from Step 8 Review
 init_workflow_export <- function(input, output, session, workflow_state,
                                  workflow_complete_reactive, lang,
                                  selected_activities, selected_pressures,
                                  selected_preventive_controls, selected_consequences,
-                                 selected_protective_controls, selected_escalation_factors) {
+                                 selected_protective_controls, selected_escalation_factors,
+                                 reviewed_selections = NULL) {
 
   # =============================================================================
   # FINALIZATION & EXPORT
@@ -78,9 +80,9 @@ init_workflow_export <- function(input, output, session, workflow_state,
     # Save final step data
     state <- save_step_data(state, input)
 
-    # Mark step 8 as complete
-    if (!8 %in% state$completed_steps) {
-      state$completed_steps <- c(state$completed_steps, 8)
+    # Mark final step as complete
+    if (!state$total_steps %in% state$completed_steps) {
+      state$completed_steps <- c(state$completed_steps, state$total_steps)
     }
 
     # Update progress to 100%
@@ -90,7 +92,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
     state$workflow_complete <- TRUE
 
     # Convert workflow data to main application format
-    converted_data <- convert_to_main_data_format(state$project_data)
+    reviewed <- tryCatch(reviewed_selections(), error = function(e) NULL)
+    converted_data <- convert_to_main_data_format(state$project_data, reviewed_selections = reviewed)
     state$converted_main_data <- converted_data
 
     log_success(paste("Workflow finalized! Data rows:", nrow(converted_data)))
@@ -101,7 +104,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
     session$sendCustomMessage("clearAutosave", list())
 
     notify_success("Workflow finalized successfully! You can now export or view the diagram.",
-      duration = NOTIFICATION_DURATION_ERROR
+      duration = NOTIFICATION_DURATION_SUCCESS
     )
   })
 
@@ -123,7 +126,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
     state$workflow_complete <- TRUE
 
     # Convert workflow data to main application format
-    converted_data <- convert_to_main_data_format(state$project_data)
+    reviewed <- tryCatch(reviewed_selections(), error = function(e) NULL)
+    converted_data <- convert_to_main_data_format(state$project_data, reviewed_selections = reviewed)
     state$converted_main_data <- converted_data
 
     workflow_state(state)
@@ -132,7 +136,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
     session$sendCustomMessage("clearAutosave", list())
 
     notify_success("Workflow finalized! You can now export or view the diagram.",
-      duration = NOTIFICATION_DURATION_ERROR
+      duration = NOTIFICATION_DURATION_SUCCESS
     )
   })
 
@@ -183,9 +187,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
         # For now, just notify where the file is saved
         notify_info(paste("File saved to:", temp_file), duration = NOTIFICATION_DURATION_LONG)
       } else {
-        # Fallback: use openxlsx directly
-        library(openxlsx)
-        wb <- createWorkbook()
+        # Fallback: use openxlsx directly (already loaded by global.R)
+        wb <- openxlsx::createWorkbook()
         addWorksheet(wb, "Bowtie_Data")
         writeData(wb, "Bowtie_Data", converted_data)
 
@@ -221,7 +224,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
         # Save workbook
         saveWorkbook(wb, temp_file, overwrite = TRUE)
 
-        notify_success(paste("\u2705 Excel file exported:", filename), duration = NOTIFICATION_DURATION_ERROR)
+        notify_success(paste("\u2705 Excel file exported:", filename), duration = NOTIFICATION_DURATION_SUCCESS)
       }
 
     }, error = function(e) {
@@ -340,7 +343,7 @@ init_workflow_export <- function(input, output, session, workflow_state,
         }
       }
 
-      notify_success(paste("\u2705 PDF report generated:", filename), duration = NOTIFICATION_DURATION_ERROR)
+      notify_success(paste("\u2705 PDF report generated:", filename), duration = NOTIFICATION_DURATION_SUCCESS)
 
       notify_info(paste("File saved to:", temp_file), duration = NOTIFICATION_DURATION_LONG)
 
@@ -362,7 +365,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
     tryCatch({
       # Always regenerate converted data to ensure fresh state trigger
       log_info("Preparing bowtie data for main application...")
-      converted_data <- convert_to_main_data_format(state$project_data)
+      reviewed <- tryCatch(reviewed_selections(), error = function(e) NULL)
+      converted_data <- convert_to_main_data_format(state$project_data, reviewed_selections = reviewed)
 
       # Validate data
       if (is.null(converted_data) || !is.data.frame(converted_data) || nrow(converted_data) == 0) {
@@ -430,7 +434,8 @@ init_workflow_export <- function(input, output, session, workflow_state,
           tags$li(strong("Preventive Controls"), " - Choose mitigation measures"),
           tags$li(strong("Consequences"), " - Identify potential environmental impacts"),
           tags$li(strong("Protective Controls"), " - Add protective measures and recovery controls"),
-          tags$li(strong("Review & Validate"), " - Check all connections and data completeness"),
+          tags$li(strong("Escalation Factors"), " - Define threats to control effectiveness"),
+          tags$li(strong("Review & Adjust"), " - Review selections, toggle connections, exclude items"),
           tags$li(strong("Finalize & Export"), " - Export your completed bowtie analysis")
         ),
         hr(),
@@ -607,6 +612,34 @@ init_workflow_export <- function(input, output, session, workflow_state,
           }
         }
 
+        # Migrate 8-step saved files to 9-step format
+        if (is.null(loaded_state$total_steps) || loaded_state$total_steps < 9) {
+          loaded_state$total_steps <- 9
+          # Remap old step 8 (finalize) to new step 9
+          if (!is.null(loaded_state$current_step) && loaded_state$current_step == 8) {
+            loaded_state$current_step <- 9
+          }
+          # Update completed_steps: 8 -> 9
+          if (8 %in% loaded_state$completed_steps) {
+            loaded_state$completed_steps <- c(
+              setdiff(loaded_state$completed_steps, 8), 9
+            )
+          }
+          # Initialize empty exclusion fields
+          if (is.null(loaded_state$project_data$excluded_activities)) {
+            loaded_state$project_data$excluded_activities <- character(0)
+            loaded_state$project_data$excluded_pressures <- character(0)
+            loaded_state$project_data$excluded_preventive <- character(0)
+            loaded_state$project_data$excluded_consequences <- character(0)
+            loaded_state$project_data$excluded_protective <- character(0)
+            loaded_state$project_data$disabled_connections <- data.frame(
+              from = character(0), to = character(0), type = character(0),
+              stringsAsFactors = FALSE
+            )
+          }
+          bowtie_log("Migrated saved workflow from 8-step to 9-step format", level = "info")
+        }
+
         workflow_state(loaded_state)
 
         # Update the reactive values based on current step
@@ -639,6 +672,26 @@ init_workflow_export <- function(input, output, session, workflow_state,
             selected_protective_controls(loaded_state$project_data$protective_controls)
           }
         } else if (loaded_state$current_step == 7) {
+          if (!is.null(loaded_state$project_data$escalation_factors)) {
+            selected_escalation_factors(loaded_state$project_data$escalation_factors)
+          }
+        } else if (loaded_state$current_step >= 8) {
+          # Restore all reactive values for review/finalize steps
+          if (!is.null(loaded_state$project_data$activities)) {
+            selected_activities(loaded_state$project_data$activities)
+          }
+          if (!is.null(loaded_state$project_data$pressures)) {
+            selected_pressures(loaded_state$project_data$pressures)
+          }
+          if (!is.null(loaded_state$project_data$preventive_controls)) {
+            selected_preventive_controls(loaded_state$project_data$preventive_controls)
+          }
+          if (!is.null(loaded_state$project_data$consequences)) {
+            selected_consequences(loaded_state$project_data$consequences)
+          }
+          if (!is.null(loaded_state$project_data$protective_controls)) {
+            selected_protective_controls(loaded_state$project_data$protective_controls)
+          }
           if (!is.null(loaded_state$project_data$escalation_factors)) {
             selected_escalation_factors(loaded_state$project_data$escalation_factors)
           }

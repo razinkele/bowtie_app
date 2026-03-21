@@ -49,32 +49,80 @@ source_from_root <- function(file) {
   return(FALSE)
 }
 
-# Load logging system first (required by other modules)
-if (!exists("log_info")) {
-  source_from_root("config/logging.R")
-}
-
-# Load core dependencies that tests commonly need
+# Load core R packages that tests commonly need
 suppressWarnings(suppressMessages({
   if (!require("dplyr", quietly = TRUE)) library(dplyr)
   if (!require("jsonlite", quietly = TRUE)) library(jsonlite)
+  if (!require("readxl", quietly = TRUE)) library(readxl)
+  if (!require("openxlsx", quietly = TRUE)) library(openxlsx)
 }))
 
+# =============================================================================
+# Source core application modules (in dependency order)
+# This makes app functions available to all test files automatically.
+# =============================================================================
+
+# Helper: source from app root only if the target function isn't already defined
+source_if_needed <- function(file, check_fn) {
+  if (!exists(check_fn, envir = .GlobalEnv)) {
+    source_from_root(file)
+  }
+}
+
+# Phase 1: Configuration (no logging dependency)
+source_if_needed("config.R", "APP_CONFIG")
+source_if_needed("constants.R", "COLOR_PRIMARY")
+
+# Phase 2: Logging system
+source_if_needed("config/logging.R", "log_info")
+
+# Phase 3: Helpers
+source_from_root("helpers/error_handling.R")
+source_from_root("helpers/security_helpers.R")
+
+# Phase 4: Core modules
+source_if_needed("utils.R", "generate_environmental_data_fixed")
+source_if_needed("vocabulary.R", "load_vocabulary")
+source_if_needed("causal_knowledge_base.R", "find_kb_connections")
+
+# Phase 5: Guided workflow submodules
+source_if_needed("guided_workflow_config.R", "WORKFLOW_CONFIG")
+source_if_needed("guided_workflow_validation.R", "validate_step_1")
+source_if_needed("guided_workflow_conversion.R", "convert_to_main_data_format")
+tryCatch(source_if_needed("guided_workflow_ui.R", "generate_step1_ui"),
+         error = function(e) NULL)
+
+# Phase 6: Bayesian network and generator (optional, may fail without all packages)
+tryCatch(source_if_needed("bowtie_bayesian_network.R", "bowtie_to_bayesian"),
+         error = function(e) NULL)
+tryCatch(source_if_needed("vocabulary_bowtie_generator.R", "generate_vocabulary_bowtie"),
+         error = function(e) NULL)
+
+# Provide find_repo_root (alias for find_app_root) used by some test files
+if (!exists("find_repo_root", envir = .GlobalEnv)) {
+  find_repo_root <- function() app_root
+  assign("find_repo_root", find_repo_root, envir = .GlobalEnv)
+}
+
 # Helper function to load guided workflow with all dependencies
+# NOTE: Most dependencies are already loaded by the setup above.
+# This function loads the main guided_workflow.R which defines the Shiny module.
 load_guided_workflow <- function() {
   old_wd <- getwd()
   tryCatch({
     setwd(app_root)
 
-    # Load dependencies in order - use local=FALSE to make functions available globally
-    if (!exists("log_info", envir = .GlobalEnv)) source("config/logging.R", local = FALSE)
-    if (!exists("load_vocabulary", envir = .GlobalEnv)) source("vocabulary.R", local = FALSE)
-    if (!exists("WORKFLOW_CONFIG", envir = .GlobalEnv)) source("guided_workflow_config.R", local = FALSE)
-    if (!exists("validate_step_1", envir = .GlobalEnv)) source("guided_workflow_validation.R", local = FALSE)
-    if (!exists("convert_to_main_data_format", envir = .GlobalEnv)) source("guided_workflow_conversion.R", local = FALSE)
+    # Source the main workflow file (dependencies already loaded above)
+    if (!exists("guided_workflow_ui", envir = .GlobalEnv)) {
+      source("guided_workflow.R", local = FALSE)
+    }
 
-    # Load the main workflow file
-    source("guided_workflow.R", local = FALSE)
+    # Also load the UI generators if available
+    if (!exists("generate_step1_ui", envir = .GlobalEnv)) {
+      if (file.exists("guided_workflow_ui.R")) {
+        source("guided_workflow_ui.R", local = FALSE)
+      }
+    }
 
     setwd(old_wd)
     return(TRUE)
@@ -92,7 +140,7 @@ safe_init_workflow_state <- function() {
       # Return a minimal mock state if loading fails
       return(list(
         current_step = 1,
-        total_steps = 8,
+        total_steps = 9,
         completed_steps = integer(0),
         progress_percentage = 0,
         workflow_complete = FALSE,

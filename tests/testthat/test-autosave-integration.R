@@ -181,7 +181,7 @@ test_that("Session restore validates restored structure", {
   # Valid restored state
   valid_restored <- list(
     current_step = 3,
-    total_steps = 8,
+    total_steps = 9,
     completed_steps = c(1, 2),
     project_data = list(project_name = "Test")
   )
@@ -193,7 +193,7 @@ test_that("Session restore validates restored structure", {
 
   # Invalid restored state (missing current_step)
   invalid_restored <- list(
-    total_steps = 8,
+    total_steps = 9,
     project_data = list(project_name = "Test")
   )
 
@@ -481,8 +481,8 @@ test_that("Workflow completion marks state correctly", {
   skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
-  state$current_step <- 8
-  state$completed_steps <- c(1, 2, 3, 4, 5, 6, 7)
+  state$current_step <- 9
+  state$completed_steps <- c(1, 2, 3, 4, 5, 6, 7, 8)
   state$workflow_complete <- FALSE
 
   # Mark as complete
@@ -500,8 +500,8 @@ test_that("Completed workflow state can be serialized for final save", {
   skip_if(!workflow_loaded, "Guided workflow not available")
 
   state <- init_workflow_state()
-  state$current_step <- 8
-  state$completed_steps <- c(1, 2, 3, 4, 5, 6, 7, 8)
+  state$current_step <- 9
+  state$completed_steps <- c(1, 2, 3, 4, 5, 6, 7, 8, 9)
   state$workflow_complete <- TRUE
   state$project_data$project_name <- "Completed Project"
   state$converted_main_data <- data.frame(

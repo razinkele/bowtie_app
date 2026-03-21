@@ -12,7 +12,8 @@
 #   - generate_step5_ui()           - Consequences
 #   - generate_step6_ui()           - Protective Controls
 #   - generate_step7_ui()           - Escalation Factors
-#   - generate_step8_ui()           - Review & Finalize
+#   - generate_step8_ui()           - Review & Adjust
+#   - generate_step9_ui()           - Finalize & Export
 # =============================================================================
 
 # Progress tracker UI
@@ -922,8 +923,148 @@ generate_step7_ui <- function(session = NULL, current_lang = "en") {
   )
 }
 
-# Step 8: Review & Finalize
-generate_step8_ui <- function(session = NULL, current_lang = "en") {
+# Step 8: Review & Adjust
+generate_step8_ui <- function(vocabulary_data = NULL, session = NULL, current_lang = "en") {
+  ns <- if (!is.null(session)) session$ns else identity
+
+  tagList(
+    div(class = "alert alert-info",
+        h5(icon("check-double"), " Review & Adjust Your Selections"),
+        p("Review all elements selected in previous steps. Uncheck items to exclude them from the final bowtie diagram. Toggle connections on/off in the Connections tab.")
+    ),
+
+    tabsetPanel(
+      id = ns("review_tabs"),
+
+      # Tab 1: Activities
+      tabPanel("Activities",
+        br(),
+        fluidRow(
+          column(6,
+            actionButton(ns("select_all_activities"), "Select All", class = "btn-sm btn-outline-primary"),
+            actionButton(ns("deselect_all_activities"), "Deselect All", class = "btn-sm btn-outline-secondary")
+          ),
+          column(6, class = "text-end",
+            uiOutput(ns("activities_count_summary"))
+          )
+        ),
+        br(),
+        div(style = "max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;",
+          checkboxGroupInput(ns("review_activities"), label = NULL, choices = character(0), selected = character(0))
+        ),
+        br(),
+        h6("Included Activities:"),
+        DT::DTOutput(ns("review_activities_table"))
+      ),
+
+      # Tab 2: Pressures
+      tabPanel("Pressures",
+        br(),
+        fluidRow(
+          column(6,
+            actionButton(ns("select_all_pressures"), "Select All", class = "btn-sm btn-outline-primary"),
+            actionButton(ns("deselect_all_pressures"), "Deselect All", class = "btn-sm btn-outline-secondary")
+          ),
+          column(6, class = "text-end",
+            uiOutput(ns("pressures_count_summary"))
+          )
+        ),
+        br(),
+        div(style = "max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;",
+          checkboxGroupInput(ns("review_pressures"), label = NULL, choices = character(0), selected = character(0))
+        ),
+        br(),
+        h6("Included Pressures:"),
+        DT::DTOutput(ns("review_pressures_table"))
+      ),
+
+      # Tab 3: Preventive Controls
+      tabPanel("Preventive Controls",
+        br(),
+        fluidRow(
+          column(6,
+            actionButton(ns("select_all_preventive"), "Select All", class = "btn-sm btn-outline-primary"),
+            actionButton(ns("deselect_all_preventive"), "Deselect All", class = "btn-sm btn-outline-secondary")
+          ),
+          column(6, class = "text-end",
+            uiOutput(ns("preventive_count_summary"))
+          )
+        ),
+        br(),
+        div(style = "max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;",
+          checkboxGroupInput(ns("review_preventive"), label = NULL, choices = character(0), selected = character(0))
+        ),
+        br(),
+        h6("Included Preventive Controls:"),
+        DT::DTOutput(ns("review_preventive_table"))
+      ),
+
+      # Tab 4: Consequences
+      tabPanel("Consequences",
+        br(),
+        fluidRow(
+          column(6,
+            actionButton(ns("select_all_consequences"), "Select All", class = "btn-sm btn-outline-primary"),
+            actionButton(ns("deselect_all_consequences"), "Deselect All", class = "btn-sm btn-outline-secondary")
+          ),
+          column(6, class = "text-end",
+            uiOutput(ns("consequences_count_summary"))
+          )
+        ),
+        br(),
+        div(style = "max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;",
+          checkboxGroupInput(ns("review_consequences"), label = NULL, choices = character(0), selected = character(0))
+        ),
+        br(),
+        h6("Included Consequences:"),
+        DT::DTOutput(ns("review_consequences_table"))
+      ),
+
+      # Tab 5: Protective Controls
+      tabPanel("Protective Controls",
+        br(),
+        fluidRow(
+          column(6,
+            actionButton(ns("select_all_protective"), "Select All", class = "btn-sm btn-outline-primary"),
+            actionButton(ns("deselect_all_protective"), "Deselect All", class = "btn-sm btn-outline-secondary")
+          ),
+          column(6, class = "text-end",
+            uiOutput(ns("protective_count_summary"))
+          )
+        ),
+        br(),
+        div(style = "max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;",
+          checkboxGroupInput(ns("review_protective"), label = NULL, choices = character(0), selected = character(0))
+        ),
+        br(),
+        h6("Included Protective Controls:"),
+        DT::DTOutput(ns("review_protective_table"))
+      ),
+
+      # Tab 6: Connections
+      tabPanel("Connections",
+        br(),
+        fluidRow(
+          column(6,
+            selectInput(ns("connection_type_filter"), "Filter by type:",
+                       choices = c("All", "Activity -> Pressure", "Control -> Pressure", "Consequence -> Protective"),
+                       selected = "All")
+          ),
+          column(6, class = "text-end",
+            uiOutput(ns("connections_count_summary"))
+          )
+        ),
+        br(),
+        DT::DTOutput(ns("review_connections_table")),
+        br(),
+        p(class = "text-muted small", "Click a row to toggle its connection on/off. Connections involving deselected elements are marked with a warning icon.")
+      )
+    )
+  )
+}
+
+# Step 9: Finalize & Export (was Step 8)
+generate_step9_ui <- function(session = NULL, current_lang = "en") {
   ns <- if (!is.null(session)) session$ns else identity
 
   tagList(

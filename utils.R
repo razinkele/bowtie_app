@@ -1651,9 +1651,9 @@ create_bowtie_nodes_fixed <- function(hazard_data, selected_problem, node_size, 
   }
   
   # Pre-calculate unique values for each element
-  activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
-  pressures <- unique(hazard_data$Pressure[hazard_data$Pressure != ""])
-  consequences <- unique(hazard_data$Consequence[hazard_data$Consequence != ""])
+  activities <- unique(hazard_data$Activity[!is.na(hazard_data$Activity) & hazard_data$Activity != ""])
+  pressures <- unique(hazard_data$Pressure[!is.na(hazard_data$Pressure) & hazard_data$Pressure != ""])
+  consequences <- unique(hazard_data$Consequence[!is.na(hazard_data$Consequence) & hazard_data$Consequence != ""])
   
   # Calculate total nodes needed
   n_activities <- length(activities)
@@ -1995,9 +1995,9 @@ create_bowtie_edges_fixed <- function(hazard_data, show_barriers) {
 
   bowtie_log("🔧 Creating Updated bowtie edges with improved protective mitigation connections", level = "debug")
 
-  activities <- unique(hazard_data$Activity[hazard_data$Activity != ""])
-  pressures <- unique(hazard_data$Pressure[hazard_data$Pressure != ""])
-  consequences <- unique(hazard_data$Consequence[hazard_data$Consequence != ""])
+  activities <- unique(hazard_data$Activity[!is.na(hazard_data$Activity) & hazard_data$Activity != ""])
+  pressures <- unique(hazard_data$Pressure[!is.na(hazard_data$Pressure) & hazard_data$Pressure != ""])
+  consequences <- unique(hazard_data$Consequence[!is.na(hazard_data$Consequence) & hazard_data$Consequence != ""])
 
   # OPTIMIZED: Use list accumulation instead of vector concatenation
   # This changes complexity from O(n²) to O(n) for edge building

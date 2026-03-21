@@ -346,8 +346,8 @@ context("Hierarchical Integration - Export and Save")
 test_that("Workflow state with custom entries can be saved", {
   # Create complete workflow state
   state <- list(
-    current_step = 8,
-    completed_steps = c(1, 2, 3, 4, 5, 6, 7),
+    current_step = 9,
+    completed_steps = c(1, 2, 3, 4, 5, 6, 7, 8),
     project_data = list(
       project_name = "Test Project",
       central_problem = "Test Problem",
@@ -370,7 +370,7 @@ test_that("Workflow state with custom entries can be saved", {
   saved_state <- state
 
   # Verify saved state contains all data
-  expect_equal(saved_state$current_step, 8,
+  expect_equal(saved_state$current_step, 9,
               "Current step should be saved")
   expect_equal(length(saved_state$project_data$activities), 2,
               "All activities should be saved")

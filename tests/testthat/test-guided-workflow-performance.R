@@ -184,14 +184,14 @@ test_that("Handles rapid step navigation", {
   
   # Rapidly navigate through all steps
   for (i in 1:10) {
-    for (step in 1:8) {
+    for (step in 1:9) {
       state$current_step <- step
       expect_equal(state$current_step, step)
     }
   }
-  
+
   # State should remain consistent
-  expect_equal(state$total_steps, 8)
+  expect_equal(state$total_steps, 9)
 })
 
 test_that("Handles repeated save operations", {
@@ -263,7 +263,7 @@ test_that("No memory leaks during repeated operations", {
   # Perform 1000 operations
   state <- initial_state
   for (i in 1:1000) {
-    state$current_step <- (i %% 8) + 1
+    state$current_step <- (i %% 9) + 1
   }
   
   final_size <- object.size(state)
@@ -382,9 +382,9 @@ test_that("Complete workflow executes in reasonable time", {
   # Execute complete workflow
   state <- create_test_workflow_state()
   
-  for (step in 1:8) {
+  for (step in 1:9) {
     state$current_step <- step
-    
+
     if (step == 1) {
       input <- list(project_name = "Perf Test")
       state <- save_step_data(state, input)
@@ -394,7 +394,7 @@ test_that("Complete workflow executes in reasonable time", {
     } else {
       state <- save_step_data(state, list())
     }
-    
+
     state$completed_steps <- c(state$completed_steps, step)
   }
   

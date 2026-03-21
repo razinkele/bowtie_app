@@ -85,14 +85,42 @@ create_bayesian_structure <- function(bowtie_data, central_problem = NULL) {
     protective_col <- rep("Unknown_Protection", nrow(bowtie_data))
   }
 
-  # Pre-compute node IDs per row
-  act_nodes <- paste0("ACT_", .bn_clean_text(bowtie_data$Activity))
-  pres_nodes <- paste0("PRES_", .bn_clean_text(bowtie_data$Pressure))
-  ctrl_nodes <- paste0("CTRL_", .bn_clean_text(bowtie_data$Preventive_Control))
-  esc_nodes <- paste0("ESC_", .bn_clean_text(bowtie_data$Escalation_Factor))
+  # Filter out rows where ALL key columns are NA (from rep_len recycling with empty vectors)
+  valid_rows <- !is.na(bowtie_data$Activity) | !is.na(bowtie_data$Pressure) |
+                !is.na(bowtie_data$Consequence)
+  bowtie_data <- bowtie_data[valid_rows, , drop = FALSE]
+
+  if (nrow(bowtie_data) == 0) {
+    bowtie_log("No valid rows for Bayesian network after NA filtering", level = "warning")
+    return(list(nodes = data.frame(), edges = data.frame(), dag = NULL))
+  }
+
+  # Create node IDs, filtering NA values per column to avoid spurious "ACT_NA" nodes
+  act_nodes <- if (any(!is.na(bowtie_data$Activity))) {
+    paste0("ACT_", .bn_clean_text(bowtie_data$Activity[!is.na(bowtie_data$Activity)]))
+  } else { character(0) }
+
+  pres_nodes <- if (any(!is.na(bowtie_data$Pressure))) {
+    paste0("PRES_", .bn_clean_text(bowtie_data$Pressure[!is.na(bowtie_data$Pressure)]))
+  } else { character(0) }
+
+  ctrl_nodes <- if (any(!is.na(bowtie_data$Preventive_Control))) {
+    paste0("CTRL_", .bn_clean_text(bowtie_data$Preventive_Control[!is.na(bowtie_data$Preventive_Control)]))
+  } else { character(0) }
+
+  esc_nodes <- if (any(!is.na(bowtie_data$Escalation_Factor))) {
+    paste0("ESC_", .bn_clean_text(bowtie_data$Escalation_Factor[!is.na(bowtie_data$Escalation_Factor)]))
+  } else { character(0) }
+
   prob_nodes <- paste0("PROB_", .bn_clean_text(bowtie_data$Central_Problem))
-  mit_nodes <- paste0("MIT_", .bn_clean_text(protective_col))
-  cons_nodes <- paste0("CONS_", .bn_clean_text(bowtie_data$Consequence))
+
+  mit_nodes <- if (any(!is.na(protective_col))) {
+    paste0("MIT_", .bn_clean_text(protective_col[!is.na(protective_col)]))
+  } else { character(0) }
+
+  cons_nodes <- if (any(!is.na(bowtie_data$Consequence))) {
+    paste0("CONS_", .bn_clean_text(bowtie_data$Consequence[!is.na(bowtie_data$Consequence)]))
+  } else { character(0) }
 
   # Build unique node list
   all_nodes <- unique(c(act_nodes, pres_nodes, ctrl_nodes, esc_nodes,
@@ -691,13 +719,13 @@ example_bayesian_analysis <- function(bowtie_data) {
   bowtie_log("1. BASIC INFERENCE", level = "info")
   evidence <- list(Pressure_Level = "High")
   results <- bn_result$inference_function(evidence, c("Consequence_Level", "Problem_Severity"))
-  print(results)
+  log_debug(paste(capture.output(str(results)), collapse = "\n"))
 
   # Example 2: Intervention analysis
   bowtie_log("2. INTERVENTION ANALYSIS", level = "info")
   evidence <- list(Control_Effect = "Effective", Pressure_Level = "High")
   results <- bn_result$inference_function(evidence, "Consequence_Level")
-  print(results)
+  log_debug(paste(capture.output(str(results)), collapse = "\n"))
 
   # Example 3: Risk propagation
   bowtie_log("3. RISK PROPAGATION", level = "info")

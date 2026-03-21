@@ -19,14 +19,14 @@ WORKFLOW_CONFIG <- list(
       title = "Project Setup",
       description = "gw_step1_desc",
       icon = "clipboard-list",
-      estimated_time = "gw_step8_time"
+      estimated_time = "gw_step1_time"
     ),
     step2 = list(
       id = "central_problem",
       title = "Central Problem Definition",
       description = "gw_step2_desc",
       icon = "bullseye",
-      estimated_time = "gw_step7_time"
+      estimated_time = "gw_step2_time"
     ),
     step3 = list(
       id = "threats_causes",
@@ -40,14 +40,14 @@ WORKFLOW_CONFIG <- list(
       title = "Preventive Controls",
       description = "gw_step4_desc",
       icon = "shield-alt",
-      estimated_time = "gw_step6_time"
+      estimated_time = "gw_step4_time"
     ),
     step5 = list(
       id = "consequences",
       title = "Consequences",
       description = "gw_step5_desc",
       icon = "exclamation",
-      estimated_time = "gw_step7_time"
+      estimated_time = "gw_step5_time"
     ),
     step6 = list(
       id = "protective_controls",
@@ -57,18 +57,25 @@ WORKFLOW_CONFIG <- list(
       estimated_time = "gw_step6_time"
     ),
     step7 = list(
-      id = "review_validate",
-      title = "Review & Validate",
+      id = "escalation_factors",
+      title = "Escalation Factors",
       description = "gw_step7_desc",
-      icon = "check-circle",
+      icon = "bolt",
       estimated_time = "gw_step7_time"
     ),
     step8 = list(
+      id = "review_adjust",
+      title = "Review & Adjust",
+      description = "gw_step8_desc",
+      icon = "check-double",
+      estimated_time = "gw_step8_time"
+    ),
+    step9 = list(
       id = "finalize_export",
       title = "Finalize & Export",
-      description = "gw_step8_desc",
+      description = "gw_step9_desc",
       icon = "download",
-      estimated_time = "gw_step8_time"
+      estimated_time = "gw_step9_time"
     )
   ),
   templates = list(
@@ -571,9 +578,11 @@ init_workflow_state <- function() {
 #' @return Updated workflow state
 update_workflow_progress <- function(state, step_number = NULL, data = NULL) {
   if (!is.null(step_number)) {
+    # Mark the previous step as completed before advancing
+    old_step <- state$current_step
     state$current_step <- step_number
-    if (!step_number %in% state$completed_steps && step_number < state$current_step) {
-      state$completed_steps <- c(state$completed_steps, step_number)
+    if (!is.null(old_step) && !old_step %in% state$completed_steps && step_number > old_step) {
+      state$completed_steps <- c(state$completed_steps, old_step)
     }
   }
 
